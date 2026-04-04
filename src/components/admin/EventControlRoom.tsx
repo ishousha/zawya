@@ -12,7 +12,6 @@ import EventFormTabs from "./event-form/EventFormTabs";
 type EventRow = Database["public"]["Tables"]["events"]["Row"];
 
 const EVENT_TYPES: Database["public"]["Enums"]["event_type"][] = ["physical", "online", "kids"];
-const POTLUCK_CATEGORIES: Database["public"]["Enums"]["potluck_category"][] = ["main", "side", "dessert", "drinks"];
 
 export default function EventControlRoom() {
   const queryClient = useQueryClient();
