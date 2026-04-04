@@ -1,5 +1,9 @@
+import { useState } from "react";
 import { format } from "date-fns";
-import { MapPin, Video, Users, Calendar, Clock } from "lucide-react";
+import { MapPin, Video, Users, Calendar, Clock, CheckCircle2, Ticket, Edit } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useMyRSVP } from "@/hooks/useRSVP";
+import RSVPModal from "@/components/RSVPModal";
 import type { Database } from "@/integrations/supabase/types";
 
 type Event = Database["public"]["Tables"]["events"]["Row"];
@@ -10,48 +14,122 @@ const typeConfig = {
   kids: { icon: Users, label: "Kids" },
 } as const;
 
-export default function EventCard({ event }: { event: Event }) {
+interface EventCardProps {
+  event: Event;
+  onShowTicket?: (event: Event) => void;
+}
+
+export default function EventCard({ event, onShowTicket }: EventCardProps) {
   const localDate = new Date(event.date_time);
   const TypeIcon = typeConfig[event.type].icon;
+  const { data: myRSVP } = useMyRSVP(event.id);
+  const [rsvpOpen, setRsvpOpen] = useState(false);
+
+  const isAttending = !!myRSVP;
 
   return (
-    <div className="animate-fade-in rounded-lg border border-border bg-card p-4 transition-shadow hover:shadow-md">
-      {/* Type badge */}
-      <div className="mb-2 flex items-center gap-2">
-        <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary">
-          <TypeIcon className="h-3 w-3" />
-          {typeConfig[event.type].label}
-        </span>
-        {event.capacity && (
-          <span className="text-xs text-muted-foreground">
-            {event.capacity} spots
+    <>
+      <div className={`animate-fade-in rounded-lg border bg-card p-4 transition-shadow hover:shadow-md ${
+        isAttending ? "border-primary/40" : "border-border"
+      }`}>
+        {/* Type badge + attending status */}
+        <div className="mb-2 flex items-center gap-2">
+          <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary">
+            <TypeIcon className="h-3 w-3" />
+            {typeConfig[event.type].label}
           </span>
+          {isAttending && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-accent px-2.5 py-0.5 text-xs font-medium text-accent-foreground">
+              <CheckCircle2 className="h-3 w-3" />
+              Attending
+            </span>
+          )}
+          {event.capacity && (
+            <span className="ml-auto text-xs text-muted-foreground">
+              {event.capacity} spots
+            </span>
+          )}
+        </div>
+
+        {/* Title */}
+        <h3 className="font-heading text-lg font-semibold text-card-foreground">
+          {event.title}
+        </h3>
+
+        {/* Date & Time in local timezone */}
+        <div className="mt-2 flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
+          <span className="inline-flex items-center gap-1">
+            <Calendar className="h-3.5 w-3.5" />
+            {format(localDate, "EEE, MMM d")}
+          </span>
+          <span className="inline-flex items-center gap-1">
+            <Clock className="h-3.5 w-3.5" />
+            {format(localDate, "h:mm a")}
+          </span>
+        </div>
+
+        {/* Show private location/link only when attending */}
+        {isAttending && event.location && (
+          <p className="mt-1.5 text-sm text-foreground">
+            📍 {event.location}
+          </p>
         )}
+        {isAttending && event.zoom_link && (
+          <p className="mt-1 text-sm">
+            🔗{" "}
+            <a
+              href={event.zoom_link}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-primary underline underline-offset-2"
+            >
+              Join Zoom
+            </a>
+          </p>
+        )}
+
+        {/* Not attending: show general location hint */}
+        {!isAttending && event.location && (
+          <p className="mt-1.5 text-sm text-muted-foreground italic">
+            📍 Location revealed after RSVP
+          </p>
+        )}
+
+        {/* Action buttons */}
+        <div className="mt-3 flex gap-2">
+          {isAttending ? (
+            <>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setRsvpOpen(true)}
+                className="flex-1"
+              >
+                <Edit className="mr-1.5 h-3.5 w-3.5" />
+                Edit RSVP
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => onShowTicket?.(event)}
+                className="flex-1"
+              >
+                <Ticket className="mr-1.5 h-3.5 w-3.5" />
+                View Ticket
+              </Button>
+            </>
+          ) : (
+            <Button
+              size="sm"
+              onClick={() => setRsvpOpen(true)}
+              className="w-full"
+            >
+              RSVP
+            </Button>
+          )}
+        </div>
       </div>
 
-      {/* Title */}
-      <h3 className="font-heading text-lg font-semibold text-card-foreground">
-        {event.title}
-      </h3>
-
-      {/* Date & Time in local timezone */}
-      <div className="mt-2 flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
-        <span className="inline-flex items-center gap-1">
-          <Calendar className="h-3.5 w-3.5" />
-          {format(localDate, "EEE, MMM d")}
-        </span>
-        <span className="inline-flex items-center gap-1">
-          <Clock className="h-3.5 w-3.5" />
-          {format(localDate, "h:mm a")}
-        </span>
-      </div>
-
-      {/* Location */}
-      {event.location && (
-        <p className="mt-1.5 text-sm text-muted-foreground">
-          📍 {event.location}
-        </p>
-      )}
-    </div>
+      <RSVPModal event={event} open={rsvpOpen} onOpenChange={setRsvpOpen} />
+    </>
   );
 }

@@ -1,11 +1,18 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useMyRSVP } from "@/hooks/useRSVP";
 import EventCard from "@/components/EventCard";
+import QRTicketScreen from "@/components/QRTicketScreen";
 import { Loader2 } from "lucide-react";
+import type { Database } from "@/integrations/supabase/types";
+
+type Event = Database["public"]["Tables"]["events"]["Row"];
 
 export default function HomeFeed() {
   const { profile } = useAuth();
+  const [ticketEvent, setTicketEvent] = useState<Event | null>(null);
 
   const { data: events, isLoading } = useQuery({
     queryKey: ["events"],
@@ -22,9 +29,15 @@ export default function HomeFeed() {
     },
   });
 
+  // If viewing a ticket, show QR screen
+  if (ticketEvent) {
+    return (
+      <TicketView event={ticketEvent} onBack={() => setTicketEvent(null)} />
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background pb-24">
-      {/* Header */}
       <header className="border-b border-border bg-card px-4 pb-4 pt-6">
         <h1 className="font-heading text-2xl font-bold text-foreground">Zawya</h1>
         <p className="mt-1 text-sm text-muted-foreground">
@@ -32,7 +45,6 @@ export default function HomeFeed() {
         </p>
       </header>
 
-      {/* Events */}
       <main className="mx-auto max-w-lg px-4 py-6">
         <h2 className="mb-4 font-heading text-lg font-semibold text-foreground">
           Upcoming Gatherings
@@ -45,7 +57,11 @@ export default function HomeFeed() {
         ) : events && events.length > 0 ? (
           <div className="space-y-3">
             {events.map((event) => (
-              <EventCard key={event.id} event={event} />
+              <EventCard
+                key={event.id}
+                event={event}
+                onShowTicket={(e) => setTicketEvent(e)}
+              />
             ))}
           </div>
         ) : (
@@ -56,4 +72,24 @@ export default function HomeFeed() {
       </main>
     </div>
   );
+}
+
+/** Wrapper to load myRSVP for the ticket screen */
+function TicketView({ event, onBack }: { event: Event; onBack: () => void }) {
+  const { data: myRSVP, isLoading } = useMyRSVP(event.id);
+
+  if (isLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!myRSVP) {
+    onBack();
+    return null;
+  }
+
+  return <QRTicketScreen event={event} rsvp={myRSVP} onBack={onBack} />;
 }
