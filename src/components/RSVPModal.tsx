@@ -97,15 +97,27 @@ export default function RSVPModal({ event, open, onOpenChange }: RSVPModalProps)
         });
         toast.success("RSVP updated successfully!");
       } else {
-        await createRSVP.mutateAsync({
+        const result = await createRSVP.mutateAsync({
           guests_count: guestsCount,
           selections: selArray,
         });
-        toast.success("RSVP confirmed! Your ticket is ready.");
+        if (result.is_waitlisted) {
+          toast.success("Added to the Waitlist", {
+            description: "You'll be notified if a spot opens up.",
+          });
+        } else {
+          toast.success("RSVP confirmed! Your ticket is ready.");
+        }
       }
       onOpenChange(false);
-    } catch {
-      toast.error("Failed to save RSVP. Please try again.");
+    } catch (err: any) {
+      if (err?.message === "FULL") {
+        toast.error("Event and Waitlist are Full", {
+          description: "No more spots available at this time.",
+        });
+      } else {
+        toast.error("Failed to save RSVP. Please try again.");
+      }
     }
   };
 

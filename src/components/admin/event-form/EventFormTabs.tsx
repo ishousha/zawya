@@ -159,7 +159,7 @@ export default function EventFormTabs({ event, onClose }: EventFormTabsProps) {
             <ItemsTab items={signUpItems} onChange={setSignUpItems} />
           </TabsContent>
           <TabsContent value="settings">
-            <SettingsTab />
+            <SettingsTab form={form} setForm={setForm} />
           </TabsContent>
         </Tabs>
 

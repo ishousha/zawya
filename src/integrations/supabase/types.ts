@@ -255,6 +255,7 @@ export type Database = {
           event_id: string
           guests_count: number
           id: string
+          is_waitlisted: boolean
           potluck_category:
             | Database["public"]["Enums"]["potluck_category"]
             | null
@@ -269,6 +270,7 @@ export type Database = {
           event_id: string
           guests_count?: number
           id?: string
+          is_waitlisted?: boolean
           potluck_category?:
             | Database["public"]["Enums"]["potluck_category"]
             | null
@@ -283,6 +285,7 @@ export type Database = {
           event_id?: string
           guests_count?: number
           id?: string
+          is_waitlisted?: boolean
           potluck_category?:
             | Database["public"]["Enums"]["potluck_category"]
             | null
