@@ -12,6 +12,13 @@ export interface EventFormState {
   status: "active" | "full" | "cancelled";
 }
 
+export interface SignUpItemState {
+  id?: number;
+  item_name: string;
+  quantity_limit: number;
+  order_index: number;
+}
+
 export const defaultEventForm: EventFormState = {
   title: "",
   date_time: "",
