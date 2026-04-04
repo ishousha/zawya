@@ -1,26 +1,16 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
-import { useRSVPConcurrency, useEventRSVPs, usePotluckConfig, useMyRSVP } from "@/hooks/useRSVP";
-import { useDuplicateFoodCheck } from "@/hooks/useDuplicateFoodCheck";
+import { Input } from "@/components/ui/input";
+import { useRSVPConcurrency, useEventRSVPs, useSignUpItems, useEventSelections, useMyRSVP, useMySelections } from "@/hooks/useRSVP";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import { Loader2, AlertTriangle } from "lucide-react";
+import { Loader2, Minus, Plus } from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
 
 type Event = Database["public"]["Tables"]["events"]["Row"];
-type PotluckCategory = Database["public"]["Enums"]["potluck_category"];
-
-const CATEGORY_LABELS: Record<PotluckCategory, string> = {
-  main: "Main Dish",
-  side: "Side Dish",
-  dessert: "Dessert",
-  drinks: "Drinks",
-};
 
 interface RSVPModalProps {
   event: Event;
@@ -30,78 +20,86 @@ interface RSVPModalProps {
 
 export default function RSVPModal({ event, open, onOpenChange }: RSVPModalProps) {
   const { user } = useAuth();
-  const { data: rsvps } = useEventRSVPs(event.id);
-  const { data: potluckConfigs } = usePotluckConfig(event.id);
   const { data: myRSVP } = useMyRSVP(event.id);
+  const { data: signUpItems } = useSignUpItems(event.id);
+  const { data: allSelections } = useEventSelections(event.id);
+  const { data: mySelections } = useMySelections(myRSVP?.id);
   const { createRSVP, updateRSVP, cancelRSVP } = useRSVPConcurrency(event.id);
-  const { claimedItemsByCategory, isDuplicate } = useDuplicateFoodCheck(rsvps, user?.id);
 
   const isEditing = !!myRSVP;
 
-  const [guestsCount, setGuestsCount] = useState(myRSVP?.guests_count ?? 1);
-  const [selectedCategory, setSelectedCategory] = useState<PotluckCategory | "">(
-    myRSVP?.potluck_category ?? ""
-  );
-  const [foodItem, setFoodItem] = useState(myRSVP?.specific_food_item ?? "");
-  const [foodWarning, setFoodWarning] = useState("");
+  const [guestsCount, setGuestsCount] = useState(1);
+  const [selections, setSelections] = useState<Record<number, number>>({});
 
-  // Sync state when myRSVP loads
-  useState(() => {
+  // Sync state when data loads
+  useEffect(() => {
     if (myRSVP) {
       setGuestsCount(myRSVP.guests_count);
-      setSelectedCategory(myRSVP.potluck_category ?? "");
-      setFoodItem(myRSVP.specific_food_item ?? "");
     }
-  });
+  }, [myRSVP]);
 
-  // Calculate slots used per category
-  const slotsUsed = useMemo(() => {
-    const map: Record<string, number> = {};
-    if (!rsvps) return map;
-    for (const rsvp of rsvps) {
-      if (rsvp.potluck_category) {
-        map[rsvp.potluck_category] = (map[rsvp.potluck_category] || 0) + 1;
-      }
+  useEffect(() => {
+    if (mySelections) {
+      const map: Record<number, number> = {};
+      mySelections.forEach((s) => {
+        map[Number(s.sign_up_item_id)] = s.quantity;
+      });
+      setSelections(map);
     }
-    // Don't count current user's slot if editing
-    if (isEditing && myRSVP?.potluck_category) {
-      const cat = myRSVP.potluck_category;
-      map[cat] = Math.max(0, (map[cat] || 0) - 1);
+  }, [mySelections]);
+
+  // Calculate claimed quantities per item (excluding current user)
+  const claimedPerItem = useMemo(() => {
+    const map: Record<number, number> = {};
+    if (!allSelections) return map;
+    for (const sel of allSelections) {
+      // Exclude current user's selections from the count
+      if (myRSVP && sel.rsvp_id === myRSVP.id) continue;
+      const itemId = Number(sel.sign_up_item_id);
+      map[itemId] = (map[itemId] || 0) + sel.quantity;
     }
     return map;
-  }, [rsvps, isEditing, myRSVP]);
+  }, [allSelections, myRSVP]);
 
-  const hasPotluck = potluckConfigs && potluckConfigs.length > 0;
+  const hasItems = signUpItems && signUpItems.length > 0;
 
-  const handleFoodItemChange = (value: string) => {
-    setFoodItem(value);
-    if (selectedCategory && value.trim() && isDuplicate(selectedCategory, value)) {
-      setFoodWarning("This item is already claimed by another member.");
-    } else {
-      setFoodWarning("");
-    }
+  const updateSelection = (itemId: number, delta: number) => {
+    setSelections((prev) => {
+      const current = prev[itemId] || 0;
+      const next = Math.max(0, current + delta);
+      if (next === 0) {
+        const { [itemId]: _, ...rest } = prev;
+        return rest;
+      }
+      return { ...prev, [itemId]: next };
+    });
+  };
+
+  const getRemaining = (item: { id: number | string; quantity_limit: number }) => {
+    const itemId = Number(item.id);
+    if (item.quantity_limit === 0) return Infinity;
+    const claimed = claimedPerItem[itemId] || 0;
+    const myQty = selections[itemId] || 0;
+    return item.quantity_limit - claimed - myQty;
   };
 
   const handleSubmit = async () => {
-    if (foodWarning) {
-      toast.error("Please choose a different food item — this one is already taken.");
-      return;
-    }
+    const selArray = Object.entries(selections)
+      .filter(([, qty]) => qty > 0)
+      .map(([id, qty]) => ({ sign_up_item_id: Number(id), quantity: qty }));
 
     try {
       if (isEditing && myRSVP) {
         await updateRSVP.mutateAsync({
           rsvpId: myRSVP.id,
           guests_count: guestsCount,
-          potluck_category: selectedCategory || null,
-          specific_food_item: foodItem.trim() || null,
+          selections: selArray,
         });
         toast.success("RSVP updated successfully!");
       } else {
         await createRSVP.mutateAsync({
           guests_count: guestsCount,
-          potluck_category: selectedCategory || null,
-          specific_food_item: foodItem.trim() || null,
+          selections: selArray,
         });
         toast.success("RSVP confirmed! Your ticket is ready.");
       }
@@ -153,76 +151,62 @@ export default function RSVPModal({ event, open, onOpenChange }: RSVPModalProps)
             </div>
           </div>
 
-          {/* Potluck section */}
-          {hasPotluck && (
+          {/* Flexible sign-up items */}
+          {hasItems && (
             <div className="space-y-3">
-              <Label className="block text-sm font-medium">Potluck Contribution</Label>
+              <Label className="block text-sm font-medium">Sign-Up Items</Label>
+              <div className="space-y-2">
+                {signUpItems.map((item) => {
+                  const itemId = Number(item.id);
+                  const qty = selections[itemId] || 0;
+                  const remaining = getRemaining(item);
+                  const atLimit = remaining <= 0 && qty === 0;
+                  const claimed = claimedPerItem[itemId] || 0;
 
-              <Select
-                value={selectedCategory}
-                onValueChange={(v) => {
-                  setSelectedCategory(v as PotluckCategory);
-                  setFoodItem("");
-                  setFoodWarning("");
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a category (optional)" />
-                </SelectTrigger>
-                <SelectContent>
-                  {potluckConfigs.map((config) => {
-                    const used = slotsUsed[config.category] || 0;
-                    const isFull = used >= config.max_slots;
-                    return (
-                      <SelectItem
-                        key={config.id}
-                        value={config.category}
-                        disabled={isFull}
-                      >
-                        {CATEGORY_LABELS[config.category]}
-                        <span className="ml-2 text-xs text-muted-foreground">
-                          ({used}/{config.max_slots}{isFull ? " — Full" : ""})
-                        </span>
-                      </SelectItem>
-                    );
-                  })}
-                </SelectContent>
-              </Select>
+                  return (
+                    <div
+                      key={item.id}
+                      className={`flex items-center justify-between rounded-lg border p-3 ${
+                        atLimit ? "border-border bg-muted/50 opacity-60" : "border-border bg-card"
+                      }`}
+                    >
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium text-foreground">{item.item_name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {item.quantity_limit === 0
+                            ? "No limit"
+                            : `${claimed + qty}/${item.quantity_limit} claimed`}
+                          {atLimit && " — Full"}
+                        </p>
+                      </div>
 
-              {/* Food item input */}
-              {selectedCategory && (
-                <div>
-                  <Input
-                    placeholder="What will you bring? (e.g., Biryani)"
-                    value={foodItem}
-                    onChange={(e) => handleFoodItemChange(e.target.value)}
-                  />
-                  {foodWarning && (
-                    <p className="mt-1 flex items-center gap-1 text-xs text-destructive">
-                      <AlertTriangle className="h-3 w-3" />
-                      {foodWarning}
-                    </p>
-                  )}
-                </div>
-              )}
-
-              {/* Claimed items read-only list */}
-              {selectedCategory && claimedItemsByCategory[selectedCategory]?.length > 0 && (
-                <div className="rounded-md border border-border bg-muted/50 p-3">
-                  <p className="mb-1.5 text-xs font-medium text-muted-foreground">
-                    Already claimed in {CATEGORY_LABELS[selectedCategory as PotluckCategory]}:
-                  </p>
-                  <ul className="space-y-1">
-                    {claimedItemsByCategory[selectedCategory]
-                      .filter((i) => i.userId !== user?.id)
-                      .map((item, idx) => (
-                        <li key={idx} className="text-sm text-foreground">
-                          • {item.item}
-                        </li>
-                      ))}
-                  </ul>
-                </div>
-              )}
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <Button
+                          type="button"
+                          size="icon"
+                          variant="outline"
+                          className="h-8 w-8"
+                          disabled={qty === 0}
+                          onClick={() => updateSelection(itemId, -1)}
+                        >
+                          <Minus className="h-3.5 w-3.5" />
+                        </Button>
+                        <span className="w-8 text-center text-sm font-medium">{qty}</span>
+                        <Button
+                          type="button"
+                          size="icon"
+                          variant="outline"
+                          className="h-8 w-8"
+                          disabled={remaining <= 0}
+                          onClick={() => updateSelection(itemId, 1)}
+                        >
+                          <Plus className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           )}
         </div>

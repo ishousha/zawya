@@ -7,7 +7,6 @@ import type { Database } from "@/integrations/supabase/types";
 
 type RSVP = Database["public"]["Tables"]["rsvps"]["Row"];
 type RSVPInsert = Database["public"]["Tables"]["rsvps"]["Insert"];
-type PotluckCategory = Database["public"]["Enums"]["potluck_category"];
 
 export function useEventRSVPs(eventId: string) {
   return useQuery({
@@ -42,6 +41,7 @@ export function useMyRSVP(eventId: string) {
   });
 }
 
+/** Legacy — kept for backward compat but prefer useSignUpItems */
 export function usePotluckConfig(eventId: string) {
   return useQuery({
     queryKey: ["potluck-config", eventId],
@@ -56,15 +56,79 @@ export function usePotluckConfig(eventId: string) {
   });
 }
 
+/** Fetch flexible sign-up items for an event */
+export function useSignUpItems(eventId: string) {
+  return useQuery({
+    queryKey: ["sign-up-items", eventId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("event_sign_up_items")
+        .select("*")
+        .eq("event_id", eventId)
+        .order("order_index", { ascending: true });
+      if (error) throw error;
+      return data;
+    },
+  });
+}
+
+/** Fetch all selections for an event (across all RSVPs) */
+export function useEventSelections(eventId: string) {
+  return useQuery({
+    queryKey: ["event-selections", eventId],
+    queryFn: async () => {
+      // Get all rsvps for event, then their selections
+      const { data: rsvps, error: rsvpErr } = await supabase
+        .from("rsvps")
+        .select("id")
+        .eq("event_id", eventId);
+      if (rsvpErr) throw rsvpErr;
+      if (!rsvps || rsvps.length === 0) return [];
+
+      const rsvpIds = rsvps.map((r) => r.id);
+      const { data, error } = await supabase
+        .from("rsvp_sign_up_selections")
+        .select("*")
+        .in("rsvp_id", rsvpIds);
+      if (error) throw error;
+      return data;
+    },
+  });
+}
+
+/** Fetch my selections for a specific RSVP */
+export function useMySelections(rsvpId: string | undefined) {
+  return useQuery({
+    queryKey: ["my-selections", rsvpId],
+    enabled: !!rsvpId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("rsvp_sign_up_selections")
+        .select("*")
+        .eq("rsvp_id", rsvpId!);
+      if (error) throw error;
+      return data;
+    },
+  });
+}
+
 export function useRSVPConcurrency(eventId: string) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
+  const invalidateAll = () => {
+    queryClient.invalidateQueries({ queryKey: ["rsvps", eventId] });
+    queryClient.invalidateQueries({ queryKey: ["my-rsvp", eventId, user?.id] });
+    queryClient.invalidateQueries({ queryKey: ["event-selections", eventId] });
+    queryClient.invalidateQueries({ queryKey: ["my-selections"] });
+  };
+
   const createRSVP = useMutation({
     mutationFn: async (input: {
       guests_count: number;
-      potluck_category?: PotluckCategory | null;
+      potluck_category?: string | null;
       specific_food_item?: string | null;
+      selections?: { sign_up_item_id: number; quantity: number }[];
     }) => {
       if (!user) throw new Error("Not authenticated");
 
@@ -76,7 +140,7 @@ export function useRSVPConcurrency(eventId: string) {
         event_id: eventId,
         user_id: user.id,
         guests_count: input.guests_count,
-        potluck_category: input.potluck_category ?? null,
+        potluck_category: (input.potluck_category as any) ?? null,
         specific_food_item: input.specific_food_item ?? null,
         qr_hash: qrHash,
       };
@@ -86,12 +150,20 @@ export function useRSVPConcurrency(eventId: string) {
         .insert(rsvpData)
         .select()
         .single();
-
       if (error) throw error;
 
-      // Fire-and-forget webhook
-      notifyRSVPCreated(data.id, eventId, user.id);
+      // Save selections
+      if (input.selections && input.selections.length > 0) {
+        const rows = input.selections.map((s) => ({
+          rsvp_id: data.id,
+          sign_up_item_id: s.sign_up_item_id,
+          quantity: s.quantity,
+        }));
+        const { error: selErr } = await supabase.from("rsvp_sign_up_selections").insert(rows);
+        if (selErr) throw selErr;
+      }
 
+      notifyRSVPCreated(data.id, eventId, user.id);
       return data as RSVP;
     },
     onMutate: async (input) => {
@@ -104,7 +176,7 @@ export function useRSVPConcurrency(eventId: string) {
         event_id: eventId,
         user_id: user!.id,
         guests_count: input.guests_count,
-        potluck_category: input.potluck_category ?? null,
+        potluck_category: (input.potluck_category as any) ?? null,
         specific_food_item: input.specific_food_item ?? null,
         checked_in: false,
         qr_hash: null,
@@ -123,18 +195,16 @@ export function useRSVPConcurrency(eventId: string) {
       }
       queryClient.setQueryData(["my-rsvp", eventId, user?.id], null);
     },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ["rsvps", eventId] });
-      queryClient.invalidateQueries({ queryKey: ["my-rsvp", eventId, user?.id] });
-    },
+    onSettled: invalidateAll,
   });
 
   const updateRSVP = useMutation({
     mutationFn: async (input: {
       rsvpId: string;
       guests_count: number;
-      potluck_category?: PotluckCategory | null;
+      potluck_category?: string | null;
       specific_food_item?: string | null;
+      selections?: { sign_up_item_id: number; quantity: number }[];
     }) => {
       if (!user) throw new Error("Not authenticated");
 
@@ -142,22 +212,31 @@ export function useRSVPConcurrency(eventId: string) {
         .from("rsvps")
         .update({
           guests_count: input.guests_count,
-          potluck_category: input.potluck_category ?? null,
+          potluck_category: (input.potluck_category as any) ?? null,
           specific_food_item: input.specific_food_item ?? null,
         })
         .eq("id", input.rsvpId)
         .eq("user_id", user.id)
         .select()
         .single();
-
       if (error) throw error;
+
+      // Replace selections
+      await supabase.from("rsvp_sign_up_selections").delete().eq("rsvp_id", input.rsvpId);
+      if (input.selections && input.selections.length > 0) {
+        const rows = input.selections.map((s) => ({
+          rsvp_id: input.rsvpId,
+          sign_up_item_id: s.sign_up_item_id,
+          quantity: s.quantity,
+        }));
+        const { error: selErr } = await supabase.from("rsvp_sign_up_selections").insert(rows);
+        if (selErr) throw selErr;
+      }
+
       notifyRSVPUpdated(data.id, eventId, user.id);
       return data as RSVP;
     },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ["rsvps", eventId] });
-      queryClient.invalidateQueries({ queryKey: ["my-rsvp", eventId, user?.id] });
-    },
+    onSettled: invalidateAll,
   });
 
   const cancelRSVP = useMutation({
@@ -169,7 +248,6 @@ export function useRSVPConcurrency(eventId: string) {
         .delete()
         .eq("id", rsvpId)
         .eq("user_id", user.id);
-
       if (error) throw error;
       notifyRSVPCancelled(rsvpId, eventId, user.id);
     },
@@ -187,10 +265,7 @@ export function useRSVPConcurrency(eventId: string) {
         queryClient.setQueryData(["rsvps", eventId], context.previousRSVPs);
       }
     },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ["rsvps", eventId] });
-      queryClient.invalidateQueries({ queryKey: ["my-rsvp", eventId, user?.id] });
-    },
+    onSettled: invalidateAll,
   });
 
   return { createRSVP, updateRSVP, cancelRSVP };
