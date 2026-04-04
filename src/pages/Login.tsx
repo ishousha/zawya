@@ -35,9 +35,7 @@ export default function LoginPage() {
       <div className="w-full max-w-sm animate-fade-in">
         {/* Decorative header */}
         <div className="mb-8 text-center">
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary">
-            <span className="font-heading text-2xl text-primary-foreground">ز</span>
-          </div>
+          <img src={zawyaLogo} alt="Zawya logo" className="mx-auto mb-4 h-20 w-20 object-contain" />
           <h1 className="font-heading text-3xl font-bold text-foreground">Zawya</h1>
           <p className="mt-2 text-muted-foreground">
             A gathering place for the community
