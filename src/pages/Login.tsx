@@ -10,7 +10,21 @@ import zawyaLogo from "@/assets/logo.png";
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
+  const [appleLoading, setAppleLoading] = useState(false);
   const [sent, setSent] = useState(false);
+
+  const handleAppleSignIn = async () => {
+    setAppleLoading(true);
+    const result = await lovable.auth.signInWithOAuth("apple", {
+      redirect_uri: window.location.origin,
+    });
+    if (result.error) {
+      toast.error("Apple sign-in failed. Please try again.");
+      setAppleLoading(false);
+    }
+    if (result.redirected) return;
+    setAppleLoading(false);
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
