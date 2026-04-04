@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useState, useEffect } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import DesignTab from "./DesignTab";
 import ItemsTab from "./ItemsTab";
+import type { SignUpItem } from "./ItemsTab";
 import SettingsTab from "./SettingsTab";
 import { EventFormState, defaultEventForm } from "./types";
 import type { Database } from "@/integrations/supabase/types";
@@ -40,6 +41,36 @@ export default function EventFormTabs({ event, onClose }: EventFormTabsProps) {
     };
   });
 
+  const [signUpItems, setSignUpItems] = useState<SignUpItem[]>([]);
+
+  // Load existing sign-up items when editing
+  const { data: existingItems } = useQuery({
+    queryKey: ["sign-up-items", event?.id],
+    enabled: !!event?.id,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("event_sign_up_items")
+        .select("*")
+        .eq("event_id", event!.id)
+        .order("order_index", { ascending: true });
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  useEffect(() => {
+    if (existingItems) {
+      setSignUpItems(
+        existingItems.map((item) => ({
+          id: Number(item.id),
+          item_name: item.item_name,
+          quantity_limit: item.quantity_limit,
+          order_index: item.order_index,
+        }))
+      );
+    }
+  }, [existingItems]);
+
   const mutation = useMutation({
     mutationFn: async () => {
       const payload: any = {
@@ -57,16 +88,37 @@ export default function EventFormTabs({ event, onClose }: EventFormTabsProps) {
         status: form.status,
       };
 
+      let eventId = event?.id;
       if (event) {
         const { error } = await supabase.from("events").update(payload).eq("id", event.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from("events").insert(payload);
+        const { data, error } = await supabase.from("events").insert(payload).select("id").single();
         if (error) throw error;
+        eventId = data.id;
+      }
+
+      // Save sign-up items
+      if (eventId) {
+        // Delete old items
+        await supabase.from("event_sign_up_items").delete().eq("event_id", eventId);
+
+        // Insert new items
+        if (signUpItems.length > 0) {
+          const rows = signUpItems.map((item, i) => ({
+            event_id: eventId!,
+            item_name: item.item_name,
+            quantity_limit: item.quantity_limit,
+            order_index: i,
+          }));
+          const { error } = await supabase.from("event_sign_up_items").insert(rows);
+          if (error) throw error;
+        }
       }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-events"] });
+      queryClient.invalidateQueries({ queryKey: ["sign-up-items"] });
       toast.success(event ? "Event updated" : "Event created");
       onClose();
     },
@@ -104,7 +156,7 @@ export default function EventFormTabs({ event, onClose }: EventFormTabsProps) {
             <DesignTab form={form} setForm={setForm} />
           </TabsContent>
           <TabsContent value="items">
-            <ItemsTab />
+            <ItemsTab items={signUpItems} onChange={setSignUpItems} />
           </TabsContent>
           <TabsContent value="settings">
             <SettingsTab />
