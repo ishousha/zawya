@@ -4,6 +4,7 @@ import LoginPage from "@/pages/Login";
 import PendingApproval from "@/pages/PendingApproval";
 import HomeFeed from "@/pages/HomeFeed";
 import ProfilePage from "@/pages/Profile";
+import AdminDashboard from "@/pages/AdminDashboard";
 import BottomNav from "@/components/BottomNav";
 import NotFound from "@/pages/NotFound";
 import { Loader2 } from "lucide-react";
@@ -43,6 +44,7 @@ export default function AppRoutes() {
       <Routes>
         <Route path="/" element={<HomeFeed />} />
         <Route path="/profile" element={<ProfilePage />} />
+        <Route path="/admin" element={<AdminDashboard />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
       <BottomNav />
