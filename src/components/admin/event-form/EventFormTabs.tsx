@@ -113,8 +113,14 @@ export default function EventFormTabs({ event, onClose }: EventFormTabsProps) {
 
         <Button
           className="w-full h-12 mt-4"
-          onClick={() => mutation.mutate()}
-          disabled={mutation.isPending || !form.title || !form.date_time}
+          onClick={() => {
+            if (form.end_date_time && form.end_date_time <= form.date_time) {
+              toast.error("End time must be after start time");
+              return;
+            }
+            mutation.mutate();
+          }}
+          disabled={mutation.isPending || !form.title || !form.date_time || !form.end_date_time}
         >
           {mutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
           {event ? "Update Event" : "Create Event"}
