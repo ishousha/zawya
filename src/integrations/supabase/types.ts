@@ -53,6 +53,38 @@ export type Database = {
         }
         Relationships: []
       }
+      potluck_config: {
+        Row: {
+          category: Database["public"]["Enums"]["potluck_category"]
+          created_at: string
+          event_id: string
+          id: string
+          max_slots: number
+        }
+        Insert: {
+          category: Database["public"]["Enums"]["potluck_category"]
+          created_at?: string
+          event_id: string
+          id?: string
+          max_slots?: number
+        }
+        Update: {
+          category?: Database["public"]["Enums"]["potluck_category"]
+          created_at?: string
+          event_id?: string
+          id?: string
+          max_slots?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "potluck_config_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string
@@ -85,6 +117,59 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      rsvps: {
+        Row: {
+          checked_in: boolean
+          created_at: string
+          event_id: string
+          guests_count: number
+          id: string
+          potluck_category:
+            | Database["public"]["Enums"]["potluck_category"]
+            | null
+          qr_hash: string | null
+          specific_food_item: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          checked_in?: boolean
+          created_at?: string
+          event_id: string
+          guests_count?: number
+          id?: string
+          potluck_category?:
+            | Database["public"]["Enums"]["potluck_category"]
+            | null
+          qr_hash?: string | null
+          specific_food_item?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          checked_in?: boolean
+          created_at?: string
+          event_id?: string
+          guests_count?: number
+          id?: string
+          potluck_category?:
+            | Database["public"]["Enums"]["potluck_category"]
+            | null
+          qr_hash?: string | null
+          specific_food_item?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rsvps_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
@@ -121,6 +206,7 @@ export type Database = {
       app_role: "admin" | "approved" | "pending"
       event_status: "active" | "full" | "cancelled"
       event_type: "physical" | "online" | "kids"
+      potluck_category: "main" | "side" | "dessert" | "drinks"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -251,6 +337,7 @@ export const Constants = {
       app_role: ["admin", "approved", "pending"],
       event_status: ["active", "full", "cancelled"],
       event_type: ["physical", "online", "kids"],
+      potluck_category: ["main", "side", "dessert", "drinks"],
     },
   },
 } as const
