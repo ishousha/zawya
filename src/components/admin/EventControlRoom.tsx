@@ -1,18 +1,14 @@
 import { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Plus, Edit2, X, Users, UtensilsCrossed } from "lucide-react";
-import { toast } from "sonner";
+import { Loader2, Plus, Edit2, X, Users } from "lucide-react";
 import { format } from "date-fns";
 import type { Database } from "@/integrations/supabase/types";
+import EventFormTabs from "./event-form/EventFormTabs";
 
-type EventInsert = Database["public"]["Tables"]["events"]["Insert"];
 type EventRow = Database["public"]["Tables"]["events"]["Row"];
 
 const EVENT_TYPES: Database["public"]["Enums"]["event_type"][] = ["physical", "online", "kids"];
