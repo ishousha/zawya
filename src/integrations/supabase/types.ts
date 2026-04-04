@@ -20,6 +20,7 @@ export type Database = {
           event_id: string
           id: number
           item_name: string
+          order_index: number
           quantity_limit: number
         }
         Insert: {
@@ -27,6 +28,7 @@ export type Database = {
           event_id: string
           id?: never
           item_name: string
+          order_index?: number
           quantity_limit?: number
         }
         Update: {
@@ -34,6 +36,7 @@ export type Database = {
           event_id?: string
           id?: never
           item_name?: string
+          order_index?: number
           quantity_limit?: number
         }
         Relationships: [
@@ -205,6 +208,45 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      rsvp_sign_up_selections: {
+        Row: {
+          created_at: string
+          id: number
+          quantity: number
+          rsvp_id: string
+          sign_up_item_id: number
+        }
+        Insert: {
+          created_at?: string
+          id?: never
+          quantity?: number
+          rsvp_id: string
+          sign_up_item_id: number
+        }
+        Update: {
+          created_at?: string
+          id?: never
+          quantity?: number
+          rsvp_id?: string
+          sign_up_item_id?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rsvp_sign_up_selections_rsvp_id_fkey"
+            columns: ["rsvp_id"]
+            isOneToOne: false
+            referencedRelation: "rsvps"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rsvp_sign_up_selections_sign_up_item_id_fkey"
+            columns: ["sign_up_item_id"]
+            isOneToOne: false
+            referencedRelation: "event_sign_up_items"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       rsvps: {
         Row: {
