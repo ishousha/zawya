@@ -108,6 +108,25 @@ function RSVPMonitor({ eventId, onClose }: { eventId: string; onClose: () => voi
     },
   });
 
+  const attending = rsvps?.filter((r: any) => !r.is_waitlisted) ?? [];
+  const waitlisted = rsvps?.filter((r: any) => r.is_waitlisted) ?? [];
+
+  const renderRow = (r: any) => (
+    <div key={r.id} className="flex items-center justify-between rounded-md border border-border p-3">
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm font-medium text-card-foreground">
+          {r.profiles?.name || r.profiles?.email || "Unknown"}
+        </p>
+        <div className="flex gap-2 mt-1">
+          <span className="text-xs text-muted-foreground">Guests: {r.guests_count}</span>
+        </div>
+      </div>
+      <Badge variant={r.checked_in ? "default" : "outline"} className="text-xs">
+        {r.checked_in ? "✓ In" : "Not in"}
+      </Badge>
+    </div>
+  );
+
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -120,29 +139,32 @@ function RSVPMonitor({ eventId, onClose }: { eventId: string; onClose: () => voi
         {isLoading ? (
           <div className="flex justify-center py-6"><Loader2 className="h-5 w-5 animate-spin text-primary" /></div>
         ) : rsvps && rsvps.length > 0 ? (
-          <div className="space-y-2">
-            {rsvps.map((r: any) => (
-              <div key={r.id} className="flex items-center justify-between rounded-md border border-border p-3">
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium text-card-foreground">
-                    {r.profiles?.name || r.profiles?.email || "Unknown"}
-                  </p>
-                  <div className="flex gap-2 mt-1">
-                    <span className="text-xs text-muted-foreground">Guests: {r.guests_count}</span>
-                    {r.potluck_category && (
-                      <span className="text-xs text-muted-foreground capitalize">
-                        🍽 {r.potluck_category}: {r.specific_food_item || "TBD"}
-                      </span>
-                    )}
-                  </div>
-                </div>
-                <Badge variant={r.checked_in ? "default" : "outline"} className="text-xs">
-                  {r.checked_in ? "✓ In" : "Not in"}
-                </Badge>
+          <div className="space-y-4">
+            {/* Attending section */}
+            <div>
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+                Attending ({attending.length})
+              </p>
+              {attending.length > 0 ? (
+                <div className="space-y-2">{attending.map(renderRow)}</div>
+              ) : (
+                <p className="text-xs text-muted-foreground italic">No confirmed attendees yet.</p>
+              )}
+            </div>
+
+            {/* Waitlisted section */}
+            {waitlisted.length > 0 && (
+              <div>
+                <p className="text-xs font-semibold text-amber-600 uppercase tracking-wider mb-2">
+                  Waitlisted ({waitlisted.length})
+                </p>
+                <div className="space-y-2">{waitlisted.map(renderRow)}</div>
               </div>
-            ))}
+            )}
+
             <p className="text-xs text-muted-foreground text-center pt-2">
-              Total attendees: {rsvps.reduce((sum: number, r: any) => sum + r.guests_count, 0)}
+              Total: {attending.reduce((s: number, r: any) => s + r.guests_count, 0)} attending
+              {waitlisted.length > 0 && ` · ${waitlisted.reduce((s: number, r: any) => s + r.guests_count, 0)} waitlisted`}
             </p>
           </div>
         ) : (
