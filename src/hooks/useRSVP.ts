@@ -77,7 +77,6 @@ export function useEventSelections(eventId: string) {
   return useQuery({
     queryKey: ["event-selections", eventId],
     queryFn: async () => {
-      // Get all rsvps for event, then their selections
       const { data: rsvps, error: rsvpErr } = await supabase
         .from("rsvps")
         .select("id")
@@ -112,6 +111,60 @@ export function useMySelections(rsvpId: string | undefined) {
   });
 }
 
+/**
+ * Checks capacity & waitlist, returns whether the RSVP should be waitlisted.
+ * Throws if both event and waitlist are full.
+ */
+async function checkWaitlistStatus(
+  eventId: string,
+  currentUserId: string
+): Promise<boolean> {
+  // Fetch event capacity info
+  const { data: event, error: evErr } = await supabase
+    .from("events")
+    .select("capacity, waitlist_capacity")
+    .eq("id", eventId)
+    .single();
+  if (evErr) throw evErr;
+
+  const capacity = (event as any).capacity as number | null;
+  const waitlistCapacity = ((event as any).waitlist_capacity ?? 0) as number;
+
+  // No capacity set = unlimited, never waitlist
+  if (!capacity) return false;
+
+  // Count existing confirmed (non-waitlisted) RSVPs
+  const { count: confirmedCount, error: cErr } = await supabase
+    .from("rsvps")
+    .select("*", { count: "exact", head: true })
+    .eq("event_id", eventId)
+    .eq("is_waitlisted", false)
+    .neq("user_id", currentUserId);
+  if (cErr) throw cErr;
+
+  const confirmed = confirmedCount ?? 0;
+
+  // Still has room — not waitlisted
+  if (confirmed < capacity) return false;
+
+  // Event is full — check waitlist room
+  const { count: waitlistedCount, error: wErr } = await supabase
+    .from("rsvps")
+    .select("*", { count: "exact", head: true })
+    .eq("event_id", eventId)
+    .eq("is_waitlisted", true)
+    .neq("user_id", currentUserId);
+  if (wErr) throw wErr;
+
+  const waitlisted = waitlistedCount ?? 0;
+
+  if (waitlisted >= waitlistCapacity) {
+    throw new Error("FULL");
+  }
+
+  return true; // should be waitlisted
+}
+
 export function useRSVPConcurrency(eventId: string) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -132,6 +185,9 @@ export function useRSVPConcurrency(eventId: string) {
     }) => {
       if (!user) throw new Error("Not authenticated");
 
+      // Check waitlist status
+      const isWaitlisted = await checkWaitlistStatus(eventId, user.id);
+
       const rsvpId = crypto.randomUUID();
       const qrHash = await generateQRHash(rsvpId);
 
@@ -143,6 +199,7 @@ export function useRSVPConcurrency(eventId: string) {
         potluck_category: (input.potluck_category as any) ?? null,
         specific_food_item: input.specific_food_item ?? null,
         qr_hash: qrHash,
+        is_waitlisted: isWaitlisted,
       };
 
       const { data, error } = await supabase
@@ -179,6 +236,7 @@ export function useRSVPConcurrency(eventId: string) {
         potluck_category: (input.potluck_category as any) ?? null,
         specific_food_item: input.specific_food_item ?? null,
         checked_in: false,
+        is_waitlisted: false,
         qr_hash: null,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
