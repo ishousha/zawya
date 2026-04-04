@@ -36,3 +36,15 @@ export async function notifyRSVPCancelled(rsvpId: string, eventId: string, userI
     console.warn("n8n webhook (rsvp-cancelled) not configured:", error);
   }
 }
+
+export async function notifyUserApproval(userId: string, role: string) {
+  try {
+    await fetch(`${N8N_WEBHOOK_URL}/user-approval`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ user_id: userId, role, timestamp: new Date().toISOString() }),
+    });
+  } catch (error) {
+    console.warn("n8n webhook (user-approval) not configured:", error);
+  }
+}

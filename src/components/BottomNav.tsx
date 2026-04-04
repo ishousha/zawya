@@ -1,12 +1,17 @@
 import { NavLink } from "react-router-dom";
-import { Home, User } from "lucide-react";
-
-const tabs = [
-  { to: "/", icon: Home, label: "Home" },
-  { to: "/profile", icon: User, label: "Profile" },
-];
+import { Home, User, Shield } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function BottomNav() {
+  const { profile } = useAuth();
+  const isAdmin = profile?.role === "admin";
+
+  const tabs = [
+    { to: "/", icon: Home, label: "Home" },
+    ...(isAdmin ? [{ to: "/admin", icon: Shield, label: "Admin" }] : []),
+    { to: "/profile", icon: User, label: "Profile" },
+  ];
+
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-card">
       <div className="mx-auto flex max-w-lg">
