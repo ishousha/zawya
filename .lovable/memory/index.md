@@ -9,6 +9,6 @@ PWA configured with vite-plugin-pwa. SW disabled in dev/preview. Offline QR tick
 
 ## Memories
 - [Design tokens](mem://design/tokens) — Emerald/parchment/gold palette, font families, animations
-- [DB schema](mem://features/db-schema) — profiles, events, user_roles, rsvps, potluck_config, guest_requests tables
+- [DB schema](mem://features/db-schema) — profiles, events (hybrid/waitlist/cover), user_roles, rsvps, event_sign_up_items, guest_requests tables
 - [RSVP system](mem://features/rsvp) — Hooks, potluck logic, QR tickets, webhook placeholders
-- [Admin dashboard](mem://features/admin-dashboard) — User/guest mgmt, event control, QR door scanner
+- [Admin dashboard](mem://features/admin-dashboard) — User/guest mgmt, event control (multi-tab form), QR door scanner
