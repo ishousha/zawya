@@ -14,41 +14,88 @@ export type Database = {
   }
   public: {
     Tables: {
+      event_sign_up_items: {
+        Row: {
+          created_at: string
+          event_id: string
+          id: number
+          item_name: string
+          quantity_limit: number
+        }
+        Insert: {
+          created_at?: string
+          event_id: string
+          id?: never
+          item_name: string
+          quantity_limit?: number
+        }
+        Update: {
+          created_at?: string
+          event_id?: string
+          id?: never
+          item_name?: string
+          quantity_limit?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_sign_up_items_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       events: {
         Row: {
           capacity: number | null
+          cover_photo_url: string | null
           created_at: string
           date_time: string
+          end_date_time: string | null
           id: string
+          is_hybrid: boolean
           location: string | null
           status: Database["public"]["Enums"]["event_status"]
           title: string
           type: Database["public"]["Enums"]["event_type"]
           updated_at: string
+          virtual_link: string | null
+          waitlist_capacity: number
           zoom_link: string | null
         }
         Insert: {
           capacity?: number | null
+          cover_photo_url?: string | null
           created_at?: string
           date_time: string
+          end_date_time?: string | null
           id?: string
+          is_hybrid?: boolean
           location?: string | null
           status?: Database["public"]["Enums"]["event_status"]
           title: string
           type?: Database["public"]["Enums"]["event_type"]
           updated_at?: string
+          virtual_link?: string | null
+          waitlist_capacity?: number
           zoom_link?: string | null
         }
         Update: {
           capacity?: number | null
+          cover_photo_url?: string | null
           created_at?: string
           date_time?: string
+          end_date_time?: string | null
           id?: string
+          is_hybrid?: boolean
           location?: string | null
           status?: Database["public"]["Enums"]["event_status"]
           title?: string
           type?: Database["public"]["Enums"]["event_type"]
           updated_at?: string
+          virtual_link?: string | null
+          waitlist_capacity?: number
           zoom_link?: string | null
         }
         Relationships: []
