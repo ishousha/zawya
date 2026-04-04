@@ -172,7 +172,7 @@ export default function EventFormTabs({ event, onClose }: EventFormTabsProps) {
             }
             mutation.mutate();
           }}
-          disabled={mutation.isPending || !form.title || !form.date_time || !form.end_date_time}
+          disabled={mutation.isPending || !form.title || !form.date_time}
         >
           {mutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
           {event ? "Update Event" : "Create Event"}
