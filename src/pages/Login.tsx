@@ -3,16 +3,21 @@ import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { toast } from "sonner";
-import { Mail, Loader2 } from "lucide-react";
+import { Mail, Loader2, ArrowLeft } from "lucide-react";
 import zawyaLogo from "@/assets/logo.png";
+
+type Stage = "email" | "otp";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
+  const [otp, setOtp] = useState("");
+  const [stage, setStage] = useState<Stage>("email");
   const [loading, setLoading] = useState(false);
+  const [verifying, setVerifying] = useState(false);
   const [appleLoading, setAppleLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
-  const [sent, setSent] = useState(false);
 
   const handleOAuthSignIn = async (provider: "apple" | "google") => {
     const setLoaderFn = provider === "apple" ? setAppleLoading : setGoogleLoading;
@@ -28,7 +33,7 @@ export default function LoginPage() {
     setLoaderFn(false);
   };
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
@@ -40,17 +45,40 @@ export default function LoginPage() {
     setLoading(false);
 
     if (error) {
-      toast.error("Could not send magic link. Please try again.");
+      toast.error("Could not send code. Please try again.");
     } else {
-      setSent(true);
-      toast.success("Check your email for the magic link!");
+      setStage("otp");
+      toast.success("Code sent! Check your email.");
     }
+  };
+
+  const handleVerifyOtp = async () => {
+    if (otp.length !== 6) return;
+    setVerifying(true);
+
+    const { error } = await supabase.auth.verifyOtp({
+      email,
+      token: otp,
+      type: "email",
+    });
+
+    setVerifying(false);
+
+    if (error) {
+      toast.error("Invalid or expired code. Please try again.");
+      setOtp("");
+    }
+  };
+
+  const handleBack = () => {
+    setStage("email");
+    setOtp("");
   };
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="w-full max-w-sm animate-fade-in">
-        {/* Decorative header */}
+        {/* Header */}
         <div className="mb-8 text-center">
           <img src={zawyaLogo} alt="Zawya logo" className="mx-auto mb-4 h-20 w-20 object-contain" />
           <h1 className="font-heading text-3xl font-bold text-foreground">Zawya</h1>
@@ -59,25 +87,56 @@ export default function LoginPage() {
           </p>
         </div>
 
-        {sent ? (
+        {stage === "otp" ? (
           <div className="rounded-lg border border-border bg-card p-6 text-center">
             <Mail className="mx-auto mb-3 h-10 w-10 text-primary" />
             <h2 className="font-heading text-xl font-semibold text-card-foreground">
-              Check your inbox
+              Enter your code
             </h2>
             <p className="mt-2 text-sm text-muted-foreground">
-              We sent a magic link to <strong className="text-foreground">{email}</strong>
+              We emailed you a code to{" "}
+              <strong className="text-foreground">{email}</strong>, enter it here:
             </p>
+
+            <div className="mt-6 flex justify-center">
+              <InputOTP
+                maxLength={6}
+                value={otp}
+                onChange={setOtp}
+              >
+                <InputOTPGroup>
+                  <InputOTPSlot index={0} className="h-12 w-12 text-lg border-input focus-within:ring-primary" />
+                  <InputOTPSlot index={1} className="h-12 w-12 text-lg border-input focus-within:ring-primary" />
+                  <InputOTPSlot index={2} className="h-12 w-12 text-lg border-input focus-within:ring-primary" />
+                  <InputOTPSlot index={3} className="h-12 w-12 text-lg border-input focus-within:ring-primary" />
+                  <InputOTPSlot index={4} className="h-12 w-12 text-lg border-input focus-within:ring-primary" />
+                  <InputOTPSlot index={5} className="h-12 w-12 text-lg border-input focus-within:ring-primary" />
+                </InputOTPGroup>
+              </InputOTP>
+            </div>
+
             <Button
-              variant="ghost"
-              className="mt-4 text-primary"
-              onClick={() => setSent(false)}
+              className="mt-6 w-full"
+              onClick={handleVerifyOtp}
+              disabled={verifying || otp.length !== 6}
             >
-              Use a different email
+              {verifying ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : null}
+              Continue
             </Button>
+
+            <button
+              type="button"
+              onClick={handleBack}
+              className="mt-4 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <ArrowLeft className="h-3.5 w-3.5" />
+              Change email
+            </button>
           </div>
         ) : (
-          <form onSubmit={handleLogin} className="rounded-lg border border-border bg-card p-6">
+          <form onSubmit={handleSendOtp} className="rounded-lg border border-border bg-card p-6">
             <label htmlFor="email" className="mb-2 block text-sm font-medium text-card-foreground">
               Email address
             </label>
@@ -96,7 +155,7 @@ export default function LoginPage() {
               ) : (
                 <Mail className="mr-2 h-4 w-4" />
               )}
-              Send Magic Link
+              Send Code
             </Button>
           </form>
         )}
