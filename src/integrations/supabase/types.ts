@@ -53,6 +53,47 @@ export type Database = {
         }
         Relationships: []
       }
+      guest_requests: {
+        Row: {
+          created_at: string
+          event_id: string
+          guest_name: string
+          guest_phone: string | null
+          id: string
+          requesting_user_id: string
+          status: Database["public"]["Enums"]["guest_request_status"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          event_id: string
+          guest_name: string
+          guest_phone?: string | null
+          id?: string
+          requesting_user_id: string
+          status?: Database["public"]["Enums"]["guest_request_status"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          event_id?: string
+          guest_name?: string
+          guest_phone?: string | null
+          id?: string
+          requesting_user_id?: string
+          status?: Database["public"]["Enums"]["guest_request_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "guest_requests_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       potluck_config: {
         Row: {
           category: Database["public"]["Enums"]["potluck_category"]
@@ -206,6 +247,7 @@ export type Database = {
       app_role: "admin" | "approved" | "pending"
       event_status: "active" | "full" | "cancelled"
       event_type: "physical" | "online" | "kids"
+      guest_request_status: "pending" | "approved" | "rejected"
       potluck_category: "main" | "side" | "dessert" | "drinks"
     }
     CompositeTypes: {
@@ -337,6 +379,7 @@ export const Constants = {
       app_role: ["admin", "approved", "pending"],
       event_status: ["active", "full", "cancelled"],
       event_type: ["physical", "online", "kids"],
+      guest_request_status: ["pending", "approved", "rejected"],
       potluck_category: ["main", "side", "dessert", "drinks"],
     },
   },
