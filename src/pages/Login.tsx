@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { Mail, Loader2 } from "lucide-react";
+import zawyaLogo from "@/assets/logo.png";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
