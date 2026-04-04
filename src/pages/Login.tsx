@@ -11,19 +11,21 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [appleLoading, setAppleLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [sent, setSent] = useState(false);
 
-  const handleAppleSignIn = async () => {
-    setAppleLoading(true);
-    const result = await lovable.auth.signInWithOAuth("apple", {
+  const handleOAuthSignIn = async (provider: "apple" | "google") => {
+    const setLoaderFn = provider === "apple" ? setAppleLoading : setGoogleLoading;
+    setLoaderFn(true);
+    const result = await lovable.auth.signInWithOAuth(provider, {
       redirect_uri: window.location.origin,
     });
     if (result.error) {
-      toast.error("Apple sign-in failed. Please try again.");
-      setAppleLoading(false);
+      toast.error(`${provider === "apple" ? "Apple" : "Google"} sign-in failed. Please try again.`);
+      setLoaderFn(false);
     }
     if (result.redirected) return;
-    setAppleLoading(false);
+    setLoaderFn(false);
   };
 
   const handleLogin = async (e: React.FormEvent) => {
