@@ -18,35 +18,40 @@ type EventRow = Database["public"]["Tables"]["events"]["Row"];
 
 interface EventFormTabsProps {
   event?: EventRow;
+  initialForm?: EventFormState;
+  initialItems?: SignUpItem[];
   onClose: () => void;
 }
 
-export default function EventFormTabs({ event, onClose }: EventFormTabsProps) {
+export default function EventFormTabs({ event, initialForm, initialItems, onClose }: EventFormTabsProps) {
   const queryClient = useQueryClient();
 
   const [form, setForm] = useState<EventFormState>(() => {
+    if (initialForm) return initialForm;
     if (!event) return defaultEventForm;
     return {
       title: event.title,
+      description: event.description ?? "",
       date_time: event.date_time ? format(new Date(event.date_time), "yyyy-MM-dd'T'HH:mm") : "",
-      end_date_time: (event as any).end_date_time ? format(new Date((event as any).end_date_time), "yyyy-MM-dd'T'HH:mm") : "",
+      end_date_time: event.end_date_time ? format(new Date(event.end_date_time), "yyyy-MM-dd'T'HH:mm") : "",
       type: event.type,
       location: event.location ?? "",
-      virtual_link: (event as any).virtual_link ?? event.zoom_link ?? "",
-      cover_photo_url: (event as any).cover_photo_url ?? null,
+      address: event.address ?? "",
+      virtual_link: event.virtual_link ?? event.zoom_link ?? "",
+      cover_photo_url: event.cover_photo_url ?? null,
       capacity: event.capacity?.toString() ?? "",
-      waitlist_capacity: ((event as any).waitlist_capacity ?? 0).toString(),
-      is_hybrid: (event as any).is_hybrid ?? false,
+      waitlist_capacity: (event.waitlist_capacity ?? 0).toString(),
+      is_hybrid: event.is_hybrid ?? false,
       status: event.status,
     };
   });
 
-  const [signUpItems, setSignUpItems] = useState<SignUpItem[]>([]);
+  const [signUpItems, setSignUpItems] = useState<SignUpItem[]>(initialItems ?? []);
 
-  // Load existing sign-up items when editing
+  // Load existing sign-up items when editing (not duplicating)
   const { data: existingItems } = useQuery({
     queryKey: ["sign-up-items", event?.id],
-    enabled: !!event?.id,
+    enabled: !!event?.id && !initialItems,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("event_sign_up_items")
@@ -59,7 +64,7 @@ export default function EventFormTabs({ event, onClose }: EventFormTabsProps) {
   });
 
   useEffect(() => {
-    if (existingItems) {
+    if (existingItems && !initialItems) {
       setSignUpItems(
         existingItems.map((item) => ({
           id: Number(item.id),
@@ -69,16 +74,18 @@ export default function EventFormTabs({ event, onClose }: EventFormTabsProps) {
         }))
       );
     }
-  }, [existingItems]);
+  }, [existingItems, initialItems]);
 
   const mutation = useMutation({
     mutationFn: async () => {
       const payload: any = {
         title: form.title,
+        description: form.description || null,
         date_time: new Date(form.date_time).toISOString(),
         end_date_time: form.end_date_time ? new Date(form.end_date_time).toISOString() : null,
         type: form.type,
         location: form.location || null,
+        address: form.address || null,
         virtual_link: form.virtual_link || null,
         zoom_link: form.virtual_link || null,
         cover_photo_url: form.cover_photo_url,
@@ -89,10 +96,12 @@ export default function EventFormTabs({ event, onClose }: EventFormTabsProps) {
       };
 
       let eventId = event?.id;
-      if (event) {
+      if (event && !initialForm) {
+        // Editing existing event
         const { error } = await supabase.from("events").update(payload).eq("id", event.id);
         if (error) throw error;
       } else {
+        // Creating new (or duplicated) event
         const { data, error } = await supabase.from("events").insert(payload).select("id").single();
         if (error) throw error;
         eventId = data.id;
@@ -100,10 +109,10 @@ export default function EventFormTabs({ event, onClose }: EventFormTabsProps) {
 
       // Save sign-up items
       if (eventId) {
-        // Delete old items
-        await supabase.from("event_sign_up_items").delete().eq("event_id", eventId);
+        if (event && !initialForm) {
+          await supabase.from("event_sign_up_items").delete().eq("event_id", eventId);
+        }
 
-        // Insert new items
         if (signUpItems.length > 0) {
           const rows = signUpItems.map((item, i) => ({
             event_id: eventId!,
@@ -119,17 +128,19 @@ export default function EventFormTabs({ event, onClose }: EventFormTabsProps) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-events"] });
       queryClient.invalidateQueries({ queryKey: ["sign-up-items"] });
-      toast.success(event ? "Event updated" : "Event created");
+      toast.success(event && !initialForm ? "Event updated" : "Event created");
       onClose();
     },
     onError: () => toast.error("Failed to save event"),
   });
 
+  const isNewEvent = !event || !!initialForm;
+
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <CardTitle className="text-lg font-heading">
-          {event ? "Edit Event" : "New Event"}
+          {isNewEvent ? "New Event" : "Edit Event"}
         </CardTitle>
         <Button size="icon" variant="ghost" className="h-10 w-10" onClick={onClose}>
           <X className="h-5 w-5" />
@@ -175,7 +186,7 @@ export default function EventFormTabs({ event, onClose }: EventFormTabsProps) {
           disabled={mutation.isPending || !form.title || !form.date_time}
         >
           {mutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          {event ? "Update Event" : "Create Event"}
+          {isNewEvent ? "Create Event" : "Update Event"}
         </Button>
       </CardContent>
     </Card>

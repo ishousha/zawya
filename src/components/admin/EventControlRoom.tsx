@@ -6,10 +6,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Loader2, Plus, Edit2, X, Users, ChevronDown } from "lucide-react";
+import { Loader2, Plus, Edit2, X, Users, ChevronDown, Copy } from "lucide-react";
 import { format } from "date-fns";
 import type { Database } from "@/integrations/supabase/types";
 import EventFormTabs from "./event-form/EventFormTabs";
+import type { EventFormState } from "./event-form/types";
+import type { SignUpItem } from "./event-form/ItemsTab";
 
 type EventRow = Database["public"]["Tables"]["events"]["Row"];
 
@@ -17,6 +19,7 @@ export default function EventControlRoom() {
   const [editing, setEditing] = useState<EventRow | null>(null);
   const [creating, setCreating] = useState(false);
   const [monitoringEventId, setMonitoringEventId] = useState<string | null>(null);
+  const [duplicateForm, setDuplicateForm] = useState<{ form: EventFormState; items: SignUpItem[] } | null>(null);
 
   const { data: events, isLoading } = useQuery({
     queryKey: ["admin-events"],
@@ -30,6 +33,39 @@ export default function EventControlRoom() {
     },
   });
 
+  const handleDuplicate = async (event: EventRow) => {
+    // Fetch sign-up items for this event
+    const { data: items } = await supabase
+      .from("event_sign_up_items")
+      .select("*")
+      .eq("event_id", event.id)
+      .order("order_index", { ascending: true });
+
+    const form: EventFormState = {
+      title: event.title + " (Copy)",
+      description: event.description ?? "",
+      date_time: "",
+      end_date_time: "",
+      type: event.type,
+      location: event.location ?? "",
+      address: event.address ?? "",
+      virtual_link: event.virtual_link ?? event.zoom_link ?? "",
+      cover_photo_url: event.cover_photo_url ?? null,
+      capacity: event.capacity?.toString() ?? "",
+      waitlist_capacity: (event.waitlist_capacity ?? 0).toString(),
+      is_hybrid: event.is_hybrid ?? false,
+      status: "active",
+    };
+
+    const copiedItems: SignUpItem[] = (items ?? []).map((item, i) => ({
+      item_name: item.item_name,
+      quantity_limit: item.quantity_limit,
+      order_index: i,
+    }));
+
+    setDuplicateForm({ form, items: copiedItems });
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -38,9 +74,11 @@ export default function EventControlRoom() {
     );
   }
 
+  const showList = !creating && !editing && !monitoringEventId && !duplicateForm;
+
   return (
     <div className="space-y-4 py-4">
-      {!creating && !editing && !monitoringEventId && (
+      {showList && (
         <>
           <Button onClick={() => setCreating(true)} className="w-full gap-2 h-12">
             <Plus className="h-5 w-5" /> Create Event
@@ -73,6 +111,9 @@ export default function EventControlRoom() {
                       <Button size="icon" variant="ghost" className="h-10 w-10" onClick={() => setEditing(event)}>
                         <Edit2 className="h-4 w-4" />
                       </Button>
+                      <Button size="icon" variant="ghost" className="h-10 w-10" onClick={() => handleDuplicate(event)}>
+                        <Copy className="h-4 w-4" />
+                      </Button>
                     </div>
                   </div>
                 </CardContent>
@@ -88,6 +129,14 @@ export default function EventControlRoom() {
 
       {editing && (
         <EventFormTabs event={editing} onClose={() => setEditing(null)} />
+      )}
+
+      {duplicateForm && (
+        <EventFormTabs
+          initialForm={duplicateForm.form}
+          initialItems={duplicateForm.items}
+          onClose={() => setDuplicateForm(null)}
+        />
       )}
 
       {monitoringEventId && (
@@ -179,7 +228,6 @@ function RSVPMonitor({ eventId, onClose }: { eventId: string; onClose: () => voi
           <div className="flex justify-center py-6"><Loader2 className="h-5 w-5 animate-spin text-primary" /></div>
         ) : rsvps && rsvps.length > 0 ? (
           <div className="space-y-4">
-            {/* Attending section */}
             <div>
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
                 Attending ({attending.length})
@@ -191,7 +239,6 @@ function RSVPMonitor({ eventId, onClose }: { eventId: string; onClose: () => voi
               )}
             </div>
 
-            {/* Waitlisted section */}
             {waitlisted.length > 0 && (
               <div>
                 <p className="text-xs font-semibold text-amber-600 uppercase tracking-wider mb-2">
@@ -201,7 +248,6 @@ function RSVPMonitor({ eventId, onClose }: { eventId: string; onClose: () => voi
               </div>
             )}
 
-            {/* Guest Approvals */}
             <div className="pt-2 border-t border-border">
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
                 Guest Requests

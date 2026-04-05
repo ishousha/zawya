@@ -1,8 +1,9 @@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { MapPin, Video, AlertCircle } from "lucide-react";
+import { MapPin, Video, AlertCircle, Building2 } from "lucide-react";
 import CoverPhotoUpload from "./CoverPhotoUpload";
 import type { EventFormState } from "./types";
 
@@ -20,7 +21,6 @@ export default function DesignTab({ form, setForm }: DesignTabProps) {
   const endBeforeStart =
     form.date_time && form.end_date_time && form.end_date_time <= form.date_time;
 
-  // Determine which location fields to show
   const showPhysical =
     form.is_hybrid || form.type === "physical" || form.type === "kids";
   const showVirtual = form.is_hybrid || form.type === "online";
@@ -42,6 +42,18 @@ export default function DesignTab({ form, setForm }: DesignTabProps) {
           onChange={(e) => update("title", e.target.value)}
           placeholder="e.g. Friday Gathering"
           className="mt-1.5"
+        />
+      </div>
+
+      {/* Description */}
+      <div>
+        <Label htmlFor="description">Description</Label>
+        <Textarea
+          id="description"
+          value={form.description}
+          onChange={(e) => update("description", e.target.value)}
+          placeholder="Add details about this event…"
+          className="mt-1.5 min-h-[100px]"
         />
       </div>
 
@@ -110,18 +122,33 @@ export default function DesignTab({ form, setForm }: DesignTabProps) {
 
       {/* Location fields — conditional on type + hybrid */}
       {showPhysical && (
-        <div>
-          <Label htmlFor="location" className="flex items-center gap-1.5">
-            <MapPin className="h-3.5 w-3.5 text-primary" />
-            Physical Location
-          </Label>
-          <Input
-            id="location"
-            value={form.location}
-            onChange={(e) => update("location", e.target.value)}
-            placeholder="Enter address or Google Maps link"
-            className="mt-1.5"
-          />
+        <div className="space-y-3">
+          <div>
+            <Label htmlFor="location" className="flex items-center gap-1.5">
+              <Building2 className="h-3.5 w-3.5 text-primary" />
+              Location Name
+            </Label>
+            <Input
+              id="location"
+              value={form.location}
+              onChange={(e) => update("location", e.target.value)}
+              placeholder="e.g. Zawya Hall, Building B"
+              className="mt-1.5"
+            />
+          </div>
+          <div>
+            <Label htmlFor="address" className="flex items-center gap-1.5">
+              <MapPin className="h-3.5 w-3.5 text-primary" />
+              Address / Maps Link
+            </Label>
+            <Input
+              id="address"
+              value={form.address}
+              onChange={(e) => update("address", e.target.value)}
+              placeholder="Full address or Google Maps link"
+              className="mt-1.5"
+            />
+          </div>
         </div>
       )}
 
