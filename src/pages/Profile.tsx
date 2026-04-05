@@ -250,6 +250,8 @@ export default function ProfilePage() {
           </Button>
         </div>
 
+        <DependentsSection />
+
         <Button
           variant="outline"
           className="w-full"

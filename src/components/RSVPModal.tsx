@@ -1,14 +1,14 @@
 import { useState, useMemo, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { Slider } from "@/components/ui/slider";
-import { Input } from "@/components/ui/input";
-import { useRSVPConcurrency, useEventRSVPs, useSignUpItems, useEventSelections, useMyRSVP, useMySelections } from "@/hooks/useRSVP";
+import { useRSVPConcurrency, useSignUpItems, useEventSelections, useMyRSVP, useMySelections } from "@/hooks/useRSVP";
+import { useDependents } from "@/components/profile/DependentsSection";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { Loader2, Minus, Plus } from "lucide-react";
+import { Label } from "@/components/ui/label";
 import GuestRequestsSection from "@/components/rsvp/GuestRequestsSection";
+import AttendeeChecklist from "@/components/rsvp/AttendeeChecklist";
 import type { Database } from "@/integrations/supabase/types";
 
 type Event = Database["public"]["Tables"]["events"]["Row"];
@@ -20,24 +20,36 @@ interface RSVPModalProps {
 }
 
 export default function RSVPModal({ event, open, onOpenChange }: RSVPModalProps) {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const { data: myRSVP } = useMyRSVP(event.id);
   const { data: signUpItems } = useSignUpItems(event.id);
   const { data: allSelections } = useEventSelections(event.id);
   const { data: mySelections } = useMySelections(myRSVP?.id);
+  const { data: dependents } = useDependents();
   const { createRSVP, updateRSVP, cancelRSVP } = useRSVPConcurrency(event.id);
 
   const isEditing = !!myRSVP;
 
-  const [guestsCount, setGuestsCount] = useState(1);
+  const [selfAttending, setSelfAttending] = useState(true);
+  const [selectedDependentIds, setSelectedDependentIds] = useState<Set<string>>(new Set());
   const [selections, setSelections] = useState<Record<number, number>>({});
 
-  // Sync state when data loads
+  // Sync attendee state when data loads
   useEffect(() => {
-    if (myRSVP) {
-      setGuestsCount(myRSVP.guests_count);
+    if (myRSVP && dependents) {
+      const totalGuests = myRSVP.guests_count;
+      // Self is always counted as 1, rest are dependents
+      const kidCount = Math.max(0, totalGuests - 1);
+      setSelfAttending(true);
+      // Select first N dependents by default when editing
+      const depIds = new Set<string>();
+      dependents.slice(0, kidCount).forEach((d) => depIds.add(d.id));
+      setSelectedDependentIds(depIds);
+    } else if (!myRSVP) {
+      setSelfAttending(true);
+      setSelectedDependentIds(new Set());
     }
-  }, [myRSVP]);
+  }, [myRSVP, dependents]);
 
   useEffect(() => {
     if (mySelections) {
@@ -49,12 +61,22 @@ export default function RSVPModal({ event, open, onOpenChange }: RSVPModalProps)
     }
   }, [mySelections]);
 
+  const guestsCount = (selfAttending ? 1 : 0) + selectedDependentIds.size;
+
+  const toggleDependent = (id: string) => {
+    setSelectedDependentIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
   // Calculate claimed quantities per item (excluding current user)
   const claimedPerItem = useMemo(() => {
     const map: Record<number, number> = {};
     if (!allSelections) return map;
     for (const sel of allSelections) {
-      // Exclude current user's selections from the count
       if (myRSVP && sel.rsvp_id === myRSVP.id) continue;
       const itemId = Number(sel.sign_up_item_id);
       map[itemId] = (map[itemId] || 0) + sel.quantity;
@@ -85,6 +107,11 @@ export default function RSVPModal({ event, open, onOpenChange }: RSVPModalProps)
   };
 
   const handleSubmit = async () => {
+    if (guestsCount === 0) {
+      toast.error("Please select at least one attendee.");
+      return;
+    }
+
     const selArray = Object.entries(selections)
       .filter(([, qty]) => qty > 0)
       .map(([id, qty]) => ({ sign_up_item_id: Number(id), quantity: qty }));
@@ -145,24 +172,19 @@ export default function RSVPModal({ event, open, onOpenChange }: RSVPModalProps)
         </DialogHeader>
 
         <div className="space-y-5 py-2">
-          {/* Guest count */}
-          <div>
-            <Label className="mb-2 block text-sm font-medium">
-              Number attending: <span className="font-bold text-primary">{guestsCount}</span>
-            </Label>
-            <Slider
-              min={1}
-              max={10}
-              step={1}
-              value={[guestsCount]}
-              onValueChange={(v) => setGuestsCount(v[0])}
-              className="mt-2"
-            />
-            <div className="mt-1 flex justify-between text-xs text-muted-foreground">
-              <span>1</span>
-              <span>10</span>
-            </div>
-          </div>
+          {/* Attendee checklist */}
+          <AttendeeChecklist
+            userName={profile?.name || "Me"}
+            dependents={dependents ?? []}
+            selectedIds={selectedDependentIds}
+            onToggle={toggleDependent}
+            selfChecked={selfAttending}
+            onSelfToggle={() => setSelfAttending((prev) => !prev)}
+          />
+
+          <p className="text-xs text-muted-foreground">
+            Total attending: <span className="font-semibold text-foreground">{guestsCount}</span>
+          </p>
 
           {/* Flexible sign-up items */}
           {hasItems && (
@@ -192,27 +214,12 @@ export default function RSVPModal({ event, open, onOpenChange }: RSVPModalProps)
                           {atLimit && " — Full"}
                         </p>
                       </div>
-
                       <div className="flex items-center gap-1.5 shrink-0">
-                        <Button
-                          type="button"
-                          size="icon"
-                          variant="outline"
-                          className="h-8 w-8"
-                          disabled={qty === 0}
-                          onClick={() => updateSelection(itemId, -1)}
-                        >
+                        <Button type="button" size="icon" variant="outline" className="h-8 w-8" disabled={qty === 0} onClick={() => updateSelection(itemId, -1)}>
                           <Minus className="h-3.5 w-3.5" />
                         </Button>
                         <span className="w-8 text-center text-sm font-medium">{qty}</span>
-                        <Button
-                          type="button"
-                          size="icon"
-                          variant="outline"
-                          className="h-8 w-8"
-                          disabled={remaining <= 0}
-                          onClick={() => updateSelection(itemId, 1)}
-                        >
+                        <Button type="button" size="icon" variant="outline" className="h-8 w-8" disabled={remaining <= 0} onClick={() => updateSelection(itemId, 1)}>
                           <Plus className="h-3.5 w-3.5" />
                         </Button>
                       </div>
@@ -224,18 +231,15 @@ export default function RSVPModal({ event, open, onOpenChange }: RSVPModalProps)
           )}
 
           {/* Guest Requests — only shown when editing */}
-          {isEditing && (
-            <GuestRequestsSection eventId={event.id} />
-          )}
+          {isEditing && <GuestRequestsSection eventId={event.id} />}
         </div>
 
         {/* Actions */}
         <div className="flex flex-col gap-2 pt-2">
-          <Button onClick={handleSubmit} disabled={isPending}>
+          <Button onClick={handleSubmit} disabled={isPending || guestsCount === 0}>
             {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
             {isEditing ? "Update RSVP" : "Confirm RSVP"}
           </Button>
-
           {isEditing && (
             <Button variant="outline" onClick={handleCancel} disabled={isPending} className="text-destructive">
               Cancel RSVP
