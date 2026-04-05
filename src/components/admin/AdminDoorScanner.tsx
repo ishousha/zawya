@@ -175,6 +175,31 @@ export default function AdminDoorScanner() {
         </Select>
       </div>
 
+      {/* Live check-in counter */}
+      {selectedEventId && rsvpCounts && (
+        <Card>
+          <CardContent className="p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-sm font-medium text-card-foreground">
+                <Users className="h-4 w-4 text-primary" />
+                Check-in Progress
+              </div>
+              <span className="text-2xl font-bold text-primary">
+                {rsvpCounts.checkedIn}/{rsvpCounts.total}
+              </span>
+            </div>
+            <Progress
+              value={rsvpCounts.total > 0 ? (rsvpCounts.checkedIn / rsvpCounts.total) * 100 : 0}
+              className="h-3"
+            />
+            <div className="flex justify-between text-xs text-muted-foreground">
+              <span>{rsvpCounts.checkedInGuests} of {rsvpCounts.totalGuests} total guests arrived</span>
+              <span>{rsvpCounts.total - rsvpCounts.checkedIn} remaining</span>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Scanner area */}
       {!scanning ? (
         <Button
