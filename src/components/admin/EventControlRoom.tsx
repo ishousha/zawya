@@ -17,6 +17,46 @@ import type { SignUpItem } from "./event-form/ItemsTab";
 
 type EventRow = Database["public"]["Tables"]["events"]["Row"];
 
+async function notifyRsvpMembers(eventId: string, eventTitle: string, eventDate: string, templateName: string) {
+  try {
+    // Fetch all RSVPs for this event
+    const { data: rsvps } = await supabase
+      .from("rsvps")
+      .select("id, user_id")
+      .eq("event_id", eventId);
+    if (!rsvps || rsvps.length === 0) return;
+
+    // Fetch profiles for these users
+    const userIds = [...new Set(rsvps.map(r => r.user_id))];
+    const { data: profiles } = await supabase
+      .from("profiles")
+      .select("id, email, name")
+      .in("id", userIds);
+    if (!profiles) return;
+
+    const formattedDate = format(new Date(eventDate), "PPPP p");
+
+    // Send email to each RSVPed member
+    for (const profile of profiles) {
+      if (!profile.email) continue;
+      await supabase.functions.invoke("send-transactional-email", {
+        body: {
+          templateName,
+          recipientEmail: profile.email,
+          idempotencyKey: `${templateName}-${eventId}-${profile.id}`,
+          templateData: {
+            eventTitle,
+            eventDate: formattedDate,
+            memberName: profile.name || undefined,
+          },
+        },
+      });
+    }
+  } catch (error) {
+    console.warn(`Failed to send ${templateName} notifications:`, error);
+  }
+}
+
 export default function EventControlRoom() {
   const queryClient = useQueryClient();
   const [editing, setEditing] = useState<EventRow | null>(null);
