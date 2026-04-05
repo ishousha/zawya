@@ -104,6 +104,9 @@ export default function UserManagement() {
                     {p.name || "Unnamed"}
                   </p>
                   <p className="truncate text-xs text-muted-foreground">{p.email}</p>
+                  {p.whatsapp_number && (
+                    <p className="text-xs text-muted-foreground">📱 {p.whatsapp_number}</p>
+                  )}
                   {p.family_name && (
                     <p className="text-xs text-muted-foreground">Family: {p.family_name}</p>
                   )}

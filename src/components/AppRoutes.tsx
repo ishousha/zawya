@@ -1,6 +1,7 @@
 import { Routes, Route } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import LoginPage from "@/pages/Login";
+import CompleteProfile from "@/pages/CompleteProfile";
 import PendingApproval from "@/pages/PendingApproval";
 import HomeFeed from "@/pages/HomeFeed";
 import ProfilePage from "@/pages/Profile";
@@ -29,11 +30,12 @@ export default function AppRoutes() {
     );
   }
 
-  // Pending approval
+  // Pending: needs onboarding if name or whatsapp missing
   if (profile?.role === "pending") {
+    const needsOnboarding = !profile.name?.trim() || !profile.whatsapp_number?.trim();
     return (
       <Routes>
-        <Route path="*" element={<PendingApproval />} />
+        <Route path="*" element={needsOnboarding ? <CompleteProfile /> : <PendingApproval />} />
       </Routes>
     );
   }
