@@ -1,12 +1,14 @@
 import { useState } from "react";
 import AdminGuestApprovals from "./AdminGuestApprovals";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Loader2, Plus, Edit2, X, Users, ChevronDown, Copy } from "lucide-react";
+import { Loader2, Plus, Edit2, X, Users, ChevronDown, Copy, Trash2, Ban } from "lucide-react";
+import { toast } from "sonner";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { format } from "date-fns";
 import type { Database } from "@/integrations/supabase/types";
 import EventFormTabs from "./event-form/EventFormTabs";
@@ -16,6 +18,7 @@ import type { SignUpItem } from "./event-form/ItemsTab";
 type EventRow = Database["public"]["Tables"]["events"]["Row"];
 
 export default function EventControlRoom() {
+  const queryClient = useQueryClient();
   const [editing, setEditing] = useState<EventRow | null>(null);
   const [creating, setCreating] = useState(false);
   const [monitoringEventId, setMonitoringEventId] = useState<string | null>(null);
@@ -66,6 +69,38 @@ export default function EventControlRoom() {
     setDuplicateForm({ form, items: copiedItems });
   };
 
+  const cancelMutation = useMutation({
+    mutationFn: async (eventId: string) => {
+      const { error } = await supabase.from("events").update({ status: "cancelled" as const }).eq("id", eventId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-events"] });
+      toast.success("Event cancelled");
+    },
+    onError: () => toast.error("Failed to cancel event"),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (eventId: string) => {
+      await supabase.from("rsvp_sign_up_selections").delete().in(
+        "rsvp_id",
+        (await supabase.from("rsvps").select("id").eq("event_id", eventId)).data?.map(r => r.id) ?? []
+      );
+      await supabase.from("rsvps").delete().eq("event_id", eventId);
+      await supabase.from("event_sign_up_items").delete().eq("event_id", eventId);
+      await supabase.from("guest_requests").delete().eq("event_id", eventId);
+      await supabase.from("potluck_config").delete().eq("event_id", eventId);
+      const { error } = await supabase.from("events").delete().eq("id", eventId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-events"] });
+      toast.success("Event permanently deleted");
+    },
+    onError: () => toast.error("Failed to delete event"),
+  });
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -114,6 +149,40 @@ export default function EventControlRoom() {
                       <Button size="icon" variant="ghost" className="h-10 w-10" onClick={() => handleDuplicate(event)}>
                         <Copy className="h-4 w-4" />
                       </Button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button size="icon" variant="ghost" className="h-10 w-10 text-destructive hover:text-destructive">
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Remove "{event.title}"?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Choose to cancel (keeps records) or permanently delete this event and all its RSVPs.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter className="flex-col gap-2 sm:flex-row">
+                            <AlertDialogCancel>Keep Event</AlertDialogCancel>
+                            {event.status !== "cancelled" && (
+                              <AlertDialogAction
+                                onClick={() => cancelMutation.mutate(event.id)}
+                                className="bg-muted text-foreground hover:bg-muted/80"
+                              >
+                                <Ban className="mr-1.5 h-4 w-4" />
+                                Cancel Event
+                              </AlertDialogAction>
+                            )}
+                            <AlertDialogAction
+                              onClick={() => deleteMutation.mutate(event.id)}
+                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            >
+                              <Trash2 className="mr-1.5 h-4 w-4" />
+                              Delete Permanently
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     </div>
                   </div>
                 </CardContent>
