@@ -1,6 +1,7 @@
 import { Routes, Route } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import LoginPage from "@/pages/Login";
+import CompleteProfile from "@/pages/CompleteProfile";
 import PendingApproval from "@/pages/PendingApproval";
 import HomeFeed from "@/pages/HomeFeed";
 import ProfilePage from "@/pages/Profile";
