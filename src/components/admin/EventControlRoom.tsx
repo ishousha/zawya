@@ -82,6 +82,18 @@ export default function EventControlRoom() {
     onError: () => toast.error("Failed to cancel event"),
   });
 
+  const reactivateMutation = useMutation({
+    mutationFn: async (eventId: string) => {
+      const { error } = await supabase.from("events").update({ status: "active" as const }).eq("id", eventId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-events"] });
+      toast.success("Event reactivated");
+    },
+    onError: () => toast.error("Failed to reactivate event"),
+  });
+
   const deleteMutation = useMutation({
     mutationFn: async (eventId: string) => {
       await supabase.from("rsvp_sign_up_selections").delete().in(
