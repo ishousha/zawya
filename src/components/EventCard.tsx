@@ -4,6 +4,7 @@ import { MapPin, Video, Users, Calendar, Clock, CheckCircle2, Ticket, Edit, Buil
 import { Button } from "@/components/ui/button";
 import { useMyRSVP } from "@/hooks/useRSVP";
 import RSVPModal from "@/components/RSVPModal";
+import AddToCalendarButton from "@/components/AddToCalendarButton";
 import type { Database } from "@/integrations/supabase/types";
 
 type Event = Database["public"]["Tables"]["events"]["Row"];
