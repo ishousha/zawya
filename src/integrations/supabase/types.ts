@@ -378,6 +378,7 @@ export type Database = {
       }
       rsvps: {
         Row: {
+          attending_dependents: Json | null
           checked_in: boolean
           created_at: string
           event_id: string
@@ -393,6 +394,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          attending_dependents?: Json | null
           checked_in?: boolean
           created_at?: string
           event_id: string
@@ -408,6 +410,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          attending_dependents?: Json | null
           checked_in?: boolean
           created_at?: string
           event_id?: string
