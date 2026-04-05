@@ -256,6 +256,15 @@ export default function ProfilePage() {
 
         <Button
           variant="outline"
+          className="w-full gap-2"
+          onClick={() => navigate("/guidelines")}
+        >
+          <ScrollText className="h-4 w-4" />
+          Community Guidelines
+        </Button>
+
+        <Button
+          variant="outline"
           className="w-full"
           onClick={signOut}
         >

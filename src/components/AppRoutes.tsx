@@ -7,6 +7,7 @@ import HomeFeed from "@/pages/HomeFeed";
 import ProfilePage from "@/pages/Profile";
 import AdminDashboard from "@/pages/AdminDashboard";
 import Unsubscribe from "@/pages/Unsubscribe";
+import CommunityGuidelines from "@/pages/CommunityGuidelines";
 import BottomNav from "@/components/BottomNav";
 import NotFound from "@/pages/NotFound";
 import { Loader2 } from "lucide-react";
@@ -35,9 +36,28 @@ export default function AppRoutes() {
   // Pending: needs onboarding if name or whatsapp missing
   if (profile?.role === "pending") {
     const needsOnboarding = !profile.name?.trim() || !profile.whatsapp_number?.trim();
+
+    // Terms gate for pending users too (after onboarding)
+    if (!needsOnboarding && !(profile as any).terms_accepted) {
+      return (
+        <Routes>
+          <Route path="*" element={<CommunityGuidelines />} />
+        </Routes>
+      );
+    }
+
     return (
       <Routes>
         <Route path="*" element={needsOnboarding ? <CompleteProfile /> : <PendingApproval />} />
+      </Routes>
+    );
+  }
+
+  // Terms gate for approved/admin users
+  if (!(profile as any)?.terms_accepted) {
+    return (
+      <Routes>
+        <Route path="*" element={<CommunityGuidelines />} />
       </Routes>
     );
   }
@@ -49,6 +69,7 @@ export default function AppRoutes() {
         <Route path="/" element={<HomeFeed />} />
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/admin" element={<AdminDashboard />} />
+        <Route path="/guidelines" element={<CommunityGuidelines readOnly />} />
         <Route path="/unsubscribe" element={<Unsubscribe />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
