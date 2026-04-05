@@ -165,6 +165,15 @@ export default function UserManagement() {
                 <CardContent className="flex items-center justify-between p-4">
                   <div className="min-w-0 flex-1">
                     <p className="truncate font-medium text-card-foreground">{gr.guest_name}</p>
+                    {(gr as any).profiles?.name && (
+                      <p className="text-xs text-muted-foreground">Requested by {(gr as any).profiles.name}</p>
+                    )}
+                    {(gr as any).events?.title && (
+                      <p className="text-xs text-primary font-medium">
+                        For: {(gr as any).events.title}
+                        {(gr as any).events.date_time && ` — ${format(new Date((gr as any).events.date_time), "EEE, MMM d")}`}
+                      </p>
+                    )}
                     {gr.guest_phone && (
                       <p className="text-xs text-muted-foreground">{gr.guest_phone}</p>
                     )}
