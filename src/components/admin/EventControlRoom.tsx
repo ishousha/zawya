@@ -288,7 +288,7 @@ export default function EventControlRoom() {
                             size="icon"
                             variant="ghost"
                             className="h-10 w-10 text-primary hover:text-primary"
-                            onClick={() => reactivateMutation.mutate(event.id)}
+                            onClick={() => reactivateMutation.mutate(event)}
                             disabled={reactivateMutation.isPending}
                             title="Reactivate"
                           >
