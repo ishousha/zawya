@@ -124,7 +124,7 @@ export default function EventControlRoom() {
           </Button>
 
           <div className="space-y-2">
-            {events?.map((event) => (
+            {activeEvents.map((event) => (
               <Card key={event.id}>
                 <CardContent className="p-4">
                   <div className="flex items-start justify-between">
@@ -135,7 +135,7 @@ export default function EventControlRoom() {
                       </p>
                       <div className="mt-1 flex gap-1.5">
                         <Badge variant="secondary" className="text-xs capitalize">{event.type}</Badge>
-                        <Badge variant={event.status === "active" ? "default" : "destructive"} className="text-xs capitalize">
+                        <Badge variant="default" className="text-xs capitalize">
                           {event.status}
                         </Badge>
                         {event.capacity && (
@@ -192,7 +192,80 @@ export default function EventControlRoom() {
                 </CardContent>
               </Card>
             ))}
+            {activeEvents.length === 0 && (
+              <p className="text-sm text-muted-foreground text-center py-4">No active events.</p>
+            )}
           </div>
+
+          {/* Cancelled / Past Events */}
+          {cancelledEvents.length > 0 && (
+            <Collapsible>
+              <CollapsibleTrigger asChild>
+                <button className="flex w-full items-center justify-between rounded-md border border-border bg-muted/50 px-4 py-2.5 text-sm font-medium text-muted-foreground hover:bg-muted transition-colors">
+                  <span className="flex items-center gap-1.5">
+                    <Ban className="h-4 w-4" />
+                    Cancelled Events ({cancelledEvents.length})
+                  </span>
+                  <ChevronDown className="h-4 w-4" />
+                </button>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="space-y-2 pt-2">
+                {cancelledEvents.map((event) => (
+                  <Card key={event.id} className="border-destructive/30 opacity-75">
+                    <CardContent className="p-4">
+                      <div className="flex items-start justify-between">
+                        <div className="min-w-0 flex-1">
+                          <p className="font-medium text-card-foreground">{event.title}</p>
+                          <p className="text-xs text-muted-foreground line-through">
+                            {format(new Date(event.date_time), "PPP p")}
+                          </p>
+                          <div className="mt-1 flex gap-1.5">
+                            <Badge variant="secondary" className="text-xs capitalize">{event.type}</Badge>
+                            <Badge variant="destructive" className="text-xs capitalize">
+                              {event.status}
+                            </Badge>
+                          </div>
+                        </div>
+                        <div className="ml-2 flex gap-1">
+                          <Button size="icon" variant="ghost" className="h-10 w-10" onClick={() => setMonitoringEventId(event.id)}>
+                            <Users className="h-4 w-4" />
+                          </Button>
+                          <Button size="icon" variant="ghost" className="h-10 w-10" onClick={() => handleDuplicate(event)}>
+                            <Copy className="h-4 w-4" />
+                          </Button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button size="icon" variant="ghost" className="h-10 w-10 text-destructive hover:text-destructive">
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Delete "{event.title}"?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Permanently delete this cancelled event and all its RSVPs. This cannot be undone.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Keep</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => deleteMutation.mutate(event.id)}
+                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                >
+                                  <Trash2 className="mr-1.5 h-4 w-4" />
+                                  Delete Permanently
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </CollapsibleContent>
+            </Collapsible>
+          )}
         </>
       )}
 
