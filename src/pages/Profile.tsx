@@ -11,6 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format, parse } from "date-fns";
 import { cn } from "@/lib/utils";
+import DependentsSection from "@/components/profile/DependentsSection";
 
 const COUNTRY_CODES = [
   { code: "+971", label: "🇦🇪 +971", country: "UAE" },
@@ -248,6 +249,8 @@ export default function ProfilePage() {
             Save Changes
           </Button>
         </div>
+
+        <DependentsSection />
 
         <Button
           variant="outline"

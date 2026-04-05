@@ -112,15 +112,19 @@ function RSVPMonitor({ eventId, onClose }: { eventId: string; onClose: () => voi
   const attending = rsvps?.filter((r: any) => !r.is_waitlisted) ?? [];
   const waitlisted = rsvps?.filter((r: any) => r.is_waitlisted) ?? [];
 
+  const formatAttendee = (r: any) => {
+    const name = r.profiles?.name || r.profiles?.email || "Unknown";
+    const kids = r.guests_count - 1;
+    if (kids > 0) return `${name} + ${kids} kid${kids > 1 ? "s" : ""}`;
+    return name;
+  };
+
   const renderRow = (r: any) => (
     <div key={r.id} className="flex items-center justify-between rounded-md border border-border p-3">
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-medium text-card-foreground">
-          {r.profiles?.name || r.profiles?.email || "Unknown"}
+          {formatAttendee(r)}
         </p>
-        <div className="flex gap-2 mt-1">
-          <span className="text-xs text-muted-foreground">Guests: {r.guests_count}</span>
-        </div>
       </div>
       <Badge variant={r.checked_in ? "default" : "outline"} className="text-xs">
         {r.checked_in ? "✓ In" : "Not in"}
