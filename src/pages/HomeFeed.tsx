@@ -21,7 +21,7 @@ export default function HomeFeed() {
       const { data, error } = await supabase
         .from("events")
         .select("*")
-        .eq("status", "active")
+        .in("status", ["active", "full", "cancelled"])
         .gte("date_time", new Date().toISOString())
         .order("date_time", { ascending: true });
 
