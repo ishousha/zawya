@@ -150,7 +150,7 @@ export default function UserManagement() {
                           size="icon"
                           variant="destructive"
                           className="h-10 w-10"
-                          onClick={() => updateRole.mutate({ userId: p.id, role: "pending" })}
+                          onClick={() => updateRole.mutate({ userId: p.id, role: "pending", email: p.email, name: p.name })}
                           disabled={updateRole.isPending}
                           title="Revoke to Pending"
                         >
