@@ -181,6 +181,7 @@ export function useRSVPConcurrency(eventId: string) {
       guests_count: number;
       potluck_category?: string | null;
       specific_food_item?: string | null;
+      attending_dependents?: { name: string; age: number | null }[] | null;
       selections?: { sign_up_item_id: number; quantity: number }[];
     }) => {
       if (!user) throw new Error("Not authenticated");
@@ -200,6 +201,7 @@ export function useRSVPConcurrency(eventId: string) {
         specific_food_item: input.specific_food_item ?? null,
         qr_hash: qrHash,
         is_waitlisted: isWaitlisted,
+        attending_dependents: input.attending_dependents ?? null,
       };
 
       const { data, error } = await supabase
