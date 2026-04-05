@@ -5,7 +5,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Plus, Edit2, X, Users } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Loader2, Plus, Edit2, X, Users, ChevronDown } from "lucide-react";
 import { format } from "date-fns";
 import type { Database } from "@/integrations/supabase/types";
 import EventFormTabs from "./event-form/EventFormTabs";
@@ -112,25 +113,49 @@ function RSVPMonitor({ eventId, onClose }: { eventId: string; onClose: () => voi
   const attending = rsvps?.filter((r: any) => !r.is_waitlisted) ?? [];
   const waitlisted = rsvps?.filter((r: any) => r.is_waitlisted) ?? [];
 
-  const formatAttendee = (r: any) => {
+  const renderRow = (r: any) => {
     const name = r.profiles?.name || r.profiles?.email || "Unknown";
     const kids = r.guests_count - 1;
-    if (kids > 0) return `${name} + ${kids} kid${kids > 1 ? "s" : ""}`;
-    return name;
-  };
+    const deps: { name: string; age: number | null }[] = r.attending_dependents ?? [];
+    const hasDeps = kids > 0 && deps.length > 0;
 
-  const renderRow = (r: any) => (
-    <div key={r.id} className="flex items-center justify-between rounded-md border border-border p-3">
-      <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-medium text-card-foreground">
-          {formatAttendee(r)}
-        </p>
+    return (
+      <div key={r.id} className="rounded-md border border-border">
+        <div className="flex items-center justify-between p-3">
+          <div className="min-w-0 flex-1 flex items-center gap-2">
+            <p className="truncate text-sm font-medium text-card-foreground">{name}</p>
+            {kids > 0 && (
+              hasDeps ? (
+                <Collapsible>
+                  <CollapsibleTrigger asChild>
+                    <button className="inline-flex items-center gap-0.5 rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary hover:bg-primary/20 transition-colors">
+                      👨‍👧‍👦 +{kids} <ChevronDown className="h-3 w-3" />
+                    </button>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="px-3 pb-2 pt-1">
+                    <div className="space-y-1">
+                      {deps.map((d, i) => (
+                        <p key={i} className="text-xs text-muted-foreground">
+                          {d.name}{d.age !== null ? ` (${d.age})` : ""}
+                        </p>
+                      ))}
+                    </div>
+                  </CollapsibleContent>
+                </Collapsible>
+              ) : (
+                <span className="inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
+                  👨‍👧‍👦 +{kids}
+                </span>
+              )
+            )}
+          </div>
+          <Badge variant={r.checked_in ? "default" : "outline"} className="text-xs shrink-0">
+            {r.checked_in ? "✓ In" : "Not in"}
+          </Badge>
+        </div>
       </div>
-      <Badge variant={r.checked_in ? "default" : "outline"} className="text-xs">
-        {r.checked_in ? "✓ In" : "Not in"}
-      </Badge>
-    </div>
-  );
+    );
+  };
 
   return (
     <Card>
