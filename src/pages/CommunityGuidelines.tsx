@@ -4,7 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Loader2, ScrollText, ShieldCheck, EyeOff, Camera } from "lucide-react";
+import { Loader2, ScrollText, ShieldCheck, EyeOff, Camera, Home, UserCheck, Lock } from "lucide-react";
 import { toast } from "sonner";
 
 interface CommunityGuidelinesProps {
