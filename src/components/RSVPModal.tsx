@@ -279,7 +279,7 @@ export default function RSVPModal({ event, open, onOpenChange }: RSVPModalProps)
         <div className="flex flex-col gap-2 pt-2">
           <Button onClick={handleSubmit} disabled={isPending || guestsCount === 0}>
             {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-            {isEditing ? "Update RSVP" : "Confirm RSVP"}
+            {isEditing ? "Update RSVP" : (event as any).ticket_fee > 0 ? "Acknowledge & Confirm RSVP" : "Confirm RSVP"}
           </Button>
           {isEditing && (
             <Button variant="outline" onClick={handleCancel} disabled={isPending} className="text-destructive">
