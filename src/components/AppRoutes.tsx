@@ -29,11 +29,12 @@ export default function AppRoutes() {
     );
   }
 
-  // Pending approval
+  // Pending: needs onboarding if name or whatsapp missing
   if (profile?.role === "pending") {
+    const needsOnboarding = !profile.name?.trim() || !profile.whatsapp_number?.trim();
     return (
       <Routes>
-        <Route path="*" element={<PendingApproval />} />
+        <Route path="*" element={needsOnboarding ? <CompleteProfile /> : <PendingApproval />} />
       </Routes>
     );
   }
