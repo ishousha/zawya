@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { format } from "date-fns";
-import { MapPin, Video, Users, Calendar, Clock, CheckCircle2, Ticket, Edit } from "lucide-react";
+import { MapPin, Video, Users, Calendar, Clock, CheckCircle2, Ticket, Edit, Building2, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useMyRSVP } from "@/hooks/useRSVP";
 import RSVPModal from "@/components/RSVPModal";
@@ -56,6 +56,13 @@ export default function EventCard({ event, onShowTicket }: EventCardProps) {
           {event.title}
         </h3>
 
+        {/* Description */}
+        {event.description && (
+          <p className="mt-1 text-sm text-muted-foreground line-clamp-2">
+            {event.description}
+          </p>
+        )}
+
         {/* Date & Time in local timezone */}
         <div className="mt-2 flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
           <span className="inline-flex items-center gap-1">
@@ -70,11 +77,44 @@ export default function EventCard({ event, onShowTicket }: EventCardProps) {
 
         {/* Show private location/link only when attending */}
         {isAttending && event.location && (
-          <p className="mt-1.5 text-sm text-foreground">
-            📍 {event.location}
+          <div className="mt-2 space-y-1">
+            <p className="text-sm text-foreground inline-flex items-center gap-1.5">
+              <Building2 className="h-3.5 w-3.5 text-primary shrink-0" />
+              {event.location}
+            </p>
+            {event.address && (
+              <p className="text-sm text-muted-foreground inline-flex items-center gap-1.5 pl-5">
+                <MapPin className="h-3.5 w-3.5 shrink-0" />
+                {event.address.startsWith("http") ? (
+                  <a
+                    href={event.address}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-primary underline underline-offset-2 inline-flex items-center gap-1"
+                  >
+                    View on Maps <ExternalLink className="h-3 w-3" />
+                  </a>
+                ) : (
+                  event.address
+                )}
+              </p>
+            )}
+          </div>
+        )}
+        {isAttending && event.virtual_link && (
+          <p className="mt-1 text-sm">
+            🔗{" "}
+            <a
+              href={event.virtual_link}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-primary underline underline-offset-2"
+            >
+              Join Online
+            </a>
           </p>
         )}
-        {isAttending && event.zoom_link && (
+        {isAttending && !event.virtual_link && event.zoom_link && (
           <p className="mt-1 text-sm">
             🔗{" "}
             <a
