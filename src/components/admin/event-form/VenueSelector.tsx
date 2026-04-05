@@ -6,7 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Building2, ChevronsUpDown, Check, Plus, Loader2 } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Building2, ChevronsUpDown, Check, Plus, Loader2, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -25,9 +26,11 @@ export default function VenueSelector({ value, onChange }: VenueSelectorProps) {
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
-  const [addOpen, setAddOpen] = useState(false);
-  const [newName, setNewName] = useState("");
-  const [newAddress, setNewAddress] = useState("");
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingVenue, setEditingVenue] = useState<Venue | null>(null);
+  const [formName, setFormName] = useState("");
+  const [formAddress, setFormAddress] = useState("");
+  const [deleteVenue, setDeleteVenue] = useState<Venue | null>(null);
 
   const { data: venues = [], isLoading } = useQuery({
     queryKey: ["venues"],
@@ -41,26 +44,81 @@ export default function VenueSelector({ value, onChange }: VenueSelectorProps) {
     },
   });
 
-  const addMutation = useMutation({
+  const saveMutation = useMutation({
     mutationFn: async () => {
-      const { data, error } = await supabase
-        .from("venues")
-        .insert({ name: newName, address: newAddress || null })
-        .select()
-        .single();
-      if (error) throw error;
-      return data as Venue;
+      if (editingVenue) {
+        const { data, error } = await supabase
+          .from("venues")
+          .update({ name: formName, address: formAddress || null })
+          .eq("id", editingVenue.id)
+          .select()
+          .single();
+        if (error) throw error;
+        return data as Venue;
+      } else {
+        const { data, error } = await supabase
+          .from("venues")
+          .insert({ name: formName, address: formAddress || null })
+          .select()
+          .single();
+        if (error) throw error;
+        return data as Venue;
+      }
     },
     onSuccess: (venue) => {
       queryClient.invalidateQueries({ queryKey: ["venues"] });
       onChange(venue.id, venue.name, venue.address ?? "");
-      setAddOpen(false);
-      setNewName("");
-      setNewAddress("");
-      toast.success(`Venue "${venue.name}" created`);
+      closeDialog();
+      toast.success(editingVenue ? "Venue updated" : `Venue "${venue.name}" created`);
     },
-    onError: () => toast.error("Failed to create venue"),
+    onError: () => toast.error("Failed to save venue"),
   });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("venues").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["venues"] });
+      if (deleteVenue && value === deleteVenue.id) {
+        onChange(null, "", "");
+      }
+      setDeleteVenue(null);
+      toast.success("Venue deleted");
+    },
+    onError: () => toast.error("Failed to delete venue"),
+  });
+
+  const openAdd = () => {
+    setEditingVenue(null);
+    setFormName("");
+    setFormAddress("");
+    setOpen(false);
+    setDialogOpen(true);
+  };
+
+  const openEdit = (venue: Venue, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setEditingVenue(venue);
+    setFormName(venue.name);
+    setFormAddress(venue.address ?? "");
+    setOpen(false);
+    setDialogOpen(true);
+  };
+
+  const openDelete = (venue: Venue, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setOpen(false);
+    setDeleteVenue(venue);
+  };
+
+  const closeDialog = () => {
+    setDialogOpen(false);
+    setEditingVenue(null);
+    setFormName("");
+    setFormAddress("");
+  };
 
   const selected = venues.find((v) => v.id === value);
   const filtered = venues.filter((v) =>
@@ -103,10 +161,10 @@ export default function VenueSelector({ value, onChange }: VenueSelectorProps) {
               </div>
             ) : filtered.length > 0 ? (
               filtered.map((venue) => (
-                <button
+                <div
                   key={venue.id}
                   className={cn(
-                    "flex w-full items-center gap-2 px-3 py-2 text-sm hover:bg-accent transition-colors text-left",
+                    "flex w-full items-center gap-2 px-3 py-2 text-sm hover:bg-accent transition-colors group cursor-pointer",
                     value === venue.id && "bg-accent"
                   )}
                   onClick={() => {
@@ -121,20 +179,33 @@ export default function VenueSelector({ value, onChange }: VenueSelectorProps) {
                       value === venue.id ? "opacity-100 text-primary" : "opacity-0"
                     )}
                   />
-                  <div className="min-w-0">
+                  <div className="min-w-0 flex-1">
                     <p className="font-medium truncate">{venue.name}</p>
                     {venue.address && (
                       <p className="text-xs text-muted-foreground truncate">{venue.address}</p>
                     )}
                   </div>
-                </button>
+                  <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                    <button
+                      className="p-1 rounded hover:bg-muted transition-colors"
+                      onClick={(e) => openEdit(venue, e)}
+                    >
+                      <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
+                    </button>
+                    <button
+                      className="p-1 rounded hover:bg-muted transition-colors"
+                      onClick={(e) => openDelete(venue, e)}
+                    >
+                      <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                    </button>
+                  </div>
+                </div>
               ))
             ) : (
               <p className="py-3 text-center text-sm text-muted-foreground">No venues found</p>
             )}
           </div>
 
-          {/* Clear selection */}
           {value && (
             <button
               className="w-full border-t px-3 py-2 text-sm text-muted-foreground hover:bg-accent transition-colors text-left"
@@ -147,13 +218,9 @@ export default function VenueSelector({ value, onChange }: VenueSelectorProps) {
             </button>
           )}
 
-          {/* Add new venue */}
           <button
             className="flex w-full items-center gap-2 border-t px-3 py-2 text-sm font-medium text-primary hover:bg-accent transition-colors"
-            onClick={() => {
-              setOpen(false);
-              setAddOpen(true);
-            }}
+            onClick={openAdd}
           >
             <Plus className="h-4 w-4" />
             Add New Venue
@@ -161,19 +228,19 @@ export default function VenueSelector({ value, onChange }: VenueSelectorProps) {
         </PopoverContent>
       </Popover>
 
-      {/* Add Venue Dialog */}
-      <Dialog open={addOpen} onOpenChange={setAddOpen}>
+      {/* Add / Edit Venue Dialog */}
+      <Dialog open={dialogOpen} onOpenChange={(v) => { if (!v) closeDialog(); }}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Add New Venue</DialogTitle>
+            <DialogTitle>{editingVenue ? "Edit Venue" : "Add New Venue"}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div>
               <Label htmlFor="venue-name">Venue Name</Label>
               <Input
                 id="venue-name"
-                value={newName}
-                onChange={(e) => setNewName(e.target.value)}
+                value={formName}
+                onChange={(e) => setFormName(e.target.value)}
                 placeholder="e.g. Br Aleem's House"
                 className="mt-1.5"
               />
@@ -182,8 +249,8 @@ export default function VenueSelector({ value, onChange }: VenueSelectorProps) {
               <Label htmlFor="venue-address">Address / Maps Link</Label>
               <Input
                 id="venue-address"
-                value={newAddress}
-                onChange={(e) => setNewAddress(e.target.value)}
+                value={formAddress}
+                onChange={(e) => setFormAddress(e.target.value)}
                 placeholder="Full address or Google Maps link"
                 className="mt-1.5"
               />
@@ -191,16 +258,37 @@ export default function VenueSelector({ value, onChange }: VenueSelectorProps) {
           </div>
           <DialogFooter>
             <Button
-              onClick={() => addMutation.mutate()}
-              disabled={!newName.trim() || addMutation.isPending}
+              onClick={() => saveMutation.mutate()}
+              disabled={!formName.trim() || saveMutation.isPending}
               className="w-full"
             >
-              {addMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Save Venue
+              {saveMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {editingVenue ? "Update Venue" : "Save Venue"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Delete confirmation */}
+      <AlertDialog open={!!deleteVenue} onOpenChange={(v) => { if (!v) setDeleteVenue(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete "{deleteVenue?.name}"?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This venue will be removed. Events using it will keep their current location text but lose the venue link.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => deleteVenue && deleteMutation.mutate(deleteVenue.id)}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
