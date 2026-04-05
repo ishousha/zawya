@@ -3,12 +3,18 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { Loader2, ScanLine, CheckCircle2, XOctagon } from "lucide-react";
+import { ScanLine, CheckCircle2, XOctagon } from "lucide-react";
 import { toast } from "sonner";
 import { Scanner } from "@yudiel/react-qr-scanner";
+
+interface QRPayload {
+  rsvp_id: string;
+  user_id: string;
+  qr_hash: string;
+  event_id: string;
+}
 
 export default function AdminDoorScanner() {
   const queryClient = useQueryClient();
@@ -22,7 +28,7 @@ export default function AdminDoorScanner() {
       const { data, error } = await supabase
         .from("events")
         .select("id, title, date_time")
-        .eq("status", "active")
+        .in("status", ["active", "full"])
         .order("date_time", { ascending: true });
       if (error) throw error;
       return data;
@@ -30,12 +36,13 @@ export default function AdminDoorScanner() {
   });
 
   const checkIn = useMutation({
-    mutationFn: async (qrHash: string) => {
-      // Find the RSVP by qr_hash
+    mutationFn: async (payload: QRPayload) => {
+      // Verify the RSVP exists with matching qr_hash
       const { data: rsvp, error: findError } = await supabase
         .from("rsvps")
-        .select("id, checked_in, user_id, event_id, guests_count, profiles:user_id(name)")
-        .eq("qr_hash", qrHash)
+        .select("id, checked_in, user_id, event_id, guests_count")
+        .eq("id", payload.rsvp_id)
+        .eq("qr_hash", payload.qr_hash)
         .maybeSingle();
 
       if (findError) throw findError;
@@ -46,7 +53,15 @@ export default function AdminDoorScanner() {
       }
 
       if (rsvp.checked_in) {
-        throw new Error("ALREADY_SCANNED");
+        // Fetch name for the already-scanned message
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("name")
+          .eq("id", rsvp.user_id)
+          .maybeSingle();
+        throw Object.assign(new Error("ALREADY_SCANNED"), {
+          meta: { name: profile?.name || "Attendee", guests: rsvp.guests_count },
+        });
       }
 
       // Mark as checked in
@@ -57,33 +72,40 @@ export default function AdminDoorScanner() {
 
       if (updateError) throw updateError;
 
-      return rsvp;
+      // Fetch profile name
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("name")
+        .eq("id", rsvp.user_id)
+        .maybeSingle();
+
+      return { ...rsvp, profileName: profile?.name || "Attendee" };
     },
-    onSuccess: (rsvp: any) => {
-      const name = rsvp.profiles?.name || "Attendee";
-      setLastResult({ success: true, message: `✓ ${name} checked in (${rsvp.guests_count} guests)` });
-      toast.success(`${name} checked in!`, { duration: 3000 });
-      // Play success sound
+    onSuccess: (rsvp) => {
+      const guestText = rsvp.guests_count > 1 ? ` +${rsvp.guests_count - 1} guests` : "";
+      setLastResult({ success: true, message: `✓ ${rsvp.profileName} checked in${guestText}` });
+      toast.success(`${rsvp.profileName} checked in!`);
       playTone(800, 200);
       queryClient.invalidateQueries({ queryKey: ["admin-rsvps"] });
     },
-    onError: (error: Error) => {
+    onError: (error: any) => {
       let message = "Unknown error";
       if (error.message === "ALREADY_SCANNED") {
-        message = "⚠ ALREADY SCANNED — This ticket has been used!";
-        toast.error("ALREADY SCANNED!", { 
-          description: "This ticket has already been used.",
-          duration: 5000,
-          style: { background: "hsl(var(--destructive))", color: "hsl(var(--destructive-foreground))" },
-        });
+        const name = error.meta?.name || "Attendee";
+        message = `⚠ ALREADY SCANNED — ${name} was already checked in`;
+        toast.error("Already scanned!", { description: `${name} has already been checked in.` });
         playTone(200, 500);
       } else if (error.message === "INVALID_TICKET") {
-        message = "✗ Invalid ticket — QR code not found";
-        toast.error("Invalid ticket!", { duration: 4000 });
+        message = "✗ Invalid ticket — QR code not recognized";
+        toast.error("Invalid ticket!");
         playTone(200, 500);
       } else if (error.message === "WRONG_EVENT") {
         message = "✗ Wrong event — This ticket is for a different gathering";
-        toast.error("Wrong event!", { duration: 4000 });
+        toast.error("Wrong event!");
+        playTone(200, 500);
+      } else if (error.message === "PARSE_ERROR") {
+        message = "✗ Could not read QR code — not a valid Zawya ticket";
+        toast.error("Not a Zawya ticket");
         playTone(200, 500);
       }
       setLastResult({ success: false, message });
@@ -93,12 +115,24 @@ export default function AdminDoorScanner() {
   const handleScan = useCallback(
     (result: any) => {
       if (result?.[0]?.rawValue && !checkIn.isPending) {
-        const qrData = result[0].rawValue;
+        const raw = result[0].rawValue;
         setScanning(false);
-        checkIn.mutate(qrData);
+
+        // Parse the QR JSON payload
+        try {
+          const payload: QRPayload = JSON.parse(raw);
+          if (!payload.rsvp_id || !payload.qr_hash) {
+            throw new Error("Missing fields");
+          }
+          checkIn.mutate(payload);
+        } catch {
+          setLastResult({ success: false, message: "✗ Could not read QR code — not a valid Zawya ticket" });
+          toast.error("Not a Zawya ticket");
+          playTone(200, 500);
+        }
       }
     },
-    [checkIn.isPending]
+    [checkIn.isPending],
   );
 
   return (
@@ -112,7 +146,9 @@ export default function AdminDoorScanner() {
           </SelectTrigger>
           <SelectContent>
             {events?.map((e) => (
-              <SelectItem key={e.id} value={e.id}>{e.title}</SelectItem>
+              <SelectItem key={e.id} value={e.id}>
+                {e.title}
+              </SelectItem>
             ))}
           </SelectContent>
         </Select>
@@ -136,7 +172,9 @@ export default function AdminDoorScanner() {
           <CardHeader className="pb-2">
             <CardTitle className="text-base flex items-center justify-between">
               Scanning...
-              <Button size="sm" variant="outline" onClick={() => setScanning(false)}>Stop</Button>
+              <Button size="sm" variant="outline" onClick={() => setScanning(false)}>
+                Stop
+              </Button>
             </CardTitle>
           </CardHeader>
           <CardContent>
