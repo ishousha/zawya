@@ -8,6 +8,7 @@ import { useRSVPConcurrency, useEventRSVPs, useSignUpItems, useEventSelections, 
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { Loader2, Minus, Plus } from "lucide-react";
+import GuestRequestsSection from "@/components/rsvp/GuestRequestsSection";
 import type { Database } from "@/integrations/supabase/types";
 
 type Event = Database["public"]["Tables"]["events"]["Row"];
@@ -220,6 +221,11 @@ export default function RSVPModal({ event, open, onOpenChange }: RSVPModalProps)
                 })}
               </div>
             </div>
+          )}
+
+          {/* Guest Requests — only shown when editing */}
+          {isEditing && (
+            <GuestRequestsSection eventId={event.id} />
           )}
         </div>
 

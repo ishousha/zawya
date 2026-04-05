@@ -47,7 +47,7 @@ export default function HomeFeed() {
 
       <main className="mx-auto max-w-lg px-4 py-6">
         <h2 className="mb-4 font-heading text-lg font-semibold text-foreground">
-          Upcoming Gatherings
+          Upcoming Activities
         </h2>
 
         {isLoading ? (
@@ -66,7 +66,7 @@ export default function HomeFeed() {
           </div>
         ) : (
           <div className="rounded-lg border border-border bg-card p-8 text-center">
-            <p className="text-muted-foreground">No upcoming gatherings scheduled.</p>
+            <p className="text-muted-foreground">No upcoming activities scheduled.</p>
           </div>
         )}
       </main>

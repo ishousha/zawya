@@ -1,4 +1,5 @@
 import { useState } from "react";
+import AdminGuestApprovals from "./AdminGuestApprovals";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -161,6 +162,14 @@ function RSVPMonitor({ eventId, onClose }: { eventId: string; onClose: () => voi
                 <div className="space-y-2">{waitlisted.map(renderRow)}</div>
               </div>
             )}
+
+            {/* Guest Approvals */}
+            <div className="pt-2 border-t border-border">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+                Guest Requests
+              </p>
+              <AdminGuestApprovals eventId={eventId} />
+            </div>
 
             <p className="text-xs text-muted-foreground text-center pt-2">
               Total: {attending.reduce((s: number, r: any) => s + r.guests_count, 0)} attending
