@@ -17,6 +17,46 @@ import type { SignUpItem } from "./event-form/ItemsTab";
 
 type EventRow = Database["public"]["Tables"]["events"]["Row"];
 
+async function notifyRsvpMembers(eventId: string, eventTitle: string, eventDate: string, templateName: string) {
+  try {
+    // Fetch all RSVPs for this event
+    const { data: rsvps } = await supabase
+      .from("rsvps")
+      .select("id, user_id")
+      .eq("event_id", eventId);
+    if (!rsvps || rsvps.length === 0) return;
+
+    // Fetch profiles for these users
+    const userIds = [...new Set(rsvps.map(r => r.user_id))];
+    const { data: profiles } = await supabase
+      .from("profiles")
+      .select("id, email, name")
+      .in("id", userIds);
+    if (!profiles) return;
+
+    const formattedDate = format(new Date(eventDate), "PPPP p");
+
+    // Send email to each RSVPed member
+    for (const profile of profiles) {
+      if (!profile.email) continue;
+      await supabase.functions.invoke("send-transactional-email", {
+        body: {
+          templateName,
+          recipientEmail: profile.email,
+          idempotencyKey: `${templateName}-${eventId}-${profile.id}`,
+          templateData: {
+            eventTitle,
+            eventDate: formattedDate,
+            memberName: profile.name || undefined,
+          },
+        },
+      });
+    }
+  } catch (error) {
+    console.warn(`Failed to send ${templateName} notifications:`, error);
+  }
+}
+
 export default function EventControlRoom() {
   const queryClient = useQueryClient();
   const [editing, setEditing] = useState<EventRow | null>(null);
@@ -73,25 +113,28 @@ export default function EventControlRoom() {
   };
 
   const cancelMutation = useMutation({
-    mutationFn: async (eventId: string) => {
-      const { error } = await supabase.from("events").update({ status: "cancelled" as const }).eq("id", eventId);
+    mutationFn: async (event: EventRow) => {
+      const { error } = await supabase.from("events").update({ status: "cancelled" as const }).eq("id", event.id);
       if (error) throw error;
+      // Send cancellation emails to RSVPed members (fire and forget)
+      notifyRsvpMembers(event.id, event.title, event.date_time, "event-cancelled");
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-events"] });
-      toast.success("Event cancelled");
+      toast.success("Event cancelled — members will be notified");
     },
     onError: () => toast.error("Failed to cancel event"),
   });
 
   const reactivateMutation = useMutation({
-    mutationFn: async (eventId: string) => {
-      const { error } = await supabase.from("events").update({ status: "active" as const }).eq("id", eventId);
+    mutationFn: async (event: EventRow) => {
+      const { error } = await supabase.from("events").update({ status: "active" as const }).eq("id", event.id);
       if (error) throw error;
+      notifyRsvpMembers(event.id, event.title, event.date_time, "event-reactivated");
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-events"] });
-      toast.success("Event reactivated");
+      toast.success("Event reactivated — members will be notified");
     },
     onError: () => toast.error("Failed to reactivate event"),
   });
@@ -184,7 +227,7 @@ export default function EventControlRoom() {
                             <AlertDialogCancel>Keep Event</AlertDialogCancel>
                             {event.status !== "cancelled" && (
                               <AlertDialogAction
-                                onClick={() => cancelMutation.mutate(event.id)}
+                                onClick={() => cancelMutation.mutate(event)}
                                 className="bg-muted text-foreground hover:bg-muted/80"
                               >
                                 <Ban className="mr-1.5 h-4 w-4" />
@@ -245,7 +288,7 @@ export default function EventControlRoom() {
                             size="icon"
                             variant="ghost"
                             className="h-10 w-10 text-primary hover:text-primary"
-                            onClick={() => reactivateMutation.mutate(event.id)}
+                            onClick={() => reactivateMutation.mutate(event)}
                             disabled={reactivateMutation.isPending}
                             title="Reactivate"
                           >
