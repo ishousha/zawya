@@ -8,6 +8,7 @@ import { useRSVPConcurrency, useEventRSVPs, useSignUpItems, useEventSelections, 
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { Loader2, Minus, Plus } from "lucide-react";
+import GuestRequestsSection from "@/components/rsvp/GuestRequestsSection";
 import type { Database } from "@/integrations/supabase/types";
 
 type Event = Database["public"]["Tables"]["events"]["Row"];
