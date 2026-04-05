@@ -57,6 +57,7 @@ export default function CompleteProfile() {
       .from("profiles")
       .update({
         name: name.trim(),
+        family_name: familyName.trim() || null,
         whatsapp_number: toE164(whatsappCC, whatsappNum),
       })
       .eq("id", user.id);
