@@ -237,6 +237,7 @@ export function useRSVPConcurrency(eventId: string) {
         guests_count: input.guests_count,
         potluck_category: (input.potluck_category as any) ?? null,
         specific_food_item: input.specific_food_item ?? null,
+        attending_dependents: input.attending_dependents ?? null,
         checked_in: false,
         is_waitlisted: false,
         qr_hash: null,
