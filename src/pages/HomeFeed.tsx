@@ -66,7 +66,7 @@ export default function HomeFeed() {
           </div>
         ) : (
           <div className="rounded-lg border border-border bg-card p-8 text-center">
-            <p className="text-muted-foreground">No upcoming gatherings scheduled.</p>
+            <p className="text-muted-foreground">No upcoming activities scheduled.</p>
           </div>
         )}
       </main>
