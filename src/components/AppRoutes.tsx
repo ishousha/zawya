@@ -26,6 +26,7 @@ export default function AppRoutes() {
   if (!session) {
     return (
       <Routes>
+        <Route path="/unsubscribe" element={<Unsubscribe />} />
         <Route path="*" element={<LoginPage />} />
       </Routes>
     );
