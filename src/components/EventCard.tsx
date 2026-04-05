@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { format } from "date-fns";
-import { MapPin, Video, Users, Calendar, Clock, CheckCircle2, Ticket, Edit, Building2, ExternalLink, Ban } from "lucide-react";
+import { MapPin, Video, Users, Calendar, Clock, CheckCircle2, Ticket, Edit, Building2, ExternalLink, Ban, BookOpen, Mountain, Handshake } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useMyRSVP } from "@/hooks/useRSVP";
 import RSVPModal from "@/components/RSVPModal";
@@ -9,11 +9,17 @@ import type { Database } from "@/integrations/supabase/types";
 
 type Event = Database["public"]["Tables"]["events"]["Row"];
 
-const typeConfig = {
+const typeConfig: Record<string, { icon: any; label: string }> = {
+  gathering: { icon: MapPin, label: "Gathering / Potluck" },
+  class: { icon: BookOpen, label: "Class / Halaqa" },
+  trip: { icon: Users, label: "Trip / Picnic" },
+  retreat: { icon: Mountain, label: "Retreat / Rihla" },
+  meeting: { icon: Handshake, label: "Community Meeting" },
+  // Legacy fallbacks
   physical: { icon: MapPin, label: "In Person" },
   online: { icon: Video, label: "Online" },
   kids: { icon: Users, label: "Kids" },
-} as const;
+};
 
 interface EventCardProps {
   event: Event;
