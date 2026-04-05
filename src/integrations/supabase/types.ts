@@ -182,6 +182,7 @@ export type Database = {
           is_hybrid: boolean
           location: string | null
           status: Database["public"]["Enums"]["event_status"]
+          ticket_fee: number | null
           title: string
           type: string
           updated_at: string
@@ -203,6 +204,7 @@ export type Database = {
           is_hybrid?: boolean
           location?: string | null
           status?: Database["public"]["Enums"]["event_status"]
+          ticket_fee?: number | null
           title: string
           type?: string
           updated_at?: string
@@ -224,6 +226,7 @@ export type Database = {
           is_hybrid?: boolean
           location?: string | null
           status?: Database["public"]["Enums"]["event_status"]
+          ticket_fee?: number | null
           title?: string
           type?: string
           updated_at?: string
