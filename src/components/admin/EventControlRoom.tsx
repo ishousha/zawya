@@ -127,13 +127,14 @@ export default function EventControlRoom() {
   });
 
   const reactivateMutation = useMutation({
-    mutationFn: async (eventId: string) => {
-      const { error } = await supabase.from("events").update({ status: "active" as const }).eq("id", eventId);
+    mutationFn: async (event: EventRow) => {
+      const { error } = await supabase.from("events").update({ status: "active" as const }).eq("id", event.id);
       if (error) throw error;
+      notifyRsvpMembers(event.id, event.title, event.date_time, "event-reactivated");
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-events"] });
-      toast.success("Event reactivated");
+      toast.success("Event reactivated — members will be notified");
     },
     onError: () => toast.error("Failed to reactivate event"),
   });
