@@ -87,6 +87,7 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
         type: form.type,
         location: form.location || null,
         address: form.address || null,
+        venue_id: form.venue_id || null,
         virtual_link: form.virtual_link || null,
         zoom_link: form.virtual_link || null,
         cover_photo_url: form.cover_photo_url,
