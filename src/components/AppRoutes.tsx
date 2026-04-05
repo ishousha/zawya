@@ -6,6 +6,7 @@ import PendingApproval from "@/pages/PendingApproval";
 import HomeFeed from "@/pages/HomeFeed";
 import ProfilePage from "@/pages/Profile";
 import AdminDashboard from "@/pages/AdminDashboard";
+import Unsubscribe from "@/pages/Unsubscribe";
 import BottomNav from "@/components/BottomNav";
 import NotFound from "@/pages/NotFound";
 import { Loader2 } from "lucide-react";
