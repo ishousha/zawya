@@ -4,6 +4,7 @@ export interface EventFormState {
   date_time: string;
   end_date_time: string;
   type: "physical" | "online" | "kids";
+  venue_id: string | null;
   location: string;
   address: string;
   virtual_link: string;
@@ -27,6 +28,7 @@ export const defaultEventForm: EventFormState = {
   date_time: "",
   end_date_time: "",
   type: "physical",
+  venue_id: null,
   location: "",
   address: "",
   virtual_link: "",
