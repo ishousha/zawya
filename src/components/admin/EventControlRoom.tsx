@@ -101,12 +101,21 @@ function RSVPMonitor({ eventId, onClose }: { eventId: string; onClose: () => voi
   const { data: rsvps, isLoading } = useQuery({
     queryKey: ["admin-rsvps", eventId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data: rsvpData, error } = await supabase
         .from("rsvps")
-        .select("*, profiles:user_id(name, email)")
+        .select("*")
         .eq("event_id", eventId);
       if (error) throw error;
-      return data;
+      if (!rsvpData || rsvpData.length === 0) return [];
+
+      const userIds = [...new Set(rsvpData.map((r) => r.user_id))];
+      const { data: profilesData } = await supabase
+        .from("profiles")
+        .select("id, name, email")
+        .in("id", userIds);
+
+      const profileMap = new Map((profilesData ?? []).map((p) => [p.id, p]));
+      return rsvpData.map((r) => ({ ...r, profiles: profileMap.get(r.user_id) ?? null }));
     },
   });
 
