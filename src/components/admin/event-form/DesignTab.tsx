@@ -1,14 +1,16 @@
+import { useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Video, AlertCircle } from "lucide-react";
+import { Video, AlertCircle, Info, DollarSign } from "lucide-react";
 import CoverPhotoUpload from "./CoverPhotoUpload";
 import VenueSelector from "./VenueSelector";
-import type { EventFormState } from "./types";
+import type { EventFormState, EventType } from "./types";
+import { EVENT_TYPE_LABELS } from "./types";
 
-const EVENT_TYPES = ["physical", "online", "kids"] as const;
+const EVENT_TYPES = Object.keys(EVENT_TYPE_LABELS) as EventType[];
 
 interface DesignTabProps {
   form: EventFormState;
@@ -19,12 +21,46 @@ export default function DesignTab({ form, setForm }: DesignTabProps) {
   const update = <K extends keyof EventFormState>(key: K, value: EventFormState[K]) =>
     setForm((prev) => ({ ...prev, [key]: value }));
 
+  // Smart defaults based on type + location
+  useEffect(() => {
+    setForm((prev) => {
+      const next = { ...prev };
+      const isVirtualOnly = prev.type === "class" && !prev.is_hybrid && prev.virtual_link && !prev.location;
+
+      switch (prev.type) {
+        case "gathering":
+          next.has_potluck = true;
+          next.ticket_fee = "0";
+          break;
+        case "class":
+          // Virtual-only class: force potluck off
+          if (!prev.is_hybrid && !prev.location) {
+            next.has_potluck = false;
+          }
+          break;
+        case "meeting":
+          next.has_potluck = false;
+          break;
+        // trip and retreat: keep potluck toggleable, fee visible
+      }
+      return next;
+    });
+  }, [form.type, form.is_hybrid, form.location, setForm]);
+
   const endBeforeStart =
     form.date_time && form.end_date_time && form.end_date_time <= form.date_time;
 
-  const showPhysical =
-    form.is_hybrid || form.type === "physical" || form.type === "kids";
-  const showVirtual = form.is_hybrid || form.type === "online";
+  const isPhysical = form.type !== "class" || form.is_hybrid || !!form.location;
+  const showPhysical = form.is_hybrid || form.type !== "class";
+  const showVirtual = form.is_hybrid || form.type === "class";
+
+  // Potluck toggle visibility
+  const potluckLocked =
+    form.type === "gathering" || form.type === "meeting" ||
+    (form.type === "class" && !form.is_hybrid && !form.location);
+
+  // Fee visibility
+  const showFee = form.type === "trip" || form.type === "retreat";
 
   return (
     <div className="space-y-5 py-4">
@@ -59,36 +95,87 @@ export default function DesignTab({ form, setForm }: DesignTabProps) {
       </div>
 
       {/* Type + Hybrid toggle row */}
-      <div className="grid grid-cols-2 gap-3 items-end">
-        <div>
-          <Label>Event Type</Label>
-          <Select
-            value={form.type}
-            onValueChange={(v) => update("type", v as EventFormState["type"])}
-          >
-            <SelectTrigger className="mt-1.5">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {EVENT_TYPES.map((t) => (
-                <SelectItem key={t} value={t} className="capitalize">
-                  {t}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+      <div className="space-y-3">
+        <div className="grid grid-cols-2 gap-3 items-end">
+          <div>
+            <Label>Event Type</Label>
+            <Select
+              value={form.type}
+              onValueChange={(v) => update("type", v as EventType)}
+            >
+              <SelectTrigger className="mt-1.5">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {EVENT_TYPES.map((t) => (
+                  <SelectItem key={t} value={t}>
+                    {EVENT_TYPE_LABELS[t]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex items-center gap-3 h-10 rounded-md border border-border px-3 bg-muted/30">
+            <Switch
+              id="hybrid"
+              checked={form.is_hybrid}
+              onCheckedChange={(v) => update("is_hybrid", v)}
+            />
+            <Label htmlFor="hybrid" className="text-sm cursor-pointer mb-0">
+              Hybrid
+            </Label>
+          </div>
         </div>
-        <div className="flex items-center gap-3 h-10 rounded-md border border-border px-3 bg-muted/30">
-          <Switch
-            id="hybrid"
-            checked={form.is_hybrid}
-            onCheckedChange={(v) => update("is_hybrid", v)}
-          />
-          <Label htmlFor="hybrid" className="text-sm cursor-pointer mb-0">
-            Hybrid
-          </Label>
-        </div>
+
+        {/* Type-specific notes */}
+        {form.type === "trip" && (
+          <p className="flex items-start gap-1.5 text-xs text-muted-foreground bg-muted/50 rounded-md p-2.5">
+            <Info className="h-3.5 w-3.5 mt-0.5 shrink-0 text-primary" />
+            RSVP will require members to select dependents for this event type.
+          </p>
+        )}
       </div>
+
+      {/* Potluck toggle */}
+      <div className="flex items-center gap-3 rounded-md border border-border px-3 py-2.5 bg-muted/30">
+        <Switch
+          id="has_potluck"
+          checked={form.has_potluck}
+          onCheckedChange={(v) => update("has_potluck", v)}
+          disabled={potluckLocked}
+        />
+        <Label htmlFor="has_potluck" className="text-sm cursor-pointer mb-0">
+          Enable Potluck / Sign-up Items
+        </Label>
+        {potluckLocked && (
+          <span className="ml-auto text-xs text-muted-foreground">
+            {form.type === "gathering" ? "Always on" : "Auto off"}
+          </span>
+        )}
+      </div>
+
+      {/* Ticket Fee */}
+      {showFee && (
+        <div>
+          <Label htmlFor="ticket_fee" className="flex items-center gap-1.5">
+            <DollarSign className="h-3.5 w-3.5 text-primary" />
+            Ticket Fee / Cost (AED)
+          </Label>
+          <Input
+            id="ticket_fee"
+            type="number"
+            min={0}
+            step="0.01"
+            value={form.ticket_fee}
+            onChange={(e) => update("ticket_fee", e.target.value)}
+            placeholder="0"
+            className="mt-1.5"
+          />
+          <p className="text-xs text-muted-foreground mt-1">
+            Leave at 0 for free events
+          </p>
+        </div>
+      )}
 
       {/* Start & End date/time */}
       <div className="grid grid-cols-2 gap-3">
