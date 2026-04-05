@@ -69,6 +69,38 @@ export default function EventControlRoom() {
     setDuplicateForm({ form, items: copiedItems });
   };
 
+  const cancelMutation = useMutation({
+    mutationFn: async (eventId: string) => {
+      const { error } = await supabase.from("events").update({ status: "cancelled" as const }).eq("id", eventId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-events"] });
+      toast.success("Event cancelled");
+    },
+    onError: () => toast.error("Failed to cancel event"),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (eventId: string) => {
+      await supabase.from("rsvp_sign_up_selections").delete().in(
+        "rsvp_id",
+        (await supabase.from("rsvps").select("id").eq("event_id", eventId)).data?.map(r => r.id) ?? []
+      );
+      await supabase.from("rsvps").delete().eq("event_id", eventId);
+      await supabase.from("event_sign_up_items").delete().eq("event_id", eventId);
+      await supabase.from("guest_requests").delete().eq("event_id", eventId);
+      await supabase.from("potluck_config").delete().eq("event_id", eventId);
+      const { error } = await supabase.from("events").delete().eq("id", eventId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-events"] });
+      toast.success("Event permanently deleted");
+    },
+    onError: () => toast.error("Failed to delete event"),
+  });
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
