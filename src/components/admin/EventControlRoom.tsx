@@ -149,6 +149,40 @@ export default function EventControlRoom() {
                       <Button size="icon" variant="ghost" className="h-10 w-10" onClick={() => handleDuplicate(event)}>
                         <Copy className="h-4 w-4" />
                       </Button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button size="icon" variant="ghost" className="h-10 w-10 text-destructive hover:text-destructive">
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Remove "{event.title}"?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Choose to cancel (keeps records) or permanently delete this event and all its RSVPs.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter className="flex-col gap-2 sm:flex-row">
+                            <AlertDialogCancel>Keep Event</AlertDialogCancel>
+                            {event.status !== "cancelled" && (
+                              <AlertDialogAction
+                                onClick={() => cancelMutation.mutate(event.id)}
+                                className="bg-muted text-foreground hover:bg-muted/80"
+                              >
+                                <Ban className="mr-1.5 h-4 w-4" />
+                                Cancel Event
+                              </AlertDialogAction>
+                            )}
+                            <AlertDialogAction
+                              onClick={() => deleteMutation.mutate(event.id)}
+                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            >
+                              <Trash2 className="mr-1.5 h-4 w-4" />
+                              Delete Permanently
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     </div>
                   </div>
                 </CardContent>
