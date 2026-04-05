@@ -227,7 +227,7 @@ export default function EventControlRoom() {
                             <AlertDialogCancel>Keep Event</AlertDialogCancel>
                             {event.status !== "cancelled" && (
                               <AlertDialogAction
-                                onClick={() => cancelMutation.mutate(event.id)}
+                                onClick={() => cancelMutation.mutate(event)}
                                 className="bg-muted text-foreground hover:bg-muted/80"
                               >
                                 <Ban className="mr-1.5 h-4 w-4" />
