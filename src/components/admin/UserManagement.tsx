@@ -138,7 +138,7 @@ export default function UserManagement() {
                         <Button
                           size="icon"
                           className="h-10 w-10"
-                          onClick={() => updateRole.mutate({ userId: p.id, role: "approved" })}
+                          onClick={() => updateRole.mutate({ userId: p.id, role: "approved", email: p.email, name: p.name })}
                           disabled={updateRole.isPending}
                           title="Approve"
                         >
