@@ -51,5 +51,6 @@ export const defaultEventForm: EventFormState = {
   is_hybrid: false,
   has_potluck: true,
   ticket_fee: "0",
+  payment_instructions: "",
   status: "active",
 };

@@ -174,6 +174,18 @@ export default function DesignTab({ form, setForm }: DesignTabProps) {
           <p className="text-xs text-muted-foreground mt-1">
             Leave at 0 for free events
           </p>
+          {parseFloat(form.ticket_fee) > 0 && (
+            <div className="mt-3">
+              <Label htmlFor="payment_instructions">Payment Instructions (Optional)</Label>
+              <Textarea
+                id="payment_instructions"
+                value={form.payment_instructions}
+                onChange={(e) => update("payment_instructions", e.target.value)}
+                placeholder="e.g., Please transfer to IBAN AE12... or Bring cash to the door."
+                className="mt-1.5 min-h-[80px]"
+              />
+            </div>
+          )}
         </div>
       )}
 
