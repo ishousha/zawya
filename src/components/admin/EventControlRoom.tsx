@@ -12,7 +12,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { format } from "date-fns";
 import type { Database } from "@/integrations/supabase/types";
 import EventFormTabs from "./event-form/EventFormTabs";
-import type { EventFormState } from "./event-form/types";
+import type { EventFormState, EventType } from "./event-form/types";
 import type { SignUpItem } from "./event-form/ItemsTab";
 
 type EventRow = Database["public"]["Tables"]["events"]["Row"];
@@ -49,7 +49,7 @@ export default function EventControlRoom() {
       description: event.description ?? "",
       date_time: "",
       end_date_time: "",
-      type: event.type as "physical" | "online" | "kids",
+      type: event.type as EventType,
       venue_id: (event as any).venue_id ?? null,
       location: event.location ?? "",
       address: event.address ?? "",
@@ -58,6 +58,8 @@ export default function EventControlRoom() {
       capacity: event.capacity?.toString() ?? "",
       waitlist_capacity: (event.waitlist_capacity ?? 0).toString(),
       is_hybrid: event.is_hybrid ?? false,
+      has_potluck: event.has_potluck ?? true,
+      ticket_fee: ((event as any).ticket_fee ?? 0).toString(),
       status: "active",
     };
 

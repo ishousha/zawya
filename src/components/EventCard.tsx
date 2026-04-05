@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { format } from "date-fns";
-import { MapPin, Video, Users, Calendar, Clock, CheckCircle2, Ticket, Edit, Building2, ExternalLink, Ban } from "lucide-react";
+import { MapPin, Video, Users, Calendar, Clock, CheckCircle2, Ticket, Edit, Building2, ExternalLink, Ban, BookOpen, Mountain, Handshake } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useMyRSVP } from "@/hooks/useRSVP";
 import RSVPModal from "@/components/RSVPModal";
@@ -9,11 +9,17 @@ import type { Database } from "@/integrations/supabase/types";
 
 type Event = Database["public"]["Tables"]["events"]["Row"];
 
-const typeConfig = {
+const typeConfig: Record<string, { icon: any; label: string }> = {
+  gathering: { icon: MapPin, label: "Gathering / Potluck" },
+  class: { icon: BookOpen, label: "Class / Halaqa" },
+  trip: { icon: Users, label: "Trip / Picnic" },
+  retreat: { icon: Mountain, label: "Retreat / Rihla" },
+  meeting: { icon: Handshake, label: "Community Meeting" },
+  // Legacy fallbacks
   physical: { icon: MapPin, label: "In Person" },
   online: { icon: Video, label: "Online" },
   kids: { icon: Users, label: "Kids" },
-} as const;
+};
 
 interface EventCardProps {
   event: Event;
@@ -22,7 +28,8 @@ interface EventCardProps {
 
 export default function EventCard({ event, onShowTicket }: EventCardProps) {
   const localDate = new Date(event.date_time);
-  const TypeIcon = typeConfig[event.type].icon;
+  const TypeIcon = (typeConfig[event.type] ?? typeConfig.gathering).icon;
+  const typeLabel = (typeConfig[event.type] ?? typeConfig.gathering).label;
   const { data: myRSVP } = useMyRSVP(event.id);
   const [rsvpOpen, setRsvpOpen] = useState(false);
 
@@ -62,7 +69,7 @@ export default function EventCard({ event, onShowTicket }: EventCardProps) {
         <div className="mb-2 flex flex-wrap items-center gap-2">
           <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary">
             <TypeIcon className="h-3 w-3" />
-            {typeConfig[event.type].label}
+            {typeLabel}
           </span>
           {isCancelled && (
             <span className="inline-flex items-center gap-1 rounded-full bg-destructive px-2.5 py-0.5 text-xs font-bold uppercase tracking-wider text-destructive-foreground">

@@ -12,6 +12,7 @@ import ItemsTab from "./ItemsTab";
 import type { SignUpItem } from "./ItemsTab";
 import SettingsTab from "./SettingsTab";
 import { EventFormState, defaultEventForm } from "./types";
+import type { EventType } from "./types";
 import type { Database } from "@/integrations/supabase/types";
 
 type EventRow = Database["public"]["Tables"]["events"]["Row"];
@@ -34,7 +35,7 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
       description: event.description ?? "",
       date_time: event.date_time ? format(new Date(event.date_time), "yyyy-MM-dd'T'HH:mm") : "",
       end_date_time: event.end_date_time ? format(new Date(event.end_date_time), "yyyy-MM-dd'T'HH:mm") : "",
-      type: event.type as "physical" | "online" | "kids",
+      type: event.type as EventType,
       venue_id: (event as any).venue_id ?? null,
       location: event.location ?? "",
       address: event.address ?? "",
@@ -43,6 +44,8 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
       capacity: event.capacity?.toString() ?? "",
       waitlist_capacity: (event.waitlist_capacity ?? 0).toString(),
       is_hybrid: event.is_hybrid ?? false,
+      has_potluck: event.has_potluck ?? true,
+      ticket_fee: ((event as any).ticket_fee ?? 0).toString(),
       status: event.status,
     };
   });
@@ -94,16 +97,16 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
         capacity: form.capacity ? parseInt(form.capacity) : null,
         waitlist_capacity: parseInt(form.waitlist_capacity) || 0,
         is_hybrid: form.is_hybrid,
+        has_potluck: form.has_potluck,
+        ticket_fee: parseFloat(form.ticket_fee) || 0,
         status: form.status,
       };
 
       let eventId = event?.id;
       if (event && !initialForm) {
-        // Editing existing event
         const { error } = await supabase.from("events").update(payload).eq("id", event.id);
         if (error) throw error;
       } else {
-        // Creating new (or duplicated) event
         const { data, error } = await supabase.from("events").insert(payload).select("id").single();
         if (error) throw error;
         eventId = data.id;

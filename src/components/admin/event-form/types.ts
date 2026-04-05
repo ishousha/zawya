@@ -1,9 +1,19 @@
+export type EventType = "gathering" | "class" | "trip" | "retreat" | "meeting";
+
+export const EVENT_TYPE_LABELS: Record<EventType, string> = {
+  gathering: "Gathering / Potluck",
+  class: "Class / Halaqa",
+  trip: "Trip or Picnic (Kids & Family)",
+  retreat: "Retreat / Rihla",
+  meeting: "Community Meeting",
+};
+
 export interface EventFormState {
   title: string;
   description: string;
   date_time: string;
   end_date_time: string;
-  type: "physical" | "online" | "kids";
+  type: EventType;
   venue_id: string | null;
   location: string;
   address: string;
@@ -12,6 +22,8 @@ export interface EventFormState {
   capacity: string;
   waitlist_capacity: string;
   is_hybrid: boolean;
+  has_potluck: boolean;
+  ticket_fee: string;
   status: "active" | "full" | "cancelled";
 }
 
@@ -27,7 +39,7 @@ export const defaultEventForm: EventFormState = {
   description: "",
   date_time: "",
   end_date_time: "",
-  type: "physical",
+  type: "gathering",
   venue_id: null,
   location: "",
   address: "",
@@ -36,5 +48,7 @@ export const defaultEventForm: EventFormState = {
   capacity: "",
   waitlist_capacity: "0",
   is_hybrid: false,
+  has_potluck: true,
+  ticket_fee: "0",
   status: "active",
 };

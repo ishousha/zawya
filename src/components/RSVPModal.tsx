@@ -253,6 +253,18 @@ export default function RSVPModal({ event, open, onOpenChange }: RSVPModalProps)
           {isEditing && <GuestRequestsSection eventId={event.id} />}
         </div>
 
+        {/* Fee notice */}
+        {(event as any).ticket_fee > 0 && (
+          <div className="rounded-md border border-primary/30 bg-primary/5 p-3 text-center">
+            <p className="text-sm font-semibold text-primary">
+              Fee: {(event as any).ticket_fee} AED
+            </p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Payment will be collected at the event
+            </p>
+          </div>
+        )}
+
         {/* Actions */}
         <div className="flex flex-col gap-2 pt-2">
           <Button onClick={handleSubmit} disabled={isPending || guestsCount === 0}>
