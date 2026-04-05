@@ -332,6 +332,7 @@ export type Database = {
           name: string | null
           phone: string | null
           role: Database["public"]["Enums"]["app_role"]
+          terms_accepted: boolean | null
           updated_at: string
           whatsapp_number: string | null
         }
@@ -345,6 +346,7 @@ export type Database = {
           name?: string | null
           phone?: string | null
           role?: Database["public"]["Enums"]["app_role"]
+          terms_accepted?: boolean | null
           updated_at?: string
           whatsapp_number?: string | null
         }
@@ -358,6 +360,7 @@ export type Database = {
           name?: string | null
           phone?: string | null
           role?: Database["public"]["Enums"]["app_role"]
+          terms_accepted?: boolean | null
           updated_at?: string
           whatsapp_number?: string | null
         }

@@ -5,7 +5,8 @@ import { Label } from "@/components/ui/label";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { LogOut, User, CalendarIcon, Loader2 } from "lucide-react";
+import { LogOut, User, CalendarIcon, Loader2, ScrollText } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -52,6 +53,7 @@ function isValidLocalNumber(num: string): boolean {
 
 export default function ProfilePage() {
   const { profile, user, signOut } = useAuth();
+  const navigate = useNavigate();
 
   const [whatsappCC, setWhatsappCC] = useState("+971");
   const [whatsappNum, setWhatsappNum] = useState("");
@@ -251,6 +253,15 @@ export default function ProfilePage() {
         </div>
 
         <DependentsSection />
+
+        <Button
+          variant="outline"
+          className="w-full gap-2"
+          onClick={() => navigate("/guidelines")}
+        >
+          <ScrollText className="h-4 w-4" />
+          Community Guidelines
+        </Button>
 
         <Button
           variant="outline"
