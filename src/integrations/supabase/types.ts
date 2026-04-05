@@ -177,12 +177,13 @@ export type Database = {
           date_time: string
           description: string | null
           end_date_time: string | null
+          has_potluck: boolean | null
           id: string
           is_hybrid: boolean
           location: string | null
           status: Database["public"]["Enums"]["event_status"]
           title: string
-          type: Database["public"]["Enums"]["event_type"]
+          type: string
           updated_at: string
           venue_id: string | null
           virtual_link: string | null
@@ -197,12 +198,13 @@ export type Database = {
           date_time: string
           description?: string | null
           end_date_time?: string | null
+          has_potluck?: boolean | null
           id?: string
           is_hybrid?: boolean
           location?: string | null
           status?: Database["public"]["Enums"]["event_status"]
           title: string
-          type?: Database["public"]["Enums"]["event_type"]
+          type?: string
           updated_at?: string
           venue_id?: string | null
           virtual_link?: string | null
@@ -217,12 +219,13 @@ export type Database = {
           date_time?: string
           description?: string | null
           end_date_time?: string | null
+          has_potluck?: boolean | null
           id?: string
           is_hybrid?: boolean
           location?: string | null
           status?: Database["public"]["Enums"]["event_status"]
           title?: string
-          type?: Database["public"]["Enums"]["event_type"]
+          type?: string
           updated_at?: string
           venue_id?: string | null
           virtual_link?: string | null
