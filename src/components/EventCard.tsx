@@ -180,6 +180,7 @@ export default function EventCard({ event, onShowTicket }: EventCardProps) {
             </Button>
           )}
         </div>
+        </div>
       </div>
 
       <RSVPModal event={event} open={rsvpOpen} onOpenChange={setRsvpOpen} />
