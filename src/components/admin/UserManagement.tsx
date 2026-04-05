@@ -115,25 +115,31 @@ export default function UserManagement() {
                   >
                     {p.role}
                   </Badge>
-                  {p.role === "pending" && (
+                  {p.role !== "admin" && (
                     <>
-                      <Button
-                        size="icon"
-                        className="h-10 w-10"
-                        onClick={() => updateRole.mutate({ userId: p.id, role: "approved" })}
-                        disabled={updateRole.isPending}
-                      >
-                        <CheckCircle className="h-5 w-5" />
-                      </Button>
-                      <Button
-                        size="icon"
-                        variant="destructive"
-                        className="h-10 w-10"
-                        onClick={() => updateRole.mutate({ userId: p.id, role: "pending" })}
-                        disabled={updateRole.isPending}
-                      >
-                        <XCircle className="h-5 w-5" />
-                      </Button>
+                      {p.role !== "approved" && (
+                        <Button
+                          size="icon"
+                          className="h-10 w-10"
+                          onClick={() => updateRole.mutate({ userId: p.id, role: "approved" })}
+                          disabled={updateRole.isPending}
+                          title="Approve"
+                        >
+                          <CheckCircle className="h-5 w-5" />
+                        </Button>
+                      )}
+                      {p.role !== "pending" && (
+                        <Button
+                          size="icon"
+                          variant="destructive"
+                          className="h-10 w-10"
+                          onClick={() => updateRole.mutate({ userId: p.id, role: "pending" })}
+                          disabled={updateRole.isPending}
+                          title="Revoke to Pending"
+                        >
+                          <XCircle className="h-5 w-5" />
+                        </Button>
+                      )}
                     </>
                   )}
                 </div>
@@ -167,26 +173,28 @@ export default function UserManagement() {
                     >
                       {gr.status}
                     </Badge>
-                    {gr.status === "pending" && (
-                      <>
-                        <Button
-                          size="icon"
-                          className="h-10 w-10"
-                          onClick={() => updateGuestStatus.mutate({ id: gr.id, status: "approved" })}
-                          disabled={updateGuestStatus.isPending}
-                        >
-                          <CheckCircle className="h-5 w-5" />
-                        </Button>
-                        <Button
-                          size="icon"
-                          variant="destructive"
-                          className="h-10 w-10"
-                          onClick={() => updateGuestStatus.mutate({ id: gr.id, status: "rejected" })}
-                          disabled={updateGuestStatus.isPending}
-                        >
-                          <XCircle className="h-5 w-5" />
-                        </Button>
-                      </>
+                    {gr.status !== "approved" && (
+                      <Button
+                        size="icon"
+                        className="h-10 w-10"
+                        onClick={() => updateGuestStatus.mutate({ id: gr.id, status: "approved" })}
+                        disabled={updateGuestStatus.isPending}
+                        title="Approve"
+                      >
+                        <CheckCircle className="h-5 w-5" />
+                      </Button>
+                    )}
+                    {gr.status !== "rejected" && (
+                      <Button
+                        size="icon"
+                        variant="destructive"
+                        className="h-10 w-10"
+                        onClick={() => updateGuestStatus.mutate({ id: gr.id, status: "rejected" })}
+                        disabled={updateGuestStatus.isPending}
+                        title="Reject"
+                      >
+                        <XCircle className="h-5 w-5" />
+                      </Button>
                     )}
                   </div>
                 </CardContent>
