@@ -18,6 +18,7 @@ import type { SignUpItem } from "./event-form/ItemsTab";
 type EventRow = Database["public"]["Tables"]["events"]["Row"];
 
 export default function EventControlRoom() {
+  const queryClient = useQueryClient();
   const [editing, setEditing] = useState<EventRow | null>(null);
   const [creating, setCreating] = useState(false);
   const [monitoringEventId, setMonitoringEventId] = useState<string | null>(null);
