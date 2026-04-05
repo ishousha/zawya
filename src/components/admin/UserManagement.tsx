@@ -50,17 +50,30 @@ export default function UserManagement() {
   });
 
   const updateRole = useMutation({
-    mutationFn: async ({ userId, role }: { userId: string; role: Database["public"]["Enums"]["app_role"] }) => {
+    mutationFn: async ({ userId, role, email, name }: { userId: string; role: Database["public"]["Enums"]["app_role"]; email?: string | null; name?: string | null }) => {
       const { error } = await supabase
         .from("profiles")
         .update({ role })
         .eq("id", userId);
       if (error) throw error;
       notifyUserApproval(userId, role);
+
+      // Send email notification
+      if (email) {
+        const templateName = role === "approved" ? "user-approved" : "user-rejected";
+        supabase.functions.invoke("send-transactional-email", {
+          body: {
+            templateName,
+            recipientEmail: email,
+            idempotencyKey: `${templateName}-${userId}-${Date.now()}`,
+            templateData: { memberName: name || undefined },
+          },
+        }).catch((err) => console.warn("Failed to send role change email:", err));
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-profiles"] });
-      toast.success("User role updated");
+      toast.success("User role updated — member will be notified");
     },
     onError: () => toast.error("Failed to update user role"),
   });
@@ -125,7 +138,7 @@ export default function UserManagement() {
                         <Button
                           size="icon"
                           className="h-10 w-10"
-                          onClick={() => updateRole.mutate({ userId: p.id, role: "approved" })}
+                          onClick={() => updateRole.mutate({ userId: p.id, role: "approved", email: p.email, name: p.name })}
                           disabled={updateRole.isPending}
                           title="Approve"
                         >
@@ -137,7 +150,7 @@ export default function UserManagement() {
                           size="icon"
                           variant="destructive"
                           className="h-10 w-10"
-                          onClick={() => updateRole.mutate({ userId: p.id, role: "pending" })}
+                          onClick={() => updateRole.mutate({ userId: p.id, role: "pending", email: p.email, name: p.name })}
                           disabled={updateRole.isPending}
                           title="Revoke to Pending"
                         >
