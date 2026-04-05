@@ -5,7 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { ScanLine, CheckCircle2, XOctagon } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
+import { ScanLine, CheckCircle2, XOctagon, Users } from "lucide-react";
 import { toast } from "sonner";
 import { Scanner } from "@yudiel/react-qr-scanner";
 
@@ -33,6 +34,25 @@ export default function AdminDoorScanner() {
       if (error) throw error;
       return data;
     },
+  });
+
+  // Live check-in counter
+  const { data: rsvpCounts } = useQuery({
+    queryKey: ["door-scanner-counts", selectedEventId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("rsvps")
+        .select("checked_in, guests_count")
+        .eq("event_id", selectedEventId);
+      if (error) throw error;
+      const total = data.length;
+      const totalGuests = data.reduce((sum, r) => sum + r.guests_count, 0);
+      const checkedIn = data.filter((r) => r.checked_in).length;
+      const checkedInGuests = data.filter((r) => r.checked_in).reduce((sum, r) => sum + r.guests_count, 0);
+      return { total, totalGuests, checkedIn, checkedInGuests };
+    },
+    enabled: !!selectedEventId,
+    refetchInterval: 5000,
   });
 
   const checkIn = useMutation({
@@ -87,6 +107,7 @@ export default function AdminDoorScanner() {
       toast.success(`${rsvp.profileName} checked in!`);
       playTone(800, 200);
       queryClient.invalidateQueries({ queryKey: ["admin-rsvps"] });
+      queryClient.invalidateQueries({ queryKey: ["door-scanner-counts", selectedEventId] });
     },
     onError: (error: any) => {
       let message = "Unknown error";
@@ -153,6 +174,31 @@ export default function AdminDoorScanner() {
           </SelectContent>
         </Select>
       </div>
+
+      {/* Live check-in counter */}
+      {selectedEventId && rsvpCounts && (
+        <Card>
+          <CardContent className="p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-sm font-medium text-card-foreground">
+                <Users className="h-4 w-4 text-primary" />
+                Check-in Progress
+              </div>
+              <span className="text-2xl font-bold text-primary">
+                {rsvpCounts.checkedIn}/{rsvpCounts.total}
+              </span>
+            </div>
+            <Progress
+              value={rsvpCounts.total > 0 ? (rsvpCounts.checkedIn / rsvpCounts.total) * 100 : 0}
+              className="h-3"
+            />
+            <div className="flex justify-between text-xs text-muted-foreground">
+              <span>{rsvpCounts.checkedInGuests} of {rsvpCounts.totalGuests} total guests arrived</span>
+              <span>{rsvpCounts.total - rsvpCounts.checkedIn} remaining</span>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Scanner area */}
       {!scanning ? (
