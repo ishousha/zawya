@@ -2,7 +2,7 @@ import { useRef, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, CheckCircle2, Download, Loader2 } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Download, Loader2, WifiOff } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -12,14 +12,17 @@ type Event = Database["public"]["Tables"]["events"]["Row"];
 interface QRTicketScreenProps {
   event: Event;
   rsvp: RSVP;
+  profileName?: string;
+  isOffline?: boolean;
   onBack: () => void;
 }
 
-export default function QRTicketScreen({ event, rsvp, onBack }: QRTicketScreenProps) {
+export default function QRTicketScreen({ event, rsvp, profileName, isOffline, onBack }: QRTicketScreenProps) {
   const { profile } = useAuth();
   const ticketRef = useRef<HTMLDivElement>(null);
   const [saving, setSaving] = useState(false);
   const localDate = new Date(event.date_time);
+  const displayName = profileName || profile?.name || "Member";
 
   const qrData = JSON.stringify({
     rsvp_id: rsvp.id,
@@ -56,6 +59,12 @@ export default function QRTicketScreen({ event, rsvp, onBack }: QRTicketScreenPr
           <ArrowLeft className="mr-1 h-4 w-4" /> Back
         </Button>
         <h1 className="font-heading text-2xl font-bold text-foreground">Your Ticket</h1>
+        {isOffline && (
+          <p className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
+            <WifiOff className="h-3.5 w-3.5" />
+            Showing cached ticket — you're offline
+          </p>
+        )}
       </header>
 
       <main className="mx-auto max-w-sm px-4 py-6">
@@ -83,7 +92,7 @@ export default function QRTicketScreen({ event, rsvp, onBack }: QRTicketScreenPr
           <div className="px-6 pt-5 text-center">
             <p className="text-xs uppercase tracking-wider text-muted-foreground">Attendee</p>
             <p className="mt-1 font-heading text-lg font-semibold text-card-foreground">
-              {profile?.name || "Member"}
+              {displayName}
             </p>
           </div>
 
@@ -123,19 +132,6 @@ export default function QRTicketScreen({ event, rsvp, onBack }: QRTicketScreenPr
               <div className="mt-2 flex justify-between">
                 <span className="text-muted-foreground">Location</span>
                 <span className="font-medium text-card-foreground">{event.location}</span>
-              </div>
-            )}
-            {event.zoom_link && (
-              <div className="mt-2">
-                <span className="text-muted-foreground">Zoom: </span>
-                <a
-                  href={event.zoom_link}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-primary underline underline-offset-2"
-                >
-                  Join Meeting
-                </a>
               </div>
             )}
           </div>
