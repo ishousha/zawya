@@ -49,7 +49,7 @@ export default function EventControlRoom() {
       description: event.description ?? "",
       date_time: "",
       end_date_time: "",
-      type: event.type,
+      type: event.type as "physical" | "online" | "kids",
       venue_id: (event as any).venue_id ?? null,
       location: event.location ?? "",
       address: event.address ?? "",
