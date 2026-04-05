@@ -170,10 +170,12 @@ export type Database = {
       }
       events: {
         Row: {
+          address: string | null
           capacity: number | null
           cover_photo_url: string | null
           created_at: string
           date_time: string
+          description: string | null
           end_date_time: string | null
           id: string
           is_hybrid: boolean
@@ -187,10 +189,12 @@ export type Database = {
           zoom_link: string | null
         }
         Insert: {
+          address?: string | null
           capacity?: number | null
           cover_photo_url?: string | null
           created_at?: string
           date_time: string
+          description?: string | null
           end_date_time?: string | null
           id?: string
           is_hybrid?: boolean
@@ -204,10 +208,12 @@ export type Database = {
           zoom_link?: string | null
         }
         Update: {
+          address?: string | null
           capacity?: number | null
           cover_photo_url?: string | null
           created_at?: string
           date_time?: string
+          description?: string | null
           end_date_time?: string | null
           id?: string
           is_hybrid?: boolean
