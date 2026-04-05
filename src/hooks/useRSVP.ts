@@ -313,6 +313,7 @@ export function useRSVPConcurrency(eventId: string) {
         .eq("id", rsvpId)
         .eq("user_id", user.id);
       if (error) throw error;
+      removeCachedTicket(rsvpId);
       notifyRSVPCancelled(rsvpId, eventId, user.id);
     },
     onMutate: async () => {
