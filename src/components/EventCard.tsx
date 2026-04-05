@@ -28,7 +28,8 @@ interface EventCardProps {
 
 export default function EventCard({ event, onShowTicket }: EventCardProps) {
   const localDate = new Date(event.date_time);
-  const TypeIcon = typeConfig[event.type].icon;
+  const TypeIcon = (typeConfig[event.type] ?? typeConfig.gathering).icon;
+  const typeLabel = (typeConfig[event.type] ?? typeConfig.gathering).label;
   const { data: myRSVP } = useMyRSVP(event.id);
   const [rsvpOpen, setRsvpOpen] = useState(false);
 
