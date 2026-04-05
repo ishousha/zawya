@@ -35,6 +35,7 @@ function isValidLocalNumber(num: string): boolean {
 export default function CompleteProfile() {
   const { user, signOut } = useAuth();
   const [name, setName] = useState("");
+  const [familyName, setFamilyName] = useState("");
   const [whatsappCC, setWhatsappCC] = useState("+971");
   const [whatsappNum, setWhatsappNum] = useState("");
   const [saving, setSaving] = useState(false);
@@ -56,6 +57,7 @@ export default function CompleteProfile() {
       .from("profiles")
       .update({
         name: name.trim(),
+        family_name: familyName.trim() || null,
         whatsapp_number: toE164(whatsappCC, whatsappNum),
       })
       .eq("id", user.id);
@@ -95,6 +97,17 @@ export default function CompleteProfile() {
               placeholder="e.g. Ahmed Hassan"
               value={name}
               onChange={(e) => setName(e.target.value)}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-sm font-medium text-foreground">
+              Family Name <span className="text-xs text-muted-foreground">(optional)</span>
+            </Label>
+            <Input
+              placeholder="e.g. Hassan"
+              value={familyName}
+              onChange={(e) => setFamilyName(e.target.value)}
             />
           </div>
 
