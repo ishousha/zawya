@@ -121,36 +121,19 @@ export default function DesignTab({ form, setForm }: DesignTabProps) {
         </div>
       </div>
 
-      {/* Location fields — conditional on type + hybrid */}
+      {/* Venue selector — conditional on type + hybrid */}
       {showPhysical && (
-        <div className="space-y-3">
-          <div>
-            <Label htmlFor="location" className="flex items-center gap-1.5">
-              <Building2 className="h-3.5 w-3.5 text-primary" />
-              Location Name
-            </Label>
-            <Input
-              id="location"
-              value={form.location}
-              onChange={(e) => update("location", e.target.value)}
-              placeholder="e.g. Zawya Hall, Building B"
-              className="mt-1.5"
-            />
-          </div>
-          <div>
-            <Label htmlFor="address" className="flex items-center gap-1.5">
-              <MapPin className="h-3.5 w-3.5 text-primary" />
-              Address / Maps Link
-            </Label>
-            <Input
-              id="address"
-              value={form.address}
-              onChange={(e) => update("address", e.target.value)}
-              placeholder="Full address or Google Maps link"
-              className="mt-1.5"
-            />
-          </div>
-        </div>
+        <VenueSelector
+          value={form.venue_id}
+          onChange={(venueId, name, address) =>
+            setForm((prev) => ({
+              ...prev,
+              venue_id: venueId,
+              location: name,
+              address: address,
+            }))
+          }
+        />
       )}
 
       {showVirtual && (
