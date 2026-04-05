@@ -46,6 +46,8 @@ export default function HomeFeed() {
         </p>
       </header>
 
+      <InstallAppBanner />
+
       <main className="mx-auto max-w-lg px-4 py-6">
         <h2 className="mb-4 font-heading text-lg font-semibold text-foreground">
           Upcoming Activities
