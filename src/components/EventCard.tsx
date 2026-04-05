@@ -150,28 +150,29 @@ export default function EventCard({ event, onShowTicket }: EventCardProps) {
         )}
 
         {/* Action buttons */}
-        <div className="mt-3 flex gap-2">
-          {isAttending ? (
-            <>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => setRsvpOpen(true)}
-                className="flex-1"
-              >
-                <Edit className="mr-1.5 h-3.5 w-3.5" />
-                Edit RSVP
-              </Button>
-              <Button
-                size="sm"
-                onClick={() => onShowTicket?.(event)}
-                className="flex-1"
-              >
-                <Ticket className="mr-1.5 h-3.5 w-3.5" />
-                View Ticket
-              </Button>
-            </>
-          ) : (
+        <div className="mt-3 space-y-2">
+          <div className="flex gap-2">
+            {isAttending ? (
+              <>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setRsvpOpen(true)}
+                  className="flex-1"
+                >
+                  <Edit className="mr-1.5 h-3.5 w-3.5" />
+                  Edit RSVP
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={() => onShowTicket?.(event)}
+                  className="flex-1"
+                >
+                  <Ticket className="mr-1.5 h-3.5 w-3.5" />
+                  View Ticket
+                </Button>
+              </>
+            ) : (
             <Button
               size="sm"
               onClick={() => setRsvpOpen(true)}
