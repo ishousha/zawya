@@ -5,6 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useMyRSVP } from "@/hooks/useRSVP";
 import EventCard from "@/components/EventCard";
 import QRTicketScreen from "@/components/QRTicketScreen";
+import InstallAppBanner from "@/components/InstallAppBanner";
 import { Loader2 } from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
 
