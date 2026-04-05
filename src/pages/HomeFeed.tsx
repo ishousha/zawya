@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -7,6 +7,7 @@ import EventCard from "@/components/EventCard";
 import QRTicketScreen from "@/components/QRTicketScreen";
 import InstallAppBanner from "@/components/InstallAppBanner";
 import { Loader2 } from "lucide-react";
+import { cacheTicket, getCachedTicketByEvent, cleanExpiredTickets } from "@/lib/offline-ticket-cache";
 import type { Database } from "@/integrations/supabase/types";
 
 type Event = Database["public"]["Tables"]["events"]["Row"];
@@ -14,6 +15,11 @@ type Event = Database["public"]["Tables"]["events"]["Row"];
 export default function HomeFeed() {
   const { profile } = useAuth();
   const [ticketEvent, setTicketEvent] = useState<Event | null>(null);
+
+  // Clean expired tickets on mount
+  useEffect(() => {
+    cleanExpiredTickets();
+  }, []);
 
   const { data: events, isLoading } = useQuery({
     queryKey: ["events"],
@@ -77,9 +83,18 @@ export default function HomeFeed() {
   );
 }
 
-/** Wrapper to load myRSVP for the ticket screen */
+/** Wrapper that loads RSVP data (with offline fallback) for the ticket screen */
 function TicketView({ event, onBack }: { event: Event; onBack: () => void }) {
-  const { data: myRSVP, isLoading } = useMyRSVP(event.id);
+  const { profile } = useAuth();
+  const { data: myRSVP, isLoading, isError } = useMyRSVP(event.id);
+  const [isOffline, setIsOffline] = useState(false);
+
+  // When RSVP loads successfully, cache the ticket
+  useEffect(() => {
+    if (myRSVP && profile?.name) {
+      cacheTicket(myRSVP, event, profile.name);
+    }
+  }, [myRSVP, event, profile?.name]);
 
   if (isLoading) {
     return (
@@ -89,10 +104,28 @@ function TicketView({ event, onBack }: { event: Event; onBack: () => void }) {
     );
   }
 
-  if (!myRSVP) {
-    onBack();
-    return null;
+  // Online and have RSVP
+  if (myRSVP) {
+    return <QRTicketScreen event={event} rsvp={myRSVP} onBack={onBack} />;
   }
 
-  return <QRTicketScreen event={event} rsvp={myRSVP} onBack={onBack} />;
+  // No RSVP from network — try offline cache
+  if (isError || !myRSVP) {
+    const cached = getCachedTicketByEvent(event.id);
+    if (cached) {
+      return (
+        <QRTicketScreen
+          event={cached.event}
+          rsvp={cached.rsvp}
+          profileName={cached.profileName}
+          isOffline
+          onBack={onBack}
+        />
+      );
+    }
+  }
+
+  // No RSVP at all
+  onBack();
+  return null;
 }

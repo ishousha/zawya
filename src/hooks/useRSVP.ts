@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { generateQRHash } from "@/lib/qr-hash";
 import { notifyRSVPCreated, notifyRSVPUpdated, notifyRSVPCancelled } from "@/lib/webhooks";
+import { removeCachedTicket } from "@/lib/offline-ticket-cache";
 import type { Database } from "@/integrations/supabase/types";
 
 type RSVP = Database["public"]["Tables"]["rsvps"]["Row"];
@@ -312,6 +313,7 @@ export function useRSVPConcurrency(eventId: string) {
         .eq("id", rsvpId)
         .eq("user_id", user.id);
       if (error) throw error;
+      removeCachedTicket(rsvpId);
       notifyRSVPCancelled(rsvpId, eventId, user.id);
     },
     onMutate: async () => {
