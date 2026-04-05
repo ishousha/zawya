@@ -134,6 +134,13 @@ export default function QRTicketScreen({ event, rsvp, profileName, isOffline, on
                 <span className="font-medium text-card-foreground">{event.location}</span>
               </div>
             )}
+            {(event.ticket_fee ?? 0) > 0 && (
+              <div className="mt-3 rounded-md bg-yellow-50 dark:bg-yellow-950/30 border border-yellow-500/40 p-2.5 text-center">
+                <span className="text-xs font-semibold text-yellow-800 dark:text-yellow-300">
+                  💰 Pay Offline — {event.ticket_fee} AED
+                </span>
+              </div>
+            )}
           </div>
         </div>
 
