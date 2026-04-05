@@ -83,6 +83,11 @@ export default function EventCard({ event, onShowTicket }: EventCardProps) {
               Attending
             </span>
           )}
+          {!isCancelled && isAttending && (event.ticket_fee ?? 0) > 0 && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-yellow-100 dark:bg-yellow-900/40 px-2.5 py-0.5 text-xs font-semibold text-yellow-800 dark:text-yellow-300">
+              💰 Pay Offline
+            </span>
+          )}
           {event.capacity && (
             <span className="ml-auto text-xs text-muted-foreground">
               {event.capacity} spots

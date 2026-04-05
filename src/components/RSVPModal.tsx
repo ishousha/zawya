@@ -253,14 +253,24 @@ export default function RSVPModal({ event, open, onOpenChange }: RSVPModalProps)
           {isEditing && <GuestRequestsSection eventId={event.id} />}
         </div>
 
-        {/* Fee notice */}
+        {/* Payment Required callout */}
         {(event as any).ticket_fee > 0 && (
-          <div className="rounded-md border border-primary/30 bg-primary/5 p-3 text-center">
-            <p className="text-sm font-semibold text-primary">
-              Fee: {(event as any).ticket_fee} AED
+          <div className="rounded-md border border-yellow-500/40 bg-yellow-50 dark:bg-yellow-950/30 p-4 space-y-2">
+            <p className="text-sm font-semibold text-yellow-800 dark:text-yellow-300 flex items-center gap-1.5">
+              💰 Payment Required
             </p>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              Payment will be collected at the event
+            <p className="text-sm font-medium text-yellow-900 dark:text-yellow-200">
+              Total Cost: {guestsCount > 1
+                ? `${(event as any).ticket_fee} × ${guestsCount} = ${((event as any).ticket_fee * guestsCount).toFixed(0)} AED`
+                : `${(event as any).ticket_fee} AED`}
+            </p>
+            {(event as any).payment_instructions && (
+              <p className="text-xs text-yellow-800 dark:text-yellow-400 leading-relaxed">
+                {(event as any).payment_instructions}
+              </p>
+            )}
+            <p className="text-xs text-yellow-700 dark:text-yellow-500">
+              Payment will be collected offline (cash or bank transfer)
             </p>
           </div>
         )}
@@ -269,7 +279,7 @@ export default function RSVPModal({ event, open, onOpenChange }: RSVPModalProps)
         <div className="flex flex-col gap-2 pt-2">
           <Button onClick={handleSubmit} disabled={isPending || guestsCount === 0}>
             {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-            {isEditing ? "Update RSVP" : "Confirm RSVP"}
+            {isEditing ? "Update RSVP" : (event as any).ticket_fee > 0 ? "Acknowledge & Confirm RSVP" : "Confirm RSVP"}
           </Button>
           {isEditing && (
             <Button variant="outline" onClick={handleCancel} disabled={isPending} className="text-destructive">

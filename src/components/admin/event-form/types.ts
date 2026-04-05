@@ -24,6 +24,7 @@ export interface EventFormState {
   is_hybrid: boolean;
   has_potluck: boolean;
   ticket_fee: string;
+  payment_instructions: string;
   status: "active" | "full" | "cancelled";
 }
 
@@ -50,5 +51,6 @@ export const defaultEventForm: EventFormState = {
   is_hybrid: false,
   has_potluck: true,
   ticket_fee: "0",
+  payment_instructions: "",
   status: "active",
 };
