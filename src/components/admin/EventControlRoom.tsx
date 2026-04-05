@@ -51,6 +51,7 @@ export default function EventControlRoom() {
       end_date_time: "",
       type: event.type,
       venue_id: (event as any).venue_id ?? null,
+      location: event.location ?? "",
       address: event.address ?? "",
       virtual_link: event.virtual_link ?? event.zoom_link ?? "",
       cover_photo_url: event.cover_photo_url ?? null,
