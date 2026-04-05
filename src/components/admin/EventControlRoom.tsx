@@ -12,7 +12,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { format } from "date-fns";
 import type { Database } from "@/integrations/supabase/types";
 import EventFormTabs from "./event-form/EventFormTabs";
-import type { EventFormState } from "./event-form/types";
+import type { EventFormState, EventType } from "./event-form/types";
 import type { SignUpItem } from "./event-form/ItemsTab";
 
 type EventRow = Database["public"]["Tables"]["events"]["Row"];
