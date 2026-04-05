@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Loader2, CheckCircle, XCircle, UserCheck, Clock } from "lucide-react";
 import { toast } from "sonner";
 import { notifyUserApproval } from "@/lib/webhooks";
+import { format } from "date-fns";
 import type { Database } from "@/integrations/supabase/types";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
@@ -36,7 +37,7 @@ export default function UserManagement() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("guest_requests")
-        .select("*")
+        .select("*, events:event_id(title, date_time), profiles:requesting_user_id(name, email)")
         .order("created_at", { ascending: false });
       if (error) throw error;
       // Sort: pending first
@@ -165,6 +166,15 @@ export default function UserManagement() {
                 <CardContent className="flex items-center justify-between p-4">
                   <div className="min-w-0 flex-1">
                     <p className="truncate font-medium text-card-foreground">{gr.guest_name}</p>
+                    {(gr as any).profiles?.name && (
+                      <p className="text-xs text-muted-foreground">Requested by {(gr as any).profiles.name}</p>
+                    )}
+                    {(gr as any).events?.title && (
+                      <p className="text-xs text-primary font-medium">
+                        For: {(gr as any).events.title}
+                        {(gr as any).events.date_time && ` — ${format(new Date((gr as any).events.date_time), "EEE, MMM d")}`}
+                      </p>
+                    )}
                     {gr.guest_phone && (
                       <p className="text-xs text-muted-foreground">{gr.guest_phone}</p>
                     )}

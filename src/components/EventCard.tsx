@@ -4,6 +4,7 @@ import { MapPin, Video, Users, Calendar, Clock, CheckCircle2, Ticket, Edit, Buil
 import { Button } from "@/components/ui/button";
 import { useMyRSVP } from "@/hooks/useRSVP";
 import RSVPModal from "@/components/RSVPModal";
+import AddToCalendarButton from "@/components/AddToCalendarButton";
 import type { Database } from "@/integrations/supabase/types";
 
 type Event = Database["public"]["Tables"]["events"]["Row"];
@@ -149,36 +150,39 @@ export default function EventCard({ event, onShowTicket }: EventCardProps) {
         )}
 
         {/* Action buttons */}
-        <div className="mt-3 flex gap-2">
-          {isAttending ? (
-            <>
+        <div className="mt-3 space-y-2">
+          <div className="flex gap-2">
+            {isAttending ? (
+              <>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setRsvpOpen(true)}
+                  className="flex-1"
+                >
+                  <Edit className="mr-1.5 h-3.5 w-3.5" />
+                  Edit RSVP
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={() => onShowTicket?.(event)}
+                  className="flex-1"
+                >
+                  <Ticket className="mr-1.5 h-3.5 w-3.5" />
+                  View Ticket
+                </Button>
+              </>
+            ) : (
               <Button
                 size="sm"
-                variant="outline"
                 onClick={() => setRsvpOpen(true)}
-                className="flex-1"
+                className="w-full"
               >
-                <Edit className="mr-1.5 h-3.5 w-3.5" />
-                Edit RSVP
+                RSVP
               </Button>
-              <Button
-                size="sm"
-                onClick={() => onShowTicket?.(event)}
-                className="flex-1"
-              >
-                <Ticket className="mr-1.5 h-3.5 w-3.5" />
-                View Ticket
-              </Button>
-            </>
-          ) : (
-            <Button
-              size="sm"
-              onClick={() => setRsvpOpen(true)}
-              className="w-full"
-            >
-              RSVP
-            </Button>
-          )}
+            )}
+          </div>
+          {isAttending && <AddToCalendarButton event={event} />}
         </div>
         </div>
       </div>
