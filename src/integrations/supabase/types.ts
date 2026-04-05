@@ -14,6 +14,38 @@ export type Database = {
   }
   public: {
     Tables: {
+      dependents: {
+        Row: {
+          created_at: string | null
+          date_of_birth: string | null
+          first_name: string
+          id: string
+          parent_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          date_of_birth?: string | null
+          first_name: string
+          id?: string
+          parent_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          date_of_birth?: string | null
+          first_name?: string
+          id?: string
+          parent_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dependents_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       email_send_log: {
         Row: {
           created_at: string
