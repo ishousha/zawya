@@ -36,6 +36,25 @@ export default function AdminDoorScanner() {
     },
   });
 
+  // Live check-in counter
+  const { data: rsvpCounts } = useQuery({
+    queryKey: ["door-scanner-counts", selectedEventId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("rsvps")
+        .select("checked_in, guests_count")
+        .eq("event_id", selectedEventId);
+      if (error) throw error;
+      const total = data.length;
+      const totalGuests = data.reduce((sum, r) => sum + r.guests_count, 0);
+      const checkedIn = data.filter((r) => r.checked_in).length;
+      const checkedInGuests = data.filter((r) => r.checked_in).reduce((sum, r) => sum + r.guests_count, 0);
+      return { total, totalGuests, checkedIn, checkedInGuests };
+    },
+    enabled: !!selectedEventId,
+    refetchInterval: 5000,
+  });
+
   const checkIn = useMutation({
     mutationFn: async (payload: QRPayload) => {
       // Verify the RSVP exists with matching qr_hash
