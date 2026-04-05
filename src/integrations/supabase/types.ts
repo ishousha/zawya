@@ -184,6 +184,7 @@ export type Database = {
           title: string
           type: Database["public"]["Enums"]["event_type"]
           updated_at: string
+          venue_id: string | null
           virtual_link: string | null
           waitlist_capacity: number
           zoom_link: string | null
@@ -203,6 +204,7 @@ export type Database = {
           title: string
           type?: Database["public"]["Enums"]["event_type"]
           updated_at?: string
+          venue_id?: string | null
           virtual_link?: string | null
           waitlist_capacity?: number
           zoom_link?: string | null
@@ -222,11 +224,20 @@ export type Database = {
           title?: string
           type?: Database["public"]["Enums"]["event_type"]
           updated_at?: string
+          venue_id?: string | null
           virtual_link?: string | null
           waitlist_capacity?: number
           zoom_link?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "events_venue_id_fkey"
+            columns: ["venue_id"]
+            isOneToOne: false
+            referencedRelation: "venues"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       guest_requests: {
         Row: {
@@ -480,6 +491,27 @@ export type Database = {
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
           user_id?: string
+        }
+        Relationships: []
+      }
+      venues: {
+        Row: {
+          address: string | null
+          created_at: string | null
+          id: string
+          name: string
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string | null
+          id?: string
+          name: string
+        }
+        Update: {
+          address?: string | null
+          created_at?: string | null
+          id?: string
+          name?: string
         }
         Relationships: []
       }
