@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Loader2, CheckCircle, XCircle, UserCheck, Clock } from "lucide-react";
 import { toast } from "sonner";
 import { notifyUserApproval } from "@/lib/webhooks";
+import { format } from "date-fns";
 import type { Database } from "@/integrations/supabase/types";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];

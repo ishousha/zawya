@@ -173,14 +173,16 @@ export default function EventCard({ event, onShowTicket }: EventCardProps) {
                 </Button>
               </>
             ) : (
-            <Button
-              size="sm"
-              onClick={() => setRsvpOpen(true)}
-              className="w-full"
-            >
-              RSVP
-            </Button>
-          )}
+              <Button
+                size="sm"
+                onClick={() => setRsvpOpen(true)}
+                className="w-full"
+              >
+                RSVP
+              </Button>
+            )}
+          </div>
+          {isAttending && <AddToCalendarButton event={event} />}
         </div>
         </div>
       </div>
