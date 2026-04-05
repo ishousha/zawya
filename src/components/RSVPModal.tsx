@@ -106,6 +106,21 @@ export default function RSVPModal({ event, open, onOpenChange }: RSVPModalProps)
     return item.quantity_limit - claimed - myQty;
   };
 
+  const buildAttendingDependents = () => {
+    if (!dependents || selectedDependentIds.size === 0) return null;
+    const now = new Date();
+    return dependents
+      .filter((d) => selectedDependentIds.has(d.id))
+      .map((d) => {
+        let age: number | null = null;
+        if (d.date_of_birth) {
+          const dob = new Date(d.date_of_birth);
+          age = Math.floor((now.getTime() - dob.getTime()) / (365.25 * 24 * 60 * 60 * 1000));
+        }
+        return { name: d.first_name, age };
+      });
+  };
+
   const handleSubmit = async () => {
     if (guestsCount === 0) {
       toast.error("Please select at least one attendee.");
@@ -116,17 +131,21 @@ export default function RSVPModal({ event, open, onOpenChange }: RSVPModalProps)
       .filter(([, qty]) => qty > 0)
       .map(([id, qty]) => ({ sign_up_item_id: Number(id), quantity: qty }));
 
+    const attendingDeps = buildAttendingDependents();
+
     try {
       if (isEditing && myRSVP) {
         await updateRSVP.mutateAsync({
           rsvpId: myRSVP.id,
           guests_count: guestsCount,
+          attending_dependents: attendingDeps,
           selections: selArray,
         });
         toast.success("RSVP updated successfully!");
       } else {
         const result = await createRSVP.mutateAsync({
           guests_count: guestsCount,
+          attending_dependents: attendingDeps,
           selections: selArray,
         });
         if (result.is_waitlisted) {
