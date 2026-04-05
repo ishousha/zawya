@@ -562,7 +562,7 @@ export type Database = {
     Enums: {
       app_role: "admin" | "approved" | "pending"
       event_status: "active" | "full" | "cancelled"
-      event_type: "physical" | "online" | "kids"
+      event_type: "gathering" | "class" | "trip" | "retreat" | "meeting"
       guest_request_status: "pending" | "approved" | "rejected"
       potluck_category: "main" | "side" | "dessert" | "drinks"
     }
@@ -694,7 +694,7 @@ export const Constants = {
     Enums: {
       app_role: ["admin", "approved", "pending"],
       event_status: ["active", "full", "cancelled"],
-      event_type: ["physical", "online", "kids"],
+      event_type: ["gathering", "class", "trip", "retreat", "meeting"],
       guest_request_status: ["pending", "approved", "rejected"],
       potluck_category: ["main", "side", "dessert", "drinks"],
     },
