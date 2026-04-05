@@ -239,6 +239,16 @@ export default function EventControlRoom() {
                           </div>
                         </div>
                         <div className="ml-2 flex gap-1">
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-10 w-10 text-primary hover:text-primary"
+                            onClick={() => reactivateMutation.mutate(event.id)}
+                            disabled={reactivateMutation.isPending}
+                            title="Reactivate"
+                          >
+                            <RotateCcw className="h-4 w-4" />
+                          </Button>
                           <Button size="icon" variant="ghost" className="h-10 w-10" onClick={() => setMonitoringEventId(event.id)}>
                             <Users className="h-4 w-4" />
                           </Button>
