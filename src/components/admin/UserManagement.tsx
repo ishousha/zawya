@@ -36,7 +36,7 @@ export default function UserManagement() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("guest_requests")
-        .select("*")
+        .select("*, events:event_id(title, date_time), profiles:requesting_user_id(name, email)")
         .order("created_at", { ascending: false });
       if (error) throw error;
       // Sort: pending first
