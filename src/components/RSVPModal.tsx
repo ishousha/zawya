@@ -222,6 +222,11 @@ export default function RSVPModal({ event, open, onOpenChange }: RSVPModalProps)
               </div>
             </div>
           )}
+
+          {/* Guest Requests — only shown when editing */}
+          {isEditing && (
+            <GuestRequestsSection eventId={event.id} />
+          )}
         </div>
 
         {/* Actions */}
