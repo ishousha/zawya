@@ -8,7 +8,6 @@ import { Loader2, ScrollText, ShieldCheck, EyeOff, Camera, Home, UserCheck, Lock
 import { toast } from "sonner";
 
 interface CommunityGuidelinesProps {
-  /** If true, shows as read-only (no accept flow) */
   readOnly?: boolean;
 }
 
@@ -33,7 +32,6 @@ export default function CommunityGuidelines({ readOnly = false }: CommunityGuide
     }
 
     toast.success("Welcome to the Suhba! ✨");
-    // Force profile refetch by reloading
     window.location.href = "/";
   };
 
@@ -43,7 +41,7 @@ export default function CommunityGuidelines({ readOnly = false }: CommunityGuide
         <div className="flex items-center gap-3">
           <ScrollText className="h-6 w-6 text-primary" />
           <h1 className="font-heading text-2xl font-bold text-foreground">
-            Community Guidelines & Privacy Policy
+            Zawya Community Guidelines & Code of Adab
           </h1>
         </div>
         {readOnly && (
@@ -57,77 +55,116 @@ export default function CommunityGuidelines({ readOnly = false }: CommunityGuide
         {/* Introduction */}
         <div className="rounded-lg border border-border bg-card p-6 space-y-4">
           <p className="text-sm text-foreground leading-relaxed">
-            Bismillah. Welcome to the Suhba — a private spiritual community built on trust,
-            respect, and sacred companionship. By joining, you agree to uphold the following
-            guidelines that protect every member of our community.
+            Welcome to our Suhba. This app and our gatherings are designed to be a private, safe, and
+            spiritually uplifting space for our community and families. By joining, you agree to uphold
+            the highest standards of <strong>Adab</strong> (beautiful character) and respect for your fellow members.
           </p>
         </div>
 
-        {/* Section 1: Adab & Conduct */}
-        <div className="rounded-lg border border-border bg-card p-6 space-y-3">
+        {/* Section 1: Strict Privacy & Confidentiality */}
+        <div className="rounded-lg border border-primary/30 bg-primary/5 p-6 space-y-3">
           <div className="flex items-center gap-2">
             <ShieldCheck className="h-5 w-5 text-primary shrink-0" />
             <h2 className="font-heading text-lg font-semibold text-card-foreground">
-              Adab & Code of Conduct
+              1. Strict Privacy & Confidentiality (The Amanah)
             </h2>
           </div>
-          <ul className="space-y-2 text-sm text-foreground leading-relaxed list-disc list-inside">
-            <li>Treat every member with kindness, dignity, and respect — regardless of background.</li>
-            <li>Maintain the sanctity of our gatherings. Arrive on time, participate with presence, and leave with gratitude.</li>
-            <li>Disagreements are natural; handle them privately and with good character (husn al-khuluq).</li>
-            <li>This is a family-friendly community. Language and behavior must be appropriate for all ages.</li>
-            <li>Follow the guidance of community leaders and respect the structure of events.</li>
-          </ul>
+          <p className="text-sm text-foreground leading-relaxed">
+            Our gatherings are a sanctuary. What is said, shared, or experienced within the Suhba is
+            considered an <strong>Amanah</strong> (a sacred trust). You may not share personal stories, struggles,
+            or discussions of other members with anyone outside of this community.
+          </p>
         </div>
 
-        {/* Section 2: Strict Privacy */}
+        {/* Section 2: Zero Social Media Policy */}
         <div className="rounded-lg border border-primary/30 bg-primary/5 p-6 space-y-3">
           <div className="flex items-center gap-2">
             <EyeOff className="h-5 w-5 text-primary shrink-0" />
             <h2 className="font-heading text-lg font-semibold text-card-foreground">
-              Strict Privacy Policy
+              2. Zero Social Media Policy
             </h2>
           </div>
-          <ul className="space-y-2 text-sm text-foreground leading-relaxed list-disc list-inside">
-            <li>
-              <strong>What happens in the Suhba stays in the Suhba.</strong> Do not share personal stories,
-              discussions, or vulnerabilities expressed during gatherings with anyone outside the group.
-            </li>
-            <li>Member contact information (phone numbers, addresses, etc.) is strictly confidential and must never be shared externally.</li>
-            <li>Event locations are private and should not be disclosed to non-members without admin approval.</li>
-            <li>Any breach of privacy may result in removal from the community.</li>
-          </ul>
+          <p className="text-sm text-foreground leading-relaxed">
+            To preserve the spiritual integrity of our gatherings, posting anything about our events, locations,
+            or members on social media (Instagram, Facebook, TikTok, X, WhatsApp Statuses, etc.) is <strong>strictly prohibited</strong>.
+          </p>
         </div>
 
-        {/* Section 3: Zero Social Media Policy */}
-        <div className="rounded-lg border border-primary/30 bg-primary/5 p-6 space-y-3">
+        {/* Section 3: Photography & Recording */}
+        <div className="rounded-lg border border-border bg-card p-6 space-y-3">
           <div className="flex items-center gap-2">
             <Camera className="h-5 w-5 text-primary shrink-0" />
             <h2 className="font-heading text-lg font-semibold text-card-foreground">
-              Zero Social Media Policy
+              3. Photography & Recording
             </h2>
           </div>
-          <ul className="space-y-2 text-sm text-foreground leading-relaxed list-disc list-inside">
-            <li>
-              <strong>No photos, videos, or audio recordings</strong> of gatherings, members, or conversations
-              may be posted on any social media platform — public or private.
-            </li>
-            <li>Do not "check in" or tag locations of our events on social media.</li>
-            <li>Screenshots of this app, member lists, or conversations within the community are not to be shared online.</li>
-            <li>If you wish to share a general reflection (without identifying anyone), seek permission from the community admin first.</li>
-          </ul>
+          <p className="text-sm text-foreground leading-relaxed">
+            We ask that you remain present during gatherings and keep phones put away. If you take a photo
+            of your own family or friends for a personal memory, it must remain strictly for your
+            <strong> private, personal use</strong>. You may not forward, broadcast, or post any photos or
+            audio/video recordings that include other members, their children, or the venue, even in private
+            chats outside the Suhba.
+          </p>
         </div>
 
-        {/* Section 4: General Terms */}
+        {/* Section 4: Respecting Our Hosts */}
         <div className="rounded-lg border border-border bg-card p-6 space-y-3">
-          <h2 className="font-heading text-lg font-semibold text-card-foreground">
-            General Terms
-          </h2>
+          <div className="flex items-center gap-2">
+            <Home className="h-5 w-5 text-primary shrink-0" />
+            <h2 className="font-heading text-lg font-semibold text-card-foreground">
+              4. Respecting Our Hosts
+            </h2>
+          </div>
+          <p className="text-sm text-foreground leading-relaxed">
+            Many of our gatherings take place in the private homes of our members. Please treat their homes
+            with the utmost respect, mind your parking so as not to disturb neighbors, and supervise your
+            children at all times.
+          </p>
+        </div>
+
+        {/* Section 5: Vetted Membership */}
+        <div className="rounded-lg border border-border bg-card p-6 space-y-3">
+          <div className="flex items-center gap-2">
+            <UserCheck className="h-5 w-5 text-primary shrink-0" />
+            <h2 className="font-heading text-lg font-semibold text-card-foreground">
+              5. Vetted Membership
+            </h2>
+          </div>
+          <p className="text-sm text-foreground leading-relaxed">
+            This app is for <strong>approved members only</strong>. Please do not share your login credentials,
+            Magic Links, or event details with non-members. Any guests must be officially requested and
+            approved via the app prior to attending.
+          </p>
+        </div>
+
+        {/* App Privacy Policy */}
+        <div className="rounded-lg border-2 border-primary/20 bg-card p-6 space-y-4">
+          <div className="flex items-center gap-2">
+            <Lock className="h-5 w-5 text-primary shrink-0" />
+            <h2 className="font-heading text-xl font-semibold text-card-foreground">
+              App Privacy Policy
+            </h2>
+          </div>
+          <p className="text-sm text-foreground leading-relaxed font-medium">
+            How We Protect Your Data: As a private community, we take your digital privacy just as
+            seriously as your physical privacy.
+          </p>
           <ul className="space-y-2 text-sm text-foreground leading-relaxed list-disc list-inside">
-            <li>Admins reserve the right to approve or deny membership at their discretion.</li>
-            <li>Repeated violations of these guidelines may result in suspension or removal.</li>
-            <li>These guidelines may be updated from time to time. Continued membership implies acceptance of any changes.</li>
-            <li>Guest requests are subject to admin approval. You are responsible for the conduct of any guests you invite.</li>
+            <li>
+              <strong>What we collect:</strong> We collect only what is necessary to run the Suhba smoothly:
+              your name, WhatsApp number, email, and the names/ages of your dependents.
+            </li>
+            <li>
+              <strong>How we use it:</strong> Your data is used exclusively for event RSVP management,
+              capacity planning, and direct administrative communication (like event reminders or cancellation notices).
+            </li>
+            <li>
+              <strong>No Third-Party Sharing:</strong> Your data will never be sold, shared, or used for
+              marketing by any outside party. It is stored securely on encrypted servers.
+            </li>
+            <li>
+              <strong>Admin Access:</strong> Only designated community admins have access to your contact information.
+            </li>
           </ul>
         </div>
 
