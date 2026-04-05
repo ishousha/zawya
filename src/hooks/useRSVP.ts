@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { generateQRHash } from "@/lib/qr-hash";
 import { notifyRSVPCreated, notifyRSVPUpdated, notifyRSVPCancelled } from "@/lib/webhooks";
+import { removeCachedTicket } from "@/lib/offline-ticket-cache";
 import type { Database } from "@/integrations/supabase/types";
 
 type RSVP = Database["public"]["Tables"]["rsvps"]["Row"];
