@@ -5,6 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useMyRSVP } from "@/hooks/useRSVP";
 import EventCard from "@/components/EventCard";
 import QRTicketScreen from "@/components/QRTicketScreen";
+import InstallAppBanner from "@/components/InstallAppBanner";
 import { Loader2 } from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -44,6 +45,8 @@ export default function HomeFeed() {
           Welcome back{profile?.name ? `, ${profile.name}` : ""}
         </p>
       </header>
+
+      <InstallAppBanner />
 
       <main className="mx-auto max-w-lg px-4 py-6">
         <h2 className="mb-4 font-heading text-lg font-semibold text-foreground">

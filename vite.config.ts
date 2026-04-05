@@ -37,12 +37,14 @@ export default defineConfig(({ mode }) => ({
         ],
       },
       manifest: {
-        name: "Zawya Community",
+        name: "Zawya",
         short_name: "Zawya",
         description: "A gathering place for the community",
-        theme_color: "#2d5a3d",
-        background_color: "#f5f2ec",
+        theme_color: "#2F5233",
+        background_color: "#F5F5DC",
         display: "standalone",
+        orientation: "portrait",
+        start_url: "/",
         icons: [
           {
             src: "/pwa-192x192.png",
@@ -53,6 +55,7 @@ export default defineConfig(({ mode }) => ({
             src: "/pwa-512x512.png",
             sizes: "512x512",
             type: "image/png",
+            purpose: "any maskable",
           },
         ],
       },
