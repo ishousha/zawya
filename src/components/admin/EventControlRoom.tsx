@@ -113,13 +113,15 @@ export default function EventControlRoom() {
   };
 
   const cancelMutation = useMutation({
-    mutationFn: async (eventId: string) => {
-      const { error } = await supabase.from("events").update({ status: "cancelled" as const }).eq("id", eventId);
+    mutationFn: async (event: EventRow) => {
+      const { error } = await supabase.from("events").update({ status: "cancelled" as const }).eq("id", event.id);
       if (error) throw error;
+      // Send cancellation emails to RSVPed members (fire and forget)
+      notifyRsvpMembers(event.id, event.title, event.date_time, "event-cancelled");
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-events"] });
-      toast.success("Event cancelled");
+      toast.success("Event cancelled — members will be notified");
     },
     onError: () => toast.error("Failed to cancel event"),
   });
