@@ -69,7 +69,7 @@ export default function EventCard({ event, onShowTicket }: EventCardProps) {
         <div className="mb-2 flex flex-wrap items-center gap-2">
           <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary">
             <TypeIcon className="h-3 w-3" />
-            {typeConfig[event.type].label}
+            {typeLabel}
           </span>
           {isCancelled && (
             <span className="inline-flex items-center gap-1 rounded-full bg-destructive px-2.5 py-0.5 text-xs font-bold uppercase tracking-wider text-destructive-foreground">
