@@ -107,6 +107,7 @@ export default function AdminDoorScanner() {
       toast.success(`${rsvp.profileName} checked in!`);
       playTone(800, 200);
       queryClient.invalidateQueries({ queryKey: ["admin-rsvps"] });
+      queryClient.invalidateQueries({ queryKey: ["door-scanner-counts", selectedEventId] });
     },
     onError: (error: any) => {
       let message = "Unknown error";
