@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Loader2, Plus, Edit2, X, Users, ChevronDown, Copy, Trash2, Ban } from "lucide-react";
+import { Loader2, Plus, Edit2, X, Users, ChevronDown, Copy, Trash2, Ban, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { format } from "date-fns";
@@ -80,6 +80,18 @@ export default function EventControlRoom() {
       toast.success("Event cancelled");
     },
     onError: () => toast.error("Failed to cancel event"),
+  });
+
+  const reactivateMutation = useMutation({
+    mutationFn: async (eventId: string) => {
+      const { error } = await supabase.from("events").update({ status: "active" as const }).eq("id", eventId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-events"] });
+      toast.success("Event reactivated");
+    },
+    onError: () => toast.error("Failed to reactivate event"),
   });
 
   const deleteMutation = useMutation({
@@ -227,6 +239,16 @@ export default function EventControlRoom() {
                           </div>
                         </div>
                         <div className="ml-2 flex gap-1">
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-10 w-10 text-primary hover:text-primary"
+                            onClick={() => reactivateMutation.mutate(event.id)}
+                            disabled={reactivateMutation.isPending}
+                            title="Reactivate"
+                          >
+                            <RotateCcw className="h-4 w-4" />
+                          </Button>
                           <Button size="icon" variant="ghost" className="h-10 w-10" onClick={() => setMonitoringEventId(event.id)}>
                             <Users className="h-4 w-4" />
                           </Button>
