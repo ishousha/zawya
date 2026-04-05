@@ -102,6 +102,17 @@ export default function CompleteProfile() {
 
           <div className="space-y-2">
             <Label className="text-sm font-medium text-foreground">
+              Family Name <span className="text-xs text-muted-foreground">(optional)</span>
+            </Label>
+            <Input
+              placeholder="e.g. Hassan"
+              value={familyName}
+              onChange={(e) => setFamilyName(e.target.value)}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-sm font-medium text-foreground">
               WhatsApp Number <span className="text-destructive">*</span>
             </Label>
             <div className="flex gap-2">
