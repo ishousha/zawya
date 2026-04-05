@@ -46,6 +46,7 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
       is_hybrid: event.is_hybrid ?? false,
       has_potluck: event.has_potluck ?? true,
       ticket_fee: ((event as any).ticket_fee ?? 0).toString(),
+      payment_instructions: event.payment_instructions ?? "",
       status: event.status,
     };
   });
