@@ -110,6 +110,9 @@ export default function EventControlRoom() {
     );
   }
 
+  const activeEvents = events?.filter(e => e.status !== "cancelled") ?? [];
+  const cancelledEvents = events?.filter(e => e.status === "cancelled") ?? [];
+
   const showList = !creating && !editing && !monitoringEventId && !duplicateForm;
 
   return (
