@@ -265,7 +265,9 @@ export type Database = {
       }
       profiles: {
         Row: {
+          alternate_cell_number: string | null
           created_at: string
+          date_of_birth: string | null
           email: string | null
           family_name: string | null
           id: string
@@ -273,9 +275,12 @@ export type Database = {
           phone: string | null
           role: Database["public"]["Enums"]["app_role"]
           updated_at: string
+          whatsapp_number: string | null
         }
         Insert: {
+          alternate_cell_number?: string | null
           created_at?: string
+          date_of_birth?: string | null
           email?: string | null
           family_name?: string | null
           id: string
@@ -283,9 +288,12 @@ export type Database = {
           phone?: string | null
           role?: Database["public"]["Enums"]["app_role"]
           updated_at?: string
+          whatsapp_number?: string | null
         }
         Update: {
+          alternate_cell_number?: string | null
           created_at?: string
+          date_of_birth?: string | null
           email?: string | null
           family_name?: string | null
           id?: string
@@ -293,6 +301,7 @@ export type Database = {
           phone?: string | null
           role?: Database["public"]["Enums"]["app_role"]
           updated_at?: string
+          whatsapp_number?: string | null
         }
         Relationships: []
       }
