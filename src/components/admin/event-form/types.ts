@@ -1,20 +1,9 @@
-export type EventType = "gathering" | "class" | "trip" | "retreat" | "meeting" | "nasiha";
-
-export const EVENT_TYPE_LABELS: Record<EventType, string> = {
-  gathering: "Gathering / Potluck",
-  class: "Class / Halaqa",
-  trip: "Trip or Picnic (Kids & Family)",
-  retreat: "Retreat / Rihla",
-  meeting: "Community Meeting",
-  nasiha: "Nasiha",
-};
-
 export interface EventFormState {
   title: string;
   description: string;
   date_time: string;
   end_date_time: string;
-  type: EventType;
+  event_type_id: string;
   venue_id: string | null;
   location: string;
   address: string;
@@ -42,7 +31,7 @@ export const defaultEventForm: EventFormState = {
   description: "",
   date_time: "",
   end_date_time: "",
-  type: "gathering",
+  event_type_id: "",
   venue_id: null,
   location: "",
   address: "",
@@ -57,3 +46,6 @@ export const defaultEventForm: EventFormState = {
   online_link: "",
   status: "active",
 };
+
+// Keep EventType as a legacy re-export alias — no longer used
+export type EventType = string;
