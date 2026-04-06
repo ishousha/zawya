@@ -40,6 +40,7 @@ export default function AppRoutes() {
   const { session, profile, loading } = useAuth();
 
   usePendingInviteRedirect();
+  usePendingUserAlerts();
 
   if (loading) {
     return (
