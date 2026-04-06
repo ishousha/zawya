@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -6,10 +6,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { toast } from "sonner";
-import { Plus, Users, UserPlus, X, Loader2 } from "lucide-react";
+import { Plus, Users, UserPlus, X, Loader2, Check, ChevronsUpDown } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface Family {
   id: string;
@@ -62,6 +64,13 @@ export default function FamilyManagement() {
   const [assignOpen, setAssignOpen] = useState(false);
   const [assignFamilyId, setAssignFamilyId] = useState("");
   const [assignUserId, setAssignUserId] = useState("");
+  const [familyComboOpen, setFamilyComboOpen] = useState(false);
+  const [memberComboOpen, setMemberComboOpen] = useState(false);
+
+  const unassignedMembers = useMemo(
+    () => profiles?.filter((p) => !(p as any).family_id) ?? [],
+    [profiles]
+  );
 
   const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: ["admin-families"] });
@@ -118,8 +127,7 @@ export default function FamilyManagement() {
   const getMembersOfFamily = (familyId: string) =>
     profiles?.filter((p) => (p as any).family_id === familyId) ?? [];
 
-  const unassignedMembers =
-    profiles?.filter((p) => !(p as any).family_id) ?? [];
+  // unassignedMembers moved to top of component
 
   if (loadingFamilies || loadingProfiles) {
     return (
@@ -178,39 +186,91 @@ export default function FamilyManagement() {
             <div className="space-y-4 pt-2">
               <div>
                 <Label>Family</Label>
-                <Select value={assignFamilyId} onValueChange={setAssignFamilyId}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select family" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {families?.map((f) => (
-                      <SelectItem key={f.id} value={f.id}>
-                        {f.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Popover open={familyComboOpen} onOpenChange={setFamilyComboOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={familyComboOpen}
+                      className="w-full justify-between font-normal"
+                    >
+                      {assignFamilyId
+                        ? families?.find((f) => f.id === assignFamilyId)?.name
+                        : "Search families…"}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                    <Command>
+                      <CommandInput placeholder="Search families…" />
+                      <CommandList>
+                        <CommandEmpty>No family found.</CommandEmpty>
+                        <CommandGroup>
+                          {families?.map((f) => (
+                            <CommandItem
+                              key={f.id}
+                              value={f.name}
+                              onSelect={() => {
+                                setAssignFamilyId(f.id);
+                                setFamilyComboOpen(false);
+                              }}
+                            >
+                              <Check className={cn("mr-2 h-4 w-4", assignFamilyId === f.id ? "opacity-100" : "opacity-0")} />
+                              {f.name}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
               </div>
               <div>
                 <Label>Member</Label>
-                <Select value={assignUserId} onValueChange={setAssignUserId}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select member" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {profiles?.map((p) => {
-                      const currentFamily = families?.find((f) => f.id === (p as any).family_id);
-                      return (
-                        <SelectItem key={p.id} value={p.id}>
-                          {p.name || p.email || p.id.slice(0, 8)}
-                          {currentFamily && (
-                            <span className="text-muted-foreground"> — {currentFamily.name}</span>
-                          )}
-                        </SelectItem>
-                      );
-                    })}
-                  </SelectContent>
-                </Select>
+                <Popover open={memberComboOpen} onOpenChange={setMemberComboOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={memberComboOpen}
+                      className="w-full justify-between font-normal"
+                    >
+                      {assignUserId
+                        ? (() => {
+                            const m = unassignedMembers.find((p) => p.id === assignUserId);
+                            return m ? `${m.name || "Unnamed"} (${m.email || "no email"})` : "Select member";
+                          })()
+                        : "Search members…"}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                    <Command>
+                      <CommandInput placeholder="Search by name or email…" />
+                      <CommandList>
+                        <CommandEmpty>No unassigned members found.</CommandEmpty>
+                        <CommandGroup>
+                          {unassignedMembers.map((p) => {
+                            const label = `${p.name || "Unnamed"} (${p.email || "no email"})`;
+                            return (
+                              <CommandItem
+                                key={p.id}
+                                value={`${p.name || ""} ${p.email || ""}`}
+                                onSelect={() => {
+                                  setAssignUserId(p.id);
+                                  setMemberComboOpen(false);
+                                }}
+                              >
+                                <Check className={cn("mr-2 h-4 w-4", assignUserId === p.id ? "opacity-100" : "opacity-0")} />
+                                {label}
+                              </CommandItem>
+                            );
+                          })}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
               </div>
               <Button
                 className="w-full"
