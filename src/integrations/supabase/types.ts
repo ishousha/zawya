@@ -398,6 +398,7 @@ export type Database = {
       rsvp_sign_up_selections: {
         Row: {
           created_at: string
+          description: string | null
           id: number
           quantity: number
           rsvp_id: string
@@ -405,6 +406,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          description?: string | null
           id?: never
           quantity?: number
           rsvp_id: string
@@ -412,6 +414,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          description?: string | null
           id?: never
           quantity?: number
           rsvp_id?: string
