@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { toast } from "sonner";
-import { Mail, Loader2, ArrowLeft } from "lucide-react";
+import { Mail, Loader2, ArrowLeft, RefreshCw } from "lucide-react";
 import zawyaLogo from "@/assets/logo.png";
 
 type Stage = "email" | "otp";
@@ -18,6 +18,8 @@ export default function LoginPage() {
   const [verifying, setVerifying] = useState(false);
   const [appleLoading, setAppleLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [resending, setResending] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
 
   const handleOAuthSignIn = async (provider: "apple" | "google") => {
     const setLoaderFn = provider === "apple" ? setAppleLoading : setGoogleLoading;
@@ -69,9 +71,29 @@ export default function LoginPage() {
     }
   };
 
+  const handleResendOtp = async () => {
+    setResending(true);
+    const { error } = await supabase.auth.signInWithOtp({ email });
+    setResending(false);
+    if (error) {
+      toast.error("Could not resend code. Please try again.");
+    } else {
+      toast.success("New code sent!");
+      setOtp("");
+      setResendCooldown(30);
+      const interval = setInterval(() => {
+        setResendCooldown((prev) => {
+          if (prev <= 1) { clearInterval(interval); return 0; }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+  };
+
   const handleBack = () => {
     setStage("email");
     setOtp("");
+    setResendCooldown(0);
   };
 
   return (
@@ -125,14 +147,26 @@ export default function LoginPage() {
               Continue
             </Button>
 
-            <button
-              type="button"
-              onClick={handleBack}
-              className="mt-4 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
-            >
-              <ArrowLeft className="h-3.5 w-3.5" />
-              Change email
-            </button>
+            <div className="mt-4 flex items-center justify-center gap-4">
+              <button
+                type="button"
+                onClick={handleBack}
+                className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <ArrowLeft className="h-3.5 w-3.5" />
+                Change email
+              </button>
+              <span className="text-border">|</span>
+              <button
+                type="button"
+                onClick={handleResendOtp}
+                disabled={resending || resendCooldown > 0}
+                className="inline-flex items-center gap-1 text-sm text-primary hover:text-primary/80 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <RefreshCw className={`h-3.5 w-3.5 ${resending ? "animate-spin" : ""}`} />
+                {resendCooldown > 0 ? `Resend (${resendCooldown}s)` : "Resend code"}
+              </button>
+            </div>
           </div>
         ) : (
           <form onSubmit={handleSendOtp} className="rounded-lg border border-border bg-card p-6">
