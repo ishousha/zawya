@@ -8,6 +8,7 @@ import ProfilePage from "@/pages/Profile";
 import AdminDashboard from "@/pages/AdminDashboard";
 import Unsubscribe from "@/pages/Unsubscribe";
 import CommunityGuidelines from "@/pages/CommunityGuidelines";
+import JoinFamily from "@/pages/JoinFamily";
 import BottomNav from "@/components/BottomNav";
 import NotFound from "@/pages/NotFound";
 import { Loader2 } from "lucide-react";
@@ -70,6 +71,7 @@ export default function AppRoutes() {
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/admin" element={<AdminDashboard />} />
         <Route path="/guidelines" element={<CommunityGuidelines readOnly />} />
+        <Route path="/join-family" element={<JoinFamily />} />
         <Route path="/unsubscribe" element={<Unsubscribe />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
