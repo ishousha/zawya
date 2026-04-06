@@ -192,6 +192,21 @@ export default function UserManagement() {
     );
   }
 
+  const filteredProfiles = useMemo(() => {
+    if (!profiles) return [];
+    return profiles.filter((p) => {
+      const q = search.toLowerCase();
+      const matchesSearch =
+        !q ||
+        (p.name || "").toLowerCase().includes(q) ||
+        (p.email || "").toLowerCase().includes(q) ||
+        (p.whatsapp_number || "").includes(q) ||
+        (p.family_id && familyMap[p.family_id] || "").toLowerCase().includes(q);
+      const matchesRole = roleFilter === "all" || p.role === roleFilter;
+      return matchesSearch && matchesRole;
+    });
+  }, [profiles, search, roleFilter, familyMap]);
+
   return (
     <div className="space-y-6 py-4">
       {/* Users Section */}
@@ -199,7 +214,7 @@ export default function UserManagement() {
         <div className="mb-3 flex items-center justify-between">
           <h3 className="font-heading text-base font-semibold text-foreground flex items-center gap-2">
             <UserCheck className="h-4 w-4 text-primary" />
-            Members ({profiles?.length ?? 0})
+            Members ({filteredProfiles.length}{filteredProfiles.length !== (profiles?.length ?? 0) ? ` / ${profiles?.length}` : ""})
           </h3>
           <Dialog open={addOpen} onOpenChange={setAddOpen}>
             <DialogTrigger asChild>
