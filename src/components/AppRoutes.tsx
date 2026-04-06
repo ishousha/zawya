@@ -120,6 +120,7 @@ export default function AppRoutes() {
       <AppHeader />
       <Routes>
         <Route path="/" element={<HomeFeed />} />
+        <Route path="/events/:eventId" element={<EventDetail />} />
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/admin" element={<AdminDashboard />} />
         <Route path="/notifications" element={<NotificationsPage />} />
