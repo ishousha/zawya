@@ -465,6 +465,31 @@ export default function UserManagement() {
                       <SelectItem value="suspended">Suspended</SelectItem>
                     </SelectContent>
                   </Select>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-9 w-9 text-destructive hover:bg-destructive/10">
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Delete User Permanently?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          This will permanently remove <span className="font-semibold">{p.name || p.email}</span> and all their data (RSVPs, dependents, notifications). This action cannot be undone.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                          onClick={() => deleteUser.mutate(p.id)}
+                        >
+                          {deleteUser.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                          Delete Forever
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 </div>
               </CardContent>
             </Card>
