@@ -11,6 +11,7 @@ import Unsubscribe from "@/pages/Unsubscribe";
 import CommunityGuidelines from "@/pages/CommunityGuidelines";
 import JoinFamily, { consumePendingInviteToken } from "@/pages/JoinFamily";
 import BottomNav from "@/components/BottomNav";
+import AppHeader from "@/components/AppHeader";
 import NotFound from "@/pages/NotFound";
 import { Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -93,6 +94,7 @@ export default function AppRoutes() {
   // Approved / Admin
   return (
     <>
+      <AppHeader />
       <Routes>
         <Route path="/" element={<HomeFeed />} />
         <Route path="/profile" element={<ProfilePage />} />
