@@ -25,6 +25,7 @@ import { Loader2, CheckCircle, XCircle, UserCheck, Clock, UserPlus } from "lucid
 import { toast } from "sonner";
 import { notifyUserApproval } from "@/lib/webhooks";
 import { format } from "date-fns";
+import AdminRsvpAction from "./AdminRsvpAction";
 import type { Database } from "@/integrations/supabase/types";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
@@ -406,6 +407,11 @@ export default function UserManagement() {
                   )}
                 </div>
                 <div className="ml-3 flex items-center gap-2">
+                  <AdminRsvpAction
+                    userId={p.id}
+                    userName={p.name}
+                    existingEventIds={userRsvpMap[p.id]?.map((e) => e.event_id) ?? []}
+                  />
                   <Select
                     value={p.role}
                     onValueChange={(val) =>
