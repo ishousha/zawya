@@ -4,6 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import LoginPage from "@/pages/Login";
 import CompleteProfile from "@/pages/CompleteProfile";
 import PendingApproval from "@/pages/PendingApproval";
+import Suspended from "@/pages/Suspended";
 import HomeFeed from "@/pages/HomeFeed";
 import ProfilePage from "@/pages/Profile";
 import AdminDashboard from "@/pages/AdminDashboard";
@@ -54,6 +55,15 @@ export default function AppRoutes() {
         <Route path="/join-family" element={<JoinFamily />} />
         <Route path="/unsubscribe" element={<Unsubscribe />} />
         <Route path="*" element={<LoginPage />} />
+      </Routes>
+    );
+  }
+
+  // Suspended users are blocked entirely
+  if (profile?.role === "suspended") {
+    return (
+      <Routes>
+        <Route path="*" element={<Suspended />} />
       </Routes>
     );
   }

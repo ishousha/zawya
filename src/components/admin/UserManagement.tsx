@@ -355,6 +355,7 @@ export default function UserManagement() {
               <SelectItem value="guest">Guest</SelectItem>
               <SelectItem value="moderator">Moderator</SelectItem>
               <SelectItem value="admin">Admin</SelectItem>
+              <SelectItem value="suspended">Suspended</SelectItem>
             </SelectContent>
           </Select>
           <Select value={eventFilter} onValueChange={setEventFilter}>
@@ -380,6 +381,7 @@ export default function UserManagement() {
                     {p.role === "pending" && <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-accent text-accent-foreground">Pending</Badge>}
                     {p.role === "admin" && <Badge className="text-[10px] px-1.5 py-0">Admin</Badge>}
                     {p.role === "moderator" && <Badge variant="secondary" className="text-[10px] px-1.5 py-0 border-primary/30 text-primary">Mod</Badge>}
+                    {p.role === "suspended" && <Badge variant="destructive" className="text-[10px] px-1.5 py-0">Suspended</Badge>}
                   </p>
                   <p className="truncate text-xs text-muted-foreground">{p.email}</p>
                   {p.whatsapp_number && (
@@ -432,6 +434,7 @@ export default function UserManagement() {
                       <SelectItem value="guest">Guest</SelectItem>
                       <SelectItem value="moderator">Moderator</SelectItem>
                       <SelectItem value="admin">Admin</SelectItem>
+                      <SelectItem value="suspended">Suspended</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
