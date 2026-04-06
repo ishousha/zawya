@@ -81,6 +81,22 @@ export default function EventControlRoom() {
     },
   });
 
+  // Fetch all pending guest requests across all events
+  const { data: allGuestRequests } = useQuery({
+    queryKey: ["all-pending-guest-requests"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("guest_requests")
+        .select("*, profiles:requesting_user_id(name, email), events:event_id(title, date_time, location, address, virtual_link, online_link)")
+        .eq("status", "pending")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const pendingGuestCount = allGuestRequests?.length ?? 0;
+
   const handleDuplicate = async (event: EventRow) => {
     // Fetch sign-up items for this event
     const { data: items } = await supabase
