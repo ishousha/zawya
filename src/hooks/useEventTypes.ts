@@ -20,15 +20,18 @@ export function useEventTypes() {
 }
 
 /** Icon name → lucide component map helper */
-import { MapPin, Video, Users, BookOpen, Mountain, Handshake } from "lucide-react";
+import {
+  MapPin, Video, Users, BookOpen, Mountain, Handshake,
+  Calendar, Clock, Heart, Star, Music, Utensils, Coffee,
+  Mic, GraduationCap, Tent, Flame, Globe, Church, Baby,
+  Palette, Dumbbell, TreePine, Sparkles, PartyPopper,
+} from "lucide-react";
 
 const ICON_MAP: Record<string, any> = {
-  MapPin,
-  Video,
-  Users,
-  BookOpen,
-  Mountain,
-  Handshake,
+  MapPin, Video, Users, BookOpen, Mountain, Handshake,
+  Calendar, Clock, Heart, Star, Music, Utensils, Coffee,
+  Mic, GraduationCap, Tent, Flame, Globe, Church, Baby,
+  Palette, Dumbbell, TreePine, Sparkles, PartyPopper,
 };
 
 export function getEventTypeIcon(iconName: string) {
