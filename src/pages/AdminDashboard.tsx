@@ -43,10 +43,25 @@ export default function AdminDashboard() {
   const isAdmin = profile?.role === "admin";
   const isModerator = (profile?.role as string) === "moderator";
 
-  // Controlled tab state for admin
+  // Controlled tab state + slide direction
   const [activeTab, setActiveTab] = useState<AdminTab>("users");
-  // Controlled tab state for moderator
   const [modTab, setModTab] = useState<ModeratorTab>("events");
+  const [slideDir, setSlideDir] = useState<"left" | "right" | null>(null);
+  const [slideKey, setSlideKey] = useState(0);
+
+  const changeTab = useCallback(<T extends string>(
+    tabs: readonly T[],
+    current: T,
+    setter: (t: T) => void,
+    direction: "left" | "right"
+  ) => {
+    const idx = tabs.indexOf(current);
+    const next = direction === "left" ? idx + 1 : idx - 1;
+    if (next < 0 || next >= tabs.length) return;
+    setSlideDir(direction);
+    setSlideKey((k) => k + 1);
+    setter(tabs[next] as T);
+  }, []);
 
   /** Scroll the tab bar so the active tab is centered */
   const centerActiveTab = useCallback((container: HTMLDivElement | null) => {
