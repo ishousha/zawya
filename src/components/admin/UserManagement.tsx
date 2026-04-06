@@ -236,7 +236,8 @@ export default function UserManagement() {
         (p.whatsapp_number || "").includes(q) ||
         ((p.family_id && familyMap[p.family_id]) || "").toLowerCase().includes(q);
       const matchesRole = roleFilter === "all" || p.role === roleFilter;
-      return matchesSearch && matchesRole;
+      const matchesEvent = eventFilter === "all" || (userRsvpMap[p.id]?.some((e) => e.event_id === eventFilter));
+      return matchesSearch && matchesRole && matchesEvent;
     });
   }, [profiles, search, roleFilter, familyMap]);
 
