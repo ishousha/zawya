@@ -27,10 +27,14 @@ export default function DesignTab({ form, setForm }: DesignTabProps) {
     if (!selectedType) return;
     setForm((prev) => {
       const next = { ...prev };
+      const stIsVirtual = (selectedType as any).is_virtual ?? false;
+
+      // Set is_hybrid based on both flags
+      next.is_hybrid = selectedType.requires_location && stIsVirtual;
+
       if (!selectedType.allows_potluck) {
         next.has_potluck = false;
       }
-      // If name contains "Gathering", force potluck on
       if (selectedType.name.toLowerCase().includes("gathering")) {
         next.has_potluck = true;
         next.ticket_fee = "0";
@@ -42,14 +46,16 @@ export default function DesignTab({ form, setForm }: DesignTabProps) {
   const endBeforeStart =
     form.date_time && form.end_date_time && form.end_date_time <= form.date_time;
 
-  const isVirtualOnly = selectedType ? (selectedType as any).is_virtual && !selectedType.requires_location : false;
-  const isVirtual = selectedType ? (selectedType as any).is_virtual : false;
-  const showPhysical = !isVirtualOnly && (form.is_hybrid || (selectedType?.requires_location ?? true));
-  const showVirtual = isVirtual || (!isVirtualOnly && form.is_hybrid);
-  const showHybridToggle = !isVirtualOnly && !isVirtual;
+  // Derive visibility from event type flags
+  const requiresLocation = selectedType?.requires_location ?? true;
+  const isVirtual = (selectedType as any)?.is_virtual ?? false;
+  const allowsPotluck = selectedType?.allows_potluck ?? true;
+
+  const showPhysical = requiresLocation;
+  const showVirtual = isVirtual;
 
   // Potluck toggle visibility
-  const hidePotluckToggle = selectedType ? !selectedType.allows_potluck : false;
+  const hidePotluckToggle = !allowsPotluck;
   const potluckLocked = selectedType?.name.toLowerCase().includes("gathering") ?? false;
 
   // Fee visibility — show for trip/retreat type names
@@ -88,39 +94,24 @@ export default function DesignTab({ form, setForm }: DesignTabProps) {
         />
       </div>
 
-      {/* Type + Hybrid toggle row */}
       <div className="space-y-3">
-        <div className={`grid ${showHybridToggle ? 'grid-cols-2' : 'grid-cols-1'} gap-3 items-end`}>
-          <div>
-            <Label>Event Type</Label>
-            <Select
-              value={form.event_type_id}
-              onValueChange={(v) => update("event_type_id", v)}
-            >
-              <SelectTrigger className="mt-1.5">
-                <SelectValue placeholder="Select type..." />
-              </SelectTrigger>
-              <SelectContent>
-                {eventTypes?.map((t) => (
-                  <SelectItem key={t.id} value={t.id}>
-                    {t.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          {showHybridToggle && (
-            <div className="flex items-center gap-3 h-10 rounded-md border border-border px-3 bg-muted/30">
-              <Switch
-                id="hybrid"
-                checked={form.is_hybrid}
-                onCheckedChange={(v) => update("is_hybrid", v)}
-              />
-              <Label htmlFor="hybrid" className="text-sm cursor-pointer mb-0">
-                Hybrid
-              </Label>
-            </div>
-          )}
+        <div>
+          <Label>Event Type</Label>
+          <Select
+            value={form.event_type_id}
+            onValueChange={(v) => update("event_type_id", v)}
+          >
+            <SelectTrigger className="mt-1.5">
+              <SelectValue placeholder="Select type..." />
+            </SelectTrigger>
+            <SelectContent>
+              {eventTypes?.map((t) => (
+                <SelectItem key={t.id} value={t.id}>
+                  {t.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         {/* Type-specific notes */}
@@ -130,10 +121,16 @@ export default function DesignTab({ form, setForm }: DesignTabProps) {
             RSVP will require members to select dependents for this event type.
           </p>
         )}
-        {isVirtualOnly && (
+        {showVirtual && !showPhysical && (
           <p className="flex items-start gap-1.5 text-xs text-muted-foreground bg-muted/50 rounded-md p-2.5">
             <Info className="h-3.5 w-3.5 mt-0.5 shrink-0 text-primary" />
             This event type is online-only. Potluck sign-ups are disabled.
+          </p>
+        )}
+        {showVirtual && showPhysical && (
+          <p className="flex items-start gap-1.5 text-xs text-muted-foreground bg-muted/50 rounded-md p-2.5">
+            <Info className="h-3.5 w-3.5 mt-0.5 shrink-0 text-primary" />
+            This is a hybrid event — both a physical venue and virtual link are shown.
           </p>
         )}
       </div>
@@ -241,23 +238,6 @@ export default function DesignTab({ form, setForm }: DesignTabProps) {
 
       {showVirtual && (
         <div>
-          <Label htmlFor="virtual_link" className="flex items-center gap-1.5">
-            <Video className="h-3.5 w-3.5 text-primary" />
-            Virtual Link
-          </Label>
-          <Input
-            id="virtual_link"
-            value={form.virtual_link}
-            onChange={(e) => update("virtual_link", e.target.value)}
-            placeholder="https://zoom.us/... or meet.google.com/..."
-            className="mt-1.5"
-          />
-        </div>
-      )}
-
-      {/* Online Meeting Link — for virtual-only event types */}
-      {isVirtualOnly && (
-        <div>
           <Label htmlFor="online_link" className="flex items-center gap-1.5">
             <Video className="h-3.5 w-3.5 text-primary" />
             Online Meeting Link
@@ -269,6 +249,9 @@ export default function DesignTab({ form, setForm }: DesignTabProps) {
             placeholder="https://zoom.us/... or meet.google.com/..."
             className="mt-1.5"
           />
+          <p className="text-xs text-muted-foreground mt-1">
+            Leave blank to trigger automatic link generation via webhook.
+          </p>
         </div>
       )}
     </div>
