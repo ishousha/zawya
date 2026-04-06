@@ -13,6 +13,17 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Search } from "lucide-react";
 import {
   Select,
@@ -21,7 +32,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2, CheckCircle, XCircle, UserCheck, Clock, UserPlus } from "lucide-react";
+import { Loader2, CheckCircle, XCircle, UserCheck, Clock, UserPlus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { notifyUserApproval } from "@/lib/webhooks";
 import { format } from "date-fns";
@@ -224,6 +235,23 @@ export default function UserManagement() {
       toast.success("Guest request updated");
     },
     onError: () => toast.error("Failed to update guest request"),
+  });
+
+  const deleteUser = useMutation({
+    mutationFn: async (userId: string) => {
+      const { data, error } = await supabase.functions.invoke("admin-delete-user", {
+        body: { user_id: userId },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-profiles"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-user-roles"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-all-rsvps"] });
+      toast.success("User permanently deleted");
+    },
+    onError: (err: Error) => toast.error(err.message || "Failed to delete user"),
   });
 
   const filteredProfiles = useMemo(() => {
@@ -437,6 +465,31 @@ export default function UserManagement() {
                       <SelectItem value="suspended">Suspended</SelectItem>
                     </SelectContent>
                   </Select>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-9 w-9 text-destructive hover:bg-destructive/10">
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Delete User Permanently?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          This will permanently remove <span className="font-semibold">{p.name || p.email}</span> and all their data (RSVPs, dependents, notifications). This action cannot be undone.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                          onClick={() => deleteUser.mutate(p.id)}
+                        >
+                          {deleteUser.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                          Delete Forever
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 </div>
               </CardContent>
             </Card>
