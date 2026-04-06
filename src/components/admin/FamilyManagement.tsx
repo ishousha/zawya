@@ -392,6 +392,14 @@ export default function FamilyManagement() {
                     <Badge variant="secondary" className="ml-auto text-xs">
                       {members.length} {members.length === 1 ? "member" : "members"}
                     </Badge>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-7 gap-1 text-xs"
+                      onClick={() => setDetailFamily(family)}
+                    >
+                      <Eye className="h-3.5 w-3.5" /> Details
+                    </Button>
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
