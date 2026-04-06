@@ -381,6 +381,7 @@ export default function UserManagement() {
                     {p.role === "pending" && <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-accent text-accent-foreground">Pending</Badge>}
                     {p.role === "admin" && <Badge className="text-[10px] px-1.5 py-0">Admin</Badge>}
                     {p.role === "moderator" && <Badge variant="secondary" className="text-[10px] px-1.5 py-0 border-primary/30 text-primary">Mod</Badge>}
+                    {p.role === "suspended" && <Badge variant="destructive" className="text-[10px] px-1.5 py-0">Suspended</Badge>}
                   </p>
                   <p className="truncate text-xs text-muted-foreground">{p.email}</p>
                   {p.whatsapp_number && (
