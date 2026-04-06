@@ -174,7 +174,7 @@ export default function FamilyInviteSection() {
         .insert({
           family_id: familyId!,
           created_by: profile!.id,
-        } as any)
+        })
         .select()
         .single();
       if (error) throw error;
