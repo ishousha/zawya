@@ -14,6 +14,9 @@ export default function FamilyInviteSection() {
   const queryClient = useQueryClient();
   const familyId = (profile as any)?.family_id as string | null;
   const [creating, setCreating] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [editName, setEditName] = useState("");
+  const [savingName, setSavingName] = useState(false);
 
   // Fetch family name
   const { data: familyName } = useQuery({
