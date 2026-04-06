@@ -464,11 +464,16 @@ export default function UserManagement() {
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-medium text-card-foreground flex items-center gap-1.5">
                     {p.name || "Unnamed"}
-                    {p.role === "guest" && <Badge variant="secondary" className="text-[10px] px-1.5 py-0">Guest</Badge>}
-                    {p.role === "pending" && <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-accent text-accent-foreground">Pending</Badge>}
-                    {p.role === "admin" && <Badge className="text-[10px] px-1.5 py-0">Admin</Badge>}
-                    {p.role === "moderator" && <Badge variant="secondary" className="text-[10px] px-1.5 py-0 border-primary/30 text-primary">Mod</Badge>}
-                    {p.role === "suspended" && <Badge variant="destructive" className="text-[10px] px-1.5 py-0">Suspended</Badge>}
+                     {p.role === "pending" && (
+                       <Badge className="text-[10px] px-2 py-0.5 bg-amber-500 text-white border-amber-500 animate-pulse font-semibold">
+                         ⏳ Awaiting Approval
+                       </Badge>
+                     )}
+                     {p.role === "approved" && <Badge variant="secondary" className="text-[10px] px-1.5 py-0 bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">Approved</Badge>}
+                     {p.role === "guest" && <Badge variant="secondary" className="text-[10px] px-1.5 py-0">Guest</Badge>}
+                     {p.role === "admin" && <Badge className="text-[10px] px-1.5 py-0">Admin</Badge>}
+                     {p.role === "moderator" && <Badge variant="secondary" className="text-[10px] px-1.5 py-0 border-primary/30 text-primary">Mod</Badge>}
+                     {p.role === "suspended" && <Badge variant="destructive" className="text-[10px] px-1.5 py-0">Suspended</Badge>}
                   </p>
                   <p className="truncate text-xs text-muted-foreground">{p.email}</p>
                   {p.whatsapp_number && (
