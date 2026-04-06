@@ -396,6 +396,9 @@ function RSVPMonitor({ eventId, onClose }: { eventId: string; onClose: () => voi
         <div className="flex items-center justify-between p-3">
           <div className="min-w-0 flex-1 flex items-center gap-2">
             <p className="truncate text-sm font-medium text-card-foreground">{name}</p>
+            {r.profiles?.role === "guest" && (
+              <Badge variant="secondary" className="text-[10px] px-1.5 py-0">Guest</Badge>
+            )}
             {kids > 0 && (
               hasDeps ? (
                 <Collapsible>
