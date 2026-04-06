@@ -67,15 +67,58 @@ export function useEventGuestRequests(eventId: string | null) {
 export function useUpdateGuestRequestStatus() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, status }: { id: string; status: "approved" | "rejected" }) => {
+    mutationFn: async ({
+      id,
+      status,
+      guestEmail,
+      guestName,
+      eventTitle,
+      eventDate,
+      eventLocation,
+      eventLink,
+      requestedByName,
+    }: {
+      id: string;
+      status: "approved" | "rejected";
+      guestEmail?: string;
+      guestName?: string;
+      eventTitle?: string;
+      eventDate?: string;
+      eventLocation?: string;
+      eventLink?: string;
+      requestedByName?: string;
+    }) => {
       const { error } = await supabase
         .from("guest_requests")
         .update({ status })
         .eq("id", id);
       if (error) throw error;
+
+      // Send email to guest when approved
+      if (status === "approved" && guestEmail) {
+        try {
+          await supabase.functions.invoke("send-transactional-email", {
+            body: {
+              templateName: "guest-approved",
+              recipientEmail: guestEmail,
+              templateData: {
+                guestName: guestName || "Guest",
+                eventTitle: eventTitle || "Event",
+                eventDate: eventDate || "",
+                eventLocation: eventLocation || "",
+                eventLink: eventLink || "",
+                requestedBy: requestedByName || "",
+              },
+            },
+          });
+        } catch (emailErr) {
+          console.error("Failed to send guest approved email:", emailErr);
+        }
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-guest-requests"] });
+      queryClient.invalidateQueries({ queryKey: ["all-guest-requests"] });
     },
   });
 }
