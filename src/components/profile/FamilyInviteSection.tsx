@@ -121,6 +121,26 @@ export default function FamilyInviteSection() {
     }
   };
 
+  const [leaving, setLeaving] = useState(false);
+  const [confirmLeave, setConfirmLeave] = useState(false);
+
+  const handleLeaveFamily = async () => {
+    if (!user) return;
+    setLeaving(true);
+    const { error } = await supabase
+      .from("profiles")
+      .update({ family_id: null })
+      .eq("id", user.id);
+    setLeaving(false);
+    if (error) {
+      toast.error("Failed to leave family group.");
+    } else {
+      toast.success("You left the family group.");
+      setConfirmLeave(false);
+      window.location.reload();
+    }
+  };
+
   const createInvite = useMutation({
     mutationFn: async () => {
       const { data, error } = await supabase
