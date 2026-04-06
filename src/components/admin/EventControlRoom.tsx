@@ -203,7 +203,33 @@ export default function EventControlRoom() {
             <Plus className="h-5 w-5" /> Create Event
           </Button>
 
-          <div className="space-y-2">
+          {/* Pending Guest Approvals Section */}
+          {pendingGuestCount > 0 && (
+            <Collapsible defaultOpen>
+              <CollapsibleTrigger asChild>
+                <button className="flex w-full items-center justify-between rounded-md border border-accent bg-accent/10 px-4 py-2.5 text-sm font-medium text-foreground hover:bg-accent/20 transition-colors">
+                  <span className="flex items-center gap-2">
+                    <Users className="h-4 w-4 text-primary" />
+                    Pending Guest Approvals
+                    <Badge variant="destructive" className="text-xs animate-pulse">
+                      {pendingGuestCount}
+                    </Badge>
+                  </span>
+                  <ChevronDown className="h-4 w-4" />
+                </button>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="pt-2">
+                <PendingGuestApprovalsInline
+                  requests={allGuestRequests ?? []}
+                  onUpdated={() => {
+                    queryClient.invalidateQueries({ queryKey: ["all-pending-guest-requests"] });
+                    queryClient.invalidateQueries({ queryKey: ["admin-guest-requests"] });
+                    queryClient.invalidateQueries({ queryKey: ["all-guest-requests"] });
+                  }}
+                />
+              </CollapsibleContent>
+            </Collapsible>
+          )}
             {activeEvents.map((event) => (
               <Card key={event.id}>
                 <CardContent className="p-4">
