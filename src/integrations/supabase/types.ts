@@ -238,6 +238,7 @@ export type Database = {
         Row: {
           address: string | null
           capacity: number | null
+          checkin_pin: string | null
           cover_photo_url: string | null
           created_at: string
           date_time: string
@@ -262,6 +263,7 @@ export type Database = {
         Insert: {
           address?: string | null
           capacity?: number | null
+          checkin_pin?: string | null
           cover_photo_url?: string | null
           created_at?: string
           date_time: string
@@ -286,6 +288,7 @@ export type Database = {
         Update: {
           address?: string | null
           capacity?: number | null
+          checkin_pin?: string | null
           cover_photo_url?: string | null
           created_at?: string
           date_time?: string
