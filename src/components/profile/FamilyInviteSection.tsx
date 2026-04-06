@@ -5,12 +5,14 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Users, UserPlus, Copy, Loader2, MessageCircle, User } from "lucide-react";
+import { Users, UserPlus, Copy, Loader2, MessageCircle, User, Plus } from "lucide-react";
+import { useState } from "react";
 
 export default function FamilyInviteSection() {
   const { user, profile } = useAuth();
   const queryClient = useQueryClient();
   const familyId = (profile as any)?.family_id as string | null;
+  const [creating, setCreating] = useState(false);
 
   // Fetch family name
   const { data: familyName } = useQuery({
@@ -56,50 +58,49 @@ export default function FamilyInviteSection() {
     },
   });
 
-  const createInvite = useMutation({
-    mutationFn: async () => {
-      const { data, error } = await supabase
-        .from("family_invites")
-        .insert({
-          family_id: familyId!,
-          created_by: profile!.id,
-        } as any)
-        .select()
-        .single();
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["family-invites", familyId] });
-      const url = `${window.location.origin}/join-family?token=${(data as any).token}`;
-      navigator.clipboard.writeText(url).then(() => {
-        toast.success("Invite link copied to clipboard!");
-      }).catch(() => {
-        toast.success("Invite created! Copy the link below.");
-      });
-    },
-    onError: () => toast.error("Failed to create invite"),
-  });
+  const handleCreateFamily = async () => {
+    if (!user || !profile) return;
+    setCreating(true);
 
-  const shareViaWhatsApp = (url: string) => {
-    const text = encodeURIComponent(
-      `You're invited to join our family on Zawya! Tap the link to accept:\n${url}`
-    );
-    window.open(`https://wa.me/?text=${text}`, "_blank");
+    // Derive a family name from the user's profile name
+    const nameParts = (profile.name || "").trim().split(/\s+/);
+    const lastName = nameParts.length > 1 ? nameParts[nameParts.length - 1] : nameParts[0] || "My";
+    const familyLabel = `${lastName} Family`;
+
+    // Create family record
+    const { data: family, error: famErr } = await supabase
+      .from("families")
+      .insert({ name: familyLabel })
+      .select("id")
+      .single();
+
+    if (famErr || !family) {
+      toast.error("Failed to create family group.");
+      setCreating(false);
+      return;
+    }
+
+    // Link user to this family
+    const { error: profErr } = await supabase
+      .from("profiles")
+      .update({ family_id: family.id })
+      .eq("id", user.id);
+
+    setCreating(false);
+
+    if (profErr) {
+      toast.error("Family created but failed to link your profile.");
+      return;
+    }
+
+    toast.success(`"${familyLabel}" created!`);
+    queryClient.invalidateQueries({ queryKey: ["my-family-name"] });
+    queryClient.invalidateQueries({ queryKey: ["family-members-list"] });
+    // Force profile refresh
+    window.location.reload();
   };
 
-  if (!familyId) {
-    return (
-      <Card>
-        <CardContent className="p-4 text-center">
-          <Users className="mx-auto h-8 w-8 text-muted-foreground mb-2 opacity-40" />
-          <p className="text-sm text-muted-foreground">
-            You're not part of a family group yet. Ask an admin to assign you.
-          </p>
-        </CardContent>
-      </Card>
-    );
-  }
+  const createInvite = useMutation({
 
   const pendingInvites = invites?.filter((i) => (i as any).status === "pending") ?? [];
 
