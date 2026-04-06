@@ -201,6 +201,33 @@ export type Database = {
           },
         ]
       }
+      event_types: {
+        Row: {
+          allows_potluck: boolean
+          created_at: string
+          icon: string
+          id: string
+          name: string
+          requires_location: boolean
+        }
+        Insert: {
+          allows_potluck?: boolean
+          created_at?: string
+          icon?: string
+          id?: string
+          name: string
+          requires_location?: boolean
+        }
+        Update: {
+          allows_potluck?: boolean
+          created_at?: string
+          icon?: string
+          id?: string
+          name?: string
+          requires_location?: boolean
+        }
+        Relationships: []
+      }
       events: {
         Row: {
           address: string | null
@@ -210,6 +237,7 @@ export type Database = {
           date_time: string
           description: string | null
           end_date_time: string | null
+          event_type_id: string
           has_potluck: boolean | null
           id: string
           is_hybrid: boolean
@@ -219,7 +247,6 @@ export type Database = {
           status: Database["public"]["Enums"]["event_status"]
           ticket_fee: number | null
           title: string
-          type: string
           updated_at: string
           venue_id: string | null
           virtual_link: string | null
@@ -234,6 +261,7 @@ export type Database = {
           date_time: string
           description?: string | null
           end_date_time?: string | null
+          event_type_id: string
           has_potluck?: boolean | null
           id?: string
           is_hybrid?: boolean
@@ -243,7 +271,6 @@ export type Database = {
           status?: Database["public"]["Enums"]["event_status"]
           ticket_fee?: number | null
           title: string
-          type?: string
           updated_at?: string
           venue_id?: string | null
           virtual_link?: string | null
@@ -258,6 +285,7 @@ export type Database = {
           date_time?: string
           description?: string | null
           end_date_time?: string | null
+          event_type_id?: string
           has_potluck?: boolean | null
           id?: string
           is_hybrid?: boolean
@@ -267,7 +295,6 @@ export type Database = {
           status?: Database["public"]["Enums"]["event_status"]
           ticket_fee?: number | null
           title?: string
-          type?: string
           updated_at?: string
           venue_id?: string | null
           virtual_link?: string | null
@@ -275,6 +302,13 @@ export type Database = {
           zoom_link?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "events_event_type_id_fkey"
+            columns: ["event_type_id"]
+            isOneToOne: false
+            referencedRelation: "event_types"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "events_venue_id_fkey"
             columns: ["venue_id"]
@@ -719,13 +753,6 @@ export type Database = {
         | "pending"
         | "suspended"
       event_status: "active" | "full" | "cancelled"
-      event_type:
-        | "gathering"
-        | "class"
-        | "trip"
-        | "retreat"
-        | "meeting"
-        | "nasiha"
       guest_request_status: "pending" | "approved" | "rejected"
       invite_status: "pending" | "accepted" | "expired"
       potluck_category: "main" | "side" | "dessert" | "drinks"
@@ -865,14 +892,6 @@ export const Constants = {
         "suspended",
       ],
       event_status: ["active", "full", "cancelled"],
-      event_type: [
-        "gathering",
-        "class",
-        "trip",
-        "retreat",
-        "meeting",
-        "nasiha",
-      ],
       guest_request_status: ["pending", "approved", "rejected"],
       invite_status: ["pending", "accepted", "expired"],
       potluck_category: ["main", "side", "dessert", "drinks"],
