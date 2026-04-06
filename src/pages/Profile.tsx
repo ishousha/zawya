@@ -258,6 +258,8 @@ export default function ProfilePage() {
 
         <DependentsSection />
 
+        <LinkedAccounts />
+
         <Button
           variant="outline"
           className="w-full gap-2"
