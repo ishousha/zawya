@@ -64,6 +64,8 @@ export default function EventTypeManagement() {
   const [saving, setSaving] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<EventType | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [dragId, setDragId] = useState<string | null>(null);
+  const [reordering, setReordering] = useState(false);
 
   function openAdd() {
     setEditingId(null);
