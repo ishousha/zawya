@@ -94,7 +94,7 @@ Deno.serve(async (req) => {
     // Update profile (created by trigger) with name, family_id, role, and terms
     const profileUpdate: Record<string, unknown> = {
       name: name.trim(),
-      role: "approved",
+      role: assignRole,
       terms_accepted: false,
     };
     if (family_id) {
