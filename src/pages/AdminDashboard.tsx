@@ -67,7 +67,7 @@ export default function AdminDashboard() {
   // Admin swipe handler
   const adminSwipeHandlers = useSwipeable({
     onSwipedLeft: (e) => {
-      if (isInsideScrollable(e)) return;
+      if (isInsideScrollable(e.event.target)) return;
       const idx = ADMIN_TABS.indexOf(activeTab);
       if (idx < ADMIN_TABS.length - 1) setActiveTab(ADMIN_TABS[idx + 1]);
     },
