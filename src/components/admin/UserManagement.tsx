@@ -36,6 +36,7 @@ export default function UserManagement() {
   const [newName, setNewName] = useState("");
   const [newEmail, setNewEmail] = useState("");
   const [newFamilyId, setNewFamilyId] = useState("");
+  const [newRole, setNewRole] = useState<"approved" | "guest">("approved");
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState<string>("all");
 
