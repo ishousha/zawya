@@ -53,7 +53,7 @@ export default function AdminDashboard() {
               <EventControlRoom />
             </TabsContent>
             <TabsContent value="guests">
-              <AdminGuestApprovals />
+              <AllGuestApprovals />
             </TabsContent>
             <TabsContent value="scanner">
               <AdminDoorScanner />

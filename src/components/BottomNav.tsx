@@ -5,10 +5,11 @@ import { useAuth } from "@/contexts/AuthContext";
 export default function BottomNav() {
   const { profile } = useAuth();
   const isAdmin = profile?.role === "admin";
+  const isModerator = (profile?.role as string) === "moderator";
 
   const tabs = [
     { to: "/", icon: Home, label: "Home" },
-    ...(isAdmin ? [{ to: "/admin", icon: Shield, label: "Admin" }] : []),
+    ...((isAdmin || isModerator) ? [{ to: "/admin", icon: Shield, label: isAdmin ? "Admin" : "Manage" }] : []),
     { to: "/profile", icon: User, label: "Profile" },
   ];
 
