@@ -18,20 +18,29 @@ export default function GuestRequestsSection({ eventId }: { eventId: string }) {
   const createGuest = useCreateGuestRequest(eventId);
   const [showForm, setShowForm] = useState(false);
   const [guestName, setGuestName] = useState("");
+  const [guestEmail, setGuestEmail] = useState("");
   const [guestPhone, setGuestPhone] = useState("");
 
+  const isValidEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+
   const handleSubmit = async () => {
-    if (!guestName.trim() || !guestPhone.trim()) {
-      toast.error("Please fill in both fields.");
+    if (!guestName.trim()) {
+      toast.error("Please enter the guest's name.");
+      return;
+    }
+    if (!guestEmail.trim() || !isValidEmail(guestEmail.trim())) {
+      toast.error("Please enter a valid email address.");
       return;
     }
     try {
       await createGuest.mutateAsync({
         guest_name: guestName.trim(),
-        guest_phone: guestPhone.trim(),
+        guest_email: guestEmail.trim(),
+        guest_phone: guestPhone.trim() || undefined,
       });
       toast.success("Guest request submitted for admin approval.");
       setGuestName("");
+      setGuestEmail("");
       setGuestPhone("");
       setShowForm(false);
     } catch {
