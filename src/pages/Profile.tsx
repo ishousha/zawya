@@ -253,6 +253,8 @@ export default function ProfilePage() {
           </Button>
         </div>
 
+        <FamilyInviteSection />
+
         <DependentsSection />
 
         <Button
