@@ -77,6 +77,7 @@ export function useUpdateGuestRequestStatus() {
       eventLocation,
       eventLink,
       requestedByName,
+      requestedByEmail,
     }: {
       id: string;
       status: "approved" | "rejected";
