@@ -266,6 +266,41 @@ export type Database = {
         }
         Relationships: []
       }
+      family_invites: {
+        Row: {
+          created_at: string
+          created_by: string
+          family_id: string
+          id: string
+          status: Database["public"]["Enums"]["invite_status"]
+          token: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          family_id: string
+          id?: string
+          status?: Database["public"]["Enums"]["invite_status"]
+          token?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          family_id?: string
+          id?: string
+          status?: Database["public"]["Enums"]["invite_status"]
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "family_invites_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       guest_requests: {
         Row: {
           created_at: string
@@ -564,6 +599,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      accept_family_invite: { Args: { _token: string }; Returns: Json }
       delete_email: {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
@@ -602,6 +638,7 @@ export type Database = {
       event_status: "active" | "full" | "cancelled"
       event_type: "gathering" | "class" | "trip" | "retreat" | "meeting"
       guest_request_status: "pending" | "approved" | "rejected"
+      invite_status: "pending" | "accepted" | "expired"
       potluck_category: "main" | "side" | "dessert" | "drinks"
     }
     CompositeTypes: {
@@ -734,6 +771,7 @@ export const Constants = {
       event_status: ["active", "full", "cancelled"],
       event_type: ["gathering", "class", "trip", "retreat", "meeting"],
       guest_request_status: ["pending", "approved", "rejected"],
+      invite_status: ["pending", "accepted", "expired"],
       potluck_category: ["main", "side", "dessert", "drinks"],
     },
   },
