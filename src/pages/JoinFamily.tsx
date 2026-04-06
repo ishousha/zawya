@@ -9,45 +9,40 @@ import { Loader2, Users, CheckCircle, XCircle } from "lucide-react";
 
 const INVITE_TOKEN_KEY = "zawya_family_invite_token";
 
-/** Save a pending invite token so it survives login/signup redirect */
 export function savePendingInviteToken(token: string) {
   localStorage.setItem(INVITE_TOKEN_KEY, token);
 }
 
-/** Read and clear the stored invite token */
 export function consumePendingInviteToken(): string | null {
   const token = localStorage.getItem(INVITE_TOKEN_KEY);
   if (token) localStorage.removeItem(INVITE_TOKEN_KEY);
   return token;
 }
 
+type Status = "loading" | "preview" | "accepting" | "success" | "error";
+
 export default function JoinFamily() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { session, profile, loading: authLoading } = useAuth();
 
-  // Token from URL or from localStorage (after login redirect)
   const urlToken = searchParams.get("token");
 
-  const [status, setStatus] = useState<"loading" | "ready" | "accepting" | "success" | "error">("loading");
+  const [status, setStatus] = useState<Status>("loading");
   const [message, setMessage] = useState("");
   const [familyName, setFamilyName] = useState("");
+  const [resolvedToken, setResolvedToken] = useState<string | null>(null);
 
-  // On mount: if we have a URL token but no session, save it and let the login page handle it
   useEffect(() => {
     if (authLoading) return;
 
     if (!session) {
-      // Save token so it persists through login
-      if (urlToken) {
-        savePendingInviteToken(urlToken);
-      }
+      if (urlToken) savePendingInviteToken(urlToken);
       setStatus("error");
       setMessage("Please log in or sign up first. Your invite will be waiting for you.");
       return;
     }
 
-    // User is authenticated — resolve the token
     const token = urlToken || consumePendingInviteToken();
     if (!token) {
       setStatus("error");
@@ -61,22 +56,58 @@ export default function JoinFamily() {
       return;
     }
 
-    // Auto-accept the invite
-    acceptInvite(token);
+    setResolvedToken(token);
+    previewInvite(token);
   }, [authLoading, session, profile]);
 
-  const acceptInvite = async (token: string) => {
+  const previewInvite = async (token: string) => {
+    setStatus("loading");
+    try {
+      // Look up the invite and its family name via a direct query
+      // We need a public-ish way to peek at the invite. Use an RPC or direct select.
+      // The user won't have RLS access to family_invites unless they're in that family,
+      // so we'll use accept_family_invite in "dry run" style — but we don't have that.
+      // Instead, create a lightweight edge-less approach: query families via the token.
+      // Since the user can't read family_invites, let's just show a generic preview
+      // and fetch the family name from the accept response.
+      // Actually — let's add a select policy for invites by token for authenticated users.
+      // For now, show a generic confirmation with the token, and reveal name after accept.
+
+      // Try to read the invite — if RLS blocks it, show generic preview
+      const { data, error } = await supabase
+        .from("family_invites")
+        .select("id, family_id, status, families:family_id(name)")
+        .eq("token", token)
+        .maybeSingle();
+
+      if (data && !error) {
+        const name = (data as any).families?.name;
+        if ((data as any).status !== "pending") {
+          setStatus("error");
+          setMessage("This invite has already been used or has expired.");
+          return;
+        }
+        setFamilyName(name || "");
+      }
+      // If RLS blocks, we still show the confirm screen with generic text
+      setStatus("preview");
+    } catch {
+      setStatus("preview");
+    }
+  };
+
+  const acceptInvite = async () => {
+    if (!resolvedToken) return;
     setStatus("accepting");
     try {
       const { data, error } = await supabase.rpc("accept_family_invite", {
-        _token: token,
+        _token: resolvedToken,
       });
       if (error) throw error;
       const result = data as any;
       if (result?.success) {
-        // Clear any stored token
         localStorage.removeItem(INVITE_TOKEN_KEY);
-        setFamilyName(result.family_name || "");
+        setFamilyName(result.family_name || familyName || "");
         setStatus("success");
         toast.success(`You have successfully joined ${result.family_name || "the family"}!`);
       } else {
@@ -101,8 +132,33 @@ export default function JoinFamily() {
             <div className="text-center space-y-3 py-4">
               <Loader2 className="mx-auto h-6 w-6 animate-spin text-primary" />
               <p className="text-sm text-muted-foreground">
-                {status === "accepting" ? "Joining your family…" : "Loading…"}
+                {status === "accepting" ? "Joining your family…" : "Loading invite…"}
               </p>
+            </div>
+          )}
+
+          {status === "preview" && (
+            <div className="text-center space-y-4">
+              <p className="text-sm text-muted-foreground">
+                You've been invited to join{" "}
+                {familyName ? (
+                  <span className="font-semibold text-foreground">{familyName}</span>
+                ) : (
+                  "a family group"
+                )}
+                .
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Accepting will link your account so you can RSVP together for events.
+              </p>
+              <div className="flex flex-col gap-2 pt-2">
+                <Button className="w-full" onClick={acceptInvite}>
+                  Accept & Join Family
+                </Button>
+                <Button variant="outline" className="w-full" onClick={() => navigate("/")}>
+                  Decline
+                </Button>
+              </div>
             </div>
           )}
 
