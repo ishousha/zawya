@@ -74,7 +74,34 @@ export default function AdminActivityLog() {
     return logs.filter((l) => l.action === actionFilter);
   }, [logs, actionFilter]);
 
-  if (isLoading) {
+  const exportCsv = () => {
+    if (!filtered.length) return;
+    const headers = ["Date", "Action", "Admin", "Target User", "Details"];
+    const rows = filtered.map((log) => {
+      const actor = actorMap[log.actor_id];
+      const details = log.details as Record<string, unknown> | null;
+      let detailStr = "";
+      if (details && log.action === "role_change") detailStr = `${details.previous_role} → ${details.new_role}`;
+      else if (details && log.action === "suspend_user") detailStr = `Previously: ${details.previous_role}`;
+      return [
+        format(new Date(log.created_at), "yyyy-MM-dd HH:mm"),
+        ACTION_CONFIG[log.action]?.label ?? log.action,
+        actor?.name || actor?.email || "Admin",
+        log.target_user_name || log.target_user_email || "Unknown",
+        detailStr,
+      ].map((v) => `"${String(v).replace(/"/g, '""')}"`).join(",");
+    });
+    const csv = [headers.join(","), ...rows].join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `activity-log-${format(new Date(), "yyyy-MM-dd")}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+
     return (
       <div className="flex items-center justify-center py-12">
         <Loader2 className="h-6 w-6 animate-spin text-primary" />
