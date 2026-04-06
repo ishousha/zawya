@@ -14,6 +14,7 @@ import { format, parse } from "date-fns";
 import { cn } from "@/lib/utils";
 import DependentsSection from "@/components/profile/DependentsSection";
 import FamilyInviteSection from "@/components/profile/FamilyInviteSection";
+import LinkedAccounts from "@/components/profile/LinkedAccounts";
 
 const COUNTRY_CODES = [
   { code: "+971", label: "🇦🇪 +971", country: "UAE" },
