@@ -1,4 +1,5 @@
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import LoginPage from "@/pages/Login";
 import CompleteProfile from "@/pages/CompleteProfile";
@@ -8,13 +9,33 @@ import ProfilePage from "@/pages/Profile";
 import AdminDashboard from "@/pages/AdminDashboard";
 import Unsubscribe from "@/pages/Unsubscribe";
 import CommunityGuidelines from "@/pages/CommunityGuidelines";
-import JoinFamily from "@/pages/JoinFamily";
+import JoinFamily, { consumePendingInviteToken } from "@/pages/JoinFamily";
 import BottomNav from "@/components/BottomNav";
 import NotFound from "@/pages/NotFound";
 import { Loader2 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+
+function usePendingInviteRedirect() {
+  const { session, loading } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    if (loading || !session) return;
+    // If user just logged in and there's a pending invite token, redirect
+    if (location.pathname !== "/join-family") {
+      const pendingToken = localStorage.getItem("zawya_family_invite_token");
+      if (pendingToken) {
+        navigate(`/join-family?token=${pendingToken}`, { replace: true });
+      }
+    }
+  }, [session, loading]);
+}
 
 export default function AppRoutes() {
   const { session, profile, loading } = useAuth();
+
+  usePendingInviteRedirect();
 
   if (loading) {
     return (
@@ -24,24 +45,28 @@ export default function AppRoutes() {
     );
   }
 
-  // Not logged in
+  // Not logged in — allow /join-family and /unsubscribe
   if (!session) {
     return (
       <Routes>
+        <Route path="/join-family" element={<JoinFamily />} />
         <Route path="/unsubscribe" element={<Unsubscribe />} />
         <Route path="*" element={<LoginPage />} />
       </Routes>
     );
   }
 
+  // /join-family is always accessible when authenticated (bypasses onboarding/terms gates)
+  const joinFamilyRoute = <Route path="/join-family" element={<JoinFamily />} />;
+
   // Pending: needs onboarding if name or whatsapp missing
   if (profile?.role === "pending") {
     const needsOnboarding = !profile.name?.trim() || !profile.whatsapp_number?.trim();
 
-    // Terms gate for pending users too (after onboarding)
     if (!needsOnboarding && !(profile as any).terms_accepted) {
       return (
         <Routes>
+          {joinFamilyRoute}
           <Route path="*" element={<CommunityGuidelines />} />
         </Routes>
       );
@@ -49,6 +74,7 @@ export default function AppRoutes() {
 
     return (
       <Routes>
+        {joinFamilyRoute}
         <Route path="*" element={needsOnboarding ? <CompleteProfile /> : <PendingApproval />} />
       </Routes>
     );
@@ -58,6 +84,7 @@ export default function AppRoutes() {
   if (!(profile as any)?.terms_accepted) {
     return (
       <Routes>
+        {joinFamilyRoute}
         <Route path="*" element={<CommunityGuidelines />} />
       </Routes>
     );
@@ -71,7 +98,7 @@ export default function AppRoutes() {
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/admin" element={<AdminDashboard />} />
         <Route path="/guidelines" element={<CommunityGuidelines readOnly />} />
-        <Route path="/join-family" element={<JoinFamily />} />
+        {joinFamilyRoute}
         <Route path="/unsubscribe" element={<Unsubscribe />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
