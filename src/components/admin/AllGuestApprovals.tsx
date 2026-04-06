@@ -11,6 +11,7 @@ import { format } from "date-fns";
 
 export default function AllGuestApprovals() {
   const queryClient = useQueryClient();
+  const [search, setSearch] = useState("");
 
   const { data: guestRequests, isLoading } = useQuery({
     queryKey: ["all-guest-requests"],
