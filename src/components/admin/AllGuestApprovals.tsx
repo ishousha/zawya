@@ -57,6 +57,14 @@ export default function AllGuestApprovals() {
     );
   }, [guestRequests, search]);
 
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4 py-4">
       <h3 className="font-heading text-base font-semibold text-foreground flex items-center gap-2">
