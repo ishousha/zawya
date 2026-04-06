@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { useMyGuestRequests, useCreateGuestRequest } from "@/hooks/useGuestRequests";
 import { toast } from "sonner";
-import { Loader2, UserPlus, Phone, User } from "lucide-react";
+import { Loader2, UserPlus, Phone, User, Mail, Info } from "lucide-react";
 
 const statusVariant: Record<string, "default" | "secondary" | "destructive"> = {
   pending: "secondary",
