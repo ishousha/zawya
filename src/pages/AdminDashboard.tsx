@@ -186,7 +186,7 @@ export default function AdminDashboard() {
       </header>
 
       <main className="mx-auto max-w-2xl px-4 py-4">
-        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as AdminTab)} className="w-full">
+        <Tabs value={activeTab} onValueChange={(v) => { setSlideDir(null); setSlideKey((k) => k + 1); setActiveTab(v as AdminTab); }} className="w-full">
           <TabsList
             ref={tabsListRef}
             className="flex w-full justify-start overflow-x-auto bg-muted scrollbar-hide pb-0.5"
