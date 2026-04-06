@@ -51,13 +51,15 @@ export default function DesignTab({ form, setForm }: DesignTabProps) {
   const endBeforeStart =
     form.date_time && form.end_date_time && form.end_date_time <= form.date_time;
 
-  const isPhysical = form.type !== "class" || form.is_hybrid || !!form.location;
-  const showPhysical = form.is_hybrid || form.type !== "class";
-  const showVirtual = form.is_hybrid || form.type === "class";
+  const isNasiha = form.type === "nasiha";
+  const showPhysical = !isNasiha && (form.is_hybrid || form.type !== "class");
+  const showVirtual = !isNasiha && (form.is_hybrid || form.type === "class");
+  const showHybridToggle = !isNasiha;
 
-  // Potluck toggle visibility
+  // Potluck toggle: hide entirely for nasiha/meeting, lock for gathering & virtual-only class
+  const hidePotluckToggle = isNasiha || form.type === "meeting";
   const potluckLocked =
-    form.type === "gathering" || form.type === "meeting" || form.type === "nasiha" ||
+    form.type === "gathering" ||
     (form.type === "class" && !form.is_hybrid && !form.location);
 
   // Fee visibility
