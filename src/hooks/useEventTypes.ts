@@ -11,6 +11,7 @@ export function useEventTypes() {
       const { data, error } = await supabase
         .from("event_types")
         .select("*")
+        .order("display_order")
         .order("name");
       if (error) throw error;
       return data;

@@ -34,7 +34,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import { Plus, Pencil, Trash2, GripVertical } from "lucide-react";
 import { getEventTypeIcon, EVENT_TYPE_ICON_NAMES } from "@/hooks/useEventTypes";
 
 interface FormState {
