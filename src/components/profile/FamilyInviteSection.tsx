@@ -101,6 +101,66 @@ export default function FamilyInviteSection() {
   };
 
   const createInvite = useMutation({
+    mutationFn: async () => {
+      const { data, error } = await supabase
+        .from("family_invites")
+        .insert({
+          family_id: familyId!,
+          created_by: profile!.id,
+        } as any)
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["family-invites", familyId] });
+      const url = `${window.location.origin}/join-family?token=${(data as any).token}`;
+      navigator.clipboard.writeText(url).then(() => {
+        toast.success("Invite link copied to clipboard!");
+      }).catch(() => {
+        toast.success("Invite created! Copy the link below.");
+      });
+    },
+    onError: () => toast.error("Failed to create invite"),
+  });
+
+  const shareViaWhatsApp = (url: string) => {
+    const text = encodeURIComponent(
+      `You're invited to join our family on Zawya! Tap the link to accept:\n${url}`
+    );
+    window.open(`https://wa.me/?text=${text}`, "_blank");
+  };
+
+  if (!familyId) {
+    return (
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base flex items-center gap-2">
+            <Users className="h-4 w-4 text-primary" />
+            Family Group
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="text-center space-y-3">
+          <p className="text-sm text-muted-foreground">
+            Create a family group to manage RSVPs and invite family members.
+          </p>
+          <Button
+            className="w-full gap-1.5"
+            onClick={handleCreateFamily}
+            disabled={creating}
+          >
+            {creating ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Plus className="h-4 w-4" />
+            )}
+            Create Family Group
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
 
   const pendingInvites = invites?.filter((i) => (i as any).status === "pending") ?? [];
 
