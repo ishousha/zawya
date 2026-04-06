@@ -25,6 +25,7 @@ import { Loader2, CheckCircle, XCircle, UserCheck, Clock, UserPlus } from "lucid
 import { toast } from "sonner";
 import { notifyUserApproval } from "@/lib/webhooks";
 import { format } from "date-fns";
+import AdminRsvpAction from "./AdminRsvpAction";
 import type { Database } from "@/integrations/supabase/types";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
