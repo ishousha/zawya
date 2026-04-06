@@ -218,7 +218,8 @@ export function useRSVPConcurrency(eventId: string) {
           rsvp_id: data.id,
           sign_up_item_id: s.sign_up_item_id,
           quantity: s.quantity,
-        }));
+          description: s.description ?? null,
+        } as any));
         const { error: selErr } = await supabase.from("rsvp_sign_up_selections").insert(rows);
         if (selErr) throw selErr;
       }
