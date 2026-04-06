@@ -36,7 +36,7 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
       date_time: event.date_time ? format(new Date(event.date_time), "yyyy-MM-dd'T'HH:mm") : "",
       end_date_time: event.end_date_time ? format(new Date(event.end_date_time), "yyyy-MM-dd'T'HH:mm") : "",
       event_type_id: event.event_type_id,
-      venue_id: (event as any).venue_id ?? null,
+      venue_id: event.venue_id ?? null,
       location: event.location ?? "",
       address: event.address ?? "",
       virtual_link: event.virtual_link ?? event.zoom_link ?? "",
@@ -45,11 +45,11 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
       waitlist_capacity: (event.waitlist_capacity ?? 0).toString(),
       is_hybrid: event.is_hybrid ?? false,
       has_potluck: event.has_potluck ?? true,
-      ticket_fee: ((event as any).ticket_fee ?? 0).toString(),
+      ticket_fee: (event.ticket_fee ?? 0).toString(),
       payment_instructions: event.payment_instructions ?? "",
-      online_link: (event as any).online_link ?? "",
+      online_link: event.online_link ?? "",
       status: event.status,
-      checkin_pin: (event as any).checkin_pin ?? generateCheckinPin(),
+      checkin_pin: event.checkin_pin ?? generateCheckinPin(),
     };
   });
 

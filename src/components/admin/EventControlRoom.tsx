@@ -414,7 +414,7 @@ export default function EventControlRoom() {
             eventId={monitoringEventId}
             eventTitle={monEvent?.title ?? "Event"}
             eventDate={monEvent?.date_time ?? ""}
-            checkinPin={(monEvent as any)?.checkin_pin ?? ""}
+            checkinPin={monEvent?.checkin_pin ?? ""}
             onClose={() => setMonitoringEventId(null)}
           />
         );
