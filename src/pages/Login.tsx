@@ -18,6 +18,8 @@ export default function LoginPage() {
   const [verifying, setVerifying] = useState(false);
   const [appleLoading, setAppleLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [resending, setResending] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
 
   const handleOAuthSignIn = async (provider: "apple" | "google") => {
     const setLoaderFn = provider === "apple" ? setAppleLoading : setGoogleLoading;
