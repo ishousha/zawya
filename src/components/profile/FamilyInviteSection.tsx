@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Users, UserPlus, Copy, Loader2, MessageCircle, User, Plus, Pencil, Check, X } from "lucide-react";
+import { Users, UserPlus, Copy, Loader2, MessageCircle, User, Plus, Pencil, Check, X, LogOut } from "lucide-react";
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 
