@@ -51,6 +51,7 @@ export default function AdminGuestApprovals({ eventId }: { eventId: string }) {
         eventLocation,
         eventLink,
         requestedByName: r.profiles?.name || "",
+        requestedByEmail: r.profiles?.email || "",
       });
       toast.success(`Guest ${status}.`);
     } catch {

@@ -67,6 +67,22 @@ export default function AllGuestApprovals() {
           console.error("Failed to send guest approved email:", emailErr);
         }
       }
+
+      // Fire webhook on rejection (deliberately excludes guest_email)
+      if (status === "rejected") {
+        try {
+          await supabase.functions.invoke("notify-guest-rejected", {
+            body: {
+              guest_name: gr.guest_name,
+              event_title: gr.events?.title || "Event",
+              requesting_user_name: gr.profiles?.name || "Member",
+              requesting_user_email: gr.profiles?.email || "",
+            },
+          });
+        } catch (webhookErr) {
+          console.error("Failed to trigger rejection webhook:", webhookErr);
+        }
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["all-guest-requests"] });

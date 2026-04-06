@@ -77,6 +77,7 @@ export function useUpdateGuestRequestStatus() {
       eventLocation,
       eventLink,
       requestedByName,
+      requestedByEmail,
     }: {
       id: string;
       status: "approved" | "rejected";
@@ -87,6 +88,7 @@ export function useUpdateGuestRequestStatus() {
       eventLocation?: string;
       eventLink?: string;
       requestedByName?: string;
+      requestedByEmail?: string;
     }) => {
       const { error } = await supabase
         .from("guest_requests")
@@ -113,6 +115,22 @@ export function useUpdateGuestRequestStatus() {
           });
         } catch (emailErr) {
           console.error("Failed to send guest approved email:", emailErr);
+        }
+      }
+
+      // Fire webhook on rejection (deliberately excludes guest_email)
+      if (status === "rejected") {
+        try {
+          await supabase.functions.invoke("notify-guest-rejected", {
+            body: {
+              guest_name: guestName || "Guest",
+              event_title: eventTitle || "Event",
+              requesting_user_name: requestedByName || "Member",
+              requesting_user_email: requestedByEmail || "",
+            },
+          });
+        } catch (webhookErr) {
+          console.error("Failed to trigger rejection webhook:", webhookErr);
         }
       }
     },
