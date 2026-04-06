@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { toast } from "sonner";
-import { Plus, Users, UserPlus, X, Loader2, Check, ChevronsUpDown } from "lucide-react";
+import { Plus, Users, UserPlus, X, Loader2, Check, ChevronsUpDown, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface Family {
@@ -65,10 +65,12 @@ export default function FamilyManagement() {
   const [assignFamilyId, setAssignFamilyId] = useState("");
   const [assignUserId, setAssignUserId] = useState("");
   const [familyComboOpen, setFamilyComboOpen] = useState(false);
+  const [familySearch, setFamilySearch] = useState("");
   const [memberComboOpen, setMemberComboOpen] = useState(false);
+  const [tableSearch, setTableSearch] = useState("");
 
   const unassignedMembers = useMemo(
-    () => profiles?.filter((p) => !(p as any).family_id) ?? [],
+    () => profiles?.filter((p) => !p.family_id) ?? [],
     [profiles]
   );
 
@@ -79,13 +81,31 @@ export default function FamilyManagement() {
 
   const createFamily = useMutation({
     mutationFn: async (name: string) => {
-      const { error } = await supabase.from("families").insert({ name });
+      const { data, error } = await supabase.from("families").insert({ name }).select().single();
       if (error) throw error;
+      return data as Family;
     },
-    onSuccess: () => {
+    onSuccess: (data, _vars, _ctx) => {
       toast.success("Family created");
       setNewFamilyName("");
       setCreateOpen(false);
+      invalidate();
+      return data;
+    },
+    onError: () => toast.error("Failed to create family"),
+  });
+
+  const createAndSelectFamily = useMutation({
+    mutationFn: async (name: string) => {
+      const { data, error } = await supabase.from("families").insert({ name }).select().single();
+      if (error) throw error;
+      return data as Family;
+    },
+    onSuccess: (data) => {
+      toast.success(`"${data.name}" family created`);
+      setAssignFamilyId(data.id);
+      setFamilyComboOpen(false);
+      setFamilySearch("");
       invalidate();
     },
     onError: () => toast.error("Failed to create family"),
@@ -125,9 +145,20 @@ export default function FamilyManagement() {
   });
 
   const getMembersOfFamily = (familyId: string) =>
-    profiles?.filter((p) => (p as any).family_id === familyId) ?? [];
+    profiles?.filter((p) => p.family_id === familyId) ?? [];
 
-  // unassignedMembers moved to top of component
+  const filteredFamilies = useMemo(() => {
+    if (!families) return [];
+    if (!tableSearch.trim()) return families;
+    const q = tableSearch.toLowerCase();
+    return families.filter((f) => f.name.toLowerCase().includes(q));
+  }, [families, tableSearch]);
+
+  // Check if the family search term matches an existing family (for inline creation)
+  const familySearchTrimmed = familySearch.trim();
+  const familySearchExists = families?.some(
+    (f) => f.name.toLowerCase() === familySearchTrimmed.toLowerCase()
+  );
 
   if (loadingFamilies || loadingProfiles) {
     return (
@@ -173,7 +204,14 @@ export default function FamilyManagement() {
           </DialogContent>
         </Dialog>
 
-        <Dialog open={assignOpen} onOpenChange={setAssignOpen}>
+        <Dialog open={assignOpen} onOpenChange={(open) => {
+          setAssignOpen(open);
+          if (!open) {
+            setAssignFamilyId("");
+            setAssignUserId("");
+            setFamilySearch("");
+          }
+        }}>
           <DialogTrigger asChild>
             <Button size="sm" variant="outline" className="gap-1.5">
               <UserPlus className="h-4 w-4" /> Assign Member
@@ -184,6 +222,7 @@ export default function FamilyManagement() {
               <DialogTitle>Assign Member to Family</DialogTitle>
             </DialogHeader>
             <div className="space-y-4 pt-2">
+              {/* Family combobox */}
               <div>
                 <Label>Family</Label>
                 <Popover open={familyComboOpen} onOpenChange={setFamilyComboOpen}>
@@ -202,9 +241,15 @@ export default function FamilyManagement() {
                   </PopoverTrigger>
                   <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
                     <Command>
-                      <CommandInput placeholder="Search families…" />
+                      <CommandInput
+                        placeholder="Search families…"
+                        value={familySearch}
+                        onValueChange={setFamilySearch}
+                      />
                       <CommandList>
-                        <CommandEmpty>No family found.</CommandEmpty>
+                        <CommandEmpty>
+                          <span className="text-muted-foreground text-sm">No family found.</span>
+                        </CommandEmpty>
                         <CommandGroup>
                           {families?.map((f) => (
                             <CommandItem
@@ -213,6 +258,7 @@ export default function FamilyManagement() {
                               onSelect={() => {
                                 setAssignFamilyId(f.id);
                                 setFamilyComboOpen(false);
+                                setFamilySearch("");
                               }}
                             >
                               <Check className={cn("mr-2 h-4 w-4", assignFamilyId === f.id ? "opacity-100" : "opacity-0")} />
@@ -220,13 +266,30 @@ export default function FamilyManagement() {
                             </CommandItem>
                           ))}
                         </CommandGroup>
+                        {/* Inline create option */}
+                        {familySearchTrimmed && !familySearchExists && (
+                          <CommandGroup>
+                            <CommandItem
+                              value={`__create__${familySearchTrimmed}`}
+                              onSelect={() => {
+                                createAndSelectFamily.mutate(familySearchTrimmed);
+                              }}
+                              className="text-primary"
+                            >
+                              <Plus className="mr-2 h-4 w-4" />
+                              Create "{familySearchTrimmed}" Family
+                            </CommandItem>
+                          </CommandGroup>
+                        )}
                       </CommandList>
                     </Command>
                   </PopoverContent>
                 </Popover>
               </div>
+
+              {/* Member combobox */}
               <div>
-                <Label>Member</Label>
+                <Label>Member (unassigned only)</Label>
                 <Popover open={memberComboOpen} onOpenChange={setMemberComboOpen}>
                   <PopoverTrigger asChild>
                     <Button
@@ -251,7 +314,9 @@ export default function FamilyManagement() {
                         <CommandEmpty>No unassigned members found.</CommandEmpty>
                         <CommandGroup>
                           {unassignedMembers.map((p) => {
-                            const label = `${p.name || "Unnamed"} (${p.email || "no email"})`;
+                            const displayName = p.name || "Unnamed";
+                            const displayEmail = p.email || "no email";
+                            const label = `${displayName} (${displayEmail})`;
                             return (
                               <CommandItem
                                 key={p.id}
@@ -262,7 +327,10 @@ export default function FamilyManagement() {
                                 }}
                               >
                                 <Check className={cn("mr-2 h-4 w-4", assignUserId === p.id ? "opacity-100" : "opacity-0")} />
-                                {label}
+                                <span className="truncate">
+                                  <span className="font-medium">{displayName}</span>
+                                  <span className="text-muted-foreground ml-1">({displayEmail})</span>
+                                </span>
                               </CommandItem>
                             );
                           })}
@@ -272,6 +340,7 @@ export default function FamilyManagement() {
                   </PopoverContent>
                 </Popover>
               </div>
+
               <Button
                 className="w-full"
                 disabled={!assignFamilyId || !assignUserId || assignMember.isPending}
@@ -287,15 +356,30 @@ export default function FamilyManagement() {
         </Dialog>
       </div>
 
+      {/* Search bar for families table */}
+      <div className="relative">
+        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+        <Input
+          placeholder="Search families…"
+          value={tableSearch}
+          onChange={(e) => setTableSearch(e.target.value)}
+          className="pl-9 h-9"
+        />
+      </div>
+
       {/* Family cards */}
-      {(!families || families.length === 0) ? (
+      {filteredFamilies.length === 0 ? (
         <div className="text-center py-12 text-muted-foreground">
           <Users className="mx-auto h-10 w-10 mb-3 opacity-40" />
-          <p className="text-sm">No families yet. Create one to get started.</p>
+          <p className="text-sm">
+            {tableSearch.trim()
+              ? "No families match your search."
+              : "No families yet. Create one to get started."}
+          </p>
         </div>
       ) : (
         <div className="space-y-4">
-          {families.map((family) => {
+          {filteredFamilies.map((family) => {
             const members = getMembersOfFamily(family.id);
             return (
               <Card key={family.id}>
