@@ -183,7 +183,7 @@ export function useRSVPConcurrency(eventId: string) {
       potluck_category?: string | null;
       specific_food_item?: string | null;
       attending_dependents?: Record<string, any>[] | null;
-      selections?: { sign_up_item_id: number; quantity: number }[];
+      selections?: { sign_up_item_id: number; quantity: number; description?: string | null }[];
     }) => {
       if (!user) throw new Error("Not authenticated");
 
@@ -218,7 +218,8 @@ export function useRSVPConcurrency(eventId: string) {
           rsvp_id: data.id,
           sign_up_item_id: s.sign_up_item_id,
           quantity: s.quantity,
-        }));
+          description: s.description ?? null,
+        } as any));
         const { error: selErr } = await supabase.from("rsvp_sign_up_selections").insert(rows);
         if (selErr) throw selErr;
       }
@@ -267,7 +268,7 @@ export function useRSVPConcurrency(eventId: string) {
       potluck_category?: string | null;
       specific_food_item?: string | null;
       attending_dependents?: Record<string, any>[] | null;
-      selections?: { sign_up_item_id: number; quantity: number }[];
+      selections?: { sign_up_item_id: number; quantity: number; description?: string | null }[];
     }) => {
       if (!user) throw new Error("Not authenticated");
 
@@ -292,7 +293,8 @@ export function useRSVPConcurrency(eventId: string) {
           rsvp_id: input.rsvpId,
           sign_up_item_id: s.sign_up_item_id,
           quantity: s.quantity,
-        }));
+          description: s.description ?? null,
+        } as any));
         const { error: selErr } = await supabase.from("rsvp_sign_up_selections").insert(rows);
         if (selErr) throw selErr;
       }
