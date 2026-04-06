@@ -476,6 +476,7 @@ export default function UserManagement() {
                         role: val as AppRole,
                         email: p.email,
                         name: p.name,
+                        previousRole: p.role,
                       })
                     }
                   >
