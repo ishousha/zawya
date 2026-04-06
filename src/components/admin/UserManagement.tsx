@@ -509,7 +509,7 @@ export default function UserManagement() {
                         <AlertDialogCancel>Cancel</AlertDialogCancel>
                         <AlertDialogAction
                           className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                          onClick={() => deleteUser.mutate(p.id)}
+                          onClick={() => deleteUser.mutate({ userId: p.id, name: p.name, email: p.email })}
                         >
                           {deleteUser.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                           Delete Forever

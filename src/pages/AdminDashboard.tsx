@@ -6,7 +6,8 @@ import EventControlRoom from "@/components/admin/EventControlRoom";
 import AdminDoorScanner from "@/components/admin/AdminDoorScanner";
 import FamilyManagement from "@/components/admin/FamilyManagement";
 import AllGuestApprovals from "@/components/admin/AllGuestApprovals";
-import { Users, CalendarPlus, ScanLine, Home } from "lucide-react";
+import AdminActivityLog from "@/components/admin/AdminActivityLog";
+import { Users, CalendarPlus, ScanLine, Home, ScrollText } from "lucide-react";
 
 export default function AdminDashboard() {
   const { profile } = useAuth();
