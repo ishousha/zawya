@@ -71,6 +71,7 @@ export default function AppRoutes() {
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/admin" element={<AdminDashboard />} />
         <Route path="/guidelines" element={<CommunityGuidelines readOnly />} />
+        <Route path="/join-family" element={<JoinFamily />} />
         <Route path="/unsubscribe" element={<Unsubscribe />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
