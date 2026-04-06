@@ -11,12 +11,47 @@ export default function AdminGuestApprovals({ eventId }: { eventId: string }) {
   const { data: requests, isLoading } = useEventGuestRequests(eventId);
   const updateStatus = useUpdateGuestRequestStatus();
 
+  // Fetch event details for email
+  const { data: eventData } = useQuery({
+    queryKey: ["event-detail-for-email", eventId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("events")
+        .select("title, date_time, location, address, virtual_link, online_link, type")
+        .eq("id", eventId)
+        .single();
+      if (error) throw error;
+      return data;
+    },
+  });
+
   const pending = requests?.filter((r: any) => r.status === "pending") ?? [];
   const resolved = requests?.filter((r: any) => r.status !== "pending") ?? [];
 
-  const handleAction = async (id: string, status: "approved" | "rejected") => {
+  const handleAction = async (r: any, status: "approved" | "rejected") => {
+    const eventDate = eventData?.date_time
+      ? format(new Date(eventData.date_time), "EEEE, MMMM d 'at' h:mm a")
+      : "";
+    const onlineLink = (eventData as any)?.online_link;
+    const eventLink = eventData?.type === "nasiha" && onlineLink
+      ? onlineLink
+      : eventData?.virtual_link || "";
+    const eventLocation = eventData?.location
+      ? `${eventData.location}${eventData.address ? ` — ${eventData.address}` : ""}`
+      : "";
+
     try {
-      await updateStatus.mutateAsync({ id, status });
+      await updateStatus.mutateAsync({
+        id: r.id,
+        status,
+        guestEmail: (r as any).guest_email || undefined,
+        guestName: r.guest_name,
+        eventTitle: eventData?.title || "",
+        eventDate,
+        eventLocation,
+        eventLink,
+        requestedByName: r.profiles?.name || "",
+      });
       toast.success(`Guest ${status}.`);
     } catch {
       toast.error("Failed to update guest request.");
