@@ -373,8 +373,12 @@ export default function UserManagement() {
             <Card key={p.id} className={p.role === "pending" ? "border-accent" : ""}>
               <CardContent className="flex items-center justify-between p-4">
                 <div className="min-w-0 flex-1">
-                  <p className="truncate font-medium text-card-foreground">
+                  <p className="truncate font-medium text-card-foreground flex items-center gap-1.5">
                     {p.name || "Unnamed"}
+                    {p.role === "guest" && <Badge variant="secondary" className="text-[10px] px-1.5 py-0">Guest</Badge>}
+                    {p.role === "pending" && <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-accent text-accent-foreground">Pending</Badge>}
+                    {p.role === "admin" && <Badge className="text-[10px] px-1.5 py-0">Admin</Badge>}
+                    {p.role === "moderator" && <Badge variant="secondary" className="text-[10px] px-1.5 py-0 border-primary/30 text-primary">Mod</Badge>}
                   </p>
                   <p className="truncate text-xs text-muted-foreground">{p.email}</p>
                   {p.whatsapp_number && (
