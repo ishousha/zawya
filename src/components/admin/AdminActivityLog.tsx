@@ -129,6 +129,10 @@ export default function AdminActivityLog() {
           <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => refetch()}>
             <RefreshCw className="h-4 w-4" />
           </Button>
+          <Button variant="outline" size="sm" className="h-9 gap-1.5" onClick={exportCsv} disabled={!filtered.length}>
+            <Download className="h-4 w-4" />
+            <span className="hidden sm:inline">Export</span>
+          </Button>
         </div>
       </div>
 
