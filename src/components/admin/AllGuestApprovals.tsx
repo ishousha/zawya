@@ -142,7 +142,7 @@ export default function AllGuestApprovals() {
                     <Button
                       size="icon"
                       className="h-10 w-10"
-                      onClick={() => updateStatus.mutate({ id: gr.id, status: "approved" })}
+                      onClick={() => updateStatus.mutate({ gr, status: "approved" })}
                       disabled={updateStatus.isPending}
                       title="Approve"
                     >
