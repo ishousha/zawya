@@ -24,7 +24,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Search } from "lucide-react";
+import { Search, Download } from "lucide-react";
 import {
   Select,
   SelectContent,
