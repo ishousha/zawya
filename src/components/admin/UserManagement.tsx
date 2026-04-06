@@ -501,6 +501,25 @@ export default function UserManagement() {
                   )}
                 </div>
                 <div className="ml-3 flex items-center gap-2">
+                  {p.role === "pending" && (
+                    <Button
+                      size="sm"
+                      className="h-9 gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white"
+                      onClick={() =>
+                        updateRole.mutate({
+                          userId: p.id,
+                          role: "approved" as AppRole,
+                          email: p.email,
+                          name: p.name,
+                          previousRole: p.role,
+                        })
+                      }
+                      disabled={updateRole.isPending}
+                    >
+                      <CheckCircle className="h-4 w-4" />
+                      Approve
+                    </Button>
+                  )}
                   <AdminRsvpAction
                     userId={p.id}
                     userName={p.name}
