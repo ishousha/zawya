@@ -6,7 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Loader2, Plus, Edit2, X, Users, ChevronDown, Copy, Trash2, Ban, RotateCcw } from "lucide-react";
+import { Loader2, Plus, Edit2, X, Users, ChevronDown, Copy, Trash2, Ban, RotateCcw, Download } from "lucide-react";
+import { downloadCsv, zawyaFilename } from "@/lib/csv-export";
 import { toast } from "sonner";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { format } from "date-fns";
@@ -359,13 +360,17 @@ export default function EventControlRoom() {
       )}
 
       {monitoringEventId && (
-        <RSVPMonitor eventId={monitoringEventId} onClose={() => setMonitoringEventId(null)} />
+        <RSVPMonitor
+          eventId={monitoringEventId}
+          eventTitle={events?.find((e) => e.id === monitoringEventId)?.title ?? "Event"}
+          onClose={() => setMonitoringEventId(null)}
+        />
       )}
     </div>
   );
 }
 
-function RSVPMonitor({ eventId, onClose }: { eventId: string; onClose: () => void }) {
+function RSVPMonitor({ eventId, eventTitle, onClose }: { eventId: string; eventTitle: string; onClose: () => void }) {
   const { data: rsvps, isLoading } = useQuery({
     queryKey: ["admin-rsvps", eventId],
     queryFn: async () => {
@@ -441,9 +446,37 @@ function RSVPMonitor({ eventId, onClose }: { eventId: string; onClose: () => voi
     <Card>
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <CardTitle className="text-lg">Guest List & RSVPs</CardTitle>
-        <Button size="icon" variant="ghost" className="h-10 w-10" onClick={onClose}>
-          <X className="h-5 w-5" />
-        </Button>
+        <div className="flex items-center gap-1">
+          {rsvps && rsvps.length > 0 && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-8 gap-1.5 text-xs"
+              onClick={() => {
+                const rows = (rsvps ?? []).map((r: any) => {
+                  const deps: { name: string }[] = r.attending_dependents ?? [];
+                  return {
+                    Name: r.profiles?.name || "",
+                    Email: r.profiles?.email || "",
+                    Role: r.profiles?.role || "",
+                    "Plus Ones": r.guests_count - 1,
+                    Dependents: deps.map((d) => d.name).join("; "),
+                    Waitlisted: r.is_waitlisted ? "Yes" : "No",
+                    "Checked In": r.checked_in ? "Yes" : "No",
+                    "Potluck Item": r.specific_food_item || "",
+                  };
+                });
+                downloadCsv(rows, zawyaFilename("GuestList", eventTitle));
+                toast.success(`Exported ${rows.length} RSVPs`);
+              }}
+            >
+              <Download className="h-3.5 w-3.5" /> Export
+            </Button>
+          )}
+          <Button size="icon" variant="ghost" className="h-10 w-10" onClick={onClose}>
+            <X className="h-5 w-5" />
+          </Button>
+        </div>
       </CardHeader>
       <CardContent>
         {isLoading ? (
