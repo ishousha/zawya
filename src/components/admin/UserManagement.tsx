@@ -391,6 +391,7 @@ export default function UserManagement() {
         {(() => {
           const pendingCount = profiles?.filter((p) => p.role === "pending").length ?? 0;
           const approvedCount = profiles?.filter((p) => p.role === "approved").length ?? 0;
+          const suspendedCount = profiles?.filter((p) => p.role === "suspended").length ?? 0;
           const rejectedCount = profiles?.filter((p) => (p.role as string) === "rejected").length ?? 0;
           return (
             <div className="mb-3 flex flex-wrap gap-1.5">
