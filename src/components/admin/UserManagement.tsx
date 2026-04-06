@@ -491,10 +491,10 @@ export default function UserManagement() {
         <div className="space-y-2">
           {filteredProfiles.map((p) => (
             <Card key={p.id} className={p.role === "pending" ? "border-accent" : ""}>
-              <CardContent className="flex items-center justify-between p-4">
+              <CardContent className="flex flex-col p-4 sm:flex-row sm:items-center sm:justify-between">
                 <div className="min-w-0 flex-1">
-                  <p className="truncate font-medium text-card-foreground flex items-center gap-1.5">
-                    {p.name || "Unnamed"}
+                  <p className="font-medium text-card-foreground flex flex-wrap items-center gap-1.5">
+                    <span className="truncate">{p.name || "Unnamed"}</span>
                      {p.role === "pending" && (
                        <Badge className="text-[10px] px-2 py-0.5 bg-amber-500 text-white border-amber-500 animate-pulse font-semibold">
                          ⏳ Awaiting Approval
@@ -532,7 +532,7 @@ export default function UserManagement() {
                     </div>
                   )}
                 </div>
-                <div className="ml-3 flex items-center gap-2">
+                <div className="mt-3 flex flex-wrap items-center gap-2 sm:mt-0 sm:ml-3 sm:flex-nowrap">
                   {p.role === "pending" && (
                     <>
                       <Button
@@ -589,7 +589,7 @@ export default function UserManagement() {
                       })
                     }
                   >
-                    <SelectTrigger className="w-[130px] h-9">
+                    <SelectTrigger className="w-[120px] h-9">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
