@@ -3,6 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { useRSVPConcurrency, useSignUpItems, useEventSelections, useMyRSVP, useMySelections } from "@/hooks/useRSVP";
 import { useDependents } from "@/components/profile/DependentsSection";
+import { useFamilyMembers } from "@/hooks/useFamilyMembers";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { Loader2, Minus, Plus } from "lucide-react";
@@ -20,36 +21,52 @@ interface RSVPModalProps {
 }
 
 export default function RSVPModal({ event, open, onOpenChange }: RSVPModalProps) {
-  const { user, profile } = useAuth();
+  const { user } = useAuth();
   const { data: myRSVP } = useMyRSVP(event.id);
   const { data: signUpItems } = useSignUpItems(event.id);
   const { data: allSelections } = useEventSelections(event.id);
   const { data: mySelections } = useMySelections(myRSVP?.id);
   const { data: dependents } = useDependents();
+  const { data: familyMembers } = useFamilyMembers();
   const { createRSVP, updateRSVP, cancelRSVP } = useRSVPConcurrency(event.id);
 
   const isEditing = !!myRSVP;
 
-  const [selfAttending, setSelfAttending] = useState(true);
+  const [selectedMemberIds, setSelectedMemberIds] = useState<Set<string>>(new Set());
   const [selectedDependentIds, setSelectedDependentIds] = useState<Set<string>>(new Set());
   const [selections, setSelections] = useState<Record<number, number>>({});
 
   // Sync attendee state when data loads
   useEffect(() => {
-    if (myRSVP && dependents) {
-      const totalGuests = myRSVP.guests_count;
-      // Self is always counted as 1, rest are dependents
-      const kidCount = Math.max(0, totalGuests - 1);
-      setSelfAttending(true);
-      // Select first N dependents by default when editing
+    if (myRSVP && familyMembers && dependents) {
+      // Restore selected members & dependents from attending_dependents JSONB
+      const attendingDeps = (myRSVP.attending_dependents as any[]) || [];
+      const memberIds = new Set<string>();
       const depIds = new Set<string>();
-      dependents.slice(0, kidCount).forEach((d) => depIds.add(d.id));
+
+      for (const entry of attendingDeps) {
+        if (entry.type === "family_member") {
+          const found = familyMembers.find((m) => m.id === entry.id);
+          if (found) memberIds.add(found.id);
+        } else if (entry.type === "dependent") {
+          const found = dependents.find((d) => d.id === entry.id);
+          if (found) depIds.add(found.id);
+        }
+      }
+
+      // If no structured data, fall back to selecting self
+      if (memberIds.size === 0 && attendingDeps.length === 0) {
+        if (user) memberIds.add(user.id);
+      }
+
+      setSelectedMemberIds(memberIds);
       setSelectedDependentIds(depIds);
-    } else if (!myRSVP) {
-      setSelfAttending(true);
+    } else if (!myRSVP && user) {
+      // Default: select self
+      setSelectedMemberIds(new Set([user.id]));
       setSelectedDependentIds(new Set());
     }
-  }, [myRSVP, dependents]);
+  }, [myRSVP, familyMembers, dependents, user]);
 
   useEffect(() => {
     if (mySelections) {
@@ -61,7 +78,16 @@ export default function RSVPModal({ event, open, onOpenChange }: RSVPModalProps)
     }
   }, [mySelections]);
 
-  const guestsCount = (selfAttending ? 1 : 0) + selectedDependentIds.size;
+  const guestsCount = selectedMemberIds.size + selectedDependentIds.size;
+
+  const toggleMember = (id: string) => {
+    setSelectedMemberIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
 
   const toggleDependent = (id: string) => {
     setSelectedDependentIds((prev) => {
@@ -107,18 +133,42 @@ export default function RSVPModal({ event, open, onOpenChange }: RSVPModalProps)
   };
 
   const buildAttendingDependents = () => {
-    if (!dependents || selectedDependentIds.size === 0) return null;
-    const now = new Date();
-    return dependents
-      .filter((d) => selectedDependentIds.has(d.id))
-      .map((d) => {
-        let age: number | null = null;
-        if (d.date_of_birth) {
-          const dob = new Date(d.date_of_birth);
-          age = Math.floor((now.getTime() - dob.getTime()) / (365.25 * 24 * 60 * 60 * 1000));
+    const entries: { type: string; id: string; name: string; age?: number | null }[] = [];
+
+    // Family members
+    if (familyMembers) {
+      for (const member of familyMembers) {
+        if (selectedMemberIds.has(member.id)) {
+          entries.push({
+            type: "family_member",
+            id: member.id,
+            name: member.name || "Unknown",
+          });
         }
-        return { name: d.first_name, age };
-      });
+      }
+    }
+
+    // Dependents
+    if (dependents) {
+      const now = new Date();
+      for (const dep of dependents) {
+        if (selectedDependentIds.has(dep.id)) {
+          let age: number | null = null;
+          if (dep.date_of_birth) {
+            const dob = new Date(dep.date_of_birth);
+            age = Math.floor((now.getTime() - dob.getTime()) / (365.25 * 24 * 60 * 60 * 1000));
+          }
+          entries.push({
+            type: "dependent",
+            id: dep.id,
+            name: dep.first_name,
+            age,
+          });
+        }
+      }
+    }
+
+    return entries.length > 0 ? entries : null;
   };
 
   const handleSubmit = async () => {
@@ -193,12 +243,12 @@ export default function RSVPModal({ event, open, onOpenChange }: RSVPModalProps)
         <div className="space-y-5 py-2">
           {/* Attendee checklist */}
           <AttendeeChecklist
-            userName={profile?.name || "Me"}
+            familyMembers={familyMembers ?? []}
+            selectedMemberIds={selectedMemberIds}
+            onToggleMember={toggleMember}
             dependents={dependents ?? []}
-            selectedIds={selectedDependentIds}
-            onToggle={toggleDependent}
-            selfChecked={selfAttending}
-            onSelfToggle={() => setSelfAttending((prev) => !prev)}
+            selectedDependentIds={selectedDependentIds}
+            onToggleDependent={toggleDependent}
           />
 
           <p className="text-xs text-muted-foreground">
