@@ -52,15 +52,37 @@ export default function AllGuestApprovals() {
     );
   }
 
+  const filtered = useMemo(() => {
+    if (!guestRequests) return [];
+    const q = search.toLowerCase();
+    if (!q) return guestRequests;
+    return guestRequests.filter((gr) =>
+      gr.guest_name.toLowerCase().includes(q) ||
+      (gr as any).profiles?.name?.toLowerCase().includes(q) ||
+      (gr as any).profiles?.email?.toLowerCase().includes(q) ||
+      (gr as any).events?.title?.toLowerCase().includes(q) ||
+      gr.guest_phone?.includes(q)
+    );
+  }, [guestRequests, search]);
+
   return (
     <div className="space-y-4 py-4">
       <h3 className="font-heading text-base font-semibold text-foreground flex items-center gap-2">
         <Clock className="h-4 w-4 text-accent-foreground" />
-        Guest Requests ({guestRequests?.length ?? 0})
+        Guest Requests ({filtered.length}{filtered.length !== (guestRequests?.length ?? 0) ? ` / ${guestRequests?.length}` : ""})
       </h3>
-      {guestRequests && guestRequests.length > 0 ? (
+      <div className="relative">
+        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+        <Input
+          placeholder="Search by guest name, requester, event…"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="pl-9 h-9"
+        />
+      </div>
+      {filtered.length > 0 ? (
         <div className="space-y-2">
-          {guestRequests.map((gr) => (
+          {filtered.map((gr) => (
             <Card key={gr.id} className={gr.status === "pending" ? "border-accent" : ""}>
               <CardContent className="flex items-center justify-between p-4">
                 <div className="min-w-0 flex-1">
