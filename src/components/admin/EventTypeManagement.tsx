@@ -41,6 +41,7 @@ interface FormState {
   name: string;
   icon: string;
   requires_location: boolean;
+  is_virtual: boolean;
   allows_potluck: boolean;
 }
 
@@ -48,6 +49,7 @@ const defaultForm: FormState = {
   name: "",
   icon: "MapPin",
   requires_location: true,
+  is_virtual: false,
   allows_potluck: true,
 };
 
