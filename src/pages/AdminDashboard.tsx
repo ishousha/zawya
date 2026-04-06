@@ -1,6 +1,7 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { Navigate } from "react-router-dom";
-import { useRef, useEffect, useCallback } from "react";
+import { useRef, useEffect, useCallback, useState } from "react";
+import { useSwipeable } from "react-swipeable";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import UserManagement from "@/components/admin/UserManagement";
 import EventControlRoom from "@/components/admin/EventControlRoom";
@@ -13,27 +14,91 @@ import { Users, CalendarPlus, ScanLine, Home, ScrollText, Settings, BarChart3 } 
 import EventTypeManagement from "@/components/admin/EventTypeManagement";
 import { usePendingUsersCount } from "@/hooks/usePendingUsersCount";
 
+const ADMIN_TABS = ["users", "families", "events", "scanner", "analytics", "settings", "activity"] as const;
+type AdminTab = typeof ADMIN_TABS[number];
+
+const MODERATOR_TABS = ["events", "guests", "scanner"] as const;
+type ModeratorTab = typeof MODERATOR_TABS[number];
+
+/** Check if the swipe originated from a horizontally-scrollable child */
+function isInsideScrollable(target: EventTarget | null): boolean {
+  let el = target as HTMLElement | null;
+  while (el) {
+    const style = window.getComputedStyle(el);
+    const isScrollable =
+      (style.overflowX === "auto" || style.overflowX === "scroll") &&
+      el.scrollWidth > el.clientWidth;
+    if (isScrollable) return true;
+    if (el.dataset.swipeRoot !== undefined) break;
+    el = el.parentElement;
+  }
+  return false;
+}
+
 export default function AdminDashboard() {
   const { profile } = useAuth();
   const { data: pendingCount } = usePendingUsersCount();
   const tabsListRef = useRef<HTMLDivElement>(null);
 
-  const scrollActiveTabIntoView = useCallback((container: HTMLDivElement | null) => {
-    if (!container) return;
-    const activeTab = container.querySelector('[data-state="active"]') as HTMLElement;
-    if (activeTab) {
-      const scrollLeft = activeTab.offsetLeft - 8;
-      container.scrollTo({ left: Math.max(0, scrollLeft), behavior: 'smooth' });
-    }
-  }, []);
-
-  useEffect(() => {
-    // Scroll to show the active tab on mount
-    const timer = setTimeout(() => scrollActiveTabIntoView(tabsListRef.current), 100);
-    return () => clearTimeout(timer);
-  }, [scrollActiveTabIntoView]);
   const isAdmin = profile?.role === "admin";
   const isModerator = (profile?.role as string) === "moderator";
+
+  // Controlled tab state for admin
+  const [activeTab, setActiveTab] = useState<AdminTab>("users");
+  // Controlled tab state for moderator
+  const [modTab, setModTab] = useState<ModeratorTab>("events");
+
+  /** Scroll the tab bar so the active tab is centered */
+  const centerActiveTab = useCallback((container: HTMLDivElement | null) => {
+    if (!container) return;
+    const active = container.querySelector('[data-state="active"]') as HTMLElement;
+    if (!active) return;
+    const scrollLeft =
+      active.offsetLeft - container.clientWidth / 2 + active.clientWidth / 2;
+    container.scrollTo({ left: Math.max(0, scrollLeft), behavior: "smooth" });
+  }, []);
+
+  // Center active tab whenever it changes
+  useEffect(() => {
+    const timer = setTimeout(() => centerActiveTab(tabsListRef.current), 60);
+    return () => clearTimeout(timer);
+  }, [activeTab, modTab, centerActiveTab]);
+
+  // Admin swipe handler
+  const adminSwipeHandlers = useSwipeable({
+    onSwipedLeft: (e) => {
+      if (isInsideScrollable(e.event.target)) return;
+      const idx = ADMIN_TABS.indexOf(activeTab);
+      if (idx < ADMIN_TABS.length - 1) setActiveTab(ADMIN_TABS[idx + 1]);
+    },
+    onSwipedRight: (e) => {
+      if (isInsideScrollable(e.event.target)) return;
+      const idx = ADMIN_TABS.indexOf(activeTab);
+      if (idx > 0) setActiveTab(ADMIN_TABS[idx - 1]);
+    },
+    trackTouch: true,
+    trackMouse: false,
+    delta: 50,
+    preventScrollOnSwipe: false,
+  });
+
+  // Moderator swipe handler
+  const modSwipeHandlers = useSwipeable({
+    onSwipedLeft: (e) => {
+      if (isInsideScrollable(e.event.target)) return;
+      const idx = MODERATOR_TABS.indexOf(modTab);
+      if (idx < MODERATOR_TABS.length - 1) setModTab(MODERATOR_TABS[idx + 1]);
+    },
+    onSwipedRight: (e) => {
+      if (isInsideScrollable(e.event.target)) return;
+      const idx = MODERATOR_TABS.indexOf(modTab);
+      if (idx > 0) setModTab(MODERATOR_TABS[idx - 1]);
+    },
+    trackTouch: true,
+    trackMouse: false,
+    delta: 50,
+    preventScrollOnSwipe: false,
+  });
 
   if (!isAdmin && !isModerator) {
     return <Navigate to="/" replace />;
@@ -45,8 +110,13 @@ export default function AdminDashboard() {
     </span>
   ) : null;
 
-  // Moderators see: Events, Guest Requests, Scanner
-  // Admins see: Users, Families, Events, Scanner (guest requests inside Users tab)
+  const tabTriggerBase =
+    "flex-shrink-0 gap-1.5 px-3 py-1.5 text-xs sm:text-sm rounded-md font-medium transition-colors text-muted-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm";
+
+  const scannerTrigger =
+    "flex-shrink-0 gap-1.5 px-3 py-1.5 text-xs sm:text-sm rounded-md font-semibold transition-colors bg-primary/10 text-primary border border-primary/30 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm data-[state=active]:border-transparent";
+
+  // Moderators: Events, Guest Requests, Scanner
   if (isModerator) {
     return (
       <div className="min-h-screen bg-background pb-24">
@@ -60,31 +130,33 @@ export default function AdminDashboard() {
         </header>
 
         <main className="mx-auto max-w-2xl px-4 py-4">
-          <Tabs defaultValue="events" className="w-full">
-            <TabsList className="grid w-full grid-cols-3 bg-muted">
+          <Tabs value={modTab} onValueChange={(v) => setModTab(v as ModeratorTab)} className="w-full">
+            <TabsList ref={tabsListRef} className="grid w-full grid-cols-3 bg-muted">
               <TabsTrigger value="events" className="gap-1.5 text-xs sm:text-sm">
                 <CalendarPlus className="h-4 w-4" />
-                <span className="hidden sm:inline">Events</span>
+                Events
               </TabsTrigger>
               <TabsTrigger value="guests" className="gap-1.5 text-xs sm:text-sm">
                 <Users className="h-4 w-4" />
-                <span className="hidden sm:inline">Guests</span>
+                Guests
               </TabsTrigger>
               <TabsTrigger value="scanner" className="gap-1.5 text-xs sm:text-sm">
                 <ScanLine className="h-4 w-4" />
-                <span className="hidden sm:inline">Scanner</span>
+                Scanner
               </TabsTrigger>
             </TabsList>
 
-            <TabsContent value="events">
-              <EventControlRoom />
-            </TabsContent>
-            <TabsContent value="guests">
-              <AllGuestApprovals />
-            </TabsContent>
-            <TabsContent value="scanner">
-              <AdminDoorScanner />
-            </TabsContent>
+            <div {...modSwipeHandlers} data-swipe-root className="touch-pan-y">
+              <TabsContent value="events">
+                <EventControlRoom />
+              </TabsContent>
+              <TabsContent value="guests">
+                <AllGuestApprovals />
+              </TabsContent>
+              <TabsContent value="scanner">
+                <AdminDoorScanner />
+              </TabsContent>
+            </div>
           </Tabs>
         </main>
       </div>
@@ -103,60 +175,65 @@ export default function AdminDashboard() {
       </header>
 
       <main className="mx-auto max-w-2xl px-4 py-4">
-        <Tabs defaultValue="users" className="w-full" onValueChange={() => setTimeout(() => scrollActiveTabIntoView(tabsListRef.current), 50)}>
-          <TabsList ref={tabsListRef} className="flex w-full justify-start overflow-x-auto bg-muted scrollbar-hide pb-0.5">
-            <TabsTrigger value="users" className="flex-shrink-0 gap-1.5 px-3 text-xs sm:text-sm">
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as AdminTab)} className="w-full">
+          <TabsList
+            ref={tabsListRef}
+            className="flex w-full justify-start overflow-x-auto bg-muted scrollbar-hide pb-0.5"
+          >
+            <TabsTrigger value="users" className={tabTriggerBase}>
               <Users className="h-4 w-4" />
               Users
               {pendingBadge}
             </TabsTrigger>
-            <TabsTrigger value="families" className="flex-shrink-0 gap-1.5 px-3 text-xs sm:text-sm">
+            <TabsTrigger value="families" className={tabTriggerBase}>
               <Home className="h-4 w-4" />
               Families
             </TabsTrigger>
-            <TabsTrigger value="events" className="flex-shrink-0 gap-1.5 px-3 text-xs sm:text-sm">
+            <TabsTrigger value="events" className={tabTriggerBase}>
               <CalendarPlus className="h-4 w-4" />
               Events
             </TabsTrigger>
-            <TabsTrigger value="scanner" className="flex-shrink-0 gap-1.5 px-3 text-xs sm:text-sm bg-primary/10 text-primary font-semibold border border-primary/30 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+            <TabsTrigger value="scanner" className={scannerTrigger}>
               <ScanLine className="h-4 w-4" />
               Scanner
             </TabsTrigger>
-            <TabsTrigger value="analytics" className="flex-shrink-0 gap-1.5 px-3 text-xs sm:text-sm">
+            <TabsTrigger value="analytics" className={tabTriggerBase}>
               <BarChart3 className="h-4 w-4" />
               Analytics
             </TabsTrigger>
-            <TabsTrigger value="settings" className="flex-shrink-0 gap-1.5 px-3 text-xs sm:text-sm">
+            <TabsTrigger value="settings" className={tabTriggerBase}>
               <Settings className="h-4 w-4" />
               Settings
             </TabsTrigger>
-            <TabsTrigger value="activity" className="flex-shrink-0 gap-1.5 px-3 text-xs sm:text-sm">
+            <TabsTrigger value="activity" className={tabTriggerBase}>
               <ScrollText className="h-4 w-4" />
               Log
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="users">
-            <UserManagement />
-          </TabsContent>
-          <TabsContent value="families">
-            <FamilyManagement />
-          </TabsContent>
-          <TabsContent value="events">
-            <EventControlRoom />
-          </TabsContent>
-          <TabsContent value="analytics">
-            <AdminAnalytics />
-          </TabsContent>
-          <TabsContent value="settings">
-            <EventTypeManagement />
-          </TabsContent>
-          <TabsContent value="scanner">
-            <AdminDoorScanner />
-          </TabsContent>
-          <TabsContent value="activity">
-            <AdminActivityLog />
-          </TabsContent>
+          <div {...adminSwipeHandlers} data-swipe-root className="touch-pan-y">
+            <TabsContent value="users">
+              <UserManagement />
+            </TabsContent>
+            <TabsContent value="families">
+              <FamilyManagement />
+            </TabsContent>
+            <TabsContent value="events">
+              <EventControlRoom />
+            </TabsContent>
+            <TabsContent value="scanner">
+              <AdminDoorScanner />
+            </TabsContent>
+            <TabsContent value="analytics">
+              <AdminAnalytics />
+            </TabsContent>
+            <TabsContent value="settings">
+              <EventTypeManagement />
+            </TabsContent>
+            <TabsContent value="activity">
+              <AdminActivityLog />
+            </TabsContent>
+          </div>
         </Tabs>
       </main>
     </div>
