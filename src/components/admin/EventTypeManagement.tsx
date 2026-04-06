@@ -16,6 +16,16 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Table,
   TableBody,
   TableCell,
@@ -24,7 +34,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Pencil } from "lucide-react";
+import { Plus, Pencil, Trash2 } from "lucide-react";
 import { getEventTypeIcon } from "@/hooks/useEventTypes";
 
 interface FormState {
@@ -50,6 +60,8 @@ export default function EventTypeManagement() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<FormState>(defaultForm);
   const [saving, setSaving] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<EventType | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   function openAdd() {
     setEditingId(null);
@@ -106,6 +118,41 @@ export default function EventTypeManagement() {
     }
   }
 
+  async function handleDelete() {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      // Check if any events use this type
+      const { count, error: countErr } = await supabase
+        .from("events")
+        .select("id", { count: "exact", head: true })
+        .eq("event_type_id", deleteTarget.id);
+      if (countErr) throw countErr;
+
+      if (count && count > 0) {
+        toast.error(
+          `Cannot delete "${deleteTarget.name}" — it is used by ${count} event${count > 1 ? "s" : ""}. Reassign those events first.`
+        );
+        setDeleteTarget(null);
+        return;
+      }
+
+      const { error } = await supabase
+        .from("event_types")
+        .delete()
+        .eq("id", deleteTarget.id);
+      if (error) throw error;
+
+      toast.success(`"${deleteTarget.name}" deleted`);
+      queryClient.invalidateQueries({ queryKey: ["event-types"] });
+      setDeleteTarget(null);
+    } catch (err: any) {
+      toast.error(err.message || "Failed to delete");
+    } finally {
+      setDeleting(false);
+    }
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -127,7 +174,7 @@ export default function EventTypeManagement() {
               <TableHead>Name</TableHead>
               <TableHead>Location</TableHead>
               <TableHead>Potluck</TableHead>
-              <TableHead className="w-12" />
+              <TableHead className="w-20" />
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -150,9 +197,19 @@ export default function EventTypeManagement() {
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    <Button size="icon" variant="ghost" onClick={() => openEdit(et)}>
-                      <Pencil className="h-4 w-4" />
-                    </Button>
+                    <div className="flex gap-1">
+                      <Button size="icon" variant="ghost" onClick={() => openEdit(et)}>
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="text-destructive hover:text-destructive"
+                        onClick={() => setDeleteTarget(et)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               );
@@ -161,6 +218,7 @@ export default function EventTypeManagement() {
         </Table>
       )}
 
+      {/* Add / Edit dialog */}
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
@@ -233,6 +291,28 @@ export default function EventTypeManagement() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Delete confirmation */}
+      <AlertDialog open={!!deleteTarget} onOpenChange={(o) => !o && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete "{deleteTarget?.name}"?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently remove this event type. If any events are using it, the deletion will be blocked.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              disabled={deleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleting ? "Checking…" : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
