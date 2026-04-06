@@ -10,8 +10,9 @@ import { Badge } from "@/components/ui/badge";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { toast } from "sonner";
-import { Plus, Users, UserPlus, X, Loader2, Check, ChevronsUpDown, Search } from "lucide-react";
+import { Plus, Users, UserPlus, X, Loader2, Check, ChevronsUpDown, Search, Eye } from "lucide-react";
 import { cn } from "@/lib/utils";
+import FamilyDetailsModal from "./FamilyDetailsModal";
 
 interface Family {
   id: string;
@@ -68,6 +69,7 @@ export default function FamilyManagement() {
   const [familySearch, setFamilySearch] = useState("");
   const [memberComboOpen, setMemberComboOpen] = useState(false);
   const [tableSearch, setTableSearch] = useState("");
+  const [detailFamily, setDetailFamily] = useState<Family | null>(null);
 
   const unassignedMembers = useMemo(
     () => profiles?.filter((p) => !p.family_id) ?? [],
@@ -390,6 +392,14 @@ export default function FamilyManagement() {
                     <Badge variant="secondary" className="ml-auto text-xs">
                       {members.length} {members.length === 1 ? "member" : "members"}
                     </Badge>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-7 gap-1 text-xs"
+                      onClick={() => setDetailFamily(family)}
+                    >
+                      <Eye className="h-3.5 w-3.5" /> Details
+                    </Button>
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -420,6 +430,14 @@ export default function FamilyManagement() {
             );
           })}
         </div>
+      )}
+      {detailFamily && (
+        <FamilyDetailsModal
+          familyId={detailFamily.id}
+          familyName={detailFamily.name}
+          open={!!detailFamily}
+          onOpenChange={(open) => { if (!open) setDetailFamily(null); }}
+        />
       )}
     </div>
   );
