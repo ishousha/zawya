@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import { Mail, Loader2, ArrowLeft, RefreshCw, Clock } from "lucide-react";
 import zawyaLogo from "@/assets/logo.png";
 
-type Stage = "email" | "otp";
+type Stage = "email" | "otp" | "magic-link";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
