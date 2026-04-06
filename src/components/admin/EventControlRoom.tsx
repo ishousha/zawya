@@ -374,7 +374,7 @@ function RSVPMonitor({ eventId, onClose }: { eventId: string; onClose: () => voi
       const userIds = [...new Set(rsvpData.map((r) => r.user_id))];
       const { data: profilesData } = await supabase
         .from("profiles")
-        .select("id, name, email")
+        .select("id, name, email, role")
         .in("id", userIds);
 
       const profileMap = new Map((profilesData ?? []).map((p) => [p.id, p]));
@@ -396,6 +396,9 @@ function RSVPMonitor({ eventId, onClose }: { eventId: string; onClose: () => voi
         <div className="flex items-center justify-between p-3">
           <div className="min-w-0 flex-1 flex items-center gap-2">
             <p className="truncate text-sm font-medium text-card-foreground">{name}</p>
+            {r.profiles?.role === "guest" && (
+              <Badge variant="secondary" className="text-[10px] px-1.5 py-0">Guest</Badge>
+            )}
             {kids > 0 && (
               hasDeps ? (
                 <Collapsible>
@@ -432,7 +435,7 @@ function RSVPMonitor({ eventId, onClose }: { eventId: string; onClose: () => voi
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between pb-2">
-        <CardTitle className="text-lg">RSVP Monitor</CardTitle>
+        <CardTitle className="text-lg">Guest List & RSVPs</CardTitle>
         <Button size="icon" variant="ghost" className="h-10 w-10" onClick={onClose}>
           <X className="h-5 w-5" />
         </Button>

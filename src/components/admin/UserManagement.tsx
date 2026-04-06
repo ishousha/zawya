@@ -39,6 +39,7 @@ export default function UserManagement() {
   const [newRole, setNewRole] = useState<"approved" | "guest">("approved");
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState<string>("all");
+  const [eventFilter, setEventFilter] = useState<string>("all");
 
   const { data: profiles, isLoading: loadingProfiles } = useQuery({
     queryKey: ["admin-profiles"],
@@ -88,6 +89,43 @@ export default function UserManagement() {
     families?.forEach((f) => { map[f.id] = f.name; });
     return map;
   }, [families]);
+
+  // Fetch all RSVPs with event titles for the RSVP history column
+  const { data: allRsvps } = useQuery({
+    queryKey: ["admin-all-rsvps"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("rsvps")
+        .select("user_id, event_id, events:event_id(id, title)");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  // Map user_id -> list of { event_id, title }
+  const userRsvpMap = useMemo(() => {
+    const map: Record<string, { event_id: string; title: string }[]> = {};
+    allRsvps?.forEach((r: any) => {
+      const uid = r.user_id;
+      if (!map[uid]) map[uid] = [];
+      const title = r.events?.title;
+      if (title && !map[uid].some((e) => e.event_id === r.event_id)) {
+        map[uid].push({ event_id: r.event_id, title });
+      }
+    });
+    return map;
+  }, [allRsvps]);
+
+  // Unique events for the event filter dropdown
+  const eventOptions = useMemo(() => {
+    const seen = new Map<string, string>();
+    allRsvps?.forEach((r: any) => {
+      if (r.events?.title && !seen.has(r.event_id)) {
+        seen.set(r.event_id, r.events.title);
+      }
+    });
+    return Array.from(seen.entries()).map(([id, title]) => ({ id, title }));
+  }, [allRsvps]);
 
   const { data: guestRequests, isLoading: loadingGuests } = useQuery({
     queryKey: ["admin-guest-requests"],
@@ -198,7 +236,8 @@ export default function UserManagement() {
         (p.whatsapp_number || "").includes(q) ||
         ((p.family_id && familyMap[p.family_id]) || "").toLowerCase().includes(q);
       const matchesRole = roleFilter === "all" || p.role === roleFilter;
-      return matchesSearch && matchesRole;
+      const matchesEvent = eventFilter === "all" || (userRsvpMap[p.id]?.some((e) => e.event_id === eventFilter));
+      return matchesSearch && matchesRole && matchesEvent;
     });
   }, [profiles, search, roleFilter, familyMap]);
 
@@ -317,6 +356,17 @@ export default function UserManagement() {
               <SelectItem value="admin">Admin</SelectItem>
             </SelectContent>
           </Select>
+          <Select value={eventFilter} onValueChange={setEventFilter}>
+            <SelectTrigger className="w-[160px] h-9">
+              <SelectValue placeholder="All events" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All events</SelectItem>
+              {eventOptions.map((e) => (
+                <SelectItem key={e.id} value={e.id}>{e.title}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
         <div className="space-y-2">
           {filteredProfiles.map((p) => (
@@ -340,6 +390,15 @@ export default function UserManagement() {
                     <p className="text-xs text-muted-foreground">
                       Roles: {rolesMap[p.id].join(", ")}
                     </p>
+                  )}
+                  {userRsvpMap[p.id] && userRsvpMap[p.id].length > 0 && (
+                    <div className="mt-1 flex flex-wrap gap-1">
+                      {userRsvpMap[p.id].map((e) => (
+                        <Badge key={e.event_id} variant="outline" className="text-[10px] px-1.5 py-0">
+                          {e.title}
+                        </Badge>
+                      ))}
+                    </div>
                   )}
                 </div>
                 <div className="ml-3 flex items-center gap-2">
