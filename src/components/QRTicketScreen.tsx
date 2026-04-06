@@ -252,9 +252,14 @@ export default function QRTicketScreen({ event, rsvp, profileName, isOffline, on
 function ScannerView({ onResult, onClose }: { onResult: (text: string) => void; onClose: () => void }) {
   const [error, setError] = useState("");
   const hasScanned = useRef(false);
+  const [ScannerComp, setScannerComp] = useState<any>(null);
 
-  // Lazy-load the scanner
-  const { Scanner } = require("@yudiel/react-qr-scanner");
+  // Lazy-load scanner component
+  useState(() => {
+    import("@yudiel/react-qr-scanner").then((mod) => {
+      setScannerComp(() => mod.Scanner);
+    });
+  });
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-black/95">
@@ -266,22 +271,28 @@ function ScannerView({ onResult, onClose }: { onResult: (text: string) => void; 
       </div>
       <div className="flex-1 flex items-center justify-center px-8">
         <div className="w-full max-w-sm overflow-hidden rounded-xl">
-          <Scanner
-            onScan={(result: any) => {
-              if (hasScanned.current) return;
-              const text = result?.[0]?.rawValue;
-              if (text) {
-                hasScanned.current = true;
-                onResult(text);
-              }
-            }}
-            onError={(err: any) => {
-              setError("Camera access denied. Please allow camera permissions.");
-              console.error("Scanner error:", err);
-            }}
-            styles={{ container: { width: "100%" } }}
-            scanDelay={300}
-          />
+          {ScannerComp ? (
+            <ScannerComp
+              onScan={(result: any) => {
+                if (hasScanned.current) return;
+                const text = result?.[0]?.rawValue;
+                if (text) {
+                  hasScanned.current = true;
+                  onResult(text);
+                }
+              }}
+              onError={(err: any) => {
+                setError("Camera access denied. Please allow camera permissions.");
+                console.error("Scanner error:", err);
+              }}
+              styles={{ container: { width: "100%" } }}
+              scanDelay={300}
+            />
+          ) : (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-6 w-6 animate-spin text-white" />
+            </div>
+          )}
         </div>
       </div>
       {error && (
