@@ -90,39 +90,24 @@ export default function DesignTab({ form, setForm }: DesignTabProps) {
         />
       </div>
 
-      {/* Type + Hybrid toggle row */}
       <div className="space-y-3">
-        <div className={`grid ${showHybridToggle ? 'grid-cols-2' : 'grid-cols-1'} gap-3 items-end`}>
-          <div>
-            <Label>Event Type</Label>
-            <Select
-              value={form.event_type_id}
-              onValueChange={(v) => update("event_type_id", v)}
-            >
-              <SelectTrigger className="mt-1.5">
-                <SelectValue placeholder="Select type..." />
-              </SelectTrigger>
-              <SelectContent>
-                {eventTypes?.map((t) => (
-                  <SelectItem key={t.id} value={t.id}>
-                    {t.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          {showHybridToggle && (
-            <div className="flex items-center gap-3 h-10 rounded-md border border-border px-3 bg-muted/30">
-              <Switch
-                id="hybrid"
-                checked={form.is_hybrid}
-                onCheckedChange={(v) => update("is_hybrid", v)}
-              />
-              <Label htmlFor="hybrid" className="text-sm cursor-pointer mb-0">
-                Hybrid
-              </Label>
-            </div>
-          )}
+        <div>
+          <Label>Event Type</Label>
+          <Select
+            value={form.event_type_id}
+            onValueChange={(v) => update("event_type_id", v)}
+          >
+            <SelectTrigger className="mt-1.5">
+              <SelectValue placeholder="Select type..." />
+            </SelectTrigger>
+            <SelectContent>
+              {eventTypes?.map((t) => (
+                <SelectItem key={t.id} value={t.id}>
+                  {t.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         {/* Type-specific notes */}
@@ -132,10 +117,16 @@ export default function DesignTab({ form, setForm }: DesignTabProps) {
             RSVP will require members to select dependents for this event type.
           </p>
         )}
-        {isVirtualOnly && (
+        {showVirtual && !showPhysical && (
           <p className="flex items-start gap-1.5 text-xs text-muted-foreground bg-muted/50 rounded-md p-2.5">
             <Info className="h-3.5 w-3.5 mt-0.5 shrink-0 text-primary" />
             This event type is online-only. Potluck sign-ups are disabled.
+          </p>
+        )}
+        {showVirtual && showPhysical && (
+          <p className="flex items-start gap-1.5 text-xs text-muted-foreground bg-muted/50 rounded-md p-2.5">
+            <Info className="h-3.5 w-3.5 mt-0.5 shrink-0 text-primary" />
+            This is a hybrid event — both a physical venue and virtual link are shown.
           </p>
         )}
       </div>
