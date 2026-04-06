@@ -7,7 +7,8 @@ import AdminDoorScanner from "@/components/admin/AdminDoorScanner";
 import FamilyManagement from "@/components/admin/FamilyManagement";
 import AllGuestApprovals from "@/components/admin/AllGuestApprovals";
 import AdminActivityLog from "@/components/admin/AdminActivityLog";
-import { Users, CalendarPlus, ScanLine, Home, ScrollText, Settings } from "lucide-react";
+import AdminAnalytics from "@/components/admin/AdminAnalytics";
+import { Users, CalendarPlus, ScanLine, Home, ScrollText, Settings, BarChart3 } from "lucide-react";
 import EventTypeManagement from "@/components/admin/EventTypeManagement";
 import { usePendingUsersCount } from "@/hooks/usePendingUsersCount";
 
@@ -87,7 +88,7 @@ export default function AdminDashboard() {
 
       <main className="mx-auto max-w-2xl px-4 py-4">
         <Tabs defaultValue="users" className="w-full">
-          <TabsList className="grid w-full grid-cols-6 bg-muted">
+          <TabsList className="grid w-full grid-cols-7 bg-muted">
             <TabsTrigger value="users" className="gap-1.5 text-xs sm:text-sm">
               <Users className="h-4 w-4" />
               <span className="hidden sm:inline">Users</span>
@@ -100,6 +101,10 @@ export default function AdminDashboard() {
             <TabsTrigger value="events" className="gap-1.5 text-xs sm:text-sm">
               <CalendarPlus className="h-4 w-4" />
               <span className="hidden sm:inline">Events</span>
+            </TabsTrigger>
+            <TabsTrigger value="analytics" className="gap-1.5 text-xs sm:text-sm">
+              <BarChart3 className="h-4 w-4" />
+              <span className="hidden sm:inline">Analytics</span>
             </TabsTrigger>
             <TabsTrigger value="settings" className="gap-1.5 text-xs sm:text-sm">
               <Settings className="h-4 w-4" />
@@ -123,6 +128,9 @@ export default function AdminDashboard() {
           </TabsContent>
           <TabsContent value="events">
             <EventControlRoom />
+          </TabsContent>
+          <TabsContent value="analytics">
+            <AdminAnalytics />
           </TabsContent>
           <TabsContent value="settings">
             <EventTypeManagement />
