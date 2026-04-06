@@ -232,8 +232,16 @@ export default function EventCard({ event, onShowTicket }: EventCardProps) {
                     size="sm"
                     onClick={() => setRsvpOpen(true)}
                     className="w-full"
+                    variant={isFull ? "outline" : "default"}
                   >
-                    RSVP
+                    {isFull ? (
+                      <>
+                        <ClockIcon className="mr-1.5 h-3.5 w-3.5" />
+                        Join Waitlist
+                      </>
+                    ) : (
+                      "RSVP"
+                    )}
                   </Button>
                 )}
               </div>
