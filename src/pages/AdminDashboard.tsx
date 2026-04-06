@@ -21,18 +21,16 @@ const MODERATOR_TABS = ["events", "guests", "scanner"] as const;
 type ModeratorTab = typeof MODERATOR_TABS[number];
 
 /** Check if the swipe originated from a horizontally-scrollable child */
-function isInsideScrollable(event: React.TouchEvent | TouchEvent | { event: Event }): boolean {
-  const rawEvent = "event" in event ? event.event : event;
-  let target = (rawEvent as TouchEvent).target as HTMLElement | null;
-  while (target) {
-    const style = window.getComputedStyle(target);
+function isInsideScrollable(target: EventTarget | null): boolean {
+  let el = target as HTMLElement | null;
+  while (el) {
+    const style = window.getComputedStyle(el);
     const isScrollable =
       (style.overflowX === "auto" || style.overflowX === "scroll") &&
-      target.scrollWidth > target.clientWidth;
+      el.scrollWidth > el.clientWidth;
     if (isScrollable) return true;
-    // Stop at the swipe container boundary
-    if (target.dataset.swipeRoot) break;
-    target = target.parentElement;
+    if (el.dataset.swipeRoot !== undefined) break;
+    el = el.parentElement;
   }
   return false;
 }
