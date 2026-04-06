@@ -431,6 +431,13 @@ export default function FamilyManagement() {
           })}
         </div>
       )}
+      {detailFamily && (
+        <FamilyDetailsModal
+          familyId={detailFamily.id}
+          familyName={detailFamily.name}
+          open={!!detailFamily}
+          onOpenChange={(open) => { if (!open) setDetailFamily(null); }}
+        />
+      )}
     </div>
   );
-}
