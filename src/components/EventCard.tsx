@@ -142,6 +142,12 @@ export default function EventCard({ event, onShowTicket }: EventCardProps) {
               💰 Pay Offline
             </span>
           )}
+          {checkedInCount > 0 && isAttending && (
+            <span className="inline-flex items-center gap-1 text-xs text-primary font-medium">
+              <CheckCircle2 className="h-3 w-3" />
+              {checkedInCount} arrived
+            </span>
+          )}
           {event.capacity && (
             <span className={`ml-auto text-xs ${isFull ? "text-destructive font-medium" : "text-muted-foreground"}`}>
               {confirmedCount}/{event.capacity} spots
