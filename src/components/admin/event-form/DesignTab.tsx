@@ -57,7 +57,7 @@ export default function DesignTab({ form, setForm }: DesignTabProps) {
 
   // Potluck toggle visibility
   const potluckLocked =
-    form.type === "gathering" || form.type === "meeting" ||
+    form.type === "gathering" || form.type === "meeting" || form.type === "nasiha" ||
     (form.type === "class" && !form.is_hybrid && !form.location);
 
   // Fee visibility
