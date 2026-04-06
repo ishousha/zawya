@@ -289,7 +289,7 @@ export default function RSVPModal({ event, open, onOpenChange }: RSVPModalProps)
           </p>
 
           {/* Sign-up categories with checkbox + description */}
-          {hasItems && (
+          {showSignUpItems && (
             <div className="space-y-3">
               <Label className="block text-sm font-medium">What are you bringing?</Label>
               <div className="space-y-2">
