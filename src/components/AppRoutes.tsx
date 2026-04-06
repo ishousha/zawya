@@ -8,6 +8,7 @@ import HomeFeed from "@/pages/HomeFeed";
 import ProfilePage from "@/pages/Profile";
 import AdminDashboard from "@/pages/AdminDashboard";
 import Unsubscribe from "@/pages/Unsubscribe";
+import NotificationsPage from "@/pages/Notifications";
 import CommunityGuidelines from "@/pages/CommunityGuidelines";
 import JoinFamily, { consumePendingInviteToken } from "@/pages/JoinFamily";
 import BottomNav from "@/components/BottomNav";
