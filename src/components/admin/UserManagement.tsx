@@ -466,6 +466,25 @@ export default function UserManagement() {
               ))}
             </SelectContent>
           </Select>
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-9 gap-1.5 text-xs shrink-0"
+            onClick={() => {
+              const rows = filteredProfiles.map((p) => ({
+                Name: p.name || "",
+                Email: p.email || "",
+                Phone: p.phone || "",
+                Role: p.role,
+                Family: (p.family_id && familyMap[p.family_id]) || "",
+                "Joined": format(new Date(p.created_at), "yyyy-MM-dd"),
+              }));
+              downloadCsv(rows, zawyaFilename("Users"));
+              toast.success(`Exported ${rows.length} users`);
+            }}
+          >
+            <Download className="h-3.5 w-3.5" /> Export
+          </Button>
         </div>
         <div className="space-y-2">
           {filteredProfiles.map((p) => (
