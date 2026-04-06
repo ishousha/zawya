@@ -116,6 +116,14 @@ export default function LoginPage() {
     setStage("email");
     setOtp("");
     setResendCooldown(0);
+    setOtpExpiry(0);
+    if (expiryRef.current) clearInterval(expiryRef.current);
+  };
+
+  const formatTime = (s: number) => {
+    const m = Math.floor(s / 60);
+    const sec = s % 60;
+    return `${m}:${sec.toString().padStart(2, "0")}`;
   };
 
   return (
