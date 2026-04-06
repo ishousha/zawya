@@ -370,7 +370,7 @@ export default function EventControlRoom() {
   );
 }
 
-function RSVPMonitor({ eventId, onClose }: { eventId: string; onClose: () => void }) {
+function RSVPMonitor({ eventId, eventTitle, onClose }: { eventId: string; eventTitle: string; onClose: () => void }) {
   const { data: rsvps, isLoading } = useQuery({
     queryKey: ["admin-rsvps", eventId],
     queryFn: async () => {
