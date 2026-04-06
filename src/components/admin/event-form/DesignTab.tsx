@@ -27,10 +27,14 @@ export default function DesignTab({ form, setForm }: DesignTabProps) {
     if (!selectedType) return;
     setForm((prev) => {
       const next = { ...prev };
+      const stIsVirtual = (selectedType as any).is_virtual ?? false;
+
+      // Set is_hybrid based on both flags
+      next.is_hybrid = selectedType.requires_location && stIsVirtual;
+
       if (!selectedType.allows_potluck) {
         next.has_potluck = false;
       }
-      // If name contains "Gathering", force potluck on
       if (selectedType.name.toLowerCase().includes("gathering")) {
         next.has_potluck = true;
         next.ticket_fee = "0";
