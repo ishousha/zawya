@@ -55,6 +55,7 @@ function logActivity(actorId: string, action: string, target: Profile, details?:
 }
 
 export default function UserManagement() {
+  const { user } = useAuth();
   const queryClient = useQueryClient();
   const [addOpen, setAddOpen] = useState(false);
   const [newName, setNewName] = useState("");
