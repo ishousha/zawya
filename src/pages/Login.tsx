@@ -101,6 +101,7 @@ export default function LoginPage() {
     } else {
       toast.success("New code sent!");
       setOtp("");
+      startExpiryTimer();
       setResendCooldown(30);
       const interval = setInterval(() => {
         setResendCooldown((prev) => {
