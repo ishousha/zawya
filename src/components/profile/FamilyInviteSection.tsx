@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 export default function FamilyInviteSection() {
   const { user, profile } = useAuth();
   const queryClient = useQueryClient();
-  const familyId = (profile as any)?.family_id as string | null;
+  const familyId = profile?.family_id ?? null;
   const [creating, setCreating] = useState(false);
   const [editing, setEditing] = useState(false);
   const [editName, setEditName] = useState("");
