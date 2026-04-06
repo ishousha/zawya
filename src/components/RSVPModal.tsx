@@ -362,9 +362,30 @@ export default function RSVPModal({ event, open, onOpenChange }: RSVPModalProps)
             {isEditing ? "Update RSVP" : (event as any).ticket_fee > 0 ? "Acknowledge & Confirm RSVP" : "Confirm RSVP"}
           </Button>
           {isEditing && (
-            <Button variant="outline" onClick={handleCancel} disabled={isPending} className="text-destructive">
-              Cancel RSVP
-            </Button>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="outline" disabled={isPending} className="text-destructive border-destructive/30 hover:bg-destructive/10">
+                  Cancel RSVP
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Cancel your RSVP?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This will remove your reservation for <span className="font-semibold">{event.title}</span> and release any sign-up items you claimed. This action cannot be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Keep RSVP</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={handleCancel}
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  >
+                    Yes, Cancel RSVP
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           )}
         </div>
       </DialogContent>
