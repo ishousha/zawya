@@ -49,7 +49,7 @@ export default function SelfCheckinModal({
         return;
       }
 
-      if ((event as any).checkin_pin !== enteredPin) {
+      if (event.checkin_pin !== enteredPin) {
         setError("Incorrect PIN. Please check the poster and try again.");
         setPin("");
         setChecking(false);

@@ -125,7 +125,16 @@ function TicketView({ event, onBack }: { event: Event; onBack: () => void }) {
     }
   }
 
-  // No RSVP at all
-  onBack();
-  return null;
+  // No RSVP at all — use effect to avoid side-effect during render
+  useEffect(() => {
+    if (!isLoading && !myRSVP && !isError) {
+      onBack();
+    }
+  }, [isLoading, myRSVP, isError, onBack]);
+
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-background">
+      <Loader2 className="h-6 w-6 animate-spin text-primary" />
+    </div>
+  );
 }

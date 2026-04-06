@@ -326,10 +326,10 @@ export default function FamilyInviteSection() {
           <div className="space-y-2">
             <p className="text-xs font-medium text-muted-foreground">Pending Invites</p>
             {pendingInvites.map((inv) => {
-              const url = `${window.location.origin}/join-family?token=${(inv as any).token}`;
+              const url = `${window.location.origin}/join-family?token=${inv.token}`;
               return (
                 <div
-                  key={(inv as any).id}
+                  key={inv.id}
                   className="rounded-lg border border-border p-3 space-y-2"
                 >
                   <p className="text-xs text-muted-foreground font-mono truncate">{url}</p>
