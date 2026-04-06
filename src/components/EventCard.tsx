@@ -36,6 +36,7 @@ export default function EventCard({ event, onShowTicket }: EventCardProps) {
   const isCancelled = event.status === "cancelled";
 
   const confirmedCount = allRsvps?.filter((r) => !r.is_waitlisted).length ?? 0;
+  const checkedInCount = allRsvps?.filter((r) => r.checked_in).length ?? 0;
   const isFull = !!event.capacity && confirmedCount >= event.capacity;
 
   // Time-gate: refresh every second for countdown
@@ -139,6 +140,12 @@ export default function EventCard({ event, onShowTicket }: EventCardProps) {
           {!isCancelled && isAttending && (event.ticket_fee ?? 0) > 0 && (
             <span className="inline-flex items-center gap-1 rounded-full bg-accent/60 px-2.5 py-0.5 text-xs font-semibold text-accent-foreground">
               💰 Pay Offline
+            </span>
+          )}
+          {checkedInCount > 0 && isAttending && (
+            <span className="inline-flex items-center gap-1 text-xs text-primary font-medium">
+              <CheckCircle2 className="h-3 w-3" />
+              {checkedInCount} arrived
             </span>
           )}
           {event.capacity && (
