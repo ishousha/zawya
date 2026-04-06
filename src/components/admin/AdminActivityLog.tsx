@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, ShieldAlert, UserMinus, UserCog, UserPlus, RefreshCw } from "lucide-react";
+import { Loader2, ShieldAlert, UserMinus, UserCog, UserPlus, RefreshCw, Download } from "lucide-react";
 import { format } from "date-fns";
 import { useState, useMemo } from "react";
 import {
@@ -74,6 +74,32 @@ export default function AdminActivityLog() {
     return logs.filter((l) => l.action === actionFilter);
   }, [logs, actionFilter]);
 
+  const exportCsv = () => {
+    if (!filtered.length) return;
+    const headers = ["Date", "Action", "Admin", "Target User", "Details"];
+    const rows = filtered.map((log) => {
+      const actor = actorMap[log.actor_id];
+      const details = log.details as Record<string, unknown> | null;
+      let detailStr = "";
+      if (details && log.action === "role_change") detailStr = `${details.previous_role} → ${details.new_role}`;
+      else if (details && log.action === "suspend_user") detailStr = `Previously: ${details.previous_role}`;
+      return [
+        format(new Date(log.created_at), "yyyy-MM-dd HH:mm"),
+        ACTION_CONFIG[log.action]?.label ?? log.action,
+        actor?.name || actor?.email || "Admin",
+        log.target_user_name || log.target_user_email || "Unknown",
+        detailStr,
+      ].map((v) => `"${String(v).replace(/"/g, '""')}"`).join(",");
+    });
+    const csv = [headers.join(","), ...rows].join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `activity-log-${format(new Date(), "yyyy-MM-dd")}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -102,6 +128,10 @@ export default function AdminActivityLog() {
           </Select>
           <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => refetch()}>
             <RefreshCw className="h-4 w-4" />
+          </Button>
+          <Button variant="outline" size="sm" className="h-9 gap-1.5" onClick={exportCsv} disabled={!filtered.length}>
+            <Download className="h-4 w-4" />
+            <span className="hidden sm:inline">Export</span>
           </Button>
         </div>
       </div>
