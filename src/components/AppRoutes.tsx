@@ -94,6 +94,7 @@ export default function AppRoutes() {
   // Approved / Admin
   return (
     <>
+      <AppHeader />
       <Routes>
         <Route path="/" element={<HomeFeed />} />
         <Route path="/profile" element={<ProfilePage />} />
