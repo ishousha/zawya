@@ -283,6 +283,15 @@ export default function EventTypeManagement() {
             </div>
 
             <div className="flex items-center justify-between">
+              <Label htmlFor="et-virtual">Virtual / online event</Label>
+              <Switch
+                id="et-virtual"
+                checked={form.is_virtual}
+                onCheckedChange={(v) => setForm((f) => ({ ...f, is_virtual: v }))}
+              />
+            </div>
+
+            <div className="flex items-center justify-between">
               <Label htmlFor="et-potluck">Allows potluck sign-ups</Label>
               <Switch
                 id="et-potluck"

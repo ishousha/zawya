@@ -42,10 +42,11 @@ export default function DesignTab({ form, setForm }: DesignTabProps) {
   const endBeforeStart =
     form.date_time && form.end_date_time && form.end_date_time <= form.date_time;
 
-  const isVirtualOnly = selectedType ? !selectedType.requires_location : false;
+  const isVirtualOnly = selectedType ? (selectedType as any).is_virtual && !selectedType.requires_location : false;
+  const isVirtual = selectedType ? (selectedType as any).is_virtual : false;
   const showPhysical = !isVirtualOnly && (form.is_hybrid || (selectedType?.requires_location ?? true));
-  const showVirtual = !isVirtualOnly && (form.is_hybrid || !(selectedType?.requires_location ?? true));
-  const showHybridToggle = !isVirtualOnly;
+  const showVirtual = isVirtual || (!isVirtualOnly && form.is_hybrid);
+  const showHybridToggle = !isVirtualOnly && !isVirtual;
 
   // Potluck toggle visibility
   const hidePotluckToggle = selectedType ? !selectedType.allows_potluck : false;
