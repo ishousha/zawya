@@ -39,6 +39,7 @@ export default function DesignTab({ form, setForm }: DesignTabProps) {
           }
           break;
         case "meeting":
+        case "nasiha":
           next.has_potluck = false;
           break;
         // trip and retreat: keep potluck toggleable, fee visible
@@ -56,7 +57,7 @@ export default function DesignTab({ form, setForm }: DesignTabProps) {
 
   // Potluck toggle visibility
   const potluckLocked =
-    form.type === "gathering" || form.type === "meeting" ||
+    form.type === "gathering" || form.type === "meeting" || form.type === "nasiha" ||
     (form.type === "class" && !form.is_hybrid && !form.location);
 
   // Fee visibility

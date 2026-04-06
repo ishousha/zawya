@@ -181,6 +181,7 @@ export type Database = {
           id: string
           is_hybrid: boolean
           location: string | null
+          online_link: string | null
           payment_instructions: string | null
           status: Database["public"]["Enums"]["event_status"]
           ticket_fee: number | null
@@ -204,6 +205,7 @@ export type Database = {
           id?: string
           is_hybrid?: boolean
           location?: string | null
+          online_link?: string | null
           payment_instructions?: string | null
           status?: Database["public"]["Enums"]["event_status"]
           ticket_fee?: number | null
@@ -227,6 +229,7 @@ export type Database = {
           id?: string
           is_hybrid?: boolean
           location?: string | null
+          online_link?: string | null
           payment_instructions?: string | null
           status?: Database["public"]["Enums"]["event_status"]
           ticket_fee?: number | null
@@ -674,7 +677,13 @@ export type Database = {
     Enums: {
       app_role: "admin" | "moderator" | "approved" | "guest" | "pending"
       event_status: "active" | "full" | "cancelled"
-      event_type: "gathering" | "class" | "trip" | "retreat" | "meeting"
+      event_type:
+        | "gathering"
+        | "class"
+        | "trip"
+        | "retreat"
+        | "meeting"
+        | "nasiha"
       guest_request_status: "pending" | "approved" | "rejected"
       invite_status: "pending" | "accepted" | "expired"
       potluck_category: "main" | "side" | "dessert" | "drinks"
@@ -807,7 +816,14 @@ export const Constants = {
     Enums: {
       app_role: ["admin", "moderator", "approved", "guest", "pending"],
       event_status: ["active", "full", "cancelled"],
-      event_type: ["gathering", "class", "trip", "retreat", "meeting"],
+      event_type: [
+        "gathering",
+        "class",
+        "trip",
+        "retreat",
+        "meeting",
+        "nasiha",
+      ],
       guest_request_status: ["pending", "approved", "rejected"],
       invite_status: ["pending", "accepted", "expired"],
       potluck_category: ["main", "side", "dessert", "drinks"],
