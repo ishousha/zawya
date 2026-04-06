@@ -275,8 +275,32 @@ export default function UserManagement() {
             </DialogContent>
           </Dialog>
         </div>
+        {/* Search & Filter */}
+        <div className="mb-3 flex gap-2">
+          <div className="relative flex-1">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search by name, email, phone, family…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-9 h-9"
+            />
+          </div>
+          <Select value={roleFilter} onValueChange={setRoleFilter}>
+            <SelectTrigger className="w-[130px] h-9">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All roles</SelectItem>
+              <SelectItem value="pending">Pending</SelectItem>
+              <SelectItem value="approved">Approved</SelectItem>
+              <SelectItem value="moderator">Moderator</SelectItem>
+              <SelectItem value="admin">Admin</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
         <div className="space-y-2">
-          {profiles?.map((p) => (
+          {filteredProfiles.map((p) => (
             <Card key={p.id} className={p.role === "pending" ? "border-accent" : ""}>
               <CardContent className="flex items-center justify-between p-4">
                 <div className="min-w-0 flex-1">
