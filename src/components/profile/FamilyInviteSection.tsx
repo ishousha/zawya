@@ -182,7 +182,7 @@ export default function FamilyInviteSection() {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["family-invites", familyId] });
-      const url = `${window.location.origin}/join-family?token=${(data as any).token}`;
+      const url = `${window.location.origin}/join-family?token=${data.token}`;
       navigator.clipboard.writeText(url).then(() => {
         toast.success("Invite link copied to clipboard!");
       }).catch(() => {
