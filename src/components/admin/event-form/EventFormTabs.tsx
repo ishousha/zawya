@@ -11,7 +11,7 @@ import DesignTab from "./DesignTab";
 import ItemsTab from "./ItemsTab";
 import type { SignUpItem } from "./ItemsTab";
 import SettingsTab from "./SettingsTab";
-import { EventFormState, defaultEventForm } from "./types";
+import { EventFormState, defaultEventForm, generateCheckinPin } from "./types";
 import type { EventType } from "./types";
 import type { Database } from "@/integrations/supabase/types";
 
