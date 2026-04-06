@@ -31,10 +31,15 @@ export default function EventCard({ event, onShowTicket }: EventCardProps) {
   const TypeIcon = (typeConfig[event.type] ?? typeConfig.gathering).icon;
   const typeLabel = (typeConfig[event.type] ?? typeConfig.gathering).label;
   const { data: myRSVP } = useMyRSVP(event.id);
+  const { data: allRsvps } = useEventRSVPs(event.id);
   const [rsvpOpen, setRsvpOpen] = useState(false);
 
   const isAttending = !!myRSVP;
+  const isWaitlisted = myRSVP?.is_waitlisted ?? false;
   const isCancelled = event.status === "cancelled";
+
+  const confirmedCount = allRsvps?.filter((r) => !r.is_waitlisted).length ?? 0;
+  const isFull = !!event.capacity && confirmedCount >= event.capacity;
 
   return (
     <>
