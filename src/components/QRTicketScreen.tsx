@@ -254,12 +254,11 @@ function ScannerView({ onResult, onClose }: { onResult: (text: string) => void; 
   const hasScanned = useRef(false);
   const [ScannerComp, setScannerComp] = useState<any>(null);
 
-  // Lazy-load scanner component
-  useState(() => {
+  useEffect(() => {
     import("@yudiel/react-qr-scanner").then((mod) => {
       setScannerComp(() => mod.Scanner);
     });
-  });
+  }, []);
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-black/95">
