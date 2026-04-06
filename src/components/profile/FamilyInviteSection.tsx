@@ -173,7 +173,48 @@ export default function FamilyInviteSection() {
       <CardHeader className="pb-2">
         <CardTitle className="text-base flex items-center gap-2">
           <Users className="h-4 w-4 text-primary" />
-          {familyName || "My Family"}
+          {editing ? (
+            <div className="flex items-center gap-1.5 flex-1 min-w-0">
+              <Input
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+                className="h-7 text-sm"
+                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleSaveName();
+                  if (e.key === "Escape") setEditing(false);
+                }}
+              />
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-7 w-7 shrink-0"
+                onClick={handleSaveName}
+                disabled={savingName || !editName.trim()}
+              >
+                {savingName ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
+              </Button>
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-7 w-7 shrink-0"
+                onClick={() => setEditing(false)}
+              >
+                <X className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+          ) : (
+            <>
+              <span className="truncate">{familyName || "My Family"}</span>
+              <button
+                onClick={() => { setEditName(familyName || ""); setEditing(true); }}
+                className="ml-1 text-muted-foreground hover:text-foreground transition-colors"
+                aria-label="Edit family name"
+              >
+                <Pencil className="h-3.5 w-3.5" />
+              </button>
+            </>
+          )}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
