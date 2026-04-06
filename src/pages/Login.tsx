@@ -147,14 +147,26 @@ export default function LoginPage() {
               Continue
             </Button>
 
-            <button
-              type="button"
-              onClick={handleBack}
-              className="mt-4 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
-            >
-              <ArrowLeft className="h-3.5 w-3.5" />
-              Change email
-            </button>
+            <div className="mt-4 flex items-center justify-center gap-4">
+              <button
+                type="button"
+                onClick={handleBack}
+                className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <ArrowLeft className="h-3.5 w-3.5" />
+                Change email
+              </button>
+              <span className="text-border">|</span>
+              <button
+                type="button"
+                onClick={handleResendOtp}
+                disabled={resending || resendCooldown > 0}
+                className="inline-flex items-center gap-1 text-sm text-primary hover:text-primary/80 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <RefreshCw className={`h-3.5 w-3.5 ${resending ? "animate-spin" : ""}`} />
+                {resendCooldown > 0 ? `Resend (${resendCooldown}s)` : "Resend code"}
+              </button>
+            </div>
           </div>
         ) : (
           <form onSubmit={handleSendOtp} className="rounded-lg border border-border bg-card p-6">
