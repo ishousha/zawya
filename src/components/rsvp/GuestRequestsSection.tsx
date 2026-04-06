@@ -1,11 +1,15 @@
 import { useState } from "react";
+import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { useMyGuestRequests, useCreateGuestRequest } from "@/hooks/useGuestRequests";
 import { toast } from "sonner";
-import { Loader2, UserPlus, Phone, User, Mail, Info } from "lucide-react";
+import { Loader2, UserPlus, Phone, User, Mail, Info, Share2 } from "lucide-react";
+import type { Database } from "@/integrations/supabase/types";
+
+type Event = Database["public"]["Tables"]["events"]["Row"];
 
 const statusVariant: Record<string, "default" | "secondary" | "destructive"> = {
   pending: "secondary",
@@ -13,7 +17,12 @@ const statusVariant: Record<string, "default" | "secondary" | "destructive"> = {
   rejected: "destructive",
 };
 
-export default function GuestRequestsSection({ eventId }: { eventId: string }) {
+interface GuestRequestsSectionProps {
+  eventId: string;
+  event?: Event;
+}
+
+export default function GuestRequestsSection({ eventId, event }: GuestRequestsSectionProps) {
   const { data: guests, isLoading } = useMyGuestRequests(eventId);
   const createGuest = useCreateGuestRequest(eventId);
   const [showForm, setShowForm] = useState(false);
@@ -58,25 +67,80 @@ export default function GuestRequestsSection({ eventId }: { eventId: string }) {
         </div>
       ) : guests && guests.length > 0 ? (
         <div className="space-y-2">
-          {guests.map((g) => (
-            <div
-              key={g.id}
-              className="flex items-center justify-between rounded-lg border border-border bg-card p-3"
-            >
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-medium text-foreground">{g.guest_name}</p>
-                {(g as any).guest_email && (
-                  <p className="text-xs text-muted-foreground">{(g as any).guest_email}</p>
-                )}
-                {g.guest_phone && (
-                  <p className="text-xs text-muted-foreground">{g.guest_phone}</p>
+          {guests.map((g) => {
+            const isApproved = g.status === "approved";
+
+            const buildShareMessage = () => {
+              if (!event) return "";
+              const date = format(new Date(event.date_time), "EEEE, MMMM d 'at' h:mm a");
+              const onlineLink = (event as any).online_link;
+              const locationPart = event.type === "nasiha" && onlineLink
+                ? `Link: ${onlineLink}`
+                : event.location
+                  ? `Location: ${event.location}${event.address ? ` — ${event.address}` : ""}`
+                  : event.virtual_link
+                    ? `Link: ${event.virtual_link}`
+                    : "";
+              return `Assalamu Alaikum ${g.guest_name}! Great news — your guest request for *${event.title}* on ${date} has been approved! 🎉\n\n${locationPart}\n\nLooking forward to seeing you there inshaAllah!`;
+            };
+
+            const handleShare = async () => {
+              const message = buildShareMessage();
+              if (!message) {
+                toast.error("Event details unavailable.");
+                return;
+              }
+              if (navigator.share) {
+                try {
+                  await navigator.share({ text: message });
+                } catch (err: any) {
+                  if (err?.name !== "AbortError") {
+                    toast.error("Sharing failed.");
+                  }
+                }
+              } else {
+                const phone = g.guest_phone?.replace(/\D/g, "") || "";
+                const waUrl = phone
+                  ? `https://wa.me/${phone}?text=${encodeURIComponent(message)}`
+                  : `https://wa.me/?text=${encodeURIComponent(message)}`;
+                window.open(waUrl, "_blank");
+              }
+            };
+
+            return (
+              <div
+                key={g.id}
+                className="rounded-lg border border-border bg-card p-3 space-y-2"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium text-foreground">{g.guest_name}</p>
+                    {(g as any).guest_email && (
+                      <p className="text-xs text-muted-foreground">{(g as any).guest_email}</p>
+                    )}
+                    {g.guest_phone && (
+                      <p className="text-xs text-muted-foreground">{g.guest_phone}</p>
+                    )}
+                  </div>
+                  <Badge variant={statusVariant[g.status] || "secondary"} className="text-xs capitalize">
+                    {g.status}
+                  </Badge>
+                </div>
+                {isApproved && event && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="w-full gap-1.5 text-xs"
+                    onClick={handleShare}
+                  >
+                    <Share2 className="h-3.5 w-3.5" />
+                    Share Details with {g.guest_name.split(" ")[0]}
+                  </Button>
                 )}
               </div>
-              <Badge variant={statusVariant[g.status] || "secondary"} className="text-xs capitalize">
-                {g.status}
-              </Badge>
-            </div>
-          ))}
+            );
+          })}
         </div>
       ) : (
         <p className="text-xs text-muted-foreground italic">No guest requests yet.</p>

@@ -345,7 +345,7 @@ export default function RSVPModal({ event, open, onOpenChange }: RSVPModalProps)
           )}
 
           {/* Guest Requests — only shown when editing */}
-          {isEditing && <GuestRequestsSection eventId={event.id} />}
+          {isEditing && <GuestRequestsSection eventId={event.id} event={event} />}
         </div>
 
         {/* Payment Required callout */}
