@@ -355,6 +355,7 @@ export default function UserManagement() {
               <SelectItem value="guest">Guest</SelectItem>
               <SelectItem value="moderator">Moderator</SelectItem>
               <SelectItem value="admin">Admin</SelectItem>
+              <SelectItem value="suspended">Suspended</SelectItem>
             </SelectContent>
           </Select>
           <Select value={eventFilter} onValueChange={setEventFilter}>
