@@ -312,6 +312,7 @@ export default function UserManagement() {
               <SelectItem value="all">All roles</SelectItem>
               <SelectItem value="pending">Pending</SelectItem>
               <SelectItem value="approved">Approved</SelectItem>
+              <SelectItem value="guest">Guest</SelectItem>
               <SelectItem value="moderator">Moderator</SelectItem>
               <SelectItem value="admin">Admin</SelectItem>
             </SelectContent>
