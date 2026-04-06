@@ -282,7 +282,7 @@ export default function EventControlRoom() {
                             {format(new Date(event.date_time), "PPP p")}
                           </p>
                           <div className="mt-1 flex gap-1.5">
-                            <Badge variant="secondary" className="text-xs capitalize">{event.type}</Badge>
+                            <Badge variant="secondary" className="text-xs capitalize">{getTypeName(event.event_type_id)}</Badge>
                             <Badge variant="destructive" className="text-xs capitalize">
                               {event.status}
                             </Badge>
