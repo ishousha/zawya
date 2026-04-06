@@ -82,10 +82,16 @@ export default function EventCard({ event, onShowTicket }: EventCardProps) {
               Cancelled
             </span>
           )}
-          {!isCancelled && isAttending && (
+          {!isCancelled && isAttending && !isWaitlisted && (
             <span className="inline-flex items-center gap-1 rounded-full bg-accent px-2.5 py-0.5 text-xs font-medium text-accent-foreground">
               <CheckCircle2 className="h-3 w-3" />
               Attending
+            </span>
+          )}
+          {!isCancelled && isAttending && isWaitlisted && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
+              <ClockIcon className="h-3 w-3" />
+              Waitlisted
             </span>
           )}
           {!isCancelled && isAttending && (event.ticket_fee ?? 0) > 0 && (
