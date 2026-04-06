@@ -1,9 +1,12 @@
-import { useRef, useState } from "react";
+import { useRef, useState, useCallback } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, CheckCircle2, Download, Loader2, WifiOff } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Download, Loader2, WifiOff, ScanLine } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
 
 type RSVP = Database["public"]["Tables"]["rsvps"]["Row"];
@@ -19,8 +22,11 @@ interface QRTicketScreenProps {
 
 export default function QRTicketScreen({ event, rsvp, profileName, isOffline, onBack }: QRTicketScreenProps) {
   const { profile } = useAuth();
+  const queryClient = useQueryClient();
   const ticketRef = useRef<HTMLDivElement>(null);
   const [saving, setSaving] = useState(false);
+  const [scanning, setScanning] = useState(false);
+  const [checkinSuccess, setCheckinSuccess] = useState(rsvp.checked_in);
   const localDate = new Date(event.date_time);
   const displayName = profileName || profile?.name || "Member";
 
@@ -52,6 +58,56 @@ export default function QRTicketScreen({ event, rsvp, profileName, isOffline, on
     }
   };
 
+  const handleScanResult = useCallback(async (scannedText: string) => {
+    // Extract checkin PIN from the scanned QR URL
+    try {
+      const url = new URL(scannedText);
+      const action = url.searchParams.get("action");
+      const pin = url.searchParams.get("pin");
+
+      if (action !== "checkin" || !pin) {
+        toast.error("Invalid QR code. Please scan the check-in poster.");
+        return;
+      }
+
+      // Validate PIN against event
+      const { data: eventData, error: fetchErr } = await supabase
+        .from("events")
+        .select("checkin_pin")
+        .eq("id", event.id)
+        .single();
+
+      if (fetchErr || !eventData) {
+        toast.error("Could not verify PIN.");
+        return;
+      }
+
+      if ((eventData as any).checkin_pin !== pin) {
+        toast.error("PIN mismatch. Make sure you're scanning the correct event poster.");
+        return;
+      }
+
+      // Check in
+      const { error: updateErr } = await supabase
+        .from("rsvps")
+        .update({ checked_in: true })
+        .eq("id", rsvp.id);
+
+      if (updateErr) {
+        toast.error("Failed to check in.");
+        return;
+      }
+
+      setCheckinSuccess(true);
+      setScanning(false);
+      queryClient.invalidateQueries({ queryKey: ["my-rsvp"] });
+      queryClient.invalidateQueries({ queryKey: ["rsvps"] });
+      toast.success("You're checked in! 🎉");
+    } catch {
+      toast.error("Could not read QR code. Please try the poster QR code.");
+    }
+  }, [event.id, rsvp.id, queryClient]);
+
   return (
     <div className="min-h-screen bg-background pb-24">
       <header className="border-b border-border bg-card px-4 pb-4 pt-6">
@@ -68,6 +124,14 @@ export default function QRTicketScreen({ event, rsvp, profileName, isOffline, on
       </header>
 
       <main className="mx-auto max-w-sm px-4 py-6">
+        {/* Scanner overlay */}
+        {scanning && (
+          <ScannerView
+            onResult={handleScanResult}
+            onClose={() => setScanning(false)}
+          />
+        )}
+
         {/* Ticket card — captured for save */}
         <div ref={ticketRef} className="animate-fade-in overflow-hidden rounded-xl border border-border bg-card">
           {/* Ticket top */}
@@ -98,18 +162,27 @@ export default function QRTicketScreen({ event, rsvp, profileName, isOffline, on
 
           {/* QR Code */}
           <div className="flex flex-col items-center px-6 py-5">
-            <div className="rounded-lg bg-background p-3">
-              <QRCodeSVG
-                value={qrData}
-                size={180}
-                level="H"
-                bgColor="transparent"
-                fgColor="hsl(153, 40%, 28%)"
-              />
-            </div>
-            <p className="mt-3 text-xs text-muted-foreground">
-              Show this QR code at the door
-            </p>
+            {checkinSuccess ? (
+              <div className="flex flex-col items-center gap-3 py-4">
+                <CheckCircle2 className="h-16 w-16 text-primary animate-bounce" />
+                <p className="text-lg font-semibold text-primary">Checked In ✓</p>
+              </div>
+            ) : (
+              <>
+                <div className="rounded-lg bg-background p-3">
+                  <QRCodeSVG
+                    value={qrData}
+                    size={180}
+                    level="H"
+                    bgColor="transparent"
+                    fgColor="hsl(153, 40%, 28%)"
+                  />
+                </div>
+                <p className="mt-3 text-xs text-muted-foreground">
+                  Show this QR code at the door
+                </p>
+              </>
+            )}
           </div>
 
           {/* Details */}
@@ -144,21 +217,76 @@ export default function QRTicketScreen({ event, rsvp, profileName, isOffline, on
           </div>
         </div>
 
-        {/* Save as Image button */}
-        <Button
-          onClick={handleSaveImage}
-          disabled={saving}
-          className="mt-4 w-full gap-2"
-          variant="outline"
-        >
-          {saving ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <Download className="h-4 w-4" />
+        {/* Action buttons */}
+        <div className="mt-4 space-y-2">
+          {!checkinSuccess && !isOffline && (
+            <Button
+              onClick={() => setScanning(true)}
+              className="w-full gap-2"
+            >
+              <ScanLine className="h-4 w-4" />
+              Scan Poster to Check In
+            </Button>
           )}
-          Save Ticket as Image
-        </Button>
+
+          <Button
+            onClick={handleSaveImage}
+            disabled={saving}
+            className="w-full gap-2"
+            variant="outline"
+          >
+            {saving ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Download className="h-4 w-4" />
+            )}
+            Save Ticket as Image
+          </Button>
+        </div>
       </main>
+    </div>
+  );
+}
+
+/** Inline QR scanner using the camera */
+function ScannerView({ onResult, onClose }: { onResult: (text: string) => void; onClose: () => void }) {
+  const [error, setError] = useState("");
+  const hasScanned = useRef(false);
+
+  // Lazy-load the scanner
+  const { Scanner } = require("@yudiel/react-qr-scanner");
+
+  return (
+    <div className="fixed inset-0 z-50 flex flex-col bg-black/95">
+      <div className="flex items-center justify-between px-4 py-3">
+        <p className="text-sm font-medium text-white">Scan the check-in poster QR code</p>
+        <Button size="sm" variant="secondary" onClick={onClose}>
+          Close
+        </Button>
+      </div>
+      <div className="flex-1 flex items-center justify-center px-8">
+        <div className="w-full max-w-sm overflow-hidden rounded-xl">
+          <Scanner
+            onScan={(result: any) => {
+              if (hasScanned.current) return;
+              const text = result?.[0]?.rawValue;
+              if (text) {
+                hasScanned.current = true;
+                onResult(text);
+              }
+            }}
+            onError={(err: any) => {
+              setError("Camera access denied. Please allow camera permissions.");
+              console.error("Scanner error:", err);
+            }}
+            styles={{ container: { width: "100%" } }}
+            scanDelay={300}
+          />
+        </div>
+      </div>
+      {error && (
+        <p className="px-4 py-3 text-center text-sm text-destructive">{error}</p>
+      )}
     </div>
   );
 }
