@@ -42,14 +42,16 @@ export default function DesignTab({ form, setForm }: DesignTabProps) {
   const endBeforeStart =
     form.date_time && form.end_date_time && form.end_date_time <= form.date_time;
 
-  const isVirtualOnly = selectedType ? (selectedType as any).is_virtual && !selectedType.requires_location : false;
-  const isVirtual = selectedType ? (selectedType as any).is_virtual : false;
-  const showPhysical = !isVirtualOnly && (form.is_hybrid || (selectedType?.requires_location ?? true));
-  const showVirtual = isVirtual || (!isVirtualOnly && form.is_hybrid);
-  const showHybridToggle = !isVirtualOnly && !isVirtual;
+  // Derive visibility from event type flags
+  const requiresLocation = selectedType?.requires_location ?? true;
+  const isVirtual = (selectedType as any)?.is_virtual ?? false;
+  const allowsPotluck = selectedType?.allows_potluck ?? true;
+
+  const showPhysical = requiresLocation;
+  const showVirtual = isVirtual;
 
   // Potluck toggle visibility
-  const hidePotluckToggle = selectedType ? !selectedType.allows_potluck : false;
+  const hidePotluckToggle = !allowsPotluck;
   const potluckLocked = selectedType?.name.toLowerCase().includes("gathering") ?? false;
 
   // Fee visibility — show for trip/retreat type names
