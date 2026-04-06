@@ -198,6 +198,11 @@ export default function EventTypeManagement() {
                     </Badge>
                   </TableCell>
                   <TableCell>
+                    <Badge variant={(et as any).is_virtual ? "default" : "secondary"}>
+                      {(et as any).is_virtual ? "Yes" : "No"}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
                     <Badge variant={et.allows_potluck ? "default" : "secondary"}>
                       {et.allows_potluck ? "Yes" : "No"}
                     </Badge>
