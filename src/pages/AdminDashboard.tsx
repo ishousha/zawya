@@ -83,13 +83,11 @@ export default function AdminDashboard() {
   const adminSwipeHandlers = useSwipeable({
     onSwipedLeft: (e) => {
       if (isInsideScrollable(e.event.target)) return;
-      const idx = ADMIN_TABS.indexOf(activeTab);
-      if (idx < ADMIN_TABS.length - 1) setActiveTab(ADMIN_TABS[idx + 1]);
+      changeTab(ADMIN_TABS, activeTab, setActiveTab, "left");
     },
     onSwipedRight: (e) => {
       if (isInsideScrollable(e.event.target)) return;
-      const idx = ADMIN_TABS.indexOf(activeTab);
-      if (idx > 0) setActiveTab(ADMIN_TABS[idx - 1]);
+      changeTab(ADMIN_TABS, activeTab, setActiveTab, "right");
     },
     trackTouch: true,
     trackMouse: false,
@@ -101,13 +99,11 @@ export default function AdminDashboard() {
   const modSwipeHandlers = useSwipeable({
     onSwipedLeft: (e) => {
       if (isInsideScrollable(e.event.target)) return;
-      const idx = MODERATOR_TABS.indexOf(modTab);
-      if (idx < MODERATOR_TABS.length - 1) setModTab(MODERATOR_TABS[idx + 1]);
+      changeTab(MODERATOR_TABS, modTab, setModTab, "left");
     },
     onSwipedRight: (e) => {
       if (isInsideScrollable(e.event.target)) return;
-      const idx = MODERATOR_TABS.indexOf(modTab);
-      if (idx > 0) setModTab(MODERATOR_TABS[idx - 1]);
+      changeTab(MODERATOR_TABS, modTab, setModTab, "right");
     },
     trackTouch: true,
     trackMouse: false,
