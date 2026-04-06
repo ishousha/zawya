@@ -17,7 +17,7 @@ import { useDependents } from "@/components/profile/DependentsSection";
 import { useFamilyMembers } from "@/hooks/useFamilyMembers";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { Loader2, Video, ExternalLink } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -129,7 +129,9 @@ export default function RSVPModal({ event, open, onOpenChange }: RSVPModalProps)
     return map;
   }, [allSelections, myRSVP]);
 
-  const hasItems = signUpItems && signUpItems.length > 0;
+  const showSignUpItems = event.has_potluck !== false && signUpItems && signUpItems.length > 0;
+  const onlineLink = (event as any).online_link as string | null;
+  const isVirtualEvent = event.type === "nasiha" || !!onlineLink;
 
   const toggleItem = (itemId: number) => {
     setSelections((prev) => {
@@ -259,6 +261,19 @@ export default function RSVPModal({ event, open, onOpenChange }: RSVPModalProps)
         </DialogHeader>
 
         <div className="space-y-5 py-2">
+          {/* Virtual event join link */}
+          {isVirtualEvent && (onlineLink || event.virtual_link) && (
+            <a
+              href={onlineLink || event.virtual_link || ""}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 rounded-lg border border-primary/30 bg-primary/10 px-4 py-3 text-sm font-medium text-primary transition-colors hover:bg-primary/20"
+            >
+              <Video className="h-4 w-4 shrink-0" />
+              Join Virtual Event
+              <ExternalLink className="ml-auto h-3.5 w-3.5" />
+            </a>
+          )}
           {/* Attendee checklist */}
           <AttendeeChecklist
             familyMembers={familyMembers ?? []}
@@ -274,7 +289,7 @@ export default function RSVPModal({ event, open, onOpenChange }: RSVPModalProps)
           </p>
 
           {/* Sign-up categories with checkbox + description */}
-          {hasItems && (
+          {showSignUpItems && (
             <div className="space-y-3">
               <Label className="block text-sm font-medium">What are you bringing?</Label>
               <div className="space-y-2">
