@@ -43,10 +43,25 @@ export default function AdminDashboard() {
   const isAdmin = profile?.role === "admin";
   const isModerator = (profile?.role as string) === "moderator";
 
-  // Controlled tab state for admin
+  // Controlled tab state + slide direction
   const [activeTab, setActiveTab] = useState<AdminTab>("users");
-  // Controlled tab state for moderator
   const [modTab, setModTab] = useState<ModeratorTab>("events");
+  const [slideDir, setSlideDir] = useState<"left" | "right" | null>(null);
+  const [slideKey, setSlideKey] = useState(0);
+
+  const changeTab = useCallback((
+    tabs: readonly string[],
+    current: string,
+    setter: (t: never) => void,
+    direction: "left" | "right"
+  ) => {
+    const idx = tabs.indexOf(current);
+    const next = direction === "left" ? idx + 1 : idx - 1;
+    if (next < 0 || next >= tabs.length) return;
+    setSlideDir(direction);
+    setSlideKey((k) => k + 1);
+    setter(tabs[next] as never);
+  }, []);
 
   /** Scroll the tab bar so the active tab is centered */
   const centerActiveTab = useCallback((container: HTMLDivElement | null) => {
@@ -68,13 +83,11 @@ export default function AdminDashboard() {
   const adminSwipeHandlers = useSwipeable({
     onSwipedLeft: (e) => {
       if (isInsideScrollable(e.event.target)) return;
-      const idx = ADMIN_TABS.indexOf(activeTab);
-      if (idx < ADMIN_TABS.length - 1) setActiveTab(ADMIN_TABS[idx + 1]);
+      changeTab(ADMIN_TABS, activeTab, setActiveTab, "left");
     },
     onSwipedRight: (e) => {
       if (isInsideScrollable(e.event.target)) return;
-      const idx = ADMIN_TABS.indexOf(activeTab);
-      if (idx > 0) setActiveTab(ADMIN_TABS[idx - 1]);
+      changeTab(ADMIN_TABS, activeTab, setActiveTab, "right");
     },
     trackTouch: true,
     trackMouse: false,
@@ -86,13 +99,11 @@ export default function AdminDashboard() {
   const modSwipeHandlers = useSwipeable({
     onSwipedLeft: (e) => {
       if (isInsideScrollable(e.event.target)) return;
-      const idx = MODERATOR_TABS.indexOf(modTab);
-      if (idx < MODERATOR_TABS.length - 1) setModTab(MODERATOR_TABS[idx + 1]);
+      changeTab(MODERATOR_TABS, modTab, setModTab, "left");
     },
     onSwipedRight: (e) => {
       if (isInsideScrollable(e.event.target)) return;
-      const idx = MODERATOR_TABS.indexOf(modTab);
-      if (idx > 0) setModTab(MODERATOR_TABS[idx - 1]);
+      changeTab(MODERATOR_TABS, modTab, setModTab, "right");
     },
     trackTouch: true,
     trackMouse: false,
@@ -130,7 +141,7 @@ export default function AdminDashboard() {
         </header>
 
         <main className="mx-auto max-w-2xl px-4 py-4">
-          <Tabs value={modTab} onValueChange={(v) => setModTab(v as ModeratorTab)} className="w-full">
+          <Tabs value={modTab} onValueChange={(v) => { setSlideDir(null); setSlideKey((k) => k + 1); setModTab(v as ModeratorTab); }} className="w-full">
             <TabsList ref={tabsListRef} className="grid w-full grid-cols-3 bg-muted">
               <TabsTrigger value="events" className="gap-1.5 text-xs sm:text-sm">
                 <CalendarPlus className="h-4 w-4" />
@@ -146,7 +157,7 @@ export default function AdminDashboard() {
               </TabsTrigger>
             </TabsList>
 
-            <div {...modSwipeHandlers} data-swipe-root className="touch-pan-y">
+            <div {...modSwipeHandlers} data-swipe-root className={`touch-pan-y overflow-hidden ${slideDir === "left" ? "animate-slide-in-right" : slideDir === "right" ? "animate-slide-in-left" : "animate-fade-in-fast"}`} key={slideKey}>
               <TabsContent value="events">
                 <EventControlRoom />
               </TabsContent>
@@ -175,7 +186,7 @@ export default function AdminDashboard() {
       </header>
 
       <main className="mx-auto max-w-2xl px-4 py-4">
-        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as AdminTab)} className="w-full">
+        <Tabs value={activeTab} onValueChange={(v) => { setSlideDir(null); setSlideKey((k) => k + 1); setActiveTab(v as AdminTab); }} className="w-full">
           <TabsList
             ref={tabsListRef}
             className="flex w-full justify-start overflow-x-auto bg-muted scrollbar-hide pb-0.5"
@@ -211,7 +222,7 @@ export default function AdminDashboard() {
             </TabsTrigger>
           </TabsList>
 
-          <div {...adminSwipeHandlers} data-swipe-root className="touch-pan-y">
+          <div {...adminSwipeHandlers} data-swipe-root className={`touch-pan-y overflow-hidden ${slideDir === "left" ? "animate-slide-in-right" : slideDir === "right" ? "animate-slide-in-left" : "animate-fade-in-fast"}`} key={slideKey}>
             <TabsContent value="users">
               <UserManagement />
             </TabsContent>
