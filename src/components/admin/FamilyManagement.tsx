@@ -117,7 +117,7 @@ export default function FamilyManagement() {
     mutationFn: async ({ userId, familyId }: { userId: string; familyId: string }) => {
       const { error } = await supabase
         .from("profiles")
-        .update({ family_id: familyId } as any)
+        .update({ family_id: familyId })
         .eq("id", userId);
       if (error) throw error;
     },
