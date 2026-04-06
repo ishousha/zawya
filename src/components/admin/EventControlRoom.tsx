@@ -404,13 +404,18 @@ export default function EventControlRoom() {
         />
       )}
 
-      {monitoringEventId && (
-        <RSVPMonitor
-          eventId={monitoringEventId}
-          eventTitle={events?.find((e) => e.id === monitoringEventId)?.title ?? "Event"}
-          onClose={() => setMonitoringEventId(null)}
-        />
-      )}
+      {monitoringEventId && (() => {
+        const monEvent = events?.find((e) => e.id === monitoringEventId);
+        return (
+          <RSVPMonitor
+            eventId={monitoringEventId}
+            eventTitle={monEvent?.title ?? "Event"}
+            eventDate={monEvent?.date_time ?? ""}
+            checkinPin={(monEvent as any)?.checkin_pin ?? ""}
+            onClose={() => setMonitoringEventId(null)}
+          />
+        );
+      })()}
     </div>
   );
 }
