@@ -35,7 +35,7 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
       description: event.description ?? "",
       date_time: event.date_time ? format(new Date(event.date_time), "yyyy-MM-dd'T'HH:mm") : "",
       end_date_time: event.end_date_time ? format(new Date(event.end_date_time), "yyyy-MM-dd'T'HH:mm") : "",
-      type: event.type as EventType,
+      event_type_id: event.event_type_id,
       venue_id: (event as any).venue_id ?? null,
       location: event.location ?? "",
       address: event.address ?? "",
