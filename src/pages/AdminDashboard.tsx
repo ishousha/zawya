@@ -88,33 +88,33 @@ export default function AdminDashboard() {
 
       <main className="mx-auto max-w-2xl px-4 py-4">
         <Tabs defaultValue="users" className="w-full">
-          <TabsList className="grid w-full grid-cols-7 bg-muted">
-            <TabsTrigger value="users" className="gap-1.5 text-xs sm:text-sm">
+          <TabsList className="flex w-full overflow-x-auto bg-muted scrollbar-hide">
+            <TabsTrigger value="users" className="flex-shrink-0 gap-1.5 text-xs sm:text-sm">
               <Users className="h-4 w-4" />
               <span className="hidden sm:inline">Users</span>
               {pendingBadge}
             </TabsTrigger>
-            <TabsTrigger value="families" className="gap-1.5 text-xs sm:text-sm">
+            <TabsTrigger value="families" className="flex-shrink-0 gap-1.5 text-xs sm:text-sm">
               <Home className="h-4 w-4" />
               <span className="hidden sm:inline">Families</span>
             </TabsTrigger>
-            <TabsTrigger value="events" className="gap-1.5 text-xs sm:text-sm">
+            <TabsTrigger value="events" className="flex-shrink-0 gap-1.5 text-xs sm:text-sm">
               <CalendarPlus className="h-4 w-4" />
               <span className="hidden sm:inline">Events</span>
             </TabsTrigger>
-            <TabsTrigger value="analytics" className="gap-1.5 text-xs sm:text-sm">
-              <BarChart3 className="h-4 w-4" />
-              <span className="hidden sm:inline">Analytics</span>
-            </TabsTrigger>
-            <TabsTrigger value="settings" className="gap-1.5 text-xs sm:text-sm">
-              <Settings className="h-4 w-4" />
-              <span className="hidden sm:inline">Settings</span>
-            </TabsTrigger>
-            <TabsTrigger value="scanner" className="gap-1.5 text-xs sm:text-sm">
+            <TabsTrigger value="scanner" className="flex-shrink-0 gap-1.5 text-xs sm:text-sm bg-primary/10 text-primary font-semibold border border-primary/30 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
               <ScanLine className="h-4 w-4" />
               <span className="hidden sm:inline">Scanner</span>
             </TabsTrigger>
-            <TabsTrigger value="activity" className="gap-1.5 text-xs sm:text-sm">
+            <TabsTrigger value="analytics" className="flex-shrink-0 gap-1.5 text-xs sm:text-sm">
+              <BarChart3 className="h-4 w-4" />
+              <span className="hidden sm:inline">Analytics</span>
+            </TabsTrigger>
+            <TabsTrigger value="settings" className="flex-shrink-0 gap-1.5 text-xs sm:text-sm">
+              <Settings className="h-4 w-4" />
+              <span className="hidden sm:inline">Settings</span>
+            </TabsTrigger>
+            <TabsTrigger value="activity" className="flex-shrink-0 gap-1.5 text-xs sm:text-sm">
               <ScrollText className="h-4 w-4" />
               <span className="hidden sm:inline">Log</span>
             </TabsTrigger>
