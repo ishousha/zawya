@@ -18,7 +18,6 @@ import {
 } from "@/components/ui/select";
 import { CalendarPlus, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { generateQRHash } from "@/lib/qr-hash";
 
 interface AdminRsvpActionProps {
   userId: string;
