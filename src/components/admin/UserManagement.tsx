@@ -13,6 +13,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { Search } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -35,6 +36,8 @@ export default function UserManagement() {
   const [newName, setNewName] = useState("");
   const [newEmail, setNewEmail] = useState("");
   const [newFamilyId, setNewFamilyId] = useState("");
+  const [search, setSearch] = useState("");
+  const [roleFilter, setRoleFilter] = useState<string>("all");
 
   const { data: profiles, isLoading: loadingProfiles } = useQuery({
     queryKey: ["admin-profiles"],
@@ -181,6 +184,21 @@ export default function UserManagement() {
     onError: () => toast.error("Failed to update guest request"),
   });
 
+  const filteredProfiles = useMemo(() => {
+    if (!profiles) return [];
+    return profiles.filter((p) => {
+      const q = search.toLowerCase();
+      const matchesSearch =
+        !q ||
+        (p.name || "").toLowerCase().includes(q) ||
+        (p.email || "").toLowerCase().includes(q) ||
+        (p.whatsapp_number || "").includes(q) ||
+        ((p.family_id && familyMap[p.family_id]) || "").toLowerCase().includes(q);
+      const matchesRole = roleFilter === "all" || p.role === roleFilter;
+      return matchesSearch && matchesRole;
+    });
+  }, [profiles, search, roleFilter, familyMap]);
+
   if (loadingProfiles || loadingGuests) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -196,7 +214,7 @@ export default function UserManagement() {
         <div className="mb-3 flex items-center justify-between">
           <h3 className="font-heading text-base font-semibold text-foreground flex items-center gap-2">
             <UserCheck className="h-4 w-4 text-primary" />
-            Members ({profiles?.length ?? 0})
+            Members ({filteredProfiles.length}{filteredProfiles.length !== (profiles?.length ?? 0) ? ` / ${profiles?.length}` : ""})
           </h3>
           <Dialog open={addOpen} onOpenChange={setAddOpen}>
             <DialogTrigger asChild>
@@ -257,8 +275,32 @@ export default function UserManagement() {
             </DialogContent>
           </Dialog>
         </div>
+        {/* Search & Filter */}
+        <div className="mb-3 flex gap-2">
+          <div className="relative flex-1">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search by name, email, phone, family…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-9 h-9"
+            />
+          </div>
+          <Select value={roleFilter} onValueChange={setRoleFilter}>
+            <SelectTrigger className="w-[130px] h-9">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All roles</SelectItem>
+              <SelectItem value="pending">Pending</SelectItem>
+              <SelectItem value="approved">Approved</SelectItem>
+              <SelectItem value="moderator">Moderator</SelectItem>
+              <SelectItem value="admin">Admin</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
         <div className="space-y-2">
-          {profiles?.map((p) => (
+          {filteredProfiles.map((p) => (
             <Card key={p.id} className={p.role === "pending" ? "border-accent" : ""}>
               <CardContent className="flex items-center justify-between p-4">
                 <div className="min-w-0 flex-1">
