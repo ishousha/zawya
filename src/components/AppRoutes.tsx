@@ -100,6 +100,7 @@ export default function AppRoutes() {
         <Route path="/" element={<HomeFeed />} />
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/admin" element={<AdminDashboard />} />
+        <Route path="/notifications" element={<NotificationsPage />} />
         <Route path="/guidelines" element={<CommunityGuidelines readOnly />} />
         {joinFamilyRoute}
         <Route path="/unsubscribe" element={<Unsubscribe />} />
