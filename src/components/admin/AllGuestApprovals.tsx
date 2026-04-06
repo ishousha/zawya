@@ -18,7 +18,7 @@ export default function AllGuestApprovals() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("guest_requests")
-        .select("*, events:event_id(title, date_time), profiles:requesting_user_id(name, email)")
+        .select("*, events:event_id(title, date_time, location, address, virtual_link, online_link, type), profiles:requesting_user_id(name, email)")
         .order("created_at", { ascending: false });
       if (error) throw error;
       return (data ?? []).sort((a, b) => {
@@ -30,12 +30,43 @@ export default function AllGuestApprovals() {
   });
 
   const updateStatus = useMutation({
-    mutationFn: async ({ id, status }: { id: string; status: "approved" | "rejected" }) => {
+    mutationFn: async ({ gr, status }: { gr: any; status: "approved" | "rejected" }) => {
       const { error } = await supabase
         .from("guest_requests")
         .update({ status })
-        .eq("id", id);
+        .eq("id", gr.id);
       if (error) throw error;
+
+      // Send email on approval
+      if (status === "approved" && gr.guest_email) {
+        const evt = gr.events;
+        const eventDate = evt?.date_time
+          ? format(new Date(evt.date_time), "EEEE, MMMM d 'at' h:mm a")
+          : "";
+        const eventLink = evt?.online_link || evt?.virtual_link || "";
+        const eventLocation = evt?.location
+          ? `${evt.location}${evt.address ? ` — ${evt.address}` : ""}`
+          : "";
+
+        try {
+          await supabase.functions.invoke("send-transactional-email", {
+            body: {
+              templateName: "guest-approved",
+              recipientEmail: gr.guest_email,
+              templateData: {
+                guestName: gr.guest_name || "Guest",
+                eventTitle: evt?.title || "Event",
+                eventDate,
+                eventLocation,
+                eventLink,
+                requestedBy: gr.profiles?.name || "",
+              },
+            },
+          });
+        } catch (emailErr) {
+          console.error("Failed to send guest approved email:", emailErr);
+        }
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["all-guest-requests"] });
@@ -111,7 +142,7 @@ export default function AllGuestApprovals() {
                     <Button
                       size="icon"
                       className="h-10 w-10"
-                      onClick={() => updateStatus.mutate({ id: gr.id, status: "approved" })}
+                      onClick={() => updateStatus.mutate({ gr, status: "approved" })}
                       disabled={updateStatus.isPending}
                       title="Approve"
                     >
@@ -123,7 +154,7 @@ export default function AllGuestApprovals() {
                       size="icon"
                       variant="destructive"
                       className="h-10 w-10"
-                      onClick={() => updateStatus.mutate({ id: gr.id, status: "rejected" })}
+                      onClick={() => updateStatus.mutate({ gr, status: "rejected" })}
                       disabled={updateStatus.isPending}
                       title="Reject"
                     >
