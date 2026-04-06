@@ -38,11 +38,24 @@ import { notifyUserApproval } from "@/lib/webhooks";
 import { format } from "date-fns";
 import AdminRsvpAction from "./AdminRsvpAction";
 import type { Database } from "@/integrations/supabase/types";
+import { useAuth } from "@/contexts/AuthContext";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 type AppRole = Database["public"]["Enums"]["app_role"];
 
+function logActivity(actorId: string, action: string, target: Profile, details?: Record<string, unknown>) {
+  (supabase.from("admin_activity_log") as any).insert({
+    actor_id: actorId,
+    action,
+    target_user_id: target.id,
+    target_user_name: target.name,
+    target_user_email: target.email,
+    details: details ?? {},
+  }).then(({ error }: any) => { if (error) console.warn("Activity log insert failed:", error); });
+}
+
 export default function UserManagement() {
+  const { user } = useAuth();
   const queryClient = useQueryClient();
   const [addOpen, setAddOpen] = useState(false);
   const [newName, setNewName] = useState("");
@@ -156,7 +169,7 @@ export default function UserManagement() {
   });
 
   const updateRole = useMutation({
-    mutationFn: async ({ userId, role, email, name }: { userId: string; role: AppRole; email?: string | null; name?: string | null }) => {
+    mutationFn: async ({ userId, role, email, name, previousRole }: { userId: string; role: AppRole; email?: string | null; name?: string | null; previousRole?: AppRole }) => {
       // Update profiles.role
       const { error } = await supabase
         .from("profiles")
@@ -185,6 +198,15 @@ export default function UserManagement() {
             templateData: { memberName: name || undefined },
           },
         }).catch((err) => console.warn("Failed to send role change email:", err));
+      }
+
+      // Log the activity
+      if (user) {
+        const actionType = role === "suspended" ? "suspend_user" : `role_change`;
+        logActivity(user.id, actionType, { id: userId, name, email } as Profile, {
+          previous_role: previousRole,
+          new_role: role,
+        });
       }
     },
     onSuccess: () => {
@@ -238,7 +260,11 @@ export default function UserManagement() {
   });
 
   const deleteUser = useMutation({
-    mutationFn: async (userId: string) => {
+    mutationFn: async ({ userId, name, email }: { userId: string; name?: string | null; email?: string | null }) => {
+      // Log before deletion since the profile will be cascaded
+      if (user) {
+        logActivity(user.id, "delete_user", { id: userId, name, email } as Profile);
+      }
       const { data, error } = await supabase.functions.invoke("admin-delete-user", {
         body: { user_id: userId },
       });
@@ -450,6 +476,7 @@ export default function UserManagement() {
                         role: val as AppRole,
                         email: p.email,
                         name: p.name,
+                        previousRole: p.role,
                       })
                     }
                   >
@@ -482,7 +509,7 @@ export default function UserManagement() {
                         <AlertDialogCancel>Cancel</AlertDialogCancel>
                         <AlertDialogAction
                           className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                          onClick={() => deleteUser.mutate(p.id)}
+                          onClick={() => deleteUser.mutate({ userId: p.id, name: p.name, email: p.email })}
                         >
                           {deleteUser.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                           Delete Forever
