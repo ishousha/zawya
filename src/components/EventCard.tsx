@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
 import { format } from "date-fns";
-import { MapPin, Video, Users, Calendar, Clock, CheckCircle2, Ticket, Edit, Building2, ExternalLink, Ban, BookOpen, Mountain, Handshake, ClockIcon } from "lucide-react";
+import { MapPin, Video, Users, Calendar, Clock, CheckCircle2, Ticket, Edit, Building2, ExternalLink, Ban, BookOpen, Mountain, Handshake, ClockIcon, ScanLine } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useMyRSVP, useEventRSVPs } from "@/hooks/useRSVP";
 import { useEventTypes, getEventTypeIcon } from "@/hooks/useEventTypes";
 import RSVPModal from "@/components/RSVPModal";
+import SelfCheckinModal from "@/components/SelfCheckinModal";
 import AddToCalendarButton from "@/components/AddToCalendarButton";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -26,6 +27,7 @@ export default function EventCard({ event, onShowTicket }: EventCardProps) {
   const { data: myRSVP } = useMyRSVP(event.id);
   const { data: allRsvps } = useEventRSVPs(event.id);
   const [rsvpOpen, setRsvpOpen] = useState(false);
+  const [checkinOpen, setCheckinOpen] = useState(false);
   const [now, setNow] = useState(() => new Date());
   const { profile } = useAuth();
 
@@ -43,6 +45,12 @@ export default function EventCard({ event, onShowTicket }: EventCardProps) {
   const isLinkActive = now.getTime() >= linkActivatesAt;
   const isAdminOrMod = profile?.role === "admin" || profile?.role === "moderator";
   const canSeeJoinButton = isAdminOrMod || (isAttending && !isWaitlisted);
+
+  // Self check-in: active within 2 hours of event start
+  const checkinActivatesAt = eventTime - 2 * 60 * 60 * 1000;
+  const isCheckinActive = now.getTime() >= checkinActivatesAt;
+  const isCheckedIn = myRSVP?.checked_in ?? false;
+  const canSelfCheckin = isAttending && !isWaitlisted && !isCheckedIn && !isCancelled;
 
   // Countdown string
   const remainingMs = linkActivatesAt - now.getTime();
@@ -119,7 +127,7 @@ export default function EventCard({ event, onShowTicket }: EventCardProps) {
           {!isCancelled && isAttending && !isWaitlisted && (
             <span className="inline-flex items-center gap-1 rounded-full bg-accent px-2.5 py-0.5 text-xs font-medium text-accent-foreground">
               <CheckCircle2 className="h-3 w-3" />
-              Attending
+              {isCheckedIn ? "Checked In" : "Attending"}
             </span>
           )}
           {!isCancelled && isAttending && isWaitlisted && (
@@ -303,6 +311,18 @@ export default function EventCard({ event, onShowTicket }: EventCardProps) {
                   </Button>
                 )}
               </div>
+              {canSelfCheckin && (
+                <Button
+                  size="sm"
+                  variant={isCheckinActive ? "default" : "outline"}
+                  disabled={!isCheckinActive}
+                  onClick={() => setCheckinOpen(true)}
+                  className="w-full gap-1.5"
+                >
+                  <ScanLine className="h-3.5 w-3.5" />
+                  {isCheckinActive ? "Self Check-In" : "Check-in opens 2hrs before event"}
+                </Button>
+              )}
               {isAttending && <AddToCalendarButton event={event} />}
             </>
           )}
@@ -312,6 +332,16 @@ export default function EventCard({ event, onShowTicket }: EventCardProps) {
 
       {!isCancelled && (
         <RSVPModal event={event} open={rsvpOpen} onOpenChange={setRsvpOpen} />
+      )}
+
+      {canSelfCheckin && myRSVP && (
+        <SelfCheckinModal
+          open={checkinOpen}
+          onOpenChange={setCheckinOpen}
+          eventId={event.id}
+          rsvpId={myRSVP.id}
+          eventTitle={event.title}
+        />
       )}
     </>
   );

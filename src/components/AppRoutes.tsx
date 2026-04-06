@@ -8,6 +8,7 @@ import CompleteProfile from "@/pages/CompleteProfile";
 import PendingApproval from "@/pages/PendingApproval";
 import Suspended from "@/pages/Suspended";
 import HomeFeed from "@/pages/HomeFeed";
+import EventDetail from "@/pages/EventDetail";
 import ProfilePage from "@/pages/Profile";
 import AdminDashboard from "@/pages/AdminDashboard";
 import Unsubscribe from "@/pages/Unsubscribe";
@@ -119,6 +120,7 @@ export default function AppRoutes() {
       <AppHeader />
       <Routes>
         <Route path="/" element={<HomeFeed />} />
+        <Route path="/events/:eventId" element={<EventDetail />} />
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/admin" element={<AdminDashboard />} />
         <Route path="/notifications" element={<NotificationsPage />} />
