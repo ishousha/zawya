@@ -263,6 +263,23 @@ export default function DesignTab({ form, setForm }: DesignTabProps) {
           />
         </div>
       )}
+
+      {/* Online Meeting Link — Nasiha only */}
+      {isNasiha && (
+        <div>
+          <Label htmlFor="online_link" className="flex items-center gap-1.5">
+            <Video className="h-3.5 w-3.5 text-primary" />
+            Online Meeting Link
+          </Label>
+          <Input
+            id="online_link"
+            value={form.online_link}
+            onChange={(e) => update("online_link", e.target.value)}
+            placeholder="https://zoom.us/... or meet.google.com/..."
+            className="mt-1.5"
+          />
+        </div>
+      )}
     </div>
   );
 }
