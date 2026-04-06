@@ -493,11 +493,33 @@ function RSVPMonitor({ eventId, eventTitle, eventDate, checkinPin, onClose }: { 
     );
   };
 
+  if (showPoster) {
+    return (
+      <CheckinPoster
+        eventTitle={eventTitle}
+        eventDate={eventDate}
+        eventId={eventId}
+        checkinPin={checkinPin}
+        onClose={() => setShowPoster(false)}
+      />
+    );
+  }
+
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <CardTitle className="text-lg">Guest List & RSVPs</CardTitle>
         <div className="flex items-center gap-1">
+          {checkinPin && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-8 gap-1.5 text-xs"
+              onClick={() => setShowPoster(true)}
+            >
+              <Printer className="h-3.5 w-3.5" /> Poster
+            </Button>
+          )}
           {rsvps && rsvps.length > 0 && (
             <Button
               size="sm"
