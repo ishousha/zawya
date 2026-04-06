@@ -184,14 +184,6 @@ export default function UserManagement() {
     onError: () => toast.error("Failed to update guest request"),
   });
 
-  if (loadingProfiles || loadingGuests) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <Loader2 className="h-6 w-6 animate-spin text-primary" />
-      </div>
-    );
-  }
-
   const filteredProfiles = useMemo(() => {
     if (!profiles) return [];
     return profiles.filter((p) => {
@@ -201,11 +193,19 @@ export default function UserManagement() {
         (p.name || "").toLowerCase().includes(q) ||
         (p.email || "").toLowerCase().includes(q) ||
         (p.whatsapp_number || "").includes(q) ||
-        (p.family_id && familyMap[p.family_id] || "").toLowerCase().includes(q);
+        ((p.family_id && familyMap[p.family_id]) || "").toLowerCase().includes(q);
       const matchesRole = roleFilter === "all" || p.role === roleFilter;
       return matchesSearch && matchesRole;
     });
   }, [profiles, search, roleFilter, familyMap]);
+
+  if (loadingProfiles || loadingGuests) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 py-4">
