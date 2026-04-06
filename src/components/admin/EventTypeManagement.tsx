@@ -41,6 +41,7 @@ interface FormState {
   name: string;
   icon: string;
   requires_location: boolean;
+  is_virtual: boolean;
   allows_potluck: boolean;
 }
 
@@ -48,6 +49,7 @@ const defaultForm: FormState = {
   name: "",
   icon: "MapPin",
   requires_location: true,
+  is_virtual: false,
   allows_potluck: true,
 };
 
@@ -75,6 +77,7 @@ export default function EventTypeManagement() {
       name: et.name,
       icon: et.icon,
       requires_location: et.requires_location,
+      is_virtual: (et as any).is_virtual ?? false,
       allows_potluck: et.allows_potluck,
     });
     setOpen(true);
@@ -94,6 +97,7 @@ export default function EventTypeManagement() {
             name: form.name.trim(),
             icon: form.icon,
             requires_location: form.requires_location,
+            is_virtual: form.is_virtual,
             allows_potluck: form.allows_potluck,
           })
           .eq("id", editingId);
@@ -104,6 +108,7 @@ export default function EventTypeManagement() {
           name: form.name.trim(),
           icon: form.icon,
           requires_location: form.requires_location,
+          is_virtual: form.is_virtual,
           allows_potluck: form.allows_potluck,
         });
         if (error) throw error;
@@ -173,6 +178,7 @@ export default function EventTypeManagement() {
               <TableHead>Icon</TableHead>
               <TableHead>Name</TableHead>
               <TableHead>Location</TableHead>
+              <TableHead>Virtual</TableHead>
               <TableHead>Potluck</TableHead>
               <TableHead className="w-20" />
             </TableRow>
@@ -189,6 +195,11 @@ export default function EventTypeManagement() {
                   <TableCell>
                     <Badge variant={et.requires_location ? "default" : "secondary"}>
                       {et.requires_location ? "Yes" : "No"}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={(et as any).is_virtual ? "default" : "secondary"}>
+                      {(et as any).is_virtual ? "Yes" : "No"}
                     </Badge>
                   </TableCell>
                   <TableCell>
@@ -268,6 +279,15 @@ export default function EventTypeManagement() {
                 id="et-location"
                 checked={form.requires_location}
                 onCheckedChange={(v) => setForm((f) => ({ ...f, requires_location: v }))}
+              />
+            </div>
+
+            <div className="flex items-center justify-between">
+              <Label htmlFor="et-virtual">Virtual / online event</Label>
+              <Switch
+                id="et-virtual"
+                checked={form.is_virtual}
+                onCheckedChange={(v) => setForm((f) => ({ ...f, is_virtual: v }))}
               />
             </div>
 

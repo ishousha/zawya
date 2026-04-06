@@ -207,6 +207,7 @@ export type Database = {
           created_at: string
           icon: string
           id: string
+          is_virtual: boolean
           name: string
           requires_location: boolean
         }
@@ -215,6 +216,7 @@ export type Database = {
           created_at?: string
           icon?: string
           id?: string
+          is_virtual?: boolean
           name: string
           requires_location?: boolean
         }
@@ -223,6 +225,7 @@ export type Database = {
           created_at?: string
           icon?: string
           id?: string
+          is_virtual?: boolean
           name?: string
           requires_location?: boolean
         }

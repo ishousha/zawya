@@ -5,7 +5,7 @@ type: feature
 ---
 - families: id, name, created_at
 - profiles: id, name, email, phone, family_name, family_id (fk families), role (app_role enum), whatsapp_number, alternate_cell_number, date_of_birth, terms_accepted, timestamps
-- event_types: id, name, icon, requires_location (bool), allows_potluck (bool), created_at — dynamic, admin-managed
+- event_types: id, name, icon, requires_location (bool), is_virtual (bool), allows_potluck (bool), created_at — dynamic, admin-managed
 - events: id, title, description, event_type_id (fk event_types), date_time, end_date_time, location, address, zoom_link, virtual_link, online_link, cover_photo_url, capacity, waitlist_capacity, is_hybrid, has_potluck, ticket_fee (numeric), payment_instructions, venue_id (fk venues), status (event_status), timestamps
 - venues: id, name, address, created_at
 - user_roles: id, user_id, role (app_role) — separate from profiles for security
