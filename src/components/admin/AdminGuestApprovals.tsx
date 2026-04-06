@@ -95,7 +95,7 @@ export default function AdminGuestApprovals({ eventId }: { eventId: string }) {
                     variant="ghost"
                     className="h-8 w-8 text-green-600 hover:bg-green-50"
                     disabled={updateStatus.isPending}
-                    onClick={() => handleAction(r.id, "approved")}
+                    onClick={() => handleAction(r, "approved")}
                   >
                     <Check className="h-4 w-4" />
                   </Button>
