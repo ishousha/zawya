@@ -64,6 +64,13 @@ export default function FamilyManagement() {
   const [assignOpen, setAssignOpen] = useState(false);
   const [assignFamilyId, setAssignFamilyId] = useState("");
   const [assignUserId, setAssignUserId] = useState("");
+  const [familyComboOpen, setFamilyComboOpen] = useState(false);
+  const [memberComboOpen, setMemberComboOpen] = useState(false);
+
+  const unassignedMembers = useMemo(
+    () => profiles?.filter((p) => !(p as any).family_id) ?? [],
+    [profiles]
+  );
 
   const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: ["admin-families"] });
