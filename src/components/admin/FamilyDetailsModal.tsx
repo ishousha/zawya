@@ -126,7 +126,7 @@ export default function FamilyDetailsModal({
       // Unassign all members first
       const { error: unassignError } = await supabase
         .from("profiles")
-        .update({ family_id: null } as any)
+        .update({ family_id: null })
         .eq("family_id", familyId);
       if (unassignError) throw unassignError;
 
