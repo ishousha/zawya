@@ -320,6 +320,11 @@ export function useRSVPConcurrency(eventId: string) {
       if (error) throw error;
       removeCachedTicket(rsvpId);
       notifyRSVPCancelled(rsvpId, eventId, user.id);
+
+      // Auto-promote first waitlisted person
+      promoteNextWaitlisted(eventId).catch((err) =>
+        console.warn("Waitlist promotion failed:", err)
+      );
     },
     onMutate: async () => {
       await queryClient.cancelQueries({ queryKey: ["rsvps", eventId] });
