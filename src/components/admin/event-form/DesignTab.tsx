@@ -99,7 +99,7 @@ export default function DesignTab({ form, setForm }: DesignTabProps) {
 
       {/* Type + Hybrid toggle row */}
       <div className="space-y-3">
-        <div className="grid grid-cols-2 gap-3 items-end">
+        <div className={`grid ${showHybridToggle ? 'grid-cols-2' : 'grid-cols-1'} gap-3 items-end`}>
           <div>
             <Label>Event Type</Label>
             <Select
@@ -118,16 +118,18 @@ export default function DesignTab({ form, setForm }: DesignTabProps) {
               </SelectContent>
             </Select>
           </div>
-          <div className="flex items-center gap-3 h-10 rounded-md border border-border px-3 bg-muted/30">
-            <Switch
-              id="hybrid"
-              checked={form.is_hybrid}
-              onCheckedChange={(v) => update("is_hybrid", v)}
-            />
-            <Label htmlFor="hybrid" className="text-sm cursor-pointer mb-0">
-              Hybrid
-            </Label>
-          </div>
+          {showHybridToggle && (
+            <div className="flex items-center gap-3 h-10 rounded-md border border-border px-3 bg-muted/30">
+              <Switch
+                id="hybrid"
+                checked={form.is_hybrid}
+                onCheckedChange={(v) => update("is_hybrid", v)}
+              />
+              <Label htmlFor="hybrid" className="text-sm cursor-pointer mb-0">
+                Hybrid
+              </Label>
+            </div>
+          )}
         </div>
 
         {/* Type-specific notes */}
@@ -137,23 +139,30 @@ export default function DesignTab({ form, setForm }: DesignTabProps) {
             RSVP will require members to select dependents for this event type.
           </p>
         )}
+        {isNasiha && (
+          <p className="flex items-start gap-1.5 text-xs text-muted-foreground bg-muted/50 rounded-md p-2.5">
+            <Info className="h-3.5 w-3.5 mt-0.5 shrink-0 text-primary" />
+            Nasiha events are online-only. Potluck sign-ups are disabled.
+          </p>
+        )}
       </div>
 
-      {/* Potluck toggle */}
-      <div className="flex items-center gap-3 rounded-md border border-border px-3 py-2.5 bg-muted/30">
-        <Switch
-          id="has_potluck"
-          checked={form.has_potluck}
-          onCheckedChange={(v) => update("has_potluck", v)}
-          disabled={potluckLocked}
-        />
-        <Label htmlFor="has_potluck" className="text-sm cursor-pointer mb-0">
-          Enable Potluck / Sign-up Items
-        </Label>
-        {potluckLocked && (
-          <span className="ml-auto text-xs text-muted-foreground">
-            {form.type === "gathering" ? "Always on" : "Auto off"}
-          </span>
+      {/* Potluck toggle — hidden for nasiha & meeting */}
+      {!hidePotluckToggle && (
+        <div className="flex items-center gap-3 rounded-md border border-border px-3 py-2.5 bg-muted/30">
+          <Switch
+            id="has_potluck"
+            checked={form.has_potluck}
+            onCheckedChange={(v) => update("has_potluck", v)}
+            disabled={potluckLocked}
+          />
+          <Label htmlFor="has_potluck" className="text-sm cursor-pointer mb-0">
+            Enable Potluck / Sign-up Items
+          </Label>
+          {potluckLocked && (
+            <span className="ml-auto text-xs text-muted-foreground">
+              {form.type === "gathering" ? "Always on" : "Auto off"}
+            </span>
         )}
       </div>
 
