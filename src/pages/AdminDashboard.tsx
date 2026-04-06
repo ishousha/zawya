@@ -78,7 +78,7 @@ export default function AdminDashboard() {
 
       <main className="mx-auto max-w-2xl px-4 py-4">
         <Tabs defaultValue="users" className="w-full">
-          <TabsList className="grid w-full grid-cols-4 bg-muted">
+          <TabsList className="grid w-full grid-cols-5 bg-muted">
             <TabsTrigger value="users" className="gap-1.5 text-xs sm:text-sm">
               <Users className="h-4 w-4" />
               <span className="hidden sm:inline">Users</span>
@@ -95,6 +95,10 @@ export default function AdminDashboard() {
               <ScanLine className="h-4 w-4" />
               <span className="hidden sm:inline">Scanner</span>
             </TabsTrigger>
+            <TabsTrigger value="activity" className="gap-1.5 text-xs sm:text-sm">
+              <ScrollText className="h-4 w-4" />
+              <span className="hidden sm:inline">Log</span>
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="users">
@@ -108,6 +112,9 @@ export default function AdminDashboard() {
           </TabsContent>
           <TabsContent value="scanner">
             <AdminDoorScanner />
+          </TabsContent>
+          <TabsContent value="activity">
+            <AdminActivityLog />
           </TabsContent>
         </Tabs>
       </main>
