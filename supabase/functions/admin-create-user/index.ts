@@ -53,7 +53,8 @@ Deno.serve(async (req) => {
 
     // Parse and validate body
     const body = await req.json();
-    const { email, name, family_id } = body;
+    const { email, name, family_id, role: requestedRole } = body;
+    const assignRole = (requestedRole === "guest" || requestedRole === "approved") ? requestedRole : "approved";
 
     if (!email || typeof email !== "string" || !email.includes("@")) {
       return new Response(
@@ -93,7 +94,7 @@ Deno.serve(async (req) => {
     // Update profile (created by trigger) with name, family_id, role, and terms
     const profileUpdate: Record<string, unknown> = {
       name: name.trim(),
-      role: "approved",
+      role: assignRole,
       terms_accepted: false,
     };
     if (family_id) {
@@ -112,7 +113,7 @@ Deno.serve(async (req) => {
     // Insert into user_roles table
     const { error: roleInsertError } = await serviceClient
       .from("user_roles")
-      .insert({ user_id: userId, role: "approved" });
+      .insert({ user_id: userId, role: assignRole });
 
     if (roleInsertError) {
       console.error("Role insert error:", roleInsertError);

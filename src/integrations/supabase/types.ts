@@ -609,6 +609,10 @@ export type Database = {
         Returns: number
       }
       get_my_family_id: { Args: never; Returns: string }
+      guest_has_rsvp: {
+        Args: { _event_id: string; _user_id: string }
+        Returns: boolean
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -635,7 +639,7 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "admin" | "moderator" | "approved" | "pending"
+      app_role: "admin" | "moderator" | "approved" | "guest" | "pending"
       event_status: "active" | "full" | "cancelled"
       event_type: "gathering" | "class" | "trip" | "retreat" | "meeting"
       guest_request_status: "pending" | "approved" | "rejected"
@@ -768,7 +772,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "moderator", "approved", "pending"],
+      app_role: ["admin", "moderator", "approved", "guest", "pending"],
       event_status: ["active", "full", "cancelled"],
       event_type: ["gathering", "class", "trip", "retreat", "meeting"],
       guest_request_status: ["pending", "approved", "rejected"],

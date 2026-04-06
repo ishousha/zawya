@@ -36,6 +36,7 @@ export default function UserManagement() {
   const [newName, setNewName] = useState("");
   const [newEmail, setNewEmail] = useState("");
   const [newFamilyId, setNewFamilyId] = useState("");
+  const [newRole, setNewRole] = useState<"approved" | "guest">("approved");
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState<string>("all");
 
@@ -151,6 +152,7 @@ export default function UserManagement() {
           email: newEmail.trim(),
           name: newName.trim(),
           family_id: newFamilyId || undefined,
+          role: newRole,
         },
       });
       if (error) throw error;
@@ -160,11 +162,12 @@ export default function UserManagement() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-profiles"] });
       queryClient.invalidateQueries({ queryKey: ["admin-user-roles"] });
-      toast.success("Member created and auto-approved!");
+      toast.success(newRole === "guest" ? "Guest created!" : "Member created and auto-approved!");
       setAddOpen(false);
       setNewName("");
       setNewEmail("");
       setNewFamilyId("");
+      setNewRole("approved");
     },
     onError: (err: Error) => toast.error(err.message || "Failed to create member"),
   });
@@ -263,13 +266,28 @@ export default function UserManagement() {
                     </SelectContent>
                   </Select>
                 </div>
+                <div className="space-y-2">
+                  <Label>Role</Label>
+                  <Select value={newRole} onValueChange={(v) => setNewRole(v as "approved" | "guest")}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="approved">Approved (full member)</SelectItem>
+                      <SelectItem value="guest">Guest (event-specific)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    {newRole === "guest" ? "Guests can only see events they are RSVP'd to." : "Full members can see all active events."}
+                  </p>
+                </div>
                 <Button
                   className="w-full"
                   disabled={!newName.trim() || !newEmail.trim() || createMember.isPending}
                   onClick={() => createMember.mutate()}
                 >
                   {createMember.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Create & Auto-Approve
+                  {newRole === "guest" ? "Create Guest" : "Create & Auto-Approve"}
                 </Button>
               </div>
             </DialogContent>
@@ -294,6 +312,7 @@ export default function UserManagement() {
               <SelectItem value="all">All roles</SelectItem>
               <SelectItem value="pending">Pending</SelectItem>
               <SelectItem value="approved">Approved</SelectItem>
+              <SelectItem value="guest">Guest</SelectItem>
               <SelectItem value="moderator">Moderator</SelectItem>
               <SelectItem value="admin">Admin</SelectItem>
             </SelectContent>
@@ -341,6 +360,7 @@ export default function UserManagement() {
                     <SelectContent>
                       <SelectItem value="pending">Pending</SelectItem>
                       <SelectItem value="approved">Approved</SelectItem>
+                      <SelectItem value="guest">Guest</SelectItem>
                       <SelectItem value="moderator">Moderator</SelectItem>
                       <SelectItem value="admin">Admin</SelectItem>
                     </SelectContent>
