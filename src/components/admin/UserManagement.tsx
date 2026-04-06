@@ -392,6 +392,7 @@ export default function UserManagement() {
           const pendingCount = profiles?.filter((p) => p.role === "pending").length ?? 0;
           const approvedCount = profiles?.filter((p) => p.role === "approved").length ?? 0;
           const suspendedCount = profiles?.filter((p) => p.role === "suspended").length ?? 0;
+          const rejectedCount = profiles?.filter((p) => (p.role as string) === "rejected").length ?? 0;
           return (
             <div className="mb-3 flex flex-wrap gap-1.5">
               <Button
@@ -422,6 +423,14 @@ export default function UserManagement() {
                 onClick={() => setRoleFilter("approved")}
               >
                 Approved ({approvedCount})
+              </Button>
+              <Button
+                size="sm"
+                variant={roleFilter === "rejected" ? "default" : "outline"}
+                className="h-7 text-xs"
+                onClick={() => setRoleFilter("rejected")}
+              >
+                Rejected ({rejectedCount})
               </Button>
               <Button
                 size="sm"
