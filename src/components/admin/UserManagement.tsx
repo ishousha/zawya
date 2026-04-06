@@ -13,6 +13,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { Search } from "lucide-react";
 import {
   Select,
   SelectContent,
