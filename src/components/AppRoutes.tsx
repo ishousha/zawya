@@ -59,6 +59,15 @@ export default function AppRoutes() {
     );
   }
 
+  // Suspended users are blocked entirely
+  if (profile?.role === "suspended") {
+    return (
+      <Routes>
+        <Route path="*" element={<Suspended />} />
+      </Routes>
+    );
+  }
+
   // /join-family is always accessible when authenticated (bypasses onboarding/terms gates)
   const joinFamilyRoute = <Route path="/join-family" element={<JoinFamily />} />;
 
