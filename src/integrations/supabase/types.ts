@@ -248,6 +248,24 @@ export type Database = {
           },
         ]
       }
+      families: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
       guest_requests: {
         Row: {
           created_at: string
@@ -327,6 +345,7 @@ export type Database = {
           created_at: string
           date_of_birth: string | null
           email: string | null
+          family_id: string | null
           family_name: string | null
           id: string
           name: string | null
@@ -341,6 +360,7 @@ export type Database = {
           created_at?: string
           date_of_birth?: string | null
           email?: string | null
+          family_id?: string | null
           family_name?: string | null
           id: string
           name?: string | null
@@ -355,6 +375,7 @@ export type Database = {
           created_at?: string
           date_of_birth?: string | null
           email?: string | null
+          family_id?: string | null
           family_name?: string | null
           id?: string
           name?: string | null
@@ -364,7 +385,15 @@ export type Database = {
           updated_at?: string
           whatsapp_number?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       rsvp_sign_up_selections: {
         Row: {
