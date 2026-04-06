@@ -37,7 +37,12 @@ export default function LoginPage() {
     }, 1000);
   };
 
+  // Detect magic link tokens in URL hash and show loading state
   useEffect(() => {
+    const hash = window.location.hash;
+    if (hash && (hash.includes("access_token") || hash.includes("type=magiclink") || hash.includes("type=signup"))) {
+      setStage("magic-link");
+    }
     return () => { if (expiryRef.current) clearInterval(expiryRef.current); };
   }, []);
 
