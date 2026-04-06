@@ -34,6 +34,8 @@ const ICON_MAP: Record<string, any> = {
   Palette, Dumbbell, TreePine, Sparkles, PartyPopper,
 };
 
+export const EVENT_TYPE_ICON_NAMES = Object.keys(ICON_MAP);
+
 export function getEventTypeIcon(iconName: string) {
   return ICON_MAP[iconName] ?? MapPin;
 }
