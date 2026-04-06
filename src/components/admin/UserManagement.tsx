@@ -33,6 +33,21 @@ export default function UserManagement() {
     },
   });
 
+  const { data: families } = useQuery({
+    queryKey: ["admin-families-lookup"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("families").select("id, name");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const familyMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    families?.forEach((f) => { map[f.id] = f.name; });
+    return map;
+  }, [families]);
+
   const { data: guestRequests, isLoading: loadingGuests } = useQuery({
     queryKey: ["admin-guest-requests"],
     queryFn: async () => {
@@ -41,7 +56,6 @@ export default function UserManagement() {
         .select("*, events:event_id(title, date_time), profiles:requesting_user_id(name, email)")
         .order("created_at", { ascending: false });
       if (error) throw error;
-      // Sort: pending first
       return (data ?? []).sort((a, b) => {
         if (a.status === "pending" && b.status !== "pending") return -1;
         if (a.status !== "pending" && b.status === "pending") return 1;
