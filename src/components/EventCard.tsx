@@ -36,6 +36,7 @@ export default function EventCard({ event, onShowTicket }: EventCardProps) {
   const isCancelled = event.status === "cancelled";
 
   const confirmedCount = allRsvps?.filter((r) => !r.is_waitlisted).length ?? 0;
+  const checkedInCount = allRsvps?.filter((r) => r.checked_in).length ?? 0;
   const isFull = !!event.capacity && confirmedCount >= event.capacity;
 
   // Time-gate: refresh every second for countdown
