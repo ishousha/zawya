@@ -35,7 +35,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Pencil, Trash2 } from "lucide-react";
-import { getEventTypeIcon } from "@/hooks/useEventTypes";
+import { getEventTypeIcon, EVENT_TYPE_ICON_NAMES } from "@/hooks/useEventTypes";
 
 interface FormState {
   name: string;
@@ -51,7 +51,7 @@ const defaultForm: FormState = {
   allows_potluck: true,
 };
 
-const ICON_OPTIONS = ["MapPin", "Video", "Users", "BookOpen", "Mountain", "Handshake"];
+const ICON_OPTIONS = EVENT_TYPE_ICON_NAMES;
 
 export default function EventTypeManagement() {
   const { data: eventTypes, isLoading } = useEventTypes();
