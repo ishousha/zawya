@@ -644,7 +644,7 @@ export default function UserManagement() {
           <div className="space-y-2">
             {guestRequests.map((gr) => (
               <Card key={gr.id} className={gr.status === "pending" ? "border-accent" : ""}>
-                <CardContent className="flex items-center justify-between p-4">
+                <CardContent className="flex flex-col p-4 sm:flex-row sm:items-center sm:justify-between">
                   <div className="min-w-0 flex-1">
                     <p className="truncate font-medium text-card-foreground">{gr.guest_name}</p>
                     {(gr as any).profiles?.name && (
@@ -660,7 +660,7 @@ export default function UserManagement() {
                       <p className="text-xs text-muted-foreground">{gr.guest_phone}</p>
                     )}
                   </div>
-                  <div className="ml-3 flex items-center gap-2">
+                  <div className="mt-3 flex items-center gap-2 sm:mt-0 sm:ml-3">
                     <Badge
                       variant={gr.status === "pending" ? "outline" : gr.status === "approved" ? "default" : "destructive"}
                       className="capitalize"
