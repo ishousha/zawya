@@ -1,4 +1,4 @@
-export type EventType = "gathering" | "class" | "trip" | "retreat" | "meeting";
+export type EventType = "gathering" | "class" | "trip" | "retreat" | "meeting" | "nasiha";
 
 export const EVENT_TYPE_LABELS: Record<EventType, string> = {
   gathering: "Gathering / Potluck",
@@ -6,6 +6,7 @@ export const EVENT_TYPE_LABELS: Record<EventType, string> = {
   trip: "Trip or Picnic (Kids & Family)",
   retreat: "Retreat / Rihla",
   meeting: "Community Meeting",
+  nasiha: "Nasiha",
 };
 
 export interface EventFormState {
