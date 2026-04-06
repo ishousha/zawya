@@ -41,6 +41,14 @@ export default function EventCard({ event, onShowTicket }: EventCardProps) {
   const confirmedCount = allRsvps?.filter((r) => !r.is_waitlisted).length ?? 0;
   const isFull = !!event.capacity && confirmedCount >= event.capacity;
 
+  // Calculate waitlist position for the current user
+  const waitlistPosition = isWaitlisted && allRsvps
+    ? allRsvps
+        .filter((r) => r.is_waitlisted)
+        .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+        .findIndex((r) => r.user_id === myRSVP?.user_id) + 1
+    : 0;
+
   return (
     <>
       <div className={`animate-fade-in rounded-lg border bg-card overflow-hidden transition-shadow ${
@@ -91,7 +99,7 @@ export default function EventCard({ event, onShowTicket }: EventCardProps) {
           {!isCancelled && isAttending && isWaitlisted && (
             <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
               <ClockIcon className="h-3 w-3" />
-              Waitlisted
+              Waitlisted{waitlistPosition > 0 ? ` #${waitlistPosition}` : ""}
             </span>
           )}
           {!isCancelled && isAttending && (event.ticket_fee ?? 0) > 0 && (
