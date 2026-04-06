@@ -47,6 +47,7 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
       has_potluck: event.has_potluck ?? true,
       ticket_fee: ((event as any).ticket_fee ?? 0).toString(),
       payment_instructions: event.payment_instructions ?? "",
+      online_link: (event as any).online_link ?? "",
       status: event.status,
     };
   });
@@ -101,6 +102,7 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
         has_potluck: form.has_potluck,
         ticket_fee: parseFloat(form.ticket_fee) || 0,
         payment_instructions: form.payment_instructions || null,
+        online_link: form.online_link || null,
         status: form.status,
       };
 
