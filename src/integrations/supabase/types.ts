@@ -758,6 +758,7 @@ export type Database = {
         | "guest"
         | "pending"
         | "suspended"
+        | "rejected"
       event_status: "active" | "full" | "cancelled"
       guest_request_status: "pending" | "approved" | "rejected"
       invite_status: "pending" | "accepted" | "expired"
@@ -896,6 +897,7 @@ export const Constants = {
         "guest",
         "pending",
         "suspended",
+        "rejected",
       ],
       event_status: ["active", "full", "cancelled"],
       guest_request_status: ["pending", "approved", "rejected"],

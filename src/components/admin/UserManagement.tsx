@@ -474,6 +474,7 @@ export default function UserManagement() {
                      {p.role === "admin" && <Badge className="text-[10px] px-1.5 py-0">Admin</Badge>}
                      {p.role === "moderator" && <Badge variant="secondary" className="text-[10px] px-1.5 py-0 border-primary/30 text-primary">Mod</Badge>}
                      {p.role === "suspended" && <Badge variant="destructive" className="text-[10px] px-1.5 py-0">Suspended</Badge>}
+                     {(p.role as string) === "rejected" && <Badge variant="destructive" className="text-[10px] px-1.5 py-0">Rejected</Badge>}
                   </p>
                   <p className="truncate text-xs text-muted-foreground">{p.email}</p>
                   {p.whatsapp_number && (
@@ -502,23 +503,43 @@ export default function UserManagement() {
                 </div>
                 <div className="ml-3 flex items-center gap-2">
                   {p.role === "pending" && (
-                    <Button
-                      size="sm"
-                      className="h-9 gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white"
-                      onClick={() =>
-                        updateRole.mutate({
-                          userId: p.id,
-                          role: "approved" as AppRole,
-                          email: p.email,
-                          name: p.name,
-                          previousRole: p.role,
-                        })
-                      }
-                      disabled={updateRole.isPending}
-                    >
-                      <CheckCircle className="h-4 w-4" />
-                      Approve
-                    </Button>
+                    <>
+                      <Button
+                        size="sm"
+                        className="h-9 gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white"
+                        onClick={() =>
+                          updateRole.mutate({
+                            userId: p.id,
+                            role: "approved" as AppRole,
+                            email: p.email,
+                            name: p.name,
+                            previousRole: p.role,
+                          })
+                        }
+                        disabled={updateRole.isPending}
+                      >
+                        <CheckCircle className="h-4 w-4" />
+                        Approve
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        className="h-9 gap-1.5"
+                        onClick={() =>
+                          updateRole.mutate({
+                            userId: p.id,
+                            role: "rejected" as AppRole,
+                            email: p.email,
+                            name: p.name,
+                            previousRole: p.role,
+                          })
+                        }
+                        disabled={updateRole.isPending}
+                      >
+                        <XCircle className="h-4 w-4" />
+                        Reject
+                      </Button>
+                    </>
                   )}
                   <AdminRsvpAction
                     userId={p.id}
@@ -543,6 +564,7 @@ export default function UserManagement() {
                     <SelectContent>
                       <SelectItem value="pending">Pending</SelectItem>
                       <SelectItem value="approved">Approved</SelectItem>
+                      <SelectItem value="rejected">Rejected</SelectItem>
                       <SelectItem value="guest">Guest</SelectItem>
                       <SelectItem value="moderator">Moderator</SelectItem>
                       <SelectItem value="admin">Admin</SelectItem>

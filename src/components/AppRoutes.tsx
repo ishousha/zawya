@@ -3,6 +3,7 @@ import { useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import LoginPage from "@/pages/Login";
 import { usePendingUserAlerts } from "@/hooks/usePendingUserAlerts";
+import Rejected from "@/pages/Rejected";
 import CompleteProfile from "@/pages/CompleteProfile";
 import PendingApproval from "@/pages/PendingApproval";
 import Suspended from "@/pages/Suspended";
@@ -70,7 +71,15 @@ export default function AppRoutes() {
     );
   }
 
-  // /join-family is always accessible when authenticated (bypasses onboarding/terms gates)
+  // Rejected users see a final decline screen
+  if ((profile?.role as string) === "rejected") {
+    return (
+      <Routes>
+        <Route path="*" element={<Rejected />} />
+      </Routes>
+    );
+  }
+
   const joinFamilyRoute = <Route path="/join-family" element={<JoinFamily />} />;
 
   // Pending: needs onboarding if name or whatsapp missing
