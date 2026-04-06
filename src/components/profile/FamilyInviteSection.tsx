@@ -5,12 +5,14 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Users, UserPlus, Copy, Loader2, MessageCircle, User } from "lucide-react";
+import { Users, UserPlus, Copy, Loader2, MessageCircle, User, Plus } from "lucide-react";
+import { useState } from "react";
 
 export default function FamilyInviteSection() {
   const { user, profile } = useAuth();
   const queryClient = useQueryClient();
   const familyId = (profile as any)?.family_id as string | null;
+  const [creating, setCreating] = useState(false);
 
   // Fetch family name
   const { data: familyName } = useQuery({
@@ -56,6 +58,48 @@ export default function FamilyInviteSection() {
     },
   });
 
+  const handleCreateFamily = async () => {
+    if (!user || !profile) return;
+    setCreating(true);
+
+    // Derive a family name from the user's profile name
+    const nameParts = (profile.name || "").trim().split(/\s+/);
+    const lastName = nameParts.length > 1 ? nameParts[nameParts.length - 1] : nameParts[0] || "My";
+    const familyLabel = `${lastName} Family`;
+
+    // Create family record
+    const { data: family, error: famErr } = await supabase
+      .from("families")
+      .insert({ name: familyLabel })
+      .select("id")
+      .single();
+
+    if (famErr || !family) {
+      toast.error("Failed to create family group.");
+      setCreating(false);
+      return;
+    }
+
+    // Link user to this family
+    const { error: profErr } = await supabase
+      .from("profiles")
+      .update({ family_id: family.id })
+      .eq("id", user.id);
+
+    setCreating(false);
+
+    if (profErr) {
+      toast.error("Family created but failed to link your profile.");
+      return;
+    }
+
+    toast.success(`"${familyLabel}" created!`);
+    queryClient.invalidateQueries({ queryKey: ["my-family-name"] });
+    queryClient.invalidateQueries({ queryKey: ["family-members-list"] });
+    // Force profile refresh
+    window.location.reload();
+  };
+
   const createInvite = useMutation({
     mutationFn: async () => {
       const { data, error } = await supabase
@@ -91,11 +135,28 @@ export default function FamilyInviteSection() {
   if (!familyId) {
     return (
       <Card>
-        <CardContent className="p-4 text-center">
-          <Users className="mx-auto h-8 w-8 text-muted-foreground mb-2 opacity-40" />
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base flex items-center gap-2">
+            <Users className="h-4 w-4 text-primary" />
+            Family Group
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="text-center space-y-3">
           <p className="text-sm text-muted-foreground">
-            You're not part of a family group yet. Ask an admin to assign you.
+            Create a family group to manage RSVPs and invite family members.
           </p>
+          <Button
+            className="w-full gap-1.5"
+            onClick={handleCreateFamily}
+            disabled={creating}
+          >
+            {creating ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Plus className="h-4 w-4" />
+            )}
+            Create Family Group
+          </Button>
         </CardContent>
       </Card>
     );
