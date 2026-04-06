@@ -407,6 +407,11 @@ export default function UserManagement() {
                   )}
                 </div>
                 <div className="ml-3 flex items-center gap-2">
+                  <AdminRsvpAction
+                    userId={p.id}
+                    userName={p.name}
+                    existingEventIds={userRsvpMap[p.id]?.map((e) => e.event_id) ?? []}
+                  />
                   <Select
                     value={p.role}
                     onValueChange={(val) =>
