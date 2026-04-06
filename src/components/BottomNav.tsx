@@ -1,22 +1,24 @@
 import { NavLink } from "react-router-dom";
 import { Home, User, Shield } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { usePendingUsersCount } from "@/hooks/usePendingUsersCount";
 
 export default function BottomNav() {
   const { profile } = useAuth();
   const isAdmin = profile?.role === "admin";
   const isModerator = (profile?.role as string) === "moderator";
+  const { data: pendingCount } = usePendingUsersCount();
 
   const tabs = [
     { to: "/", icon: Home, label: "Home" },
-    ...((isAdmin || isModerator) ? [{ to: "/admin", icon: Shield, label: isAdmin ? "Admin" : "Manage" }] : []),
+    ...((isAdmin || isModerator) ? [{ to: "/admin", icon: Shield, label: isAdmin ? "Admin" : "Manage", showBadge: isAdmin }] : []),
     { to: "/profile", icon: User, label: "Profile" },
   ];
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-card">
       <div className="mx-auto flex max-w-lg">
-        {tabs.map(({ to, icon: Icon, label }) => (
+        {tabs.map(({ to, icon: Icon, label, showBadge }) => (
           <NavLink
             key={to}
             to={to}
@@ -28,7 +30,14 @@ export default function BottomNav() {
               }`
             }
           >
-            <Icon className="h-5 w-5" />
+            <span className="relative">
+              <Icon className="h-5 w-5" />
+              {showBadge && !!pendingCount && pendingCount > 0 && (
+                <span className="absolute -right-2.5 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold text-destructive-foreground">
+                  {pendingCount > 99 ? "99+" : pendingCount}
+                </span>
+              )}
+            </span>
             {label}
           </NavLink>
         ))}
