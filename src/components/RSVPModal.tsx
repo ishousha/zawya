@@ -36,7 +36,7 @@ export default function RSVPModal({ event, open, onOpenChange }: RSVPModalProps)
 
   const [selectedMemberIds, setSelectedMemberIds] = useState<Set<string>>(new Set());
   const [selectedDependentIds, setSelectedDependentIds] = useState<Set<string>>(new Set());
-  const [selections, setSelections] = useState<Record<number, number>>({});
+  const [selections, setSelections] = useState<Record<number, { selected: boolean; description: string }>>({});
 
   // Sync attendee state when data loads
   useEffect(() => {
