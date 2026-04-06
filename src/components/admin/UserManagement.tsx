@@ -391,6 +391,15 @@ export default function UserManagement() {
                       Roles: {rolesMap[p.id].join(", ")}
                     </p>
                   )}
+                  {userRsvpMap[p.id] && userRsvpMap[p.id].length > 0 && (
+                    <div className="mt-1 flex flex-wrap gap-1">
+                      {userRsvpMap[p.id].map((e) => (
+                        <Badge key={e.event_id} variant="outline" className="text-[10px] px-1.5 py-0">
+                          {e.title}
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
                 </div>
                 <div className="ml-3 flex items-center gap-2">
                   <Select
