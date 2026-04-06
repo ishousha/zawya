@@ -39,6 +39,7 @@ export default function UserManagement() {
   const [newRole, setNewRole] = useState<"approved" | "guest">("approved");
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState<string>("all");
+  const [eventFilter, setEventFilter] = useState<string>("all");
 
   const { data: profiles, isLoading: loadingProfiles } = useQuery({
     queryKey: ["admin-profiles"],
