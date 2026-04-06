@@ -236,13 +236,13 @@ export default function EventControlRoom() {
             {activeEvents.map((event) => (
               <Card key={event.id}>
                 <CardContent className="p-4">
-                  <div className="flex items-start justify-between">
-                    <div className="min-w-0 flex-1">
-                      <p className="font-medium text-card-foreground">{event.title}</p>
-                      <p className="text-xs text-muted-foreground">
+                  <div className="space-y-3">
+                    <div className="min-w-0">
+                      <p className="font-medium text-card-foreground text-base">{event.title}</p>
+                      <p className="text-sm text-muted-foreground mt-0.5">
                         {format(new Date(event.date_time), "PPP p")}
                       </p>
-                      <div className="mt-1 flex gap-1.5">
+                      <div className="mt-2 flex flex-wrap gap-1.5">
                         <Badge variant="secondary" className="text-xs capitalize">{getTypeName(event.event_type_id)}</Badge>
                         <Badge variant="default" className="text-xs capitalize">
                           {event.status}
@@ -252,50 +252,52 @@ export default function EventControlRoom() {
                         )}
                       </div>
                     </div>
-                    <div className="ml-2 flex gap-1">
-                      <Button size="icon" variant="ghost" className="h-10 w-10" onClick={() => setMonitoringEventId(event.id)}>
-                        <Users className="h-4 w-4" />
+                    <div className="flex items-center gap-1 border-t border-border pt-2">
+                      <Button size="sm" variant="ghost" className="h-9 gap-1.5 text-xs" onClick={() => setMonitoringEventId(event.id)}>
+                        <Users className="h-3.5 w-3.5" /> RSVPs
                       </Button>
-                      <Button size="icon" variant="ghost" className="h-10 w-10" onClick={() => setEditing(event)}>
-                        <Edit2 className="h-4 w-4" />
+                      <Button size="sm" variant="ghost" className="h-9 gap-1.5 text-xs" onClick={() => setEditing(event)}>
+                        <Edit2 className="h-3.5 w-3.5" /> Edit
                       </Button>
-                      <Button size="icon" variant="ghost" className="h-10 w-10" onClick={() => handleDuplicate(event)}>
-                        <Copy className="h-4 w-4" />
+                      <Button size="sm" variant="ghost" className="h-9 gap-1.5 text-xs" onClick={() => handleDuplicate(event)}>
+                        <Copy className="h-3.5 w-3.5" /> Copy
                       </Button>
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button size="icon" variant="ghost" className="h-10 w-10 text-destructive hover:text-destructive">
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Remove "{event.title}"?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              Choose to cancel (keeps records) or permanently delete this event and all its RSVPs.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter className="flex-col gap-2 sm:flex-row">
-                            <AlertDialogCancel>Keep Event</AlertDialogCancel>
-                            {event.status !== "cancelled" && (
+                      <div className="ml-auto">
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button size="icon" variant="ghost" className="h-9 w-9 text-destructive hover:text-destructive">
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Remove "{event.title}"?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Choose to cancel (keeps records) or permanently delete this event and all its RSVPs.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter className="flex-col gap-2 sm:flex-row">
+                              <AlertDialogCancel>Keep Event</AlertDialogCancel>
+                              {event.status !== "cancelled" && (
+                                <AlertDialogAction
+                                  onClick={() => cancelMutation.mutate(event)}
+                                  className="bg-muted text-foreground hover:bg-muted/80"
+                                >
+                                  <Ban className="mr-1.5 h-4 w-4" />
+                                  Cancel Event
+                                </AlertDialogAction>
+                              )}
                               <AlertDialogAction
-                                onClick={() => cancelMutation.mutate(event)}
-                                className="bg-muted text-foreground hover:bg-muted/80"
+                                onClick={() => deleteMutation.mutate(event.id)}
+                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                               >
-                                <Ban className="mr-1.5 h-4 w-4" />
-                                Cancel Event
+                                <Trash2 className="mr-1.5 h-4 w-4" />
+                                Delete Permanently
                               </AlertDialogAction>
-                            )}
-                            <AlertDialogAction
-                              onClick={() => deleteMutation.mutate(event.id)}
-                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                            >
-                              <Trash2 className="mr-1.5 h-4 w-4" />
-                              Delete Permanently
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
                     </div>
                   </div>
                 </CardContent>
@@ -322,61 +324,62 @@ export default function EventControlRoom() {
                 {cancelledEvents.map((event) => (
                   <Card key={event.id} className="border-destructive/30 opacity-75">
                     <CardContent className="p-4">
-                      <div className="flex items-start justify-between">
-                        <div className="min-w-0 flex-1">
-                          <p className="font-medium text-card-foreground">{event.title}</p>
-                          <p className="text-xs text-muted-foreground line-through">
+                      <div className="space-y-3">
+                        <div className="min-w-0">
+                          <p className="font-medium text-card-foreground text-base">{event.title}</p>
+                          <p className="text-sm text-muted-foreground line-through mt-0.5">
                             {format(new Date(event.date_time), "PPP p")}
                           </p>
-                          <div className="mt-1 flex gap-1.5">
+                          <div className="mt-2 flex flex-wrap gap-1.5">
                             <Badge variant="secondary" className="text-xs capitalize">{getTypeName(event.event_type_id)}</Badge>
                             <Badge variant="destructive" className="text-xs capitalize">
                               {event.status}
                             </Badge>
                           </div>
                         </div>
-                        <div className="ml-2 flex gap-1">
+                        <div className="flex items-center gap-1 border-t border-border pt-2">
                           <Button
-                            size="icon"
+                            size="sm"
                             variant="ghost"
-                            className="h-10 w-10 text-primary hover:text-primary"
+                            className="h-9 gap-1.5 text-xs text-primary hover:text-primary"
                             onClick={() => reactivateMutation.mutate(event)}
                             disabled={reactivateMutation.isPending}
-                            title="Reactivate"
                           >
-                            <RotateCcw className="h-4 w-4" />
+                            <RotateCcw className="h-3.5 w-3.5" /> Reactivate
                           </Button>
-                          <Button size="icon" variant="ghost" className="h-10 w-10" onClick={() => setMonitoringEventId(event.id)}>
-                            <Users className="h-4 w-4" />
+                          <Button size="sm" variant="ghost" className="h-9 gap-1.5 text-xs" onClick={() => setMonitoringEventId(event.id)}>
+                            <Users className="h-3.5 w-3.5" /> RSVPs
                           </Button>
-                          <Button size="icon" variant="ghost" className="h-10 w-10" onClick={() => handleDuplicate(event)}>
-                            <Copy className="h-4 w-4" />
+                          <Button size="sm" variant="ghost" className="h-9 gap-1.5 text-xs" onClick={() => handleDuplicate(event)}>
+                            <Copy className="h-3.5 w-3.5" /> Copy
                           </Button>
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button size="icon" variant="ghost" className="h-10 w-10 text-destructive hover:text-destructive">
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Delete "{event.title}"?</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  Permanently delete this cancelled event and all its RSVPs. This cannot be undone.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Keep</AlertDialogCancel>
-                                <AlertDialogAction
-                                  onClick={() => deleteMutation.mutate(event.id)}
-                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                >
-                                  <Trash2 className="mr-1.5 h-4 w-4" />
-                                  Delete Permanently
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
+                          <div className="ml-auto">
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button size="icon" variant="ghost" className="h-9 w-9 text-destructive hover:text-destructive">
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Delete "{event.title}"?</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Permanently delete this cancelled event and all its RSVPs. This cannot be undone.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Keep</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={() => deleteMutation.mutate(event.id)}
+                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                  >
+                                    <Trash2 className="mr-1.5 h-4 w-4" />
+                                    Delete Permanently
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </div>
                         </div>
                       </div>
                     </CardContent>
