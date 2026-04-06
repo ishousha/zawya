@@ -10,8 +10,9 @@ import { Badge } from "@/components/ui/badge";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { toast } from "sonner";
-import { Plus, Users, UserPlus, X, Loader2, Check, ChevronsUpDown, Search } from "lucide-react";
+import { Plus, Users, UserPlus, X, Loader2, Check, ChevronsUpDown, Search, Eye } from "lucide-react";
 import { cn } from "@/lib/utils";
+import FamilyDetailsModal from "./FamilyDetailsModal";
 
 interface Family {
   id: string;
