@@ -85,7 +85,7 @@ export default function AdminDashboard() {
   // Moderator swipe handler
   const modSwipeHandlers = useSwipeable({
     onSwipedLeft: (e) => {
-      if (isInsideScrollable(e)) return;
+      if (isInsideScrollable(e.event.target)) return;
       const idx = MODERATOR_TABS.indexOf(modTab);
       if (idx < MODERATOR_TABS.length - 1) setModTab(MODERATOR_TABS[idx + 1]);
     },
