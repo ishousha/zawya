@@ -395,11 +395,11 @@ export default function UserManagement() {
           const suspendedCount = profiles?.filter((p) => p.role === "suspended").length ?? 0;
           const rejectedCount = profiles?.filter((p) => (p.role as string) === "rejected").length ?? 0;
           return (
-            <div className="mb-3 flex flex-wrap gap-1.5">
+            <div className="mb-3 flex overflow-x-auto gap-1.5 pb-2 scrollbar-hide">
               <Button
                 size="sm"
                 variant={roleFilter === "all" ? "default" : "outline"}
-                className="h-7 text-xs"
+                className="h-7 text-xs whitespace-nowrap flex-shrink-0"
                 onClick={() => setRoleFilter("all")}
               >
                 All Users
@@ -407,10 +407,10 @@ export default function UserManagement() {
               <Button
                 size="sm"
                 variant={roleFilter === "pending" ? "default" : "outline"}
-                className={`h-7 text-xs gap-1 ${roleFilter !== "pending" && pendingCount > 0 ? "border-amber-400 text-amber-700 dark:text-amber-400" : ""}`}
+                className={`h-7 text-xs gap-1 whitespace-nowrap flex-shrink-0 ${roleFilter !== "pending" && pendingCount > 0 ? "border-amber-400 text-amber-700 dark:text-amber-400" : ""}`}
                 onClick={() => setRoleFilter("pending")}
               >
-                Pending Approval
+                Pending
                 {pendingCount > 0 && (
                   <span className="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-amber-500 px-1 text-[10px] font-bold text-white animate-pulse">
                     {pendingCount}
@@ -420,7 +420,7 @@ export default function UserManagement() {
               <Button
                 size="sm"
                 variant={roleFilter === "approved" ? "default" : "outline"}
-                className="h-7 text-xs"
+                className="h-7 text-xs whitespace-nowrap flex-shrink-0"
                 onClick={() => setRoleFilter("approved")}
               >
                 Approved ({approvedCount})
@@ -428,7 +428,7 @@ export default function UserManagement() {
               <Button
                 size="sm"
                 variant={roleFilter === "rejected" ? "default" : "outline"}
-                className="h-7 text-xs"
+                className="h-7 text-xs whitespace-nowrap flex-shrink-0"
                 onClick={() => setRoleFilter("rejected")}
               >
                 Rejected ({rejectedCount})
@@ -436,7 +436,7 @@ export default function UserManagement() {
               <Button
                 size="sm"
                 variant={roleFilter === "suspended" ? "default" : "outline"}
-                className="h-7 text-xs"
+                className="h-7 text-xs whitespace-nowrap flex-shrink-0"
                 onClick={() => setRoleFilter("suspended")}
               >
                 Suspended ({suspendedCount})
