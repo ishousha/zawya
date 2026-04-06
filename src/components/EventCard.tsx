@@ -333,6 +333,16 @@ export default function EventCard({ event, onShowTicket }: EventCardProps) {
       {!isCancelled && (
         <RSVPModal event={event} open={rsvpOpen} onOpenChange={setRsvpOpen} />
       )}
+
+      {canSelfCheckin && myRSVP && (
+        <SelfCheckinModal
+          open={checkinOpen}
+          onOpenChange={setCheckinOpen}
+          eventId={event.id}
+          rsvpId={myRSVP.id}
+          eventTitle={event.title}
+        />
+      )}
     </>
   );
 }
