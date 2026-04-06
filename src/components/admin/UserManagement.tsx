@@ -387,7 +387,54 @@ export default function UserManagement() {
             </DialogContent>
           </Dialog>
         </div>
-        {/* Search & Filter */}
+        {/* Quick status filters */}
+        {(() => {
+          const pendingCount = profiles?.filter((p) => p.role === "pending").length ?? 0;
+          const approvedCount = profiles?.filter((p) => p.role === "approved").length ?? 0;
+          const suspendedCount = profiles?.filter((p) => p.role === "suspended").length ?? 0;
+          return (
+            <div className="mb-3 flex flex-wrap gap-1.5">
+              <Button
+                size="sm"
+                variant={roleFilter === "all" ? "default" : "outline"}
+                className="h-7 text-xs"
+                onClick={() => setRoleFilter("all")}
+              >
+                All Users
+              </Button>
+              <Button
+                size="sm"
+                variant={roleFilter === "pending" ? "default" : "outline"}
+                className={`h-7 text-xs gap-1 ${roleFilter !== "pending" && pendingCount > 0 ? "border-amber-400 text-amber-700 dark:text-amber-400" : ""}`}
+                onClick={() => setRoleFilter("pending")}
+              >
+                Pending Approval
+                {pendingCount > 0 && (
+                  <span className="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-amber-500 px-1 text-[10px] font-bold text-white animate-pulse">
+                    {pendingCount}
+                  </span>
+                )}
+              </Button>
+              <Button
+                size="sm"
+                variant={roleFilter === "approved" ? "default" : "outline"}
+                className="h-7 text-xs"
+                onClick={() => setRoleFilter("approved")}
+              >
+                Approved ({approvedCount})
+              </Button>
+              <Button
+                size="sm"
+                variant={roleFilter === "suspended" ? "default" : "outline"}
+                className="h-7 text-xs"
+                onClick={() => setRoleFilter("suspended")}
+              >
+                Suspended ({suspendedCount})
+              </Button>
+            </div>
+          );
+        })()}
+        {/* Search & Filters */}
         <div className="mb-3 flex gap-2">
           <div className="relative flex-1">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -398,20 +445,6 @@ export default function UserManagement() {
               className="pl-9 h-9"
             />
           </div>
-          <Select value={roleFilter} onValueChange={setRoleFilter}>
-            <SelectTrigger className="w-[130px] h-9">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All roles</SelectItem>
-              <SelectItem value="pending">Pending</SelectItem>
-              <SelectItem value="approved">Approved</SelectItem>
-              <SelectItem value="guest">Guest</SelectItem>
-              <SelectItem value="moderator">Moderator</SelectItem>
-              <SelectItem value="admin">Admin</SelectItem>
-              <SelectItem value="suspended">Suspended</SelectItem>
-            </SelectContent>
-          </Select>
           <Select value={eventFilter} onValueChange={setEventFilter}>
             <SelectTrigger className="w-[160px] h-9">
               <SelectValue placeholder="All events" />
