@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, ShieldAlert, UserMinus, UserCog, UserPlus, RefreshCw } from "lucide-react";
+import { Loader2, ShieldAlert, UserMinus, UserCog, UserPlus, RefreshCw, Download } from "lucide-react";
 import { format } from "date-fns";
 import { useState, useMemo } from "react";
 import {
