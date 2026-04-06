@@ -39,6 +39,7 @@ export default function DesignTab({ form, setForm }: DesignTabProps) {
           }
           break;
         case "meeting":
+        case "nasiha":
           next.has_potluck = false;
           break;
         // trip and retreat: keep potluck toggleable, fee visible
