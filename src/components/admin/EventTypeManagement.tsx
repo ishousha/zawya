@@ -51,7 +51,12 @@ const defaultForm: FormState = {
   allows_potluck: true,
 };
 
-const ICON_OPTIONS = ["MapPin", "Video", "Users", "BookOpen", "Mountain", "Handshake"];
+const ICON_OPTIONS = [
+  "MapPin", "Video", "Users", "BookOpen", "Mountain", "Handshake",
+  "Calendar", "Clock", "Heart", "Star", "Music", "Utensils", "Coffee",
+  "Mic", "GraduationCap", "Tent", "Flame", "Globe", "Church", "Baby",
+  "Palette", "Dumbbell", "TreePine", "Sparkles", "PartyPopper",
+];
 
 export default function EventTypeManagement() {
   const { data: eventTypes, isLoading } = useEventTypes();
