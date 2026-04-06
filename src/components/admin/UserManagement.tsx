@@ -152,6 +152,7 @@ export default function UserManagement() {
           email: newEmail.trim(),
           name: newName.trim(),
           family_id: newFamilyId || undefined,
+          role: newRole,
         },
       });
       if (error) throw error;
