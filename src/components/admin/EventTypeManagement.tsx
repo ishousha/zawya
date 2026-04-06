@@ -108,6 +108,7 @@ export default function EventTypeManagement() {
           name: form.name.trim(),
           icon: form.icon,
           requires_location: form.requires_location,
+          is_virtual: form.is_virtual,
           allows_potluck: form.allows_potluck,
         });
         if (error) throw error;
