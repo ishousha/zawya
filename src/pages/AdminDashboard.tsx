@@ -129,6 +129,9 @@ export default function AdminDashboard() {
           <TabsContent value="events">
             <EventControlRoom />
           </TabsContent>
+          <TabsContent value="analytics">
+            <AdminAnalytics />
+          </TabsContent>
           <TabsContent value="settings">
             <EventTypeManagement />
           </TabsContent>
