@@ -1,4 +1,5 @@
 import { useState, useCallback, useMemo } from "react";
+import { format } from "date-fns";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -205,7 +206,7 @@ export default function AdminDoorScanner() {
           <SelectContent>
             {events?.map((e) => (
               <SelectItem key={e.id} value={e.id}>
-                {e.title}
+                {e.title} — {format(new Date(e.date_time), "EEE, MMM d")}
               </SelectItem>
             ))}
           </SelectContent>
