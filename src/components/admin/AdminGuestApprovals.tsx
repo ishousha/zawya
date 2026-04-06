@@ -17,7 +17,7 @@ export default function AdminGuestApprovals({ eventId }: { eventId: string }) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("events")
-        .select("title, date_time, location, address, virtual_link, online_link, type")
+        .select("title, date_time, location, address, virtual_link, online_link, event_type_id")
         .eq("id", eventId)
         .single();
       if (error) throw error;
@@ -32,8 +32,8 @@ export default function AdminGuestApprovals({ eventId }: { eventId: string }) {
     const eventDate = eventData?.date_time
       ? format(new Date(eventData.date_time), "EEEE, MMMM d 'at' h:mm a")
       : "";
-    const onlineLink = (eventData as any)?.online_link;
-    const eventLink = eventData?.type === "nasiha" && onlineLink
+     const onlineLink = eventData?.online_link;
+    const eventLink = onlineLink
       ? onlineLink
       : eventData?.virtual_link || "";
     const eventLocation = eventData?.location

@@ -12,8 +12,9 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { format } from "date-fns";
 import type { Database } from "@/integrations/supabase/types";
 import EventFormTabs from "./event-form/EventFormTabs";
-import type { EventFormState, EventType } from "./event-form/types";
+import type { EventFormState } from "./event-form/types";
 import type { SignUpItem } from "./event-form/ItemsTab";
+import { useEventTypes } from "@/hooks/useEventTypes";
 
 type EventRow = Database["public"]["Tables"]["events"]["Row"];
 
@@ -64,6 +65,9 @@ export default function EventControlRoom() {
   const [monitoringEventId, setMonitoringEventId] = useState<string | null>(null);
   const [duplicateForm, setDuplicateForm] = useState<{ form: EventFormState; items: SignUpItem[] } | null>(null);
 
+  const { data: eventTypes } = useEventTypes();
+  const getTypeName = (id: string) => eventTypes?.find((t) => t.id === id)?.name ?? "Event";
+
   const { data: events, isLoading } = useQuery({
     queryKey: ["admin-events"],
     queryFn: async () => {
@@ -89,7 +93,7 @@ export default function EventControlRoom() {
       description: event.description ?? "",
       date_time: "",
       end_date_time: "",
-      type: event.type as EventType,
+      event_type_id: event.event_type_id,
       venue_id: (event as any).venue_id ?? null,
       location: event.location ?? "",
       address: event.address ?? "",
@@ -193,7 +197,7 @@ export default function EventControlRoom() {
                         {format(new Date(event.date_time), "PPP p")}
                       </p>
                       <div className="mt-1 flex gap-1.5">
-                        <Badge variant="secondary" className="text-xs capitalize">{event.type}</Badge>
+                        <Badge variant="secondary" className="text-xs capitalize">{getTypeName(event.event_type_id)}</Badge>
                         <Badge variant="default" className="text-xs capitalize">
                           {event.status}
                         </Badge>
@@ -279,7 +283,7 @@ export default function EventControlRoom() {
                             {format(new Date(event.date_time), "PPP p")}
                           </p>
                           <div className="mt-1 flex gap-1.5">
-                            <Badge variant="secondary" className="text-xs capitalize">{event.type}</Badge>
+                            <Badge variant="secondary" className="text-xs capitalize">{getTypeName(event.event_type_id)}</Badge>
                             <Badge variant="destructive" className="text-xs capitalize">
                               {event.status}
                             </Badge>

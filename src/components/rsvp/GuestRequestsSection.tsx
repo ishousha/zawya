@@ -73,8 +73,8 @@ export default function GuestRequestsSection({ eventId, event }: GuestRequestsSe
             const buildShareMessage = () => {
               if (!event) return "";
               const date = format(new Date(event.date_time), "EEEE, MMMM d 'at' h:mm a");
-              const onlineLink = (event as any).online_link;
-              const locationPart = event.type === "nasiha" && onlineLink
+              const onlineLink = event.online_link;
+              const locationPart = onlineLink
                 ? `Link: ${onlineLink}`
                 : event.location
                   ? `Location: ${event.location}${event.address ? ` — ${event.address}` : ""}`
