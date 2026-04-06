@@ -4,24 +4,12 @@ import { MapPin, Video, Users, Calendar, Clock, CheckCircle2, Ticket, Edit, Buil
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useMyRSVP, useEventRSVPs } from "@/hooks/useRSVP";
+import { useEventTypes, getEventTypeIcon } from "@/hooks/useEventTypes";
 import RSVPModal from "@/components/RSVPModal";
 import AddToCalendarButton from "@/components/AddToCalendarButton";
 import type { Database } from "@/integrations/supabase/types";
 
 type Event = Database["public"]["Tables"]["events"]["Row"];
-
-const typeConfig: Record<string, { icon: any; label: string }> = {
-  gathering: { icon: MapPin, label: "Gathering / Potluck" },
-  class: { icon: BookOpen, label: "Class / Halaqa" },
-  trip: { icon: Users, label: "Trip / Picnic" },
-  retreat: { icon: Mountain, label: "Retreat / Rihla" },
-  meeting: { icon: Handshake, label: "Community Meeting" },
-  nasiha: { icon: Video, label: "Nasiha" },
-  // Legacy fallbacks
-  physical: { icon: MapPin, label: "In Person" },
-  online: { icon: Video, label: "Online" },
-  kids: { icon: Users, label: "Kids" },
-};
 
 interface EventCardProps {
   event: Event;
@@ -30,8 +18,11 @@ interface EventCardProps {
 
 export default function EventCard({ event, onShowTicket }: EventCardProps) {
   const localDate = new Date(event.date_time);
-  const TypeIcon = (typeConfig[event.type] ?? typeConfig.gathering).icon;
-  const typeLabel = (typeConfig[event.type] ?? typeConfig.gathering).label;
+  const { data: eventTypes } = useEventTypes();
+  const eventType = eventTypes?.find((t) => t.id === event.event_type_id);
+  const TypeIcon = eventType ? getEventTypeIcon(eventType.icon) : MapPin;
+  const typeLabel = eventType?.name ?? "Event";
+
   const { data: myRSVP } = useMyRSVP(event.id);
   const { data: allRsvps } = useEventRSVPs(event.id);
   const [rsvpOpen, setRsvpOpen] = useState(false);
@@ -80,6 +71,9 @@ export default function EventCard({ event, onShowTicket }: EventCardProps) {
         .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
         .findIndex((r) => r.user_id === myRSVP?.user_id) + 1
     : 0;
+
+  // Check if this is a virtual-only event type (no location required)
+  const requiresLocation = eventType?.requires_location ?? true;
 
   return (
     <>
@@ -135,7 +129,7 @@ export default function EventCard({ event, onShowTicket }: EventCardProps) {
             </span>
           )}
           {!isCancelled && isAttending && (event.ticket_fee ?? 0) > 0 && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-yellow-100 dark:bg-yellow-900/40 px-2.5 py-0.5 text-xs font-semibold text-yellow-800 dark:text-yellow-300">
+            <span className="inline-flex items-center gap-1 rounded-full bg-accent/60 px-2.5 py-0.5 text-xs font-semibold text-accent-foreground">
               💰 Pay Offline
             </span>
           )}
@@ -255,7 +249,7 @@ export default function EventCard({ event, onShowTicket }: EventCardProps) {
         )}
 
         {/* Not attending: show general location hint */}
-        {!isCancelled && !isAttending && event.location && (
+        {!isCancelled && !isAttending && requiresLocation && event.location && (
           <p className="mt-1.5 text-sm text-muted-foreground italic">
             📍 Location revealed after RSVP
           </p>
