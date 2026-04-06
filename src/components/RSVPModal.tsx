@@ -22,6 +22,11 @@ interface RSVPModalProps {
   onOpenChange: (open: boolean) => void;
 }
 
+interface ItemSelection {
+  selected: boolean;
+  description: string;
+}
+
 export default function RSVPModal({ event, open, onOpenChange }: RSVPModalProps) {
   const { user } = useAuth();
   const { data: myRSVP } = useMyRSVP(event.id);
@@ -36,12 +41,11 @@ export default function RSVPModal({ event, open, onOpenChange }: RSVPModalProps)
 
   const [selectedMemberIds, setSelectedMemberIds] = useState<Set<string>>(new Set());
   const [selectedDependentIds, setSelectedDependentIds] = useState<Set<string>>(new Set());
-  const [selections, setSelections] = useState<Record<number, { selected: boolean; description: string }>>({});
+  const [selections, setSelections] = useState<Record<number, ItemSelection>>({});
 
   // Sync attendee state when data loads
   useEffect(() => {
     if (myRSVP && familyMembers && dependents) {
-      // Restore selected members & dependents from attending_dependents JSONB
       const attendingDeps = (myRSVP.attending_dependents as any[]) || [];
       const memberIds = new Set<string>();
       const depIds = new Set<string>();
@@ -56,7 +60,6 @@ export default function RSVPModal({ event, open, onOpenChange }: RSVPModalProps)
         }
       }
 
-      // If no structured data, fall back to selecting self
       if (memberIds.size === 0 && attendingDeps.length === 0) {
         if (user) memberIds.add(user.id);
       }
@@ -64,17 +67,20 @@ export default function RSVPModal({ event, open, onOpenChange }: RSVPModalProps)
       setSelectedMemberIds(memberIds);
       setSelectedDependentIds(depIds);
     } else if (!myRSVP && user) {
-      // Default: select self
       setSelectedMemberIds(new Set([user.id]));
       setSelectedDependentIds(new Set());
     }
   }, [myRSVP, familyMembers, dependents, user]);
 
+  // Sync sign-up selections
   useEffect(() => {
     if (mySelections) {
-      const map: Record<number, number> = {};
+      const map: Record<number, ItemSelection> = {};
       mySelections.forEach((s) => {
-        map[Number(s.sign_up_item_id)] = s.quantity;
+        map[Number(s.sign_up_item_id)] = {
+          selected: true,
+          description: (s as any).description || "",
+        };
       });
       setSelections(map);
     }
@@ -100,7 +106,7 @@ export default function RSVPModal({ event, open, onOpenChange }: RSVPModalProps)
     });
   };
 
-  // Calculate claimed quantities per item (excluding current user)
+  // Calculate claimed counts per item (excluding current user)
   const claimedPerItem = useMemo(() => {
     const map: Record<number, number> = {};
     if (!allSelections) return map;
@@ -114,43 +120,43 @@ export default function RSVPModal({ event, open, onOpenChange }: RSVPModalProps)
 
   const hasItems = signUpItems && signUpItems.length > 0;
 
-  const updateSelection = (itemId: number, delta: number) => {
+  const toggleItem = (itemId: number) => {
     setSelections((prev) => {
-      const current = prev[itemId] || 0;
-      const next = Math.max(0, current + delta);
-      if (next === 0) {
+      const current = prev[itemId];
+      if (current?.selected) {
         const { [itemId]: _, ...rest } = prev;
         return rest;
       }
-      return { ...prev, [itemId]: next };
+      return { ...prev, [itemId]: { selected: true, description: "" } };
     });
   };
 
-  const getRemaining = (item: { id: number | string; quantity_limit: number }) => {
+  const updateItemDescription = (itemId: number, description: string) => {
+    setSelections((prev) => ({
+      ...prev,
+      [itemId]: { selected: true, description },
+    }));
+  };
+
+  const isItemFull = (item: { id: number | string; quantity_limit: number }) => {
     const itemId = Number(item.id);
-    if (item.quantity_limit === 0) return Infinity;
+    if (item.quantity_limit === 0) return false;
     const claimed = claimedPerItem[itemId] || 0;
-    const myQty = selections[itemId] || 0;
-    return item.quantity_limit - claimed - myQty;
+    const mine = selections[itemId]?.selected ? 1 : 0;
+    return claimed + mine >= item.quantity_limit && !selections[itemId]?.selected;
   };
 
   const buildAttendingDependents = () => {
     const entries: { type: string; id: string; name: string; age?: number | null }[] = [];
 
-    // Family members
     if (familyMembers) {
       for (const member of familyMembers) {
         if (selectedMemberIds.has(member.id)) {
-          entries.push({
-            type: "family_member",
-            id: member.id,
-            name: member.name || "Unknown",
-          });
+          entries.push({ type: "family_member", id: member.id, name: member.name || "Unknown" });
         }
       }
     }
 
-    // Dependents
     if (dependents) {
       const now = new Date();
       for (const dep of dependents) {
@@ -160,12 +166,7 @@ export default function RSVPModal({ event, open, onOpenChange }: RSVPModalProps)
             const dob = new Date(dep.date_of_birth);
             age = Math.floor((now.getTime() - dob.getTime()) / (365.25 * 24 * 60 * 60 * 1000));
           }
-          entries.push({
-            type: "dependent",
-            id: dep.id,
-            name: dep.first_name,
-            age,
-          });
+          entries.push({ type: "dependent", id: dep.id, name: dep.first_name, age });
         }
       }
     }
@@ -180,8 +181,12 @@ export default function RSVPModal({ event, open, onOpenChange }: RSVPModalProps)
     }
 
     const selArray = Object.entries(selections)
-      .filter(([, qty]) => qty > 0)
-      .map(([id, qty]) => ({ sign_up_item_id: Number(id), quantity: qty }));
+      .filter(([, val]) => val.selected)
+      .map(([id, val]) => ({
+        sign_up_item_id: Number(id),
+        quantity: 1,
+        description: val.description || null,
+      }));
 
     const attendingDeps = buildAttendingDependents();
 
@@ -257,43 +262,55 @@ export default function RSVPModal({ event, open, onOpenChange }: RSVPModalProps)
             Total attending: <span className="font-semibold text-foreground">{guestsCount}</span>
           </p>
 
-          {/* Flexible sign-up items */}
+          {/* Sign-up categories with checkbox + description */}
           {hasItems && (
             <div className="space-y-3">
-              <Label className="block text-sm font-medium">Sign-Up Items</Label>
+              <Label className="block text-sm font-medium">What are you bringing?</Label>
               <div className="space-y-2">
                 {signUpItems.map((item) => {
                   const itemId = Number(item.id);
-                  const qty = selections[itemId] || 0;
-                  const remaining = getRemaining(item);
-                  const atLimit = remaining <= 0 && qty === 0;
+                  const sel = selections[itemId];
+                  const isSelected = sel?.selected ?? false;
                   const claimed = claimedPerItem[itemId] || 0;
+                  const full = isItemFull(item);
 
                   return (
-                    <div
-                      key={item.id}
-                      className={`flex items-center justify-between rounded-lg border p-3 ${
-                        atLimit ? "border-border bg-muted/50 opacity-60" : "border-border bg-card"
-                      }`}
-                    >
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-medium text-foreground">{item.item_name}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {item.quantity_limit === 0
-                            ? "No limit"
-                            : `${claimed + qty}/${item.quantity_limit} claimed`}
-                          {atLimit && " — Full"}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-1.5 shrink-0">
-                        <Button type="button" size="icon" variant="outline" className="h-8 w-8" disabled={qty === 0} onClick={() => updateSelection(itemId, -1)}>
-                          <Minus className="h-3.5 w-3.5" />
-                        </Button>
-                        <span className="w-8 text-center text-sm font-medium">{qty}</span>
-                        <Button type="button" size="icon" variant="outline" className="h-8 w-8" disabled={remaining <= 0} onClick={() => updateSelection(itemId, 1)}>
-                          <Plus className="h-3.5 w-3.5" />
-                        </Button>
-                      </div>
+                    <div key={item.id} className="space-y-2">
+                      <label
+                        className={`flex items-center gap-3 rounded-lg border p-3 cursor-pointer transition-colors ${
+                          full
+                            ? "border-border bg-muted/50 opacity-60 cursor-not-allowed"
+                            : isSelected
+                            ? "border-primary bg-primary/5"
+                            : "border-border bg-card hover:bg-muted/30"
+                        }`}
+                      >
+                        <Checkbox
+                          checked={isSelected}
+                          onCheckedChange={() => !full && toggleItem(itemId)}
+                          disabled={full}
+                        />
+                        <div className="flex-1 min-w-0">
+                          <span className="text-sm font-medium text-foreground">{item.item_name}</span>
+                          <p className="text-xs text-muted-foreground">
+                            {item.quantity_limit === 0
+                              ? "No limit"
+                              : `${claimed + (isSelected ? 1 : 0)}/${item.quantity_limit} claimed`}
+                            {full && " — Full"}
+                          </p>
+                        </div>
+                      </label>
+
+                      {isSelected && (
+                        <div className="ml-8">
+                          <Input
+                            placeholder="What are you bringing? (e.g., Mac & Cheese)"
+                            value={sel?.description || ""}
+                            onChange={(e) => updateItemDescription(itemId, e.target.value)}
+                            className="text-sm"
+                          />
+                        </div>
+                      )}
                     </div>
                   );
                 })}
