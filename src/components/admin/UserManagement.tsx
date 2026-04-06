@@ -136,7 +136,10 @@ export default function UserManagement() {
                   {p.whatsapp_number && (
                     <p className="text-xs text-muted-foreground">📱 {p.whatsapp_number}</p>
                   )}
-                  {p.family_name && (
+                  {(p as any).family_id && familyMap[(p as any).family_id] && (
+                    <p className="text-xs text-muted-foreground">🏠 {familyMap[(p as any).family_id]}</p>
+                  )}
+                  {p.family_name && !(p as any).family_id && (
                     <p className="text-xs text-muted-foreground">Family: {p.family_name}</p>
                   )}
                 </div>
