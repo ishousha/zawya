@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { format } from "date-fns";
 import { MapPin, Video, Users, Calendar, Clock, CheckCircle2, Ticket, Edit, Building2, ExternalLink, Ban, BookOpen, Mountain, Handshake, ClockIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/contexts/AuthContext";
 import { useMyRSVP, useEventRSVPs } from "@/hooks/useRSVP";
 import RSVPModal from "@/components/RSVPModal";
 import AddToCalendarButton from "@/components/AddToCalendarButton";
@@ -34,6 +35,8 @@ export default function EventCard({ event, onShowTicket }: EventCardProps) {
   const { data: myRSVP } = useMyRSVP(event.id);
   const { data: allRsvps } = useEventRSVPs(event.id);
   const [rsvpOpen, setRsvpOpen] = useState(false);
+  const [now, setNow] = useState(() => new Date());
+  const { profile } = useAuth();
 
   const isAttending = !!myRSVP;
   const isWaitlisted = myRSVP?.is_waitlisted ?? false;
@@ -41,6 +44,20 @@ export default function EventCard({ event, onShowTicket }: EventCardProps) {
 
   const confirmedCount = allRsvps?.filter((r) => !r.is_waitlisted).length ?? 0;
   const isFull = !!event.capacity && confirmedCount >= event.capacity;
+
+  // Time-gate: refresh "now" every 30s so the button activates automatically
+  const onlineLink = event.online_link;
+  const eventTime = new Date(event.date_time).getTime();
+  const linkActivatesAt = eventTime - 15 * 60 * 1000;
+  const isLinkActive = now.getTime() >= linkActivatesAt;
+  const isAdminOrMod = profile?.role === "admin" || profile?.role === "moderator";
+  const canSeeJoinButton = isAdminOrMod || (isAttending && !isWaitlisted);
+
+  useEffect(() => {
+    if (!onlineLink || isLinkActive) return;
+    const interval = setInterval(() => setNow(new Date()), 30_000);
+    return () => clearInterval(interval);
+  }, [onlineLink, isLinkActive]);
 
   // Calculate waitlist position for the current user
   const waitlistPosition = isWaitlisted && allRsvps
@@ -198,18 +215,28 @@ export default function EventCard({ event, onShowTicket }: EventCardProps) {
             </a>
           </p>
         )}
-        {/* Online meeting link for Nasiha events — visible to attending members */}
-        {!isCancelled && isAttending && event.type === "nasiha" && (event as any).online_link && (
-          <div className="mt-2 flex items-center gap-2 rounded-md bg-primary/10 px-3 py-2">
-            <Video className="h-4 w-4 text-primary shrink-0" />
-            <a
-              href={(event as any).online_link}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-sm font-medium text-primary underline underline-offset-2 inline-flex items-center gap-1"
+        {/* Time-gated virtual join button for events with online_link */}
+        {!isCancelled && onlineLink && canSeeJoinButton && (
+          <div className="mt-2 space-y-1">
+            <Button
+              size="sm"
+              variant={isLinkActive ? "default" : "outline"}
+              disabled={!isLinkActive}
+              className="w-full gap-1.5"
+              onClick={() => {
+                if (isLinkActive && onlineLink) {
+                  window.open(onlineLink, "_blank", "noopener,noreferrer");
+                }
+              }}
             >
-              Join Nasiha Online <ExternalLink className="h-3 w-3" />
-            </a>
+              <Video className="h-4 w-4" />
+              Join Virtual Event
+            </Button>
+            {!isLinkActive && (
+              <p className="text-xs text-muted-foreground text-center">
+                The join link will activate 15 minutes before the event begins.
+              </p>
+            )}
           </div>
         )}
 
