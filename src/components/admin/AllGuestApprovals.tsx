@@ -154,7 +154,7 @@ export default function AllGuestApprovals() {
                       size="icon"
                       variant="destructive"
                       className="h-10 w-10"
-                      onClick={() => updateStatus.mutate({ id: gr.id, status: "rejected" })}
+                      onClick={() => updateStatus.mutate({ gr, status: "rejected" })}
                       disabled={updateStatus.isPending}
                       title="Reject"
                     >
