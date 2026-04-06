@@ -72,7 +72,7 @@ export default function AdminDashboard() {
       if (idx < ADMIN_TABS.length - 1) setActiveTab(ADMIN_TABS[idx + 1]);
     },
     onSwipedRight: (e) => {
-      if (isInsideScrollable(e)) return;
+      if (isInsideScrollable(e.event.target)) return;
       const idx = ADMIN_TABS.indexOf(activeTab);
       if (idx > 0) setActiveTab(ADMIN_TABS[idx - 1]);
     },
