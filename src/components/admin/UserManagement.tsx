@@ -44,14 +44,14 @@ type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 type AppRole = Database["public"]["Enums"]["app_role"];
 
 function logActivity(actorId: string, action: string, target: Profile, details?: Record<string, unknown>) {
-  supabase.from("admin_activity_log").insert({
+  (supabase.from("admin_activity_log") as any).insert({
     actor_id: actorId,
     action,
     target_user_id: target.id,
     target_user_name: target.name,
     target_user_email: target.email,
     details: details ?? {},
-  }).then(({ error }) => { if (error) console.warn("Activity log insert failed:", error); });
+  }).then(({ error }: any) => { if (error) console.warn("Activity log insert failed:", error); });
 }
 
 export default function UserManagement() {
