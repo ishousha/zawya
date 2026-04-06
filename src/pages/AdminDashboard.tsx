@@ -90,7 +90,7 @@ export default function AdminDashboard() {
       if (idx < MODERATOR_TABS.length - 1) setModTab(MODERATOR_TABS[idx + 1]);
     },
     onSwipedRight: (e) => {
-      if (isInsideScrollable(e)) return;
+      if (isInsideScrollable(e.event.target)) return;
       const idx = MODERATOR_TABS.indexOf(modTab);
       if (idx > 0) setModTab(MODERATOR_TABS[idx - 1]);
     },
