@@ -248,7 +248,7 @@ export default function EventCard({ event, onShowTicket }: EventCardProps) {
             </Button>
             {!isLinkActive && (
               <p className="text-xs text-muted-foreground text-center">
-                The join link will activate 15 minutes before the event begins.
+                ⏳ Activates in <span className="font-medium text-foreground">{countdownText}</span>
               </p>
             )}
           </div>
