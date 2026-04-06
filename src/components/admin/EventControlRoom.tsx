@@ -374,7 +374,7 @@ function RSVPMonitor({ eventId, onClose }: { eventId: string; onClose: () => voi
       const userIds = [...new Set(rsvpData.map((r) => r.user_id))];
       const { data: profilesData } = await supabase
         .from("profiles")
-        .select("id, name, email")
+        .select("id, name, email, role")
         .in("id", userIds);
 
       const profileMap = new Map((profilesData ?? []).map((p) => [p.id, p]));
