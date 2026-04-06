@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { format } from "date-fns";
-import { MapPin, Video, Users, Calendar, Clock, CheckCircle2, Ticket, Edit, Building2, ExternalLink, Ban, BookOpen, Mountain, Handshake } from "lucide-react";
+import { MapPin, Video, Users, Calendar, Clock, CheckCircle2, Ticket, Edit, Building2, ExternalLink, Ban, BookOpen, Mountain, Handshake, ClockIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useMyRSVP } from "@/hooks/useRSVP";
+import { useMyRSVP, useEventRSVPs } from "@/hooks/useRSVP";
 import RSVPModal from "@/components/RSVPModal";
 import AddToCalendarButton from "@/components/AddToCalendarButton";
 import type { Database } from "@/integrations/supabase/types";
@@ -31,10 +31,15 @@ export default function EventCard({ event, onShowTicket }: EventCardProps) {
   const TypeIcon = (typeConfig[event.type] ?? typeConfig.gathering).icon;
   const typeLabel = (typeConfig[event.type] ?? typeConfig.gathering).label;
   const { data: myRSVP } = useMyRSVP(event.id);
+  const { data: allRsvps } = useEventRSVPs(event.id);
   const [rsvpOpen, setRsvpOpen] = useState(false);
 
   const isAttending = !!myRSVP;
+  const isWaitlisted = myRSVP?.is_waitlisted ?? false;
   const isCancelled = event.status === "cancelled";
+
+  const confirmedCount = allRsvps?.filter((r) => !r.is_waitlisted).length ?? 0;
+  const isFull = !!event.capacity && confirmedCount >= event.capacity;
 
   return (
     <>
@@ -77,10 +82,16 @@ export default function EventCard({ event, onShowTicket }: EventCardProps) {
               Cancelled
             </span>
           )}
-          {!isCancelled && isAttending && (
+          {!isCancelled && isAttending && !isWaitlisted && (
             <span className="inline-flex items-center gap-1 rounded-full bg-accent px-2.5 py-0.5 text-xs font-medium text-accent-foreground">
               <CheckCircle2 className="h-3 w-3" />
               Attending
+            </span>
+          )}
+          {!isCancelled && isAttending && isWaitlisted && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
+              <ClockIcon className="h-3 w-3" />
+              Waitlisted
             </span>
           )}
           {!isCancelled && isAttending && (event.ticket_fee ?? 0) > 0 && (
@@ -89,8 +100,8 @@ export default function EventCard({ event, onShowTicket }: EventCardProps) {
             </span>
           )}
           {event.capacity && (
-            <span className="ml-auto text-xs text-muted-foreground">
-              {event.capacity} spots
+            <span className={`ml-auto text-xs ${isFull ? "text-destructive font-medium" : "text-muted-foreground"}`}>
+              {confirmedCount}/{event.capacity} spots
             </span>
           )}
         </div>
@@ -221,8 +232,16 @@ export default function EventCard({ event, onShowTicket }: EventCardProps) {
                     size="sm"
                     onClick={() => setRsvpOpen(true)}
                     className="w-full"
+                    variant={isFull ? "outline" : "default"}
                   >
-                    RSVP
+                    {isFull ? (
+                      <>
+                        <ClockIcon className="mr-1.5 h-3.5 w-3.5" />
+                        Join Waitlist
+                      </>
+                    ) : (
+                      "RSVP"
+                    )}
                   </Button>
                 )}
               </div>

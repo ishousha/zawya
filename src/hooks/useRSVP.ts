@@ -113,6 +113,58 @@ export function useMySelections(rsvpId: string | undefined) {
 }
 
 /**
+ * Promotes the first waitlisted RSVP to confirmed and sends a notification email.
+ */
+async function promoteNextWaitlisted(eventId: string) {
+  // Find the earliest waitlisted RSVP
+  const { data: nextRsvp, error: fetchErr } = await supabase
+    .from("rsvps")
+    .select("id, user_id")
+    .eq("event_id", eventId)
+    .eq("is_waitlisted", true)
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  if (fetchErr || !nextRsvp) return;
+
+  // Promote to confirmed
+  const { error: updateErr } = await supabase
+    .from("rsvps")
+    .update({ is_waitlisted: false })
+    .eq("id", nextRsvp.id);
+  if (updateErr) throw updateErr;
+
+  // Get user email for notification
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("email, name")
+    .eq("id", nextRsvp.user_id)
+    .maybeSingle();
+
+  // Get event title
+  const { data: event } = await supabase
+    .from("events")
+    .select("title")
+    .eq("id", eventId)
+    .maybeSingle();
+
+  if (profile?.email && event?.title) {
+    supabase.functions.invoke("send-transactional-email", {
+      body: {
+        templateName: "event-reactivated",
+        recipientEmail: profile.email,
+        idempotencyKey: `waitlist-promote-${nextRsvp.id}-${Date.now()}`,
+        templateData: {
+          memberName: profile.name || undefined,
+          eventTitle: event.title,
+          message: "Great news! A spot has opened up and you've been moved from the waitlist to confirmed. Your RSVP is now active!",
+        },
+      },
+    }).catch((err) => console.warn("Failed to send waitlist promotion email:", err));
+  }
+}
+
+/**
  * Checks capacity & waitlist, returns whether the RSVP should be waitlisted.
  * Throws if both event and waitlist are full.
  */
@@ -320,6 +372,11 @@ export function useRSVPConcurrency(eventId: string) {
       if (error) throw error;
       removeCachedTicket(rsvpId);
       notifyRSVPCancelled(rsvpId, eventId, user.id);
+
+      // Auto-promote first waitlisted person
+      promoteNextWaitlisted(eventId).catch((err) =>
+        console.warn("Waitlist promotion failed:", err)
+      );
     },
     onMutate: async () => {
       await queryClient.cancelQueries({ queryKey: ["rsvps", eventId] });
