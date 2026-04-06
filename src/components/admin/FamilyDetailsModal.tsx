@@ -1,9 +1,14 @@
-import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
-import { Loader2, Users, Baby, CalendarCheck, Mail, Phone, User } from "lucide-react";
+import { toast } from "sonner";
+import { Loader2, Users, Baby, CalendarCheck, Mail, Phone, User, Pencil, Trash2, Check, X } from "lucide-react";
 import { format } from "date-fns";
 
 interface FamilyDetailsModalProps {
@@ -87,34 +92,70 @@ export default function FamilyDetailsModal({
   open,
   onOpenChange,
 }: FamilyDetailsModalProps) {
+  const queryClient = useQueryClient();
   const { data: members = [], isLoading: loadingMembers } = useFamilyMembers(familyId);
   const memberIds = members.map((m) => m.id);
   const { data: dependents = [], isLoading: loadingDeps } = useFamilyDependents(memberIds);
   const { data: rsvps = [], isLoading: loadingRsvps } = useFamilyRsvps(memberIds);
 
+  const [isEditing, setIsEditing] = useState(false);
+  const [editName, setEditName] = useState(familyName);
+
   const isLoading = loadingMembers || loadingDeps || loadingRsvps;
+
+  const invalidate = () => {
+    queryClient.invalidateQueries({ queryKey: ["admin-families"] });
+    queryClient.invalidateQueries({ queryKey: ["admin-profiles-for-families"] });
+  };
+
+  const renameMutation = useMutation({
+    mutationFn: async (name: string) => {
+      const { error } = await supabase.from("families").update({ name }).eq("id", familyId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Family renamed");
+      setIsEditing(false);
+      invalidate();
+    },
+    onError: () => toast.error("Failed to rename family"),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async () => {
+      // Unassign all members first
+      const { error: unassignError } = await supabase
+        .from("profiles")
+        .update({ family_id: null } as any)
+        .eq("family_id", familyId);
+      if (unassignError) throw unassignError;
+
+      const { error } = await supabase.from("families").delete().eq("id", familyId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Family deleted");
+      invalidate();
+      onOpenChange(false);
+    },
+    onError: () => toast.error("Failed to delete family"),
+  });
 
   // Deduplicate events for total count
   const uniqueEventIds = new Set(rsvps.map((r) => r.event_id));
   const totalEventsAttended = uniqueEventIds.size;
 
-  // Checked-in count
   const checkedInCount = new Set(
     rsvps.filter((r) => r.checked_in).map((r) => r.event_id)
   ).size;
 
-  // Recent 3 unique events
   const recentEvents: { title: string; date_time: string; event_id: string }[] = [];
   const seenEvents = new Set<string>();
   for (const r of rsvps) {
     if (seenEvents.has(r.event_id)) continue;
     seenEvents.add(r.event_id);
     if (r.events) {
-      recentEvents.push({
-        title: r.events.title,
-        date_time: r.events.date_time,
-        event_id: r.event_id,
-      });
+      recentEvents.push({ title: r.events.title, date_time: r.events.date_time, event_id: r.event_id });
     }
     if (recentEvents.length >= 3) break;
   }
@@ -123,9 +164,66 @@ export default function FamilyDetailsModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Users className="h-5 w-5 text-primary" />
-            {familyName}
+          <DialogTitle className="flex items-center gap-2 w-full">
+            <Users className="h-5 w-5 text-primary shrink-0" />
+            {isEditing ? (
+              <div className="flex items-center gap-1.5 flex-1">
+                <Input
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  className="h-8 text-base"
+                  autoFocus
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && editName.trim()) renameMutation.mutate(editName.trim());
+                    if (e.key === "Escape") { setIsEditing(false); setEditName(familyName); }
+                  }}
+                />
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-7 w-7"
+                  disabled={!editName.trim() || renameMutation.isPending}
+                  onClick={() => renameMutation.mutate(editName.trim())}
+                >
+                  {renameMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+                </Button>
+                <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => { setIsEditing(false); setEditName(familyName); }}>
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            ) : (
+              <>
+                <span className="flex-1">{familyName}</span>
+                <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => { setEditName(familyName); setIsEditing(true); }}>
+                  <Pencil className="h-3.5 w-3.5" />
+                </Button>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive hover:text-destructive">
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Delete {familyName}?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This will remove the family group and unassign all {members.length} member{members.length !== 1 ? "s" : ""}. This action cannot be undone.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={() => deleteMutation.mutate()}
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      >
+                        {deleteMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                        Delete
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </>
+            )}
           </DialogTitle>
         </DialogHeader>
 
@@ -173,10 +271,7 @@ export default function FamilyDetailsModal({
               </h4>
               <div className="space-y-2">
                 {members.map((m) => (
-                  <div
-                    key={m.id}
-                    className="flex flex-col gap-0.5 rounded-lg border p-3 text-sm"
-                  >
+                  <div key={m.id} className="flex flex-col gap-0.5 rounded-lg border p-3 text-sm">
                     <span className="font-medium">{m.name || "Unnamed"}</span>
                     <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
                       {m.email && (
@@ -190,7 +285,6 @@ export default function FamilyDetailsModal({
                         </span>
                       )}
                     </div>
-                    {/* Dependents for this member */}
                     {dependents.filter((d) => d.parent_id === m.id).length > 0 && (
                       <div className="mt-1 flex flex-wrap gap-1">
                         {dependents
@@ -208,17 +302,14 @@ export default function FamilyDetailsModal({
             </div>
 
             {/* Recent activity */}
-            {recentEvents.length > 0 && (
+            {recentEvents.length > 0 ? (
               <div>
                 <h4 className="text-sm font-semibold mb-2 flex items-center gap-1.5">
                   <CalendarCheck className="h-4 w-4" /> Recent Activity
                 </h4>
                 <div className="space-y-2">
                   {recentEvents.map((evt) => (
-                    <div
-                      key={evt.event_id}
-                      className="flex items-center justify-between rounded-lg border p-3 text-sm"
-                    >
+                    <div key={evt.event_id} className="flex items-center justify-between rounded-lg border p-3 text-sm">
                       <span className="font-medium truncate">{evt.title}</span>
                       <span className="text-xs text-muted-foreground whitespace-nowrap ml-2">
                         {format(new Date(evt.date_time), "MMM d, yyyy")}
@@ -227,9 +318,7 @@ export default function FamilyDetailsModal({
                   ))}
                 </div>
               </div>
-            )}
-
-            {recentEvents.length === 0 && (
+            ) : (
               <p className="text-sm text-muted-foreground text-center py-2">
                 No event activity yet.
               </p>
