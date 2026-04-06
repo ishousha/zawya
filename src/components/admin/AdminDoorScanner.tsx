@@ -206,7 +206,7 @@ export default function AdminDoorScanner() {
           <SelectContent>
             {events?.map((e) => (
               <SelectItem key={e.id} value={e.id}>
-                {e.title}
+                {e.title} — {format(new Date(e.date_time), "EEE, MMM d")}
               </SelectItem>
             ))}
           </SelectContent>
