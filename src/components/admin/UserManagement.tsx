@@ -199,6 +199,15 @@ export default function UserManagement() {
           },
         }).catch((err) => console.warn("Failed to send role change email:", err));
       }
+
+      // Log the activity
+      if (user) {
+        const actionType = role === "suspended" ? "suspend_user" : `role_change`;
+        logActivity(user.id, actionType, { id: userId, name, email } as Profile, {
+          previous_role: previousRole,
+          new_role: role,
+        });
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-profiles"] });
