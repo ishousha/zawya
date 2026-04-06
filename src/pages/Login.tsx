@@ -71,9 +71,29 @@ export default function LoginPage() {
     }
   };
 
+  const handleResendOtp = async () => {
+    setResending(true);
+    const { error } = await supabase.auth.signInWithOtp({ email });
+    setResending(false);
+    if (error) {
+      toast.error("Could not resend code. Please try again.");
+    } else {
+      toast.success("New code sent!");
+      setOtp("");
+      setResendCooldown(30);
+      const interval = setInterval(() => {
+        setResendCooldown((prev) => {
+          if (prev <= 1) { clearInterval(interval); return 0; }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+  };
+
   const handleBack = () => {
     setStage("email");
     setOtp("");
+    setResendCooldown(0);
   };
 
   return (
