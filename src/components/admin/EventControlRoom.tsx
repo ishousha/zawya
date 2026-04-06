@@ -89,7 +89,7 @@ export default function EventControlRoom() {
       description: event.description ?? "",
       date_time: "",
       end_date_time: "",
-      type: event.type as EventType,
+      event_type_id: event.event_type_id,
       venue_id: (event as any).venue_id ?? null,
       location: event.location ?? "",
       address: event.address ?? "",
