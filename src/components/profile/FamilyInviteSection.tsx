@@ -335,6 +335,40 @@ export default function FamilyInviteSection() {
             })}
           </div>
         )}
+
+        {/* Leave family */}
+        {!confirmLeave ? (
+          <button
+            onClick={() => setConfirmLeave(true)}
+            className="w-full text-center text-xs text-muted-foreground hover:text-destructive transition-colors mt-2"
+          >
+            Leave family group
+          </button>
+        ) : (
+          <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 space-y-2 mt-2">
+            <p className="text-sm text-destructive font-medium text-center">Leave this family group?</p>
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                className="flex-1"
+                onClick={() => setConfirmLeave(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                size="sm"
+                variant="destructive"
+                className="flex-1 gap-1.5"
+                onClick={handleLeaveFamily}
+                disabled={leaving}
+              >
+                {leaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <LogOut className="h-3.5 w-3.5" />}
+                Leave
+              </Button>
+            </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
