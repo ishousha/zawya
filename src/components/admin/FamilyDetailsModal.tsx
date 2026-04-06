@@ -81,7 +81,7 @@ function useFamilyRsvps(memberIds: string[]) {
         .in("user_id", memberIds)
         .order("created_at", { ascending: false });
       if (error) throw error;
-      return (data as any) ?? [];
+      return (data ?? []) as RsvpWithEvent[];
     },
   });
 }
