@@ -308,6 +308,7 @@ export type Database = {
         Row: {
           created_at: string
           event_id: string
+          guest_email: string
           guest_name: string
           guest_phone: string | null
           id: string
@@ -318,6 +319,7 @@ export type Database = {
         Insert: {
           created_at?: string
           event_id: string
+          guest_email?: string
           guest_name: string
           guest_phone?: string | null
           id?: string
@@ -328,6 +330,7 @@ export type Database = {
         Update: {
           created_at?: string
           event_id?: string
+          guest_email?: string
           guest_name?: string
           guest_phone?: string | null
           id?: string
