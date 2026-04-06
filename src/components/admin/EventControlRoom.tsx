@@ -360,7 +360,11 @@ export default function EventControlRoom() {
       )}
 
       {monitoringEventId && (
-        <RSVPMonitor eventId={monitoringEventId} onClose={() => setMonitoringEventId(null)} />
+        <RSVPMonitor
+          eventId={monitoringEventId}
+          eventTitle={events?.find((e) => e.id === monitoringEventId)?.title ?? "Event"}
+          onClose={() => setMonitoringEventId(null)}
+        />
       )}
     </div>
   );
