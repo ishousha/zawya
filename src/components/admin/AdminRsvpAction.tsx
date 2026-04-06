@@ -49,12 +49,10 @@ export default function AdminRsvpAction({ userId, userName, existingEventIds = [
   const createRsvp = useMutation({
     mutationFn: async () => {
       if (!selectedEvent) throw new Error("Please select an event");
-      const qrHash = generateQRHash(userId, selectedEvent);
       const { error } = await supabase.from("rsvps").insert({
         event_id: selectedEvent,
         user_id: userId,
         guests_count: 1,
-        qr_hash: qrHash,
       });
       if (error) throw error;
     },
