@@ -1,11 +1,15 @@
 import { useState } from "react";
+import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { useMyGuestRequests, useCreateGuestRequest } from "@/hooks/useGuestRequests";
 import { toast } from "sonner";
-import { Loader2, UserPlus, Phone, User, Mail, Info } from "lucide-react";
+import { Loader2, UserPlus, Phone, User, Mail, Info, Share2 } from "lucide-react";
+import type { Database } from "@/integrations/supabase/types";
+
+type Event = Database["public"]["Tables"]["events"]["Row"];
 
 const statusVariant: Record<string, "default" | "secondary" | "destructive"> = {
   pending: "secondary",
@@ -13,7 +17,12 @@ const statusVariant: Record<string, "default" | "secondary" | "destructive"> = {
   rejected: "destructive",
 };
 
-export default function GuestRequestsSection({ eventId }: { eventId: string }) {
+interface GuestRequestsSectionProps {
+  eventId: string;
+  event?: Event;
+}
+
+export default function GuestRequestsSection({ eventId, event }: GuestRequestsSectionProps) {
   const { data: guests, isLoading } = useMyGuestRequests(eventId);
   const createGuest = useCreateGuestRequest(eventId);
   const [showForm, setShowForm] = useState(false);
