@@ -121,13 +121,24 @@ export default function AdminActivityLog() {
 
   return (
     <div className="space-y-4 py-4">
-      <div className="flex items-center justify-between">
-        <h3 className="font-heading text-base font-semibold text-foreground">
-          Activity Log ({filtered.length})
-        </h3>
-        <div className="flex gap-2">
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h3 className="font-heading text-base font-semibold text-foreground">
+            Activity Log ({filtered.length})
+          </h3>
+          <div className="flex gap-2">
+            <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => refetch()}>
+              <RefreshCw className="h-4 w-4" />
+            </Button>
+            <Button variant="outline" size="sm" className="h-9 gap-1.5" onClick={exportCsv} disabled={!filtered.length}>
+              <Download className="h-4 w-4" />
+              <span className="hidden sm:inline">Export</span>
+            </Button>
+          </div>
+        </div>
+        <div className="flex flex-wrap gap-2">
           <Select value={actionFilter} onValueChange={setActionFilter}>
-            <SelectTrigger className="w-[150px] h-9">
+            <SelectTrigger className="w-[140px] h-9">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -137,13 +148,33 @@ export default function AdminActivityLog() {
               <SelectItem value="delete_user">Deletions</SelectItem>
             </SelectContent>
           </Select>
-          <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => refetch()}>
-            <RefreshCw className="h-4 w-4" />
-          </Button>
-          <Button variant="outline" size="sm" className="h-9 gap-1.5" onClick={exportCsv} disabled={!filtered.length}>
-            <Download className="h-4 w-4" />
-            <span className="hidden sm:inline">Export</span>
-          </Button>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="sm" className={cn("h-9 gap-1.5 text-sm", !dateFrom && "text-muted-foreground")}>
+                <CalendarIcon className="h-3.5 w-3.5" />
+                {dateFrom ? format(dateFrom, "MMM d") : "From"}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar mode="single" selected={dateFrom} onSelect={setDateFrom} initialFocus className="p-3 pointer-events-auto" />
+            </PopoverContent>
+          </Popover>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="sm" className={cn("h-9 gap-1.5 text-sm", !dateTo && "text-muted-foreground")}>
+                <CalendarIcon className="h-3.5 w-3.5" />
+                {dateTo ? format(dateTo, "MMM d") : "To"}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar mode="single" selected={dateTo} onSelect={setDateTo} initialFocus className="p-3 pointer-events-auto" />
+            </PopoverContent>
+          </Popover>
+          {hasDateFilter && (
+            <Button variant="ghost" size="sm" className="h-9 gap-1 text-xs text-muted-foreground" onClick={clearDates}>
+              <X className="h-3.5 w-3.5" /> Clear dates
+            </Button>
+          )}
         </div>
       </div>
 
