@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import { Mail, Loader2, ArrowLeft, RefreshCw, Clock } from "lucide-react";
 import zawyaLogo from "@/assets/logo.png";
 
-type Stage = "email" | "otp";
+type Stage = "email" | "otp" | "magic-link";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -37,7 +37,12 @@ export default function LoginPage() {
     }, 1000);
   };
 
+  // Detect magic link tokens in URL hash and show loading state
   useEffect(() => {
+    const hash = window.location.hash;
+    if (hash && (hash.includes("access_token") || hash.includes("type=magiclink") || hash.includes("type=signup"))) {
+      setStage("magic-link");
+    }
     return () => { if (expiryRef.current) clearInterval(expiryRef.current); };
   }, []);
 
@@ -138,7 +143,17 @@ export default function LoginPage() {
           </p>
         </div>
 
-        {stage === "otp" ? (
+        {stage === "magic-link" ? (
+          <div className="rounded-lg border border-border bg-card p-6 text-center">
+            <Loader2 className="mx-auto mb-3 h-10 w-10 animate-spin text-primary" />
+            <h2 className="font-heading text-xl font-semibold text-card-foreground">
+              Signing you in…
+            </h2>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Verifying your magic link, just a moment.
+            </p>
+          </div>
+        ) : stage === "otp" ? (
           <div className="rounded-lg border border-border bg-card p-6 text-center">
             <Mail className="mx-auto mb-3 h-10 w-10 text-primary" />
             <h2 className="font-heading text-xl font-semibold text-card-foreground">
