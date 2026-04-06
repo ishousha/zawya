@@ -44,14 +44,6 @@ export default function AllGuestApprovals() {
     onError: () => toast.error("Failed to update guest request"),
   });
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <Loader2 className="h-6 w-6 animate-spin text-primary" />
-      </div>
-    );
-  }
-
   const filtered = useMemo(() => {
     if (!guestRequests) return [];
     const q = search.toLowerCase();
