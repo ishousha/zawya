@@ -166,10 +166,21 @@ export default function LoginPage() {
               </InputOTP>
             </div>
 
+            {otpExpiry > 0 ? (
+              <p className={`mt-3 flex items-center justify-center gap-1.5 text-xs ${otpExpiry <= 60 ? "text-destructive" : "text-muted-foreground"}`}>
+                <Clock className="h-3.5 w-3.5" />
+                Code expires in {formatTime(otpExpiry)}
+              </p>
+            ) : stage === "otp" ? (
+              <p className="mt-3 text-xs text-destructive">
+                Code expired — please resend
+              </p>
+            ) : null}
+
             <Button
-              className="mt-6 w-full"
+              className="mt-4 w-full"
               onClick={handleVerifyOtp}
-              disabled={verifying || otp.length !== 6}
+              disabled={verifying || otp.length !== 6 || otpExpiry === 0}
             >
               {verifying ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
