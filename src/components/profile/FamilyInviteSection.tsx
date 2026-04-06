@@ -66,28 +66,24 @@ export default function FamilyInviteSection() {
     if (!user || !profile) return;
     setCreating(true);
 
-    // Derive a family name from the user's profile name
     const nameParts = (profile.name || "").trim().split(/\s+/);
     const lastName = nameParts.length > 1 ? nameParts[nameParts.length - 1] : nameParts[0] || "My";
     const familyLabel = `${lastName} Family`;
+    const familyId = crypto.randomUUID();
 
-    // Create family record
-    const { data: family, error: famErr } = await supabase
+    const { error: famErr } = await supabase
       .from("families")
-      .insert({ name: familyLabel })
-      .select("id")
-      .single();
+      .insert({ id: familyId, name: familyLabel });
 
-    if (famErr || !family) {
-      toast.error("Failed to create family group.");
+    if (famErr) {
       setCreating(false);
+      toast.error("Failed to create family group.");
       return;
     }
 
-    // Link user to this family
     const { error: profErr } = await supabase
       .from("profiles")
-      .update({ family_id: family.id })
+      .update({ family_id: familyId })
       .eq("id", user.id);
 
     setCreating(false);
@@ -100,7 +96,6 @@ export default function FamilyInviteSection() {
     toast.success(`"${familyLabel}" created!`);
     queryClient.invalidateQueries({ queryKey: ["my-family-name"] });
     queryClient.invalidateQueries({ queryKey: ["family-members-list"] });
-    // Force profile refresh
     window.location.reload();
   };
 
