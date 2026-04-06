@@ -293,12 +293,13 @@ export default function UserManagement() {
                       })
                     }
                   >
-                    <SelectTrigger className="w-[120px] h-9">
+                    <SelectTrigger className="w-[130px] h-9">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="pending">Pending</SelectItem>
                       <SelectItem value="approved">Approved</SelectItem>
+                      <SelectItem value="moderator">Moderator</SelectItem>
                       <SelectItem value="admin">Admin</SelectItem>
                     </SelectContent>
                   </Select>
