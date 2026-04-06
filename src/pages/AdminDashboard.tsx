@@ -157,7 +157,7 @@ export default function AdminDashboard() {
               </TabsTrigger>
             </TabsList>
 
-            <div {...modSwipeHandlers} data-swipe-root className="touch-pan-y">
+            <div {...modSwipeHandlers} data-swipe-root className={`touch-pan-y overflow-hidden ${slideDir === "left" ? "animate-slide-in-right" : slideDir === "right" ? "animate-slide-in-left" : "animate-fade-in-fast"}`} key={slideKey}>
               <TabsContent value="events">
                 <EventControlRoom />
               </TabsContent>
