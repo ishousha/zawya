@@ -16,7 +16,21 @@ import { usePendingUsersCount } from "@/hooks/usePendingUsersCount";
 export default function AdminDashboard() {
   const { profile } = useAuth();
   const { data: pendingCount } = usePendingUsersCount();
+  const tabsListRef = useRef<HTMLDivElement>(null);
 
+  const scrollActiveTabIntoView = useCallback((container: HTMLDivElement | null) => {
+    if (!container) return;
+    const activeTab = container.querySelector('[data-state="active"]') as HTMLElement;
+    if (activeTab) {
+      activeTab.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'start' });
+    }
+  }, []);
+
+  useEffect(() => {
+    // Scroll to show the active tab on mount
+    const timer = setTimeout(() => scrollActiveTabIntoView(tabsListRef.current), 100);
+    return () => clearTimeout(timer);
+  }, [scrollActiveTabIntoView]);
   const isAdmin = profile?.role === "admin";
   const isModerator = (profile?.role as string) === "moderator";
 
