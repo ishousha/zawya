@@ -254,6 +254,7 @@ export default function UserManagement() {
     onError: (err: Error) => toast.error(err.message || "Failed to delete user"),
   });
 
+  const filteredProfiles = useMemo(() => {
     if (!profiles) return [];
     return profiles.filter((p) => {
       const q = search.toLowerCase();
