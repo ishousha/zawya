@@ -125,18 +125,44 @@ export default function FamilyInviteSection() {
   const [confirmLeave, setConfirmLeave] = useState(false);
 
   const handleLeaveFamily = async () => {
-    if (!user) return;
+    if (!user || !familyId) return;
     setLeaving(true);
+
+    // Capture family members and name before leaving
+    const memberEmails = (familyMembers ?? [])
+      .filter((m) => m.id !== user.id && m.email)
+      .map((m) => ({ email: m.email!, name: m.name }));
+    const fName = familyName || "your family group";
+    const leaverName = profile?.name || "A member";
+
     const { error } = await supabase
       .from("profiles")
       .update({ family_id: null })
       .eq("id", user.id);
+
     setLeaving(false);
+
     if (error) {
       toast.error("Failed to leave family group.");
     } else {
       toast.success("You left the family group.");
       setConfirmLeave(false);
+
+      // Send email notifications to remaining members (fire-and-forget)
+      for (const member of memberEmails) {
+        supabase.functions.invoke("send-transactional-email", {
+          body: {
+            templateName: "family-member-left",
+            to: member.email,
+            data: {
+              memberName: member.name || undefined,
+              leaverName,
+              familyName: fName,
+            },
+          },
+        }).catch(() => {}); // best-effort
+      }
+
       window.location.reload();
     }
   };

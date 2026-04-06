@@ -13,10 +13,12 @@ import { template as eventCancelled } from './event-cancelled.tsx'
 import { template as eventReactivated } from './event-reactivated.tsx'
 import { template as userApproved } from './user-approved.tsx'
 import { template as userRejected } from './user-rejected.tsx'
+import { template as familyMemberLeft } from './family-member-left.tsx'
 
 export const TEMPLATES: Record<string, TemplateEntry> = {
   'event-cancelled': eventCancelled,
   'event-reactivated': eventReactivated,
   'user-approved': userApproved,
   'user-rejected': userRejected,
+  'family-member-left': familyMemberLeft,
 }
