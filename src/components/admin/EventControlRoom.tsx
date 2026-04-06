@@ -124,6 +124,7 @@ export default function EventControlRoom() {
       payment_instructions: event.payment_instructions ?? "",
       online_link: (event as any).online_link ?? "",
       status: "active",
+      checkin_pin: (event as any).checkin_pin ?? "",
     };
 
     const copiedItems: SignUpItem[] = (items ?? []).map((item, i) => ({

@@ -104,6 +104,7 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
         ticket_fee: parseFloat(form.ticket_fee) || 0,
         payment_instructions: form.payment_instructions || null,
         online_link: form.online_link || null,
+        checkin_pin: form.checkin_pin || null,
         status: form.status,
       };
 
