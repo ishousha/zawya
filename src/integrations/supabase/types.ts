@@ -609,6 +609,10 @@ export type Database = {
         Returns: number
       }
       get_my_family_id: { Args: never; Returns: string }
+      guest_has_rsvp: {
+        Args: { _event_id: string; _user_id: string }
+        Returns: boolean
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
