@@ -37,6 +37,8 @@ const ACTION_CONFIG: Record<string, { label: string; icon: typeof UserCog; varia
 
 export default function AdminActivityLog() {
   const [actionFilter, setActionFilter] = useState("all");
+  const [dateFrom, setDateFrom] = useState<Date | undefined>();
+  const [dateTo, setDateTo] = useState<Date | undefined>();
 
   const { data: logs, isLoading, refetch } = useQuery({
     queryKey: ["admin-activity-log"],
