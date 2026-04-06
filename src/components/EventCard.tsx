@@ -15,6 +15,7 @@ const typeConfig: Record<string, { icon: any; label: string }> = {
   trip: { icon: Users, label: "Trip / Picnic" },
   retreat: { icon: Mountain, label: "Retreat / Rihla" },
   meeting: { icon: Handshake, label: "Community Meeting" },
+  nasiha: { icon: Video, label: "Nasiha" },
   // Legacy fallbacks
   physical: { icon: MapPin, label: "In Person" },
   online: { icon: Video, label: "Online" },
@@ -196,6 +197,20 @@ export default function EventCard({ event, onShowTicket }: EventCardProps) {
               Join Zoom
             </a>
           </p>
+        )}
+        {/* Online meeting link for Nasiha events — visible to attending members */}
+        {!isCancelled && isAttending && event.type === "nasiha" && (event as any).online_link && (
+          <div className="mt-2 flex items-center gap-2 rounded-md bg-primary/10 px-3 py-2">
+            <Video className="h-4 w-4 text-primary shrink-0" />
+            <a
+              href={(event as any).online_link}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sm font-medium text-primary underline underline-offset-2 inline-flex items-center gap-1"
+            >
+              Join Nasiha Online <ExternalLink className="h-3 w-3" />
+            </a>
+          </div>
         )}
 
         {/* Not attending: show general location hint */}
