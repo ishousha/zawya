@@ -7,10 +7,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Video, AlertCircle, Info, DollarSign } from "lucide-react";
 import CoverPhotoUpload from "./CoverPhotoUpload";
 import VenueSelector from "./VenueSelector";
-import type { EventFormState, EventType } from "./types";
-import { EVENT_TYPE_LABELS } from "./types";
-
-const EVENT_TYPES = Object.keys(EVENT_TYPE_LABELS) as EventType[];
+import type { EventFormState } from "./types";
+import { useEventTypes } from "@/hooks/useEventTypes";
 
 interface DesignTabProps {
   form: EventFormState;
@@ -21,49 +19,41 @@ export default function DesignTab({ form, setForm }: DesignTabProps) {
   const update = <K extends keyof EventFormState>(key: K, value: EventFormState[K]) =>
     setForm((prev) => ({ ...prev, [key]: value }));
 
-  // Smart defaults based on type + location
+  const { data: eventTypes } = useEventTypes();
+  const selectedType = eventTypes?.find((t) => t.id === form.event_type_id);
+
+  // Smart defaults based on event type properties
   useEffect(() => {
+    if (!selectedType) return;
     setForm((prev) => {
       const next = { ...prev };
-      const isVirtualOnly = prev.type === "class" && !prev.is_hybrid && prev.virtual_link && !prev.location;
-
-      switch (prev.type) {
-        case "gathering":
-          next.has_potluck = true;
-          next.ticket_fee = "0";
-          break;
-        case "class":
-          // Virtual-only class: force potluck off
-          if (!prev.is_hybrid && !prev.location) {
-            next.has_potluck = false;
-          }
-          break;
-        case "meeting":
-        case "nasiha":
-          next.has_potluck = false;
-          break;
-        // trip and retreat: keep potluck toggleable, fee visible
+      if (!selectedType.allows_potluck) {
+        next.has_potluck = false;
+      }
+      // If name contains "Gathering", force potluck on
+      if (selectedType.name.toLowerCase().includes("gathering")) {
+        next.has_potluck = true;
+        next.ticket_fee = "0";
       }
       return next;
     });
-  }, [form.type, form.is_hybrid, form.location, setForm]);
+  }, [form.event_type_id, selectedType, setForm]);
 
   const endBeforeStart =
     form.date_time && form.end_date_time && form.end_date_time <= form.date_time;
 
-  const isNasiha = form.type === "nasiha";
-  const showPhysical = !isNasiha && (form.is_hybrid || form.type !== "class");
-  const showVirtual = !isNasiha && (form.is_hybrid || form.type === "class");
-  const showHybridToggle = !isNasiha;
+  const isVirtualOnly = selectedType ? !selectedType.requires_location : false;
+  const showPhysical = !isVirtualOnly && (form.is_hybrid || (selectedType?.requires_location ?? true));
+  const showVirtual = !isVirtualOnly && (form.is_hybrid || !(selectedType?.requires_location ?? true));
+  const showHybridToggle = !isVirtualOnly;
 
-  // Potluck toggle: hide entirely for nasiha/meeting, lock for gathering & virtual-only class
-  const hidePotluckToggle = isNasiha || form.type === "meeting";
-  const potluckLocked =
-    form.type === "gathering" ||
-    (form.type === "class" && !form.is_hybrid && !form.location);
+  // Potluck toggle visibility
+  const hidePotluckToggle = selectedType ? !selectedType.allows_potluck : false;
+  const potluckLocked = selectedType?.name.toLowerCase().includes("gathering") ?? false;
 
-  // Fee visibility
-  const showFee = form.type === "trip" || form.type === "retreat";
+  // Fee visibility — show for trip/retreat type names
+  const typeName = selectedType?.name.toLowerCase() ?? "";
+  const showFee = typeName.includes("trip") || typeName.includes("retreat");
 
   return (
     <div className="space-y-5 py-4">
@@ -103,16 +93,16 @@ export default function DesignTab({ form, setForm }: DesignTabProps) {
           <div>
             <Label>Event Type</Label>
             <Select
-              value={form.type}
-              onValueChange={(v) => update("type", v as EventType)}
+              value={form.event_type_id}
+              onValueChange={(v) => update("event_type_id", v)}
             >
               <SelectTrigger className="mt-1.5">
-                <SelectValue />
+                <SelectValue placeholder="Select type..." />
               </SelectTrigger>
               <SelectContent>
-                {EVENT_TYPES.map((t) => (
-                  <SelectItem key={t} value={t}>
-                    {EVENT_TYPE_LABELS[t]}
+                {eventTypes?.map((t) => (
+                  <SelectItem key={t.id} value={t.id}>
+                    {t.name}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -133,21 +123,21 @@ export default function DesignTab({ form, setForm }: DesignTabProps) {
         </div>
 
         {/* Type-specific notes */}
-        {form.type === "trip" && (
+        {typeName.includes("trip") && (
           <p className="flex items-start gap-1.5 text-xs text-muted-foreground bg-muted/50 rounded-md p-2.5">
             <Info className="h-3.5 w-3.5 mt-0.5 shrink-0 text-primary" />
             RSVP will require members to select dependents for this event type.
           </p>
         )}
-        {isNasiha && (
+        {isVirtualOnly && (
           <p className="flex items-start gap-1.5 text-xs text-muted-foreground bg-muted/50 rounded-md p-2.5">
             <Info className="h-3.5 w-3.5 mt-0.5 shrink-0 text-primary" />
-            Nasiha events are online-only. Potluck sign-ups are disabled.
+            This event type is online-only. Potluck sign-ups are disabled.
           </p>
         )}
       </div>
 
-      {/* Potluck toggle — hidden for nasiha & meeting */}
+      {/* Potluck toggle — hidden when type doesn't allow it */}
       {!hidePotluckToggle && (
         <div className="flex items-center gap-3 rounded-md border border-border px-3 py-2.5 bg-muted/30">
           <Switch
@@ -161,7 +151,7 @@ export default function DesignTab({ form, setForm }: DesignTabProps) {
           </Label>
           {potluckLocked && (
             <span className="ml-auto text-xs text-muted-foreground">
-              {form.type === "gathering" ? "Always on" : "Auto off"}
+              Always on
             </span>
           )}
         </div>
@@ -264,8 +254,8 @@ export default function DesignTab({ form, setForm }: DesignTabProps) {
         </div>
       )}
 
-      {/* Online Meeting Link — Nasiha only */}
-      {isNasiha && (
+      {/* Online Meeting Link — for virtual-only event types */}
+      {isVirtualOnly && (
         <div>
           <Label htmlFor="online_link" className="flex items-center gap-1.5">
             <Video className="h-3.5 w-3.5 text-primary" />

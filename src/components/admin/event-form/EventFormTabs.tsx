@@ -89,7 +89,7 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
         description: form.description || null,
         date_time: new Date(form.date_time).toISOString(),
         end_date_time: form.end_date_time ? new Date(form.end_date_time).toISOString() : null,
-        type: form.type,
+        event_type_id: form.event_type_id,
         location: form.location || null,
         address: form.address || null,
         venue_id: form.venue_id || null,

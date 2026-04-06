@@ -130,8 +130,8 @@ export default function RSVPModal({ event, open, onOpenChange }: RSVPModalProps)
   }, [allSelections, myRSVP]);
 
   const showSignUpItems = event.has_potluck !== false && signUpItems && signUpItems.length > 0;
-  const onlineLink = (event as any).online_link as string | null;
-  const isVirtualEvent = event.type === "nasiha" || !!onlineLink;
+  const onlineLink = event.online_link;
+  const isVirtualEvent = !!onlineLink;
 
   const toggleItem = (itemId: number) => {
     setSelections((prev) => {
