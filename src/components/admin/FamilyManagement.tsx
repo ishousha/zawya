@@ -127,8 +127,7 @@ export default function FamilyManagement() {
   const getMembersOfFamily = (familyId: string) =>
     profiles?.filter((p) => (p as any).family_id === familyId) ?? [];
 
-  const unassignedMembers =
-    profiles?.filter((p) => !(p as any).family_id) ?? [];
+  // unassignedMembers moved to top of component
 
   if (loadingFamilies || loadingProfiles) {
     return (
