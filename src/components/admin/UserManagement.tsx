@@ -169,7 +169,7 @@ export default function UserManagement() {
   });
 
   const updateRole = useMutation({
-    mutationFn: async ({ userId, role, email, name }: { userId: string; role: AppRole; email?: string | null; name?: string | null }) => {
+    mutationFn: async ({ userId, role, email, name, previousRole }: { userId: string; role: AppRole; email?: string | null; name?: string | null; previousRole?: AppRole }) => {
       // Update profiles.role
       const { error } = await supabase
         .from("profiles")
