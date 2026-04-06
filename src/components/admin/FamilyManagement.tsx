@@ -69,6 +69,7 @@ export default function FamilyManagement() {
   const [familySearch, setFamilySearch] = useState("");
   const [memberComboOpen, setMemberComboOpen] = useState(false);
   const [tableSearch, setTableSearch] = useState("");
+  const [detailFamily, setDetailFamily] = useState<Family | null>(null);
 
   const unassignedMembers = useMemo(
     () => profiles?.filter((p) => !p.family_id) ?? [],
