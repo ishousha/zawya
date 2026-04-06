@@ -565,3 +565,109 @@ function RSVPMonitor({ eventId, eventTitle, onClose }: { eventId: string; eventT
     </Card>
   );
 }
+
+function PendingGuestApprovalsInline({
+  requests,
+  onUpdated,
+}: {
+  requests: any[];
+  onUpdated: () => void;
+}) {
+  const handleAction = async (gr: any, status: "approved" | "rejected") => {
+    const { error } = await supabase
+      .from("guest_requests")
+      .update({ status })
+      .eq("id", gr.id);
+    if (error) {
+      toast.error("Failed to update guest request");
+      return;
+    }
+
+    // Send email on approval
+    if (status === "approved" && gr.guest_email) {
+      const evt = gr.events;
+      const eventDate = evt?.date_time
+        ? format(new Date(evt.date_time), "EEEE, MMMM d 'at' h:mm a")
+        : "";
+      const eventLink = evt?.online_link || evt?.virtual_link || "";
+      const eventLocation = evt?.location
+        ? `${evt.location}${evt.address ? ` — ${evt.address}` : ""}`
+        : "";
+      try {
+        await supabase.functions.invoke("send-transactional-email", {
+          body: {
+            templateName: "guest-approved",
+            recipientEmail: gr.guest_email,
+            templateData: {
+              guestName: gr.guest_name || "Guest",
+              eventTitle: evt?.title || "Event",
+              eventDate,
+              eventLocation,
+              eventLink,
+              requestedBy: gr.profiles?.name || "",
+            },
+          },
+        });
+      } catch (e) {
+        console.warn("Failed to send guest approved email:", e);
+      }
+    }
+
+    if (status === "rejected") {
+      try {
+        await supabase.functions.invoke("notify-guest-rejected", {
+          body: {
+            guest_name: gr.guest_name,
+            event_title: gr.events?.title || "Event",
+            requesting_user_name: gr.profiles?.name || "Member",
+            requesting_user_email: gr.profiles?.email || "",
+          },
+        });
+      } catch (e) {
+        console.warn("Failed to trigger rejection webhook:", e);
+      }
+    }
+
+    toast.success(`Guest ${status}`);
+    onUpdated();
+  };
+
+  return (
+    <div className="space-y-2">
+      {requests.map((gr) => (
+        <div key={gr.id} className="flex items-center gap-2 rounded-md border border-border bg-card p-3">
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-medium text-card-foreground">{gr.guest_name}</p>
+            <p className="text-xs text-muted-foreground">
+              Requested by {gr.profiles?.name || gr.profiles?.email || "Unknown"}
+            </p>
+            {gr.events?.title && (
+              <p className="text-xs text-primary font-medium">
+                For: {gr.events.title}
+                {gr.events.date_time && ` — ${format(new Date(gr.events.date_time), "EEE, MMM d")}`}
+              </p>
+            )}
+          </div>
+          <div className="flex gap-1 shrink-0">
+            <Button
+              size="icon"
+              variant="ghost"
+              className="h-8 w-8 text-green-600 hover:bg-green-50"
+              onClick={() => handleAction(gr, "approved")}
+            >
+              <Check className="h-4 w-4" />
+            </Button>
+            <Button
+              size="icon"
+              variant="ghost"
+              className="h-8 w-8 text-destructive hover:bg-red-50"
+              onClick={() => handleAction(gr, "rejected")}
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
