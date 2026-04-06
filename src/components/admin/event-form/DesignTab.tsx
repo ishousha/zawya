@@ -163,8 +163,9 @@ export default function DesignTab({ form, setForm }: DesignTabProps) {
             <span className="ml-auto text-xs text-muted-foreground">
               {form.type === "gathering" ? "Always on" : "Auto off"}
             </span>
-        )}
-      </div>
+          )}
+        </div>
+      )}
 
       {/* Ticket Fee */}
       {showFee && (
