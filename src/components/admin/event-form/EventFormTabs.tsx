@@ -49,6 +49,7 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
       payment_instructions: event.payment_instructions ?? "",
       online_link: (event as any).online_link ?? "",
       status: event.status,
+      checkin_pin: (event as any).checkin_pin ?? generateCheckinPin(),
     };
   });
 
