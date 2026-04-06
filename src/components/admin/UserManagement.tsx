@@ -237,7 +237,23 @@ export default function UserManagement() {
     onError: () => toast.error("Failed to update guest request"),
   });
 
-  const filteredProfiles = useMemo(() => {
+  const deleteUser = useMutation({
+    mutationFn: async (userId: string) => {
+      const { data, error } = await supabase.functions.invoke("admin-delete-user", {
+        body: { user_id: userId },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-profiles"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-user-roles"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-all-rsvps"] });
+      toast.success("User permanently deleted");
+    },
+    onError: (err: Error) => toast.error(err.message || "Failed to delete user"),
+  });
+
     if (!profiles) return [];
     return profiles.filter((p) => {
       const q = search.toLowerCase();
