@@ -387,7 +387,54 @@ export default function UserManagement() {
             </DialogContent>
           </Dialog>
         </div>
-        {/* Search & Filter */}
+        {/* Quick status filters */}
+        {(() => {
+          const pendingCount = profiles?.filter((p) => p.role === "pending").length ?? 0;
+          const approvedCount = profiles?.filter((p) => p.role === "approved").length ?? 0;
+          const suspendedCount = profiles?.filter((p) => p.role === "suspended").length ?? 0;
+          return (
+            <div className="mb-3 flex flex-wrap gap-1.5">
+              <Button
+                size="sm"
+                variant={roleFilter === "all" ? "default" : "outline"}
+                className="h-7 text-xs"
+                onClick={() => setRoleFilter("all")}
+              >
+                All Users
+              </Button>
+              <Button
+                size="sm"
+                variant={roleFilter === "pending" ? "default" : "outline"}
+                className={`h-7 text-xs gap-1 ${roleFilter !== "pending" && pendingCount > 0 ? "border-amber-400 text-amber-700 dark:text-amber-400" : ""}`}
+                onClick={() => setRoleFilter("pending")}
+              >
+                Pending Approval
+                {pendingCount > 0 && (
+                  <span className="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-amber-500 px-1 text-[10px] font-bold text-white animate-pulse">
+                    {pendingCount}
+                  </span>
+                )}
+              </Button>
+              <Button
+                size="sm"
+                variant={roleFilter === "approved" ? "default" : "outline"}
+                className="h-7 text-xs"
+                onClick={() => setRoleFilter("approved")}
+              >
+                Approved ({approvedCount})
+              </Button>
+              <Button
+                size="sm"
+                variant={roleFilter === "suspended" ? "default" : "outline"}
+                className="h-7 text-xs"
+                onClick={() => setRoleFilter("suspended")}
+              >
+                Suspended ({suspendedCount})
+              </Button>
+            </div>
+          );
+        })()}
+        {/* Search & Filters */}
         <div className="mb-3 flex gap-2">
           <div className="relative flex-1">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -398,20 +445,6 @@ export default function UserManagement() {
               className="pl-9 h-9"
             />
           </div>
-          <Select value={roleFilter} onValueChange={setRoleFilter}>
-            <SelectTrigger className="w-[130px] h-9">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All roles</SelectItem>
-              <SelectItem value="pending">Pending</SelectItem>
-              <SelectItem value="approved">Approved</SelectItem>
-              <SelectItem value="guest">Guest</SelectItem>
-              <SelectItem value="moderator">Moderator</SelectItem>
-              <SelectItem value="admin">Admin</SelectItem>
-              <SelectItem value="suspended">Suspended</SelectItem>
-            </SelectContent>
-          </Select>
           <Select value={eventFilter} onValueChange={setEventFilter}>
             <SelectTrigger className="w-[160px] h-9">
               <SelectValue placeholder="All events" />
@@ -431,11 +464,16 @@ export default function UserManagement() {
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-medium text-card-foreground flex items-center gap-1.5">
                     {p.name || "Unnamed"}
-                    {p.role === "guest" && <Badge variant="secondary" className="text-[10px] px-1.5 py-0">Guest</Badge>}
-                    {p.role === "pending" && <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-accent text-accent-foreground">Pending</Badge>}
-                    {p.role === "admin" && <Badge className="text-[10px] px-1.5 py-0">Admin</Badge>}
-                    {p.role === "moderator" && <Badge variant="secondary" className="text-[10px] px-1.5 py-0 border-primary/30 text-primary">Mod</Badge>}
-                    {p.role === "suspended" && <Badge variant="destructive" className="text-[10px] px-1.5 py-0">Suspended</Badge>}
+                     {p.role === "pending" && (
+                       <Badge className="text-[10px] px-2 py-0.5 bg-amber-500 text-white border-amber-500 animate-pulse font-semibold">
+                         ⏳ Awaiting Approval
+                       </Badge>
+                     )}
+                     {p.role === "approved" && <Badge variant="secondary" className="text-[10px] px-1.5 py-0 bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">Approved</Badge>}
+                     {p.role === "guest" && <Badge variant="secondary" className="text-[10px] px-1.5 py-0">Guest</Badge>}
+                     {p.role === "admin" && <Badge className="text-[10px] px-1.5 py-0">Admin</Badge>}
+                     {p.role === "moderator" && <Badge variant="secondary" className="text-[10px] px-1.5 py-0 border-primary/30 text-primary">Mod</Badge>}
+                     {p.role === "suspended" && <Badge variant="destructive" className="text-[10px] px-1.5 py-0">Suspended</Badge>}
                   </p>
                   <p className="truncate text-xs text-muted-foreground">{p.email}</p>
                   {p.whatsapp_number && (
@@ -463,6 +501,25 @@ export default function UserManagement() {
                   )}
                 </div>
                 <div className="ml-3 flex items-center gap-2">
+                  {p.role === "pending" && (
+                    <Button
+                      size="sm"
+                      className="h-9 gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white"
+                      onClick={() =>
+                        updateRole.mutate({
+                          userId: p.id,
+                          role: "approved" as AppRole,
+                          email: p.email,
+                          name: p.name,
+                          previousRole: p.role,
+                        })
+                      }
+                      disabled={updateRole.isPending}
+                    >
+                      <CheckCircle className="h-4 w-4" />
+                      Approve
+                    </Button>
+                  )}
                   <AdminRsvpAction
                     userId={p.id}
                     userName={p.name}
