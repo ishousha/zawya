@@ -29,30 +29,24 @@ export const MagicLinkEmail = ({
 }: MagicLinkEmailProps) => (
   <Html lang="en" dir="ltr">
     <Head />
-    <Preview>{token ? `Your ${siteName} login code is ${token}` : `Your sign-in link for ${siteName}`}</Preview>
+    <Preview>Your {siteName} login code is {token || '------'}</Preview>
     <Body style={main}>
       <Container style={container}>
         <Img src={LOGO_URL} alt={`${siteName} logo`} width="64" height="64" style={logo} />
-        <Heading style={h1}>{token ? 'Enter your 6-digit code' : 'Your sign-in link'}</Heading>
+        <Heading style={h1}>Your login code</Heading>
         <Text style={text}>
-          {token
-            ? `We generated a one-time code for your ${siteName} login. Enter it in the app to continue.`
-            : `Tap below to sign in to ${siteName}. This link will expire shortly.`}
+          Enter this 6-digit code in the app to sign in to {siteName}.
         </Text>
-        {token ? (
-          <Text style={codeLabel}>Your verification code</Text>
-        ) : null}
         {token ? <Text style={codeBox}>{token}</Text> : null}
-        {token ? (
-          <Text style={helperText}>
-            If the code doesn't work, you can still use the secure sign-in link below.
-          </Text>
-        ) : null}
+        <Text style={helperText}>
+          This code will expire shortly. If you didn't request this, you can safely ignore this email.
+        </Text>
+        <Text style={dividerText}>— or use the link below —</Text>
         <Button style={button} href={confirmationUrl}>
-          {token ? 'Open secure sign-in link' : 'Sign In'}
+          Sign In via Link
         </Button>
         <Text style={footer}>
-          If you didn't request this link, you can safely ignore this email.
+          If you didn't request this, you can safely ignore this email.
         </Text>
       </Container>
     </Body>
@@ -77,13 +71,6 @@ const text = {
   lineHeight: '1.6',
   margin: '0 0 25px',
 }
-const codeLabel = {
-  fontSize: '13px',
-  letterSpacing: '0.08em',
-  textTransform: 'uppercase' as const,
-  color: 'hsl(150, 10%, 45%)',
-  margin: '0 0 10px',
-}
 const codeBox = {
   backgroundColor: 'hsl(40, 25%, 94%)',
   border: '1px solid hsl(40, 20%, 85%)',
@@ -97,6 +84,12 @@ const codeBox = {
   margin: '0 0 18px',
   padding: '18px 20px 18px 28px',
   textAlign: 'center' as const,
+}
+const dividerText = {
+  fontSize: '12px',
+  color: '#999999',
+  textAlign: 'center' as const,
+  margin: '10px 0',
 }
 const helperText = {
   fontSize: '13px',
