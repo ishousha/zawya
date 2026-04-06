@@ -141,7 +141,7 @@ export default function AdminDashboard() {
         </header>
 
         <main className="mx-auto max-w-2xl px-4 py-4">
-          <Tabs value={modTab} onValueChange={(v) => setModTab(v as ModeratorTab)} className="w-full">
+          <Tabs value={modTab} onValueChange={(v) => { setSlideDir(null); setSlideKey((k) => k + 1); setModTab(v as ModeratorTab); }} className="w-full">
             <TabsList ref={tabsListRef} className="grid w-full grid-cols-3 bg-muted">
               <TabsTrigger value="events" className="gap-1.5 text-xs sm:text-sm">
                 <CalendarPlus className="h-4 w-4" />
