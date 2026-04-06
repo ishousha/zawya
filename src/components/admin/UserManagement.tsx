@@ -162,11 +162,12 @@ export default function UserManagement() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-profiles"] });
       queryClient.invalidateQueries({ queryKey: ["admin-user-roles"] });
-      toast.success("Member created and auto-approved!");
+      toast.success(newRole === "guest" ? "Guest created!" : "Member created and auto-approved!");
       setAddOpen(false);
       setNewName("");
       setNewEmail("");
       setNewFamilyId("");
+      setNewRole("approved");
     },
     onError: (err: Error) => toast.error(err.message || "Failed to create member"),
   });
