@@ -35,6 +35,8 @@ export default function EventCard({ event, onShowTicket }: EventCardProps) {
   const { data: myRSVP } = useMyRSVP(event.id);
   const { data: allRsvps } = useEventRSVPs(event.id);
   const [rsvpOpen, setRsvpOpen] = useState(false);
+  const [now, setNow] = useState(() => new Date());
+  const { profile } = useAuth();
 
   const isAttending = !!myRSVP;
   const isWaitlisted = myRSVP?.is_waitlisted ?? false;
@@ -42,6 +44,20 @@ export default function EventCard({ event, onShowTicket }: EventCardProps) {
 
   const confirmedCount = allRsvps?.filter((r) => !r.is_waitlisted).length ?? 0;
   const isFull = !!event.capacity && confirmedCount >= event.capacity;
+
+  // Time-gate: refresh "now" every 30s so the button activates automatically
+  const onlineLink = event.online_link;
+  const eventTime = new Date(event.date_time).getTime();
+  const linkActivatesAt = eventTime - 15 * 60 * 1000;
+  const isLinkActive = now.getTime() >= linkActivatesAt;
+  const isAdminOrMod = profile?.role === "admin" || profile?.role === "moderator";
+  const canSeeJoinButton = isAdminOrMod || (isAttending && !isWaitlisted);
+
+  useEffect(() => {
+    if (!onlineLink || isLinkActive) return;
+    const interval = setInterval(() => setNow(new Date()), 30_000);
+    return () => clearInterval(interval);
+  }, [onlineLink, isLinkActive]);
 
   // Calculate waitlist position for the current user
   const waitlistPosition = isWaitlisted && allRsvps
