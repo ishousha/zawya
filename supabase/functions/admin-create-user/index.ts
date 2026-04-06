@@ -53,7 +53,8 @@ Deno.serve(async (req) => {
 
     // Parse and validate body
     const body = await req.json();
-    const { email, name, family_id } = body;
+    const { email, name, family_id, role: requestedRole } = body;
+    const assignRole = (requestedRole === "guest" || requestedRole === "approved") ? requestedRole : "approved";
 
     if (!email || typeof email !== "string" || !email.includes("@")) {
       return new Response(
