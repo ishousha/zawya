@@ -266,13 +266,28 @@ export default function UserManagement() {
                     </SelectContent>
                   </Select>
                 </div>
+                <div className="space-y-2">
+                  <Label>Role</Label>
+                  <Select value={newRole} onValueChange={(v) => setNewRole(v as "approved" | "guest")}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="approved">Approved (full member)</SelectItem>
+                      <SelectItem value="guest">Guest (event-specific)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    {newRole === "guest" ? "Guests can only see events they are RSVP'd to." : "Full members can see all active events."}
+                  </p>
+                </div>
                 <Button
                   className="w-full"
                   disabled={!newName.trim() || !newEmail.trim() || createMember.isPending}
                   onClick={() => createMember.mutate()}
                 >
                   {createMember.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Create & Auto-Approve
+                  {newRole === "guest" ? "Create Guest" : "Create & Auto-Approve"}
                 </Button>
               </div>
             </DialogContent>

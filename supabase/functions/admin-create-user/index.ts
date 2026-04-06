@@ -113,7 +113,7 @@ Deno.serve(async (req) => {
     // Insert into user_roles table
     const { error: roleInsertError } = await serviceClient
       .from("user_roles")
-      .insert({ user_id: userId, role: "approved" });
+      .insert({ user_id: userId, role: assignRole });
 
     if (roleInsertError) {
       console.error("Role insert error:", roleInsertError);
