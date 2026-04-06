@@ -356,6 +356,17 @@ export default function UserManagement() {
               <SelectItem value="admin">Admin</SelectItem>
             </SelectContent>
           </Select>
+          <Select value={eventFilter} onValueChange={setEventFilter}>
+            <SelectTrigger className="w-[160px] h-9">
+              <SelectValue placeholder="All events" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All events</SelectItem>
+              {eventOptions.map((e) => (
+                <SelectItem key={e.id} value={e.id}>{e.title}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
         <div className="space-y-2">
           {filteredProfiles.map((p) => (
