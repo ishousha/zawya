@@ -2,8 +2,8 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, ShieldAlert, UserMinus, UserCog, UserPlus, RefreshCw, Download } from "lucide-react";
-import { format } from "date-fns";
+import { Loader2, ShieldAlert, UserMinus, UserCog, UserPlus, RefreshCw, Download, CalendarIcon, X } from "lucide-react";
+import { format, startOfDay, endOfDay } from "date-fns";
 import { useState, useMemo } from "react";
 import {
   Select,
@@ -13,6 +13,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { cn } from "@/lib/utils";
 
 interface LogEntry {
   id: string;
