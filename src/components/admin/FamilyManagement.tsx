@@ -198,16 +198,19 @@ export default function FamilyManagement() {
                     <SelectValue placeholder="Select member" />
                   </SelectTrigger>
                   <SelectContent>
-                    {unassignedMembers.map((p) => (
-                      <SelectItem key={p.id} value={p.id}>
-                        {p.name || p.email || p.id.slice(0, 8)}
-                      </SelectItem>
-                    ))}
+                    {profiles?.map((p) => {
+                      const currentFamily = families?.find((f) => f.id === (p as any).family_id);
+                      return (
+                        <SelectItem key={p.id} value={p.id}>
+                          {p.name || p.email || p.id.slice(0, 8)}
+                          {currentFamily && (
+                            <span className="text-muted-foreground"> — {currentFamily.name}</span>
+                          )}
+                        </SelectItem>
+                      );
+                    })}
                   </SelectContent>
                 </Select>
-                {unassignedMembers.length === 0 && (
-                  <p className="text-xs text-muted-foreground mt-1">All members are already assigned.</p>
-                )}
               </div>
               <Button
                 className="w-full"
