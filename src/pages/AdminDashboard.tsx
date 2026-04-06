@@ -104,7 +104,7 @@ export default function AdminDashboard() {
 
       <main className="mx-auto max-w-2xl px-4 py-4">
         <Tabs defaultValue="users" className="w-full" onValueChange={() => setTimeout(() => scrollActiveTabIntoView(tabsListRef.current), 50)}>
-          <TabsList ref={tabsListRef} className="flex w-full overflow-x-auto bg-muted scrollbar-hide pb-0.5">
+          <TabsList ref={tabsListRef} className="flex w-full justify-start overflow-x-auto bg-muted scrollbar-hide pb-0.5">
             <TabsTrigger value="users" className="flex-shrink-0 gap-1.5 px-3 text-xs sm:text-sm">
               <Users className="h-4 w-4" />
               Users
