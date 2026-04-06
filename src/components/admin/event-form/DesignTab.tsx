@@ -234,23 +234,6 @@ export default function DesignTab({ form, setForm }: DesignTabProps) {
 
       {showVirtual && (
         <div>
-          <Label htmlFor="virtual_link" className="flex items-center gap-1.5">
-            <Video className="h-3.5 w-3.5 text-primary" />
-            Virtual Link
-          </Label>
-          <Input
-            id="virtual_link"
-            value={form.virtual_link}
-            onChange={(e) => update("virtual_link", e.target.value)}
-            placeholder="https://zoom.us/... or meet.google.com/..."
-            className="mt-1.5"
-          />
-        </div>
-      )}
-
-      {/* Online Meeting Link — for virtual-only event types */}
-      {isVirtualOnly && (
-        <div>
           <Label htmlFor="online_link" className="flex items-center gap-1.5">
             <Video className="h-3.5 w-3.5 text-primary" />
             Online Meeting Link
@@ -262,6 +245,9 @@ export default function DesignTab({ form, setForm }: DesignTabProps) {
             placeholder="https://zoom.us/... or meet.google.com/..."
             className="mt-1.5"
           />
+          <p className="text-xs text-muted-foreground mt-1">
+            Leave blank to trigger automatic link generation via webhook.
+          </p>
         </div>
       )}
     </div>
