@@ -38,9 +38,21 @@ import { notifyUserApproval } from "@/lib/webhooks";
 import { format } from "date-fns";
 import AdminRsvpAction from "./AdminRsvpAction";
 import type { Database } from "@/integrations/supabase/types";
+import { useAuth } from "@/contexts/AuthContext";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 type AppRole = Database["public"]["Enums"]["app_role"];
+
+function logActivity(actorId: string, action: string, target: Profile, details?: Record<string, unknown>) {
+  supabase.from("admin_activity_log").insert({
+    actor_id: actorId,
+    action,
+    target_user_id: target.id,
+    target_user_name: target.name,
+    target_user_email: target.email,
+    details: details ?? {},
+  }).then(({ error }) => { if (error) console.warn("Activity log insert failed:", error); });
+}
 
 export default function UserManagement() {
   const queryClient = useQueryClient();
