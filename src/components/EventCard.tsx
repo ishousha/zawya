@@ -45,7 +45,7 @@ export default function EventCard({ event, onShowTicket }: EventCardProps) {
   const confirmedCount = allRsvps?.filter((r) => !r.is_waitlisted).length ?? 0;
   const isFull = !!event.capacity && confirmedCount >= event.capacity;
 
-  // Time-gate: refresh "now" every 30s so the button activates automatically
+  // Time-gate: refresh every second for countdown
   const onlineLink = event.online_link;
   const eventTime = new Date(event.date_time).getTime();
   const linkActivatesAt = eventTime - 15 * 60 * 1000;
@@ -53,9 +53,23 @@ export default function EventCard({ event, onShowTicket }: EventCardProps) {
   const isAdminOrMod = profile?.role === "admin" || profile?.role === "moderator";
   const canSeeJoinButton = isAdminOrMod || (isAttending && !isWaitlisted);
 
+  // Countdown string
+  const remainingMs = linkActivatesAt - now.getTime();
+  const countdownText = (() => {
+    if (isLinkActive || remainingMs <= 0) return "";
+    const totalSec = Math.ceil(remainingMs / 1000);
+    const d = Math.floor(totalSec / 86400);
+    const h = Math.floor((totalSec % 86400) / 3600);
+    const m = Math.floor((totalSec % 3600) / 60);
+    const s = totalSec % 60;
+    if (d > 0) return `${d}d ${h}h ${m}m`;
+    if (h > 0) return `${h}h ${m}m ${s}s`;
+    return `${m}m ${s}s`;
+  })();
+
   useEffect(() => {
     if (!onlineLink || isLinkActive) return;
-    const interval = setInterval(() => setNow(new Date()), 30_000);
+    const interval = setInterval(() => setNow(new Date()), 1_000);
     return () => clearInterval(interval);
   }, [onlineLink, isLinkActive]);
 
