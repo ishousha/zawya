@@ -5,7 +5,7 @@ import UserManagement from "@/components/admin/UserManagement";
 import EventControlRoom from "@/components/admin/EventControlRoom";
 import AdminDoorScanner from "@/components/admin/AdminDoorScanner";
 import FamilyManagement from "@/components/admin/FamilyManagement";
-import AdminGuestApprovals from "@/components/admin/AdminGuestApprovals";
+import AllGuestApprovals from "@/components/admin/AllGuestApprovals";
 import { Users, CalendarPlus, ScanLine, Home } from "lucide-react";
 
 export default function AdminDashboard() {
