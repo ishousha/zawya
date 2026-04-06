@@ -75,9 +75,15 @@ export default function AdminActivityLog() {
 
   const filtered = useMemo(() => {
     if (!logs) return [];
-    if (actionFilter === "all") return logs;
-    return logs.filter((l) => l.action === actionFilter);
-  }, [logs, actionFilter]);
+    let result = logs;
+    if (actionFilter !== "all") result = result.filter((l) => l.action === actionFilter);
+    if (dateFrom) result = result.filter((l) => new Date(l.created_at) >= startOfDay(dateFrom));
+    if (dateTo) result = result.filter((l) => new Date(l.created_at) <= endOfDay(dateTo));
+    return result;
+  }, [logs, actionFilter, dateFrom, dateTo]);
+
+  const hasDateFilter = dateFrom || dateTo;
+  const clearDates = () => { setDateFrom(undefined); setDateTo(undefined); };
 
   const exportCsv = () => {
     if (!filtered.length) return;
