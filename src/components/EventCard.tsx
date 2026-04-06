@@ -311,6 +311,18 @@ export default function EventCard({ event, onShowTicket }: EventCardProps) {
                   </Button>
                 )}
               </div>
+              {canSelfCheckin && (
+                <Button
+                  size="sm"
+                  variant={isCheckinActive ? "default" : "outline"}
+                  disabled={!isCheckinActive}
+                  onClick={() => setCheckinOpen(true)}
+                  className="w-full gap-1.5"
+                >
+                  <ScanLine className="h-3.5 w-3.5" />
+                  {isCheckinActive ? "Self Check-In" : "Check-in opens 2hrs before event"}
+                </Button>
+              )}
               {isAttending && <AddToCalendarButton event={event} />}
             </>
           )}
