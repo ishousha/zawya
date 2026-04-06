@@ -90,6 +90,43 @@ export default function UserManagement() {
     return map;
   }, [families]);
 
+  // Fetch all RSVPs with event titles for the RSVP history column
+  const { data: allRsvps } = useQuery({
+    queryKey: ["admin-all-rsvps"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("rsvps")
+        .select("user_id, event_id, events:event_id(id, title)");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  // Map user_id -> list of { event_id, title }
+  const userRsvpMap = useMemo(() => {
+    const map: Record<string, { event_id: string; title: string }[]> = {};
+    allRsvps?.forEach((r: any) => {
+      const uid = r.user_id;
+      if (!map[uid]) map[uid] = [];
+      const title = r.events?.title;
+      if (title && !map[uid].some((e) => e.event_id === r.event_id)) {
+        map[uid].push({ event_id: r.event_id, title });
+      }
+    });
+    return map;
+  }, [allRsvps]);
+
+  // Unique events for the event filter dropdown
+  const eventOptions = useMemo(() => {
+    const seen = new Map<string, string>();
+    allRsvps?.forEach((r: any) => {
+      if (r.events?.title && !seen.has(r.event_id)) {
+        seen.set(r.event_id, r.events.title);
+      }
+    });
+    return Array.from(seen.entries()).map(([id, title]) => ({ id, title }));
+  }, [allRsvps]);
+
   const { data: guestRequests, isLoading: loadingGuests } = useQuery({
     queryKey: ["admin-guest-requests"],
     queryFn: async () => {
