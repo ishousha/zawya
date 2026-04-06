@@ -27,6 +27,7 @@ export default function EventCard({ event, onShowTicket }: EventCardProps) {
   const { data: myRSVP } = useMyRSVP(event.id);
   const { data: allRsvps } = useEventRSVPs(event.id);
   const [rsvpOpen, setRsvpOpen] = useState(false);
+  const [checkinOpen, setCheckinOpen] = useState(false);
   const [now, setNow] = useState(() => new Date());
   const { profile } = useAuth();
 
