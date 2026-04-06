@@ -69,6 +69,7 @@ export default function LoginPage() {
       toast.error("Could not send code. Please try again.");
     } else {
       setStage("otp");
+      startExpiryTimer();
       toast.success("Code sent! Check your email.");
     }
   };
