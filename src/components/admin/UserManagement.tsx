@@ -395,11 +395,11 @@ export default function UserManagement() {
           const suspendedCount = profiles?.filter((p) => p.role === "suspended").length ?? 0;
           const rejectedCount = profiles?.filter((p) => (p.role as string) === "rejected").length ?? 0;
           return (
-            <div className="mb-3 flex flex-wrap gap-1.5">
+            <div className="mb-3 flex overflow-x-auto gap-1.5 pb-2 scrollbar-hide">
               <Button
                 size="sm"
                 variant={roleFilter === "all" ? "default" : "outline"}
-                className="h-7 text-xs"
+                className="h-7 text-xs whitespace-nowrap flex-shrink-0"
                 onClick={() => setRoleFilter("all")}
               >
                 All Users
@@ -407,10 +407,10 @@ export default function UserManagement() {
               <Button
                 size="sm"
                 variant={roleFilter === "pending" ? "default" : "outline"}
-                className={`h-7 text-xs gap-1 ${roleFilter !== "pending" && pendingCount > 0 ? "border-amber-400 text-amber-700 dark:text-amber-400" : ""}`}
+                className={`h-7 text-xs gap-1 whitespace-nowrap flex-shrink-0 ${roleFilter !== "pending" && pendingCount > 0 ? "border-amber-400 text-amber-700 dark:text-amber-400" : ""}`}
                 onClick={() => setRoleFilter("pending")}
               >
-                Pending Approval
+                Pending
                 {pendingCount > 0 && (
                   <span className="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-amber-500 px-1 text-[10px] font-bold text-white animate-pulse">
                     {pendingCount}
@@ -420,7 +420,7 @@ export default function UserManagement() {
               <Button
                 size="sm"
                 variant={roleFilter === "approved" ? "default" : "outline"}
-                className="h-7 text-xs"
+                className="h-7 text-xs whitespace-nowrap flex-shrink-0"
                 onClick={() => setRoleFilter("approved")}
               >
                 Approved ({approvedCount})
@@ -428,7 +428,7 @@ export default function UserManagement() {
               <Button
                 size="sm"
                 variant={roleFilter === "rejected" ? "default" : "outline"}
-                className="h-7 text-xs"
+                className="h-7 text-xs whitespace-nowrap flex-shrink-0"
                 onClick={() => setRoleFilter("rejected")}
               >
                 Rejected ({rejectedCount})
@@ -436,7 +436,7 @@ export default function UserManagement() {
               <Button
                 size="sm"
                 variant={roleFilter === "suspended" ? "default" : "outline"}
-                className="h-7 text-xs"
+                className="h-7 text-xs whitespace-nowrap flex-shrink-0"
                 onClick={() => setRoleFilter("suspended")}
               >
                 Suspended ({suspendedCount})
@@ -445,8 +445,8 @@ export default function UserManagement() {
           );
         })()}
         {/* Search & Filters */}
-        <div className="mb-3 flex gap-2">
-          <div className="relative flex-1">
+        <div className="mb-3 flex flex-col gap-2 md:flex-row">
+          <div className="relative w-full md:flex-1">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Search by name, email, phone, family…"
@@ -455,44 +455,46 @@ export default function UserManagement() {
               className="pl-9 h-9"
             />
           </div>
-          <Select value={eventFilter} onValueChange={setEventFilter}>
-            <SelectTrigger className="w-[160px] h-9">
-              <SelectValue placeholder="All events" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All events</SelectItem>
-              {eventOptions.map((e) => (
-                <SelectItem key={e.id} value={e.id}>{e.title}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Button
-            size="sm"
-            variant="outline"
-            className="h-9 gap-1.5 text-xs shrink-0"
-            onClick={() => {
-              const rows = filteredProfiles.map((p) => ({
-                Name: p.name || "",
-                Email: p.email || "",
-                Phone: p.phone || "",
-                Role: p.role,
-                Family: (p.family_id && familyMap[p.family_id]) || "",
-                "Joined": format(new Date(p.created_at), "yyyy-MM-dd"),
-              }));
-              downloadCsv(rows, zawyaFilename("Users"));
-              toast.success(`Exported ${rows.length} users`);
-            }}
-          >
-            <Download className="h-3.5 w-3.5" /> Export
-          </Button>
+          <div className="flex gap-2">
+            <Select value={eventFilter} onValueChange={setEventFilter}>
+              <SelectTrigger className="w-full md:w-[160px] h-9">
+                <SelectValue placeholder="All events" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All events</SelectItem>
+                {eventOptions.map((e) => (
+                  <SelectItem key={e.id} value={e.id}>{e.title}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-9 gap-1.5 text-xs shrink-0"
+              onClick={() => {
+                const rows = filteredProfiles.map((p) => ({
+                  Name: p.name || "",
+                  Email: p.email || "",
+                  Phone: p.phone || "",
+                  Role: p.role,
+                  Family: (p.family_id && familyMap[p.family_id]) || "",
+                  "Joined": format(new Date(p.created_at), "yyyy-MM-dd"),
+                }));
+                downloadCsv(rows, zawyaFilename("Users"));
+                toast.success(`Exported ${rows.length} users`);
+              }}
+            >
+              <Download className="h-3.5 w-3.5" /> Export
+            </Button>
+          </div>
         </div>
         <div className="space-y-2">
           {filteredProfiles.map((p) => (
             <Card key={p.id} className={p.role === "pending" ? "border-accent" : ""}>
-              <CardContent className="flex items-center justify-between p-4">
+              <CardContent className="flex flex-col p-4 sm:flex-row sm:items-center sm:justify-between">
                 <div className="min-w-0 flex-1">
-                  <p className="truncate font-medium text-card-foreground flex items-center gap-1.5">
-                    {p.name || "Unnamed"}
+                  <p className="font-medium text-card-foreground flex flex-wrap items-center gap-1.5">
+                    <span className="truncate">{p.name || "Unnamed"}</span>
                      {p.role === "pending" && (
                        <Badge className="text-[10px] px-2 py-0.5 bg-amber-500 text-white border-amber-500 animate-pulse font-semibold">
                          ⏳ Awaiting Approval
@@ -530,7 +532,7 @@ export default function UserManagement() {
                     </div>
                   )}
                 </div>
-                <div className="ml-3 flex items-center gap-2">
+                <div className="mt-3 flex flex-wrap items-center gap-2 sm:mt-0 sm:ml-3 sm:flex-nowrap">
                   {p.role === "pending" && (
                     <>
                       <Button
@@ -587,7 +589,7 @@ export default function UserManagement() {
                       })
                     }
                   >
-                    <SelectTrigger className="w-[130px] h-9">
+                    <SelectTrigger className="w-[120px] h-9">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -642,7 +644,7 @@ export default function UserManagement() {
           <div className="space-y-2">
             {guestRequests.map((gr) => (
               <Card key={gr.id} className={gr.status === "pending" ? "border-accent" : ""}>
-                <CardContent className="flex items-center justify-between p-4">
+                <CardContent className="flex flex-col p-4 sm:flex-row sm:items-center sm:justify-between">
                   <div className="min-w-0 flex-1">
                     <p className="truncate font-medium text-card-foreground">{gr.guest_name}</p>
                     {(gr as any).profiles?.name && (
@@ -658,7 +660,7 @@ export default function UserManagement() {
                       <p className="text-xs text-muted-foreground">{gr.guest_phone}</p>
                     )}
                   </div>
-                  <div className="ml-3 flex items-center gap-2">
+                  <div className="mt-3 flex items-center gap-2 sm:mt-0 sm:ml-3">
                     <Badge
                       variant={gr.status === "pending" ? "outline" : gr.status === "approved" ? "default" : "destructive"}
                       className="capitalize"
