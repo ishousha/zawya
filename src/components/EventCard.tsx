@@ -236,7 +236,7 @@ export default function EventCard({ event, onShowTicket }: EventCardProps) {
               size="sm"
               variant={isLinkActive ? "default" : "outline"}
               disabled={!isLinkActive}
-              className="w-full gap-1.5"
+              className={`w-full gap-1.5 ${isLinkActive ? "animate-pulse-once" : ""}`}
               onClick={() => {
                 if (isLinkActive && onlineLink) {
                   window.open(onlineLink, "_blank", "noopener,noreferrer");
