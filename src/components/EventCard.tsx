@@ -46,6 +46,12 @@ export default function EventCard({ event, onShowTicket }: EventCardProps) {
   const isAdminOrMod = profile?.role === "admin" || profile?.role === "moderator";
   const canSeeJoinButton = isAdminOrMod || (isAttending && !isWaitlisted);
 
+  // Self check-in: active within 2 hours of event start
+  const checkinActivatesAt = eventTime - 2 * 60 * 60 * 1000;
+  const isCheckinActive = now.getTime() >= checkinActivatesAt;
+  const isCheckedIn = myRSVP?.checked_in ?? false;
+  const canSelfCheckin = isAttending && !isWaitlisted && !isCheckedIn && !isCancelled;
+
   // Countdown string
   const remainingMs = linkActivatesAt - now.getTime();
   const countdownText = (() => {
