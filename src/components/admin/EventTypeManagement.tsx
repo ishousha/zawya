@@ -160,6 +160,34 @@ export default function EventTypeManagement() {
     }
   }
 
+  async function handleDrop(targetId: string) {
+    if (!dragId || dragId === targetId || !eventTypes) return;
+    setReordering(true);
+    const items = [...eventTypes];
+    const fromIdx = items.findIndex((i) => i.id === dragId);
+    const toIdx = items.findIndex((i) => i.id === targetId);
+    if (fromIdx === -1 || toIdx === -1) return;
+    const [moved] = items.splice(fromIdx, 1);
+    items.splice(toIdx, 0, moved);
+
+    try {
+      // Update all display_order values
+      for (let i = 0; i < items.length; i++) {
+        const { error } = await supabase
+          .from("event_types")
+          .update({ display_order: i + 1 } as any)
+          .eq("id", items[i].id);
+        if (error) throw error;
+      }
+      queryClient.invalidateQueries({ queryKey: ["event-types"] });
+    } catch (err: any) {
+      toast.error(err.message || "Failed to reorder");
+    } finally {
+      setDragId(null);
+      setReordering(false);
+    }
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -177,6 +205,7 @@ export default function EventTypeManagement() {
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className="w-10" />
               <TableHead>Icon</TableHead>
               <TableHead>Name</TableHead>
               <TableHead>Location</TableHead>
@@ -189,7 +218,17 @@ export default function EventTypeManagement() {
             {eventTypes.map((et) => {
               const Icon = getEventTypeIcon(et.icon);
               return (
-                <TableRow key={et.id}>
+                <TableRow
+                  key={et.id}
+                  draggable
+                  onDragStart={() => setDragId(et.id)}
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={() => handleDrop(et.id)}
+                  className={dragId === et.id ? "opacity-50" : ""}
+                >
+                  <TableCell className="cursor-grab">
+                    <GripVertical className="h-4 w-4 text-muted-foreground" />
+                  </TableCell>
                   <TableCell>
                     <Icon className="h-4 w-4 text-muted-foreground" />
                   </TableCell>
