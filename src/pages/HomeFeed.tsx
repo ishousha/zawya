@@ -87,7 +87,6 @@ export default function HomeFeed() {
 function TicketView({ event, onBack }: { event: Event; onBack: () => void }) {
   const { profile } = useAuth();
   const { data: myRSVP, isLoading, isError } = useMyRSVP(event.id);
-  const [isOffline, setIsOffline] = useState(false);
 
   // When RSVP loads successfully, cache the ticket
   useEffect(() => {
@@ -95,6 +94,13 @@ function TicketView({ event, onBack }: { event: Event; onBack: () => void }) {
       cacheTicket(myRSVP, event, profile.name);
     }
   }, [myRSVP, event, profile?.name]);
+
+  // No RSVP at all — navigate back (must be a hook, not a side-effect in render)
+  useEffect(() => {
+    if (!isLoading && !myRSVP && !isError) {
+      onBack();
+    }
+  }, [isLoading, myRSVP, isError, onBack]);
 
   if (isLoading) {
     return (
@@ -110,28 +116,20 @@ function TicketView({ event, onBack }: { event: Event; onBack: () => void }) {
   }
 
   // No RSVP from network — try offline cache
-  if (isError || !myRSVP) {
-    const cached = getCachedTicketByEvent(event.id);
-    if (cached) {
-      return (
-        <QRTicketScreen
-          event={cached.event}
-          rsvp={cached.rsvp}
-          profileName={cached.profileName}
-          isOffline
-          onBack={onBack}
-        />
-      );
-    }
+  const cached = getCachedTicketByEvent(event.id);
+  if (cached) {
+    return (
+      <QRTicketScreen
+        event={cached.event}
+        rsvp={cached.rsvp}
+        profileName={cached.profileName}
+        isOffline
+        onBack={onBack}
+      />
+    );
   }
 
-  // No RSVP at all — use effect to avoid side-effect during render
-  useEffect(() => {
-    if (!isLoading && !myRSVP && !isError) {
-      onBack();
-    }
-  }, [isLoading, myRSVP, isError, onBack]);
-
+  // Fallback while the useEffect navigates back
   return (
     <div className="flex min-h-screen items-center justify-center bg-background">
       <Loader2 className="h-6 w-6 animate-spin text-primary" />
