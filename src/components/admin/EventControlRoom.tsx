@@ -112,7 +112,7 @@ export default function EventControlRoom() {
       date_time: "",
       end_date_time: "",
       event_type_id: event.event_type_id,
-      venue_id: (event as any).venue_id ?? null,
+      venue_id: event.venue_id ?? null,
       location: event.location ?? "",
       address: event.address ?? "",
       virtual_link: event.virtual_link ?? event.zoom_link ?? "",
@@ -121,11 +121,11 @@ export default function EventControlRoom() {
       waitlist_capacity: (event.waitlist_capacity ?? 0).toString(),
       is_hybrid: event.is_hybrid ?? false,
       has_potluck: event.has_potluck ?? true,
-      ticket_fee: ((event as any).ticket_fee ?? 0).toString(),
+      ticket_fee: (event.ticket_fee ?? 0).toString(),
       payment_instructions: event.payment_instructions ?? "",
-      online_link: (event as any).online_link ?? "",
+      online_link: event.online_link ?? "",
       status: "active",
-      checkin_pin: (event as any).checkin_pin ?? "",
+      checkin_pin: event.checkin_pin ?? "",
     };
 
     const copiedItems: SignUpItem[] = (items ?? []).map((item, i) => ({
@@ -414,7 +414,7 @@ export default function EventControlRoom() {
             eventId={monitoringEventId}
             eventTitle={monEvent?.title ?? "Event"}
             eventDate={monEvent?.date_time ?? ""}
-            checkinPin={(monEvent as any)?.checkin_pin ?? ""}
+            checkinPin={monEvent?.checkin_pin ?? ""}
             onClose={() => setMonitoringEventId(null)}
           />
         );

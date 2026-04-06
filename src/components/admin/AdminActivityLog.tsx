@@ -43,7 +43,7 @@ export default function AdminActivityLog() {
   const { data: logs, isLoading, refetch } = useQuery({
     queryKey: ["admin-activity-log"],
     queryFn: async () => {
-      const { data, error } = await (supabase.from("admin_activity_log") as any)
+      const { data, error } = await supabase.from("admin_activity_log")
         .select("*")
         .order("created_at", { ascending: false })
         .limit(200);

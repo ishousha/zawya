@@ -27,7 +27,7 @@ export default function DesignTab({ form, setForm }: DesignTabProps) {
     if (!selectedType) return;
     setForm((prev) => {
       const next = { ...prev };
-      const stIsVirtual = (selectedType as any).is_virtual ?? false;
+      const stIsVirtual = selectedType.is_virtual ?? false;
 
       // Set is_hybrid based on both flags
       next.is_hybrid = selectedType.requires_location && stIsVirtual;
@@ -48,7 +48,7 @@ export default function DesignTab({ form, setForm }: DesignTabProps) {
 
   // Derive visibility from event type flags
   const requiresLocation = selectedType?.requires_location ?? true;
-  const isVirtual = (selectedType as any)?.is_virtual ?? false;
+  const isVirtual = selectedType?.is_virtual ?? false;
   const allowsPotluck = selectedType?.allows_potluck ?? true;
 
   const showPhysical = requiresLocation;

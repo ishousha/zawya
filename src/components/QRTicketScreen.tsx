@@ -82,7 +82,7 @@ export default function QRTicketScreen({ event, rsvp, profileName, isOffline, on
         return;
       }
 
-      if ((eventData as any).checkin_pin !== pin) {
+      if (eventData.checkin_pin !== pin) {
         toast.error("PIN mismatch. Make sure you're scanning the correct event poster.");
         return;
       }

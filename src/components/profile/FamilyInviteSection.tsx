@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 export default function FamilyInviteSection() {
   const { user, profile } = useAuth();
   const queryClient = useQueryClient();
-  const familyId = (profile as any)?.family_id as string | null;
+  const familyId = profile?.family_id ?? null;
   const [creating, setCreating] = useState(false);
   const [editing, setEditing] = useState(false);
   const [editName, setEditName] = useState("");
@@ -174,7 +174,7 @@ export default function FamilyInviteSection() {
         .insert({
           family_id: familyId!,
           created_by: profile!.id,
-        } as any)
+        })
         .select()
         .single();
       if (error) throw error;
@@ -182,7 +182,7 @@ export default function FamilyInviteSection() {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["family-invites", familyId] });
-      const url = `${window.location.origin}/join-family?token=${(data as any).token}`;
+      const url = `${window.location.origin}/join-family?token=${data.token}`;
       navigator.clipboard.writeText(url).then(() => {
         toast.success("Invite link copied to clipboard!");
       }).catch(() => {
@@ -229,7 +229,7 @@ export default function FamilyInviteSection() {
     );
   }
 
-  const pendingInvites = invites?.filter((i) => (i as any).status === "pending") ?? [];
+  const pendingInvites = invites?.filter((i) => i.status === "pending") ?? [];
 
   return (
     <Card>
@@ -326,10 +326,10 @@ export default function FamilyInviteSection() {
           <div className="space-y-2">
             <p className="text-xs font-medium text-muted-foreground">Pending Invites</p>
             {pendingInvites.map((inv) => {
-              const url = `${window.location.origin}/join-family?token=${(inv as any).token}`;
+              const url = `${window.location.origin}/join-family?token=${inv.token}`;
               return (
                 <div
-                  key={(inv as any).id}
+                  key={inv.id}
                   className="rounded-lg border border-border p-3 space-y-2"
                 >
                   <p className="text-xs text-muted-foreground font-mono truncate">{url}</p>
