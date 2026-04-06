@@ -3,6 +3,7 @@ import { useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import LoginPage from "@/pages/Login";
 import { usePendingUserAlerts } from "@/hooks/usePendingUserAlerts";
+import Rejected from "@/pages/Rejected";
 import CompleteProfile from "@/pages/CompleteProfile";
 import PendingApproval from "@/pages/PendingApproval";
 import Suspended from "@/pages/Suspended";
