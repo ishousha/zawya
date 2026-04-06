@@ -1,11 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { toast } from "sonner";
-import { Mail, Loader2, ArrowLeft, RefreshCw } from "lucide-react";
+import { Mail, Loader2, ArrowLeft, RefreshCw, Clock } from "lucide-react";
 import zawyaLogo from "@/assets/logo.png";
 
 type Stage = "email" | "otp";
@@ -20,6 +20,26 @@ export default function LoginPage() {
   const [googleLoading, setGoogleLoading] = useState(false);
   const [resending, setResending] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
+  const [otpExpiry, setOtpExpiry] = useState(0);
+  const expiryRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const startExpiryTimer = () => {
+    if (expiryRef.current) clearInterval(expiryRef.current);
+    setOtpExpiry(300); // 5 minutes
+    expiryRef.current = setInterval(() => {
+      setOtpExpiry((prev) => {
+        if (prev <= 1) {
+          if (expiryRef.current) clearInterval(expiryRef.current);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  };
+
+  useEffect(() => {
+    return () => { if (expiryRef.current) clearInterval(expiryRef.current); };
+  }, []);
 
   const handleOAuthSignIn = async (provider: "apple" | "google") => {
     const setLoaderFn = provider === "apple" ? setAppleLoading : setGoogleLoading;
@@ -49,6 +69,7 @@ export default function LoginPage() {
       toast.error("Could not send code. Please try again.");
     } else {
       setStage("otp");
+      startExpiryTimer();
       toast.success("Code sent! Check your email.");
     }
   };
@@ -80,6 +101,7 @@ export default function LoginPage() {
     } else {
       toast.success("New code sent!");
       setOtp("");
+      startExpiryTimer();
       setResendCooldown(30);
       const interval = setInterval(() => {
         setResendCooldown((prev) => {
@@ -94,6 +116,14 @@ export default function LoginPage() {
     setStage("email");
     setOtp("");
     setResendCooldown(0);
+    setOtpExpiry(0);
+    if (expiryRef.current) clearInterval(expiryRef.current);
+  };
+
+  const formatTime = (s: number) => {
+    const m = Math.floor(s / 60);
+    const sec = s % 60;
+    return `${m}:${sec.toString().padStart(2, "0")}`;
   };
 
   return (
@@ -136,10 +166,21 @@ export default function LoginPage() {
               </InputOTP>
             </div>
 
+            {otpExpiry > 0 ? (
+              <p className={`mt-3 flex items-center justify-center gap-1.5 text-xs ${otpExpiry <= 60 ? "text-destructive" : "text-muted-foreground"}`}>
+                <Clock className="h-3.5 w-3.5" />
+                Code expires in {formatTime(otpExpiry)}
+              </p>
+            ) : stage === "otp" ? (
+              <p className="mt-3 text-xs text-destructive">
+                Code expired — please resend
+              </p>
+            ) : null}
+
             <Button
-              className="mt-6 w-full"
+              className="mt-4 w-full"
               onClick={handleVerifyOtp}
-              disabled={verifying || otp.length !== 6}
+              disabled={verifying || otp.length !== 6 || otpExpiry === 0}
             >
               {verifying ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
