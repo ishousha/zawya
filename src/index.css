@@ -108,3 +108,11 @@
 .animate-pulse-once {
   animation: pulse-once 1.5s ease-out 1;
 }
+
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
