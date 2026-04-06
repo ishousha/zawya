@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Users, UserPlus, Copy, Loader2, MessageCircle, User, Plus, Pencil, Check, X } from "lucide-react";
+import { Users, UserPlus, Copy, Loader2, MessageCircle, User, Plus, Pencil, Check, X, LogOut } from "lucide-react";
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 
@@ -118,6 +118,26 @@ export default function FamilyInviteSection() {
       toast.success("Family name updated!");
       setEditing(false);
       queryClient.invalidateQueries({ queryKey: ["my-family-name", familyId] });
+    }
+  };
+
+  const [leaving, setLeaving] = useState(false);
+  const [confirmLeave, setConfirmLeave] = useState(false);
+
+  const handleLeaveFamily = async () => {
+    if (!user) return;
+    setLeaving(true);
+    const { error } = await supabase
+      .from("profiles")
+      .update({ family_id: null })
+      .eq("id", user.id);
+    setLeaving(false);
+    if (error) {
+      toast.error("Failed to leave family group.");
+    } else {
+      toast.success("You left the family group.");
+      setConfirmLeave(false);
+      window.location.reload();
     }
   };
 
@@ -313,6 +333,40 @@ export default function FamilyInviteSection() {
                 </div>
               );
             })}
+          </div>
+        )}
+
+        {/* Leave family */}
+        {!confirmLeave ? (
+          <button
+            onClick={() => setConfirmLeave(true)}
+            className="w-full text-center text-xs text-muted-foreground hover:text-destructive transition-colors mt-2"
+          >
+            Leave family group
+          </button>
+        ) : (
+          <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 space-y-2 mt-2">
+            <p className="text-sm text-destructive font-medium text-center">Leave this family group?</p>
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                className="flex-1"
+                onClick={() => setConfirmLeave(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                size="sm"
+                variant="destructive"
+                className="flex-1 gap-1.5"
+                onClick={handleLeaveFamily}
+                disabled={leaving}
+              >
+                {leaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <LogOut className="h-3.5 w-3.5" />}
+                Leave
+              </Button>
+            </div>
           </div>
         )}
       </CardContent>
