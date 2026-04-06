@@ -143,7 +143,17 @@ export default function LoginPage() {
           </p>
         </div>
 
-        {stage === "otp" ? (
+        {stage === "magic-link" ? (
+          <div className="rounded-lg border border-border bg-card p-6 text-center">
+            <Loader2 className="mx-auto mb-3 h-10 w-10 animate-spin text-primary" />
+            <h2 className="font-heading text-xl font-semibold text-card-foreground">
+              Signing you in…
+            </h2>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Verifying your magic link, just a moment.
+            </p>
+          </div>
+        ) : stage === "otp" ? (
           <div className="rounded-lg border border-border bg-card p-6 text-center">
             <Mail className="mx-auto mb-3 h-10 w-10 text-primary" />
             <h2 className="font-heading text-xl font-semibold text-card-foreground">
