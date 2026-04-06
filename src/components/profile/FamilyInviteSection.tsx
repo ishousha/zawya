@@ -199,7 +199,7 @@ export default function FamilyInviteSection() {
           <Button
             className="w-full gap-1.5"
             onClick={handleCreateFamily}
-            disabled={creating}
+            disabled={creating || loading || !profile}
           >
             {creating ? (
               <Loader2 className="h-4 w-4 animate-spin" />
