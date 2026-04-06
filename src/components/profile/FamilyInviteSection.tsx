@@ -229,7 +229,7 @@ export default function FamilyInviteSection() {
     );
   }
 
-  const pendingInvites = invites?.filter((i) => (i as any).status === "pending") ?? [];
+  const pendingInvites = invites?.filter((i) => i.status === "pending") ?? [];
 
   return (
     <Card>
