@@ -1,5 +1,6 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { Navigate } from "react-router-dom";
+import { useRef, useEffect, useCallback } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import UserManagement from "@/components/admin/UserManagement";
 import EventControlRoom from "@/components/admin/EventControlRoom";
@@ -15,7 +16,22 @@ import { usePendingUsersCount } from "@/hooks/usePendingUsersCount";
 export default function AdminDashboard() {
   const { profile } = useAuth();
   const { data: pendingCount } = usePendingUsersCount();
+  const tabsListRef = useRef<HTMLDivElement>(null);
 
+  const scrollActiveTabIntoView = useCallback((container: HTMLDivElement | null) => {
+    if (!container) return;
+    const activeTab = container.querySelector('[data-state="active"]') as HTMLElement;
+    if (activeTab) {
+      const scrollLeft = activeTab.offsetLeft - 8;
+      container.scrollTo({ left: Math.max(0, scrollLeft), behavior: 'smooth' });
+    }
+  }, []);
+
+  useEffect(() => {
+    // Scroll to show the active tab on mount
+    const timer = setTimeout(() => scrollActiveTabIntoView(tabsListRef.current), 100);
+    return () => clearTimeout(timer);
+  }, [scrollActiveTabIntoView]);
   const isAdmin = profile?.role === "admin";
   const isModerator = (profile?.role as string) === "moderator";
 
@@ -87,8 +103,8 @@ export default function AdminDashboard() {
       </header>
 
       <main className="mx-auto max-w-2xl px-4 py-4">
-        <Tabs defaultValue="users" className="w-full">
-          <TabsList className="flex w-full overflow-x-auto bg-muted scrollbar-hide pb-0.5">
+        <Tabs defaultValue="users" className="w-full" onValueChange={() => setTimeout(() => scrollActiveTabIntoView(tabsListRef.current), 50)}>
+          <TabsList ref={tabsListRef} className="flex w-full justify-start overflow-x-auto bg-muted scrollbar-hide pb-0.5">
             <TabsTrigger value="users" className="flex-shrink-0 gap-1.5 px-3 text-xs sm:text-sm">
               <Users className="h-4 w-4" />
               Users
