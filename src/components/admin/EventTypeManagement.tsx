@@ -35,7 +35,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Pencil, Trash2 } from "lucide-react";
-import { getEventTypeIcon } from "@/hooks/useEventTypes";
+import { getEventTypeIcon, EVENT_TYPE_ICON_NAMES } from "@/hooks/useEventTypes";
 
 interface FormState {
   name: string;
