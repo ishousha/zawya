@@ -104,6 +104,23 @@ export default function FamilyInviteSection() {
     window.location.reload();
   };
 
+  const handleSaveName = async () => {
+    if (!familyId || !editName.trim()) return;
+    setSavingName(true);
+    const { error } = await supabase
+      .from("families")
+      .update({ name: editName.trim() })
+      .eq("id", familyId);
+    setSavingName(false);
+    if (error) {
+      toast.error("Failed to update family name.");
+    } else {
+      toast.success("Family name updated!");
+      setEditing(false);
+      queryClient.invalidateQueries({ queryKey: ["my-family-name", familyId] });
+    }
+  };
+
   const createInvite = useMutation({
     mutationFn: async () => {
       const { data, error } = await supabase
