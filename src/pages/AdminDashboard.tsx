@@ -88,35 +88,35 @@ export default function AdminDashboard() {
 
       <main className="mx-auto max-w-2xl px-4 py-4">
         <Tabs defaultValue="users" className="w-full">
-          <TabsList className="flex w-full overflow-x-auto bg-muted scrollbar-hide">
-            <TabsTrigger value="users" className="flex-shrink-0 gap-1.5 text-xs sm:text-sm">
+          <TabsList className="flex w-full overflow-x-auto bg-muted scrollbar-hide pb-0.5">
+            <TabsTrigger value="users" className="flex-shrink-0 gap-1.5 px-3 text-xs sm:text-sm">
               <Users className="h-4 w-4" />
-              <span className="hidden sm:inline">Users</span>
+              Users
               {pendingBadge}
             </TabsTrigger>
-            <TabsTrigger value="families" className="flex-shrink-0 gap-1.5 text-xs sm:text-sm">
+            <TabsTrigger value="families" className="flex-shrink-0 gap-1.5 px-3 text-xs sm:text-sm">
               <Home className="h-4 w-4" />
-              <span className="hidden sm:inline">Families</span>
+              Families
             </TabsTrigger>
-            <TabsTrigger value="events" className="flex-shrink-0 gap-1.5 text-xs sm:text-sm">
+            <TabsTrigger value="events" className="flex-shrink-0 gap-1.5 px-3 text-xs sm:text-sm">
               <CalendarPlus className="h-4 w-4" />
-              <span className="hidden sm:inline">Events</span>
+              Events
             </TabsTrigger>
-            <TabsTrigger value="scanner" className="flex-shrink-0 gap-1.5 text-xs sm:text-sm bg-primary/10 text-primary font-semibold border border-primary/30 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+            <TabsTrigger value="scanner" className="flex-shrink-0 gap-1.5 px-3 text-xs sm:text-sm bg-primary/10 text-primary font-semibold border border-primary/30 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
               <ScanLine className="h-4 w-4" />
-              <span className="hidden sm:inline">Scanner</span>
+              Scanner
             </TabsTrigger>
-            <TabsTrigger value="analytics" className="flex-shrink-0 gap-1.5 text-xs sm:text-sm">
+            <TabsTrigger value="analytics" className="flex-shrink-0 gap-1.5 px-3 text-xs sm:text-sm">
               <BarChart3 className="h-4 w-4" />
-              <span className="hidden sm:inline">Analytics</span>
+              Analytics
             </TabsTrigger>
-            <TabsTrigger value="settings" className="flex-shrink-0 gap-1.5 text-xs sm:text-sm">
+            <TabsTrigger value="settings" className="flex-shrink-0 gap-1.5 px-3 text-xs sm:text-sm">
               <Settings className="h-4 w-4" />
-              <span className="hidden sm:inline">Settings</span>
+              Settings
             </TabsTrigger>
-            <TabsTrigger value="activity" className="flex-shrink-0 gap-1.5 text-xs sm:text-sm">
+            <TabsTrigger value="activity" className="flex-shrink-0 gap-1.5 px-3 text-xs sm:text-sm">
               <ScrollText className="h-4 w-4" />
-              <span className="hidden sm:inline">Log</span>
+              Log
             </TabsTrigger>
           </TabsList>
 
