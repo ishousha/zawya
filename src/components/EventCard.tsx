@@ -127,7 +127,7 @@ export default function EventCard({ event, onShowTicket }: EventCardProps) {
           {!isCancelled && isAttending && !isWaitlisted && (
             <span className="inline-flex items-center gap-1 rounded-full bg-accent px-2.5 py-0.5 text-xs font-medium text-accent-foreground">
               <CheckCircle2 className="h-3 w-3" />
-              Attending
+              {isCheckedIn ? "Checked In" : "Attending"}
             </span>
           )}
           {!isCancelled && isAttending && isWaitlisted && (
