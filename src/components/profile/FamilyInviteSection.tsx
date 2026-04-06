@@ -10,7 +10,7 @@ import { useState } from "react";
 import { Input } from "@/components/ui/input";
 
 export default function FamilyInviteSection() {
-  const { user, profile } = useAuth();
+  const { user, profile, loading } = useAuth();
   const queryClient = useQueryClient();
   const familyId = profile?.family_id ?? null;
   const [creating, setCreating] = useState(false);
@@ -63,37 +63,26 @@ export default function FamilyInviteSection() {
   });
 
   const handleCreateFamily = async () => {
-    if (!user || !profile) return;
+    if (!user || !profile || loading) return;
     setCreating(true);
 
     const nameParts = (profile.name || "").trim().split(/\s+/);
     const lastName = nameParts.length > 1 ? nameParts[nameParts.length - 1] : nameParts[0] || "My";
     const familyLabel = `${lastName} Family`;
-    const familyId = crypto.randomUUID();
 
-    const { error: famErr } = await supabase
-      .from("families")
-      .insert({ id: familyId, name: familyLabel });
-
-    if (famErr) {
-      setCreating(false);
-      toast.error("Failed to create family group.");
-      return;
-    }
-
-    const { error: profErr } = await supabase
-      .from("profiles")
-      .update({ family_id: familyId })
-      .eq("id", user.id);
+    const { data, error } = await supabase.functions.invoke("create-family", {
+      body: { name: familyLabel },
+    });
 
     setCreating(false);
 
-    if (profErr) {
-      toast.error("Family created but failed to link your profile.");
+    if (error || !data?.success) {
+      console.error("Create family failed:", error ?? data);
+      toast.error(data?.error || error?.message || "Failed to create family group.");
       return;
     }
 
-    toast.success(`"${familyLabel}" created!`);
+    toast.success(`"${data.family_name || familyLabel}" created!`);
     queryClient.invalidateQueries({ queryKey: ["my-family-name"] });
     queryClient.invalidateQueries({ queryKey: ["family-members-list"] });
     window.location.reload();
