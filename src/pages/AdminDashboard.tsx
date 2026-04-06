@@ -49,10 +49,10 @@ export default function AdminDashboard() {
   const [slideDir, setSlideDir] = useState<"left" | "right" | null>(null);
   const [slideKey, setSlideKey] = useState(0);
 
-  const changeTab = useCallback(<T extends string>(
-    tabs: readonly T[],
-    current: T,
-    setter: (t: T) => void,
+  const changeTab = useCallback((
+    tabs: readonly string[],
+    current: string,
+    setter: (t: never) => void,
     direction: "left" | "right"
   ) => {
     const idx = tabs.indexOf(current);
@@ -60,7 +60,7 @@ export default function AdminDashboard() {
     if (next < 0 || next >= tabs.length) return;
     setSlideDir(direction);
     setSlideKey((k) => k + 1);
-    setter(tabs[next] as T);
+    setter(tabs[next] as never);
   }, []);
 
   /** Scroll the tab bar so the active tab is centered */
