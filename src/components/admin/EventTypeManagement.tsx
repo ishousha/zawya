@@ -178,6 +178,7 @@ export default function EventTypeManagement() {
               <TableHead>Icon</TableHead>
               <TableHead>Name</TableHead>
               <TableHead>Location</TableHead>
+              <TableHead>Virtual</TableHead>
               <TableHead>Potluck</TableHead>
               <TableHead className="w-20" />
             </TableRow>
