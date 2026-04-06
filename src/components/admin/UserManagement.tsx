@@ -260,7 +260,11 @@ export default function UserManagement() {
   });
 
   const deleteUser = useMutation({
-    mutationFn: async (userId: string) => {
+    mutationFn: async ({ userId, name, email }: { userId: string; name?: string | null; email?: string | null }) => {
+      // Log before deletion since the profile will be cascaded
+      if (user) {
+        logActivity(user.id, "delete_user", { id: userId, name, email } as Profile);
+      }
       const { data, error } = await supabase.functions.invoke("admin-delete-user", {
         body: { user_id: userId },
       });
