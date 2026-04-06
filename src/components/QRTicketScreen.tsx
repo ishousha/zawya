@@ -1,4 +1,4 @@
-import { useRef, useState, useCallback } from "react";
+import { useRef, useState, useCallback, useEffect } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
