@@ -309,6 +309,9 @@ export function useRSVPConcurrency(eventId: string) {
     mutationFn: async (rsvpId: string) => {
       if (!user) throw new Error("Not authenticated");
 
+      // Release claimed sign-up items first
+      await supabase.from("rsvp_sign_up_selections").delete().eq("rsvp_id", rsvpId);
+
       const { error } = await supabase
         .from("rsvps")
         .delete()
