@@ -77,6 +77,7 @@ export default function EventTypeManagement() {
       name: et.name,
       icon: et.icon,
       requires_location: et.requires_location,
+      is_virtual: (et as any).is_virtual ?? false,
       allows_potluck: et.allows_potluck,
     });
     setOpen(true);
