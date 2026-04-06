@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { format } from "date-fns";
 import { MapPin, Video, Users, Calendar, Clock, CheckCircle2, Ticket, Edit, Building2, ExternalLink, Ban, BookOpen, Mountain, Handshake, ClockIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/contexts/AuthContext";
 import { useMyRSVP, useEventRSVPs } from "@/hooks/useRSVP";
 import RSVPModal from "@/components/RSVPModal";
 import AddToCalendarButton from "@/components/AddToCalendarButton";
