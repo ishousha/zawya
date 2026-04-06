@@ -230,6 +230,7 @@ export default function EventControlRoom() {
               </CollapsibleContent>
             </Collapsible>
           )}
+          <div className="space-y-2">
             {activeEvents.map((event) => (
               <Card key={event.id}>
                 <CardContent className="p-4">
