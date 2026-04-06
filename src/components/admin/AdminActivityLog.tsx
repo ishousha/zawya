@@ -2,8 +2,8 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, ShieldAlert, UserMinus, UserCog, UserPlus, RefreshCw, Download } from "lucide-react";
-import { format } from "date-fns";
+import { Loader2, ShieldAlert, UserMinus, UserCog, UserPlus, RefreshCw, Download, CalendarIcon, X } from "lucide-react";
+import { format, startOfDay, endOfDay } from "date-fns";
 import { useState, useMemo } from "react";
 import {
   Select,
@@ -13,6 +13,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { cn } from "@/lib/utils";
 
 interface LogEntry {
   id: string;
@@ -34,6 +37,8 @@ const ACTION_CONFIG: Record<string, { label: string; icon: typeof UserCog; varia
 
 export default function AdminActivityLog() {
   const [actionFilter, setActionFilter] = useState("all");
+  const [dateFrom, setDateFrom] = useState<Date | undefined>();
+  const [dateTo, setDateTo] = useState<Date | undefined>();
 
   const { data: logs, isLoading, refetch } = useQuery({
     queryKey: ["admin-activity-log"],
@@ -70,9 +75,15 @@ export default function AdminActivityLog() {
 
   const filtered = useMemo(() => {
     if (!logs) return [];
-    if (actionFilter === "all") return logs;
-    return logs.filter((l) => l.action === actionFilter);
-  }, [logs, actionFilter]);
+    let result = logs;
+    if (actionFilter !== "all") result = result.filter((l) => l.action === actionFilter);
+    if (dateFrom) result = result.filter((l) => new Date(l.created_at) >= startOfDay(dateFrom));
+    if (dateTo) result = result.filter((l) => new Date(l.created_at) <= endOfDay(dateTo));
+    return result;
+  }, [logs, actionFilter, dateFrom, dateTo]);
+
+  const hasDateFilter = dateFrom || dateTo;
+  const clearDates = () => { setDateFrom(undefined); setDateTo(undefined); };
 
   const exportCsv = () => {
     if (!filtered.length) return;
@@ -110,13 +121,24 @@ export default function AdminActivityLog() {
 
   return (
     <div className="space-y-4 py-4">
-      <div className="flex items-center justify-between">
-        <h3 className="font-heading text-base font-semibold text-foreground">
-          Activity Log ({filtered.length})
-        </h3>
-        <div className="flex gap-2">
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h3 className="font-heading text-base font-semibold text-foreground">
+            Activity Log ({filtered.length})
+          </h3>
+          <div className="flex gap-2">
+            <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => refetch()}>
+              <RefreshCw className="h-4 w-4" />
+            </Button>
+            <Button variant="outline" size="sm" className="h-9 gap-1.5" onClick={exportCsv} disabled={!filtered.length}>
+              <Download className="h-4 w-4" />
+              <span className="hidden sm:inline">Export</span>
+            </Button>
+          </div>
+        </div>
+        <div className="flex flex-wrap gap-2">
           <Select value={actionFilter} onValueChange={setActionFilter}>
-            <SelectTrigger className="w-[150px] h-9">
+            <SelectTrigger className="w-[140px] h-9">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -126,13 +148,33 @@ export default function AdminActivityLog() {
               <SelectItem value="delete_user">Deletions</SelectItem>
             </SelectContent>
           </Select>
-          <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => refetch()}>
-            <RefreshCw className="h-4 w-4" />
-          </Button>
-          <Button variant="outline" size="sm" className="h-9 gap-1.5" onClick={exportCsv} disabled={!filtered.length}>
-            <Download className="h-4 w-4" />
-            <span className="hidden sm:inline">Export</span>
-          </Button>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="sm" className={cn("h-9 gap-1.5 text-sm", !dateFrom && "text-muted-foreground")}>
+                <CalendarIcon className="h-3.5 w-3.5" />
+                {dateFrom ? format(dateFrom, "MMM d") : "From"}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar mode="single" selected={dateFrom} onSelect={setDateFrom} initialFocus className="p-3 pointer-events-auto" />
+            </PopoverContent>
+          </Popover>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="sm" className={cn("h-9 gap-1.5 text-sm", !dateTo && "text-muted-foreground")}>
+                <CalendarIcon className="h-3.5 w-3.5" />
+                {dateTo ? format(dateTo, "MMM d") : "To"}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar mode="single" selected={dateTo} onSelect={setDateTo} initialFocus className="p-3 pointer-events-auto" />
+            </PopoverContent>
+          </Popover>
+          {hasDateFilter && (
+            <Button variant="ghost" size="sm" className="h-9 gap-1 text-xs text-muted-foreground" onClick={clearDates}>
+              <X className="h-3.5 w-3.5" /> Clear dates
+            </Button>
+          )}
         </div>
       </div>
 
