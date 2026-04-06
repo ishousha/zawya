@@ -22,7 +22,8 @@ export default function AdminDashboard() {
     if (!container) return;
     const activeTab = container.querySelector('[data-state="active"]') as HTMLElement;
     if (activeTab) {
-      activeTab.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'start' });
+      const scrollLeft = activeTab.offsetLeft - 8;
+      container.scrollTo({ left: Math.max(0, scrollLeft), behavior: 'smooth' });
     }
   }, []);
 
