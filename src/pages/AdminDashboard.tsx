@@ -9,9 +9,11 @@ import AllGuestApprovals from "@/components/admin/AllGuestApprovals";
 import AdminActivityLog from "@/components/admin/AdminActivityLog";
 import { Users, CalendarPlus, ScanLine, Home, ScrollText, Settings } from "lucide-react";
 import EventTypeManagement from "@/components/admin/EventTypeManagement";
+import { usePendingUsersCount } from "@/hooks/usePendingUsersCount";
 
 export default function AdminDashboard() {
   const { profile } = useAuth();
+  const { data: pendingCount } = usePendingUsersCount();
 
   const isAdmin = profile?.role === "admin";
   const isModerator = (profile?.role as string) === "moderator";
@@ -19,6 +21,12 @@ export default function AdminDashboard() {
   if (!isAdmin && !isModerator) {
     return <Navigate to="/" replace />;
   }
+
+  const pendingBadge = isAdmin && !!pendingCount && pendingCount > 0 ? (
+    <span className="ml-1 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold text-destructive-foreground">
+      {pendingCount > 99 ? "99+" : pendingCount}
+    </span>
+  ) : null;
 
   // Moderators see: Events, Guest Requests, Scanner
   // Admins see: Users, Families, Events, Scanner (guest requests inside Users tab)
@@ -83,6 +91,7 @@ export default function AdminDashboard() {
             <TabsTrigger value="users" className="gap-1.5 text-xs sm:text-sm">
               <Users className="h-4 w-4" />
               <span className="hidden sm:inline">Users</span>
+              {pendingBadge}
             </TabsTrigger>
             <TabsTrigger value="families" className="gap-1.5 text-xs sm:text-sm">
               <Home className="h-4 w-4" />
