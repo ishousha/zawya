@@ -32,7 +32,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2, CheckCircle, XCircle, UserCheck, Clock, UserPlus } from "lucide-react";
+import { Loader2, CheckCircle, XCircle, UserCheck, Clock, UserPlus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { notifyUserApproval } from "@/lib/webhooks";
 import { format } from "date-fns";
