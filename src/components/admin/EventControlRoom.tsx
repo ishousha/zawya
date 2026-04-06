@@ -435,7 +435,7 @@ function RSVPMonitor({ eventId, onClose }: { eventId: string; onClose: () => voi
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between pb-2">
-        <CardTitle className="text-lg">RSVP Monitor</CardTitle>
+        <CardTitle className="text-lg">Guest List & RSVPs</CardTitle>
         <Button size="icon" variant="ghost" className="h-10 w-10" onClick={onClose}>
           <X className="h-5 w-5" />
         </Button>
