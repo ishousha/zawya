@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { useMyGuestRequests, useCreateGuestRequest } from "@/hooks/useGuestRequests";
 import { toast } from "sonner";
-import { Loader2, UserPlus, Phone, User } from "lucide-react";
+import { Loader2, UserPlus, Phone, User, Mail, Info } from "lucide-react";
 
 const statusVariant: Record<string, "default" | "secondary" | "destructive"> = {
   pending: "secondary",
@@ -18,20 +18,29 @@ export default function GuestRequestsSection({ eventId }: { eventId: string }) {
   const createGuest = useCreateGuestRequest(eventId);
   const [showForm, setShowForm] = useState(false);
   const [guestName, setGuestName] = useState("");
+  const [guestEmail, setGuestEmail] = useState("");
   const [guestPhone, setGuestPhone] = useState("");
 
+  const isValidEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+
   const handleSubmit = async () => {
-    if (!guestName.trim() || !guestPhone.trim()) {
-      toast.error("Please fill in both fields.");
+    if (!guestName.trim()) {
+      toast.error("Please enter the guest's name.");
+      return;
+    }
+    if (!guestEmail.trim() || !isValidEmail(guestEmail.trim())) {
+      toast.error("Please enter a valid email address.");
       return;
     }
     try {
       await createGuest.mutateAsync({
         guest_name: guestName.trim(),
-        guest_phone: guestPhone.trim(),
+        guest_email: guestEmail.trim(),
+        guest_phone: guestPhone.trim() || undefined,
       });
       toast.success("Guest request submitted for admin approval.");
       setGuestName("");
+      setGuestEmail("");
       setGuestPhone("");
       setShowForm(false);
     } catch {
@@ -56,6 +65,9 @@ export default function GuestRequestsSection({ eventId }: { eventId: string }) {
             >
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-medium text-foreground">{g.guest_name}</p>
+                {(g as any).guest_email && (
+                  <p className="text-xs text-muted-foreground">{(g as any).guest_email}</p>
+                )}
                 {g.guest_phone && (
                   <p className="text-xs text-muted-foreground">{g.guest_phone}</p>
                 )}
@@ -86,7 +98,7 @@ export default function GuestRequestsSection({ eventId }: { eventId: string }) {
           <div>
             <Label className="mb-1 block text-xs font-medium">
               <User className="mr-1 inline h-3 w-3" />
-              Guest Name
+              Guest Name <span className="text-destructive">*</span>
             </Label>
             <Input
               value={guestName}
@@ -97,8 +109,25 @@ export default function GuestRequestsSection({ eventId }: { eventId: string }) {
           </div>
           <div>
             <Label className="mb-1 block text-xs font-medium">
+              <Mail className="mr-1 inline h-3 w-3" />
+              Guest Email <span className="text-destructive">*</span>
+            </Label>
+            <Input
+              type="email"
+              value={guestEmail}
+              onChange={(e) => setGuestEmail(e.target.value)}
+              placeholder="guest@example.com"
+              className="h-9"
+            />
+            <p className="mt-1 flex items-start gap-1 text-[10px] text-muted-foreground">
+              <Info className="h-3 w-3 mt-0.5 shrink-0 text-primary" />
+              This email will be used to send the guest their ticket and event details once approved.
+            </p>
+          </div>
+          <div>
+            <Label className="mb-1 block text-xs font-medium">
               <Phone className="mr-1 inline h-3 w-3" />
-              Guest Phone
+              Guest Phone <span className="text-muted-foreground">(optional)</span>
             </Label>
             <Input
               value={guestPhone}

@@ -1,0 +1,1 @@
+ALTER TABLE public.guest_requests ADD COLUMN guest_email text NOT NULL DEFAULT '';
