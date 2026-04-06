@@ -1,8 +1,11 @@
 import { useEventGuestRequests, useUpdateGuestRequestStatus } from "@/hooks/useGuestRequests";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, Check, X } from "lucide-react";
 import { toast } from "sonner";
+import { format } from "date-fns";
 
 export default function AdminGuestApprovals({ eventId }: { eventId: string }) {
   const { data: requests, isLoading } = useEventGuestRequests(eventId);
