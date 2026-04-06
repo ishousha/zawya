@@ -445,8 +445,8 @@ export default function UserManagement() {
           );
         })()}
         {/* Search & Filters */}
-        <div className="mb-3 flex gap-2">
-          <div className="relative flex-1">
+        <div className="mb-3 flex flex-col gap-2 md:flex-row">
+          <div className="relative w-full md:flex-1">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Search by name, email, phone, family…"
@@ -455,36 +455,38 @@ export default function UserManagement() {
               className="pl-9 h-9"
             />
           </div>
-          <Select value={eventFilter} onValueChange={setEventFilter}>
-            <SelectTrigger className="w-[160px] h-9">
-              <SelectValue placeholder="All events" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All events</SelectItem>
-              {eventOptions.map((e) => (
-                <SelectItem key={e.id} value={e.id}>{e.title}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Button
-            size="sm"
-            variant="outline"
-            className="h-9 gap-1.5 text-xs shrink-0"
-            onClick={() => {
-              const rows = filteredProfiles.map((p) => ({
-                Name: p.name || "",
-                Email: p.email || "",
-                Phone: p.phone || "",
-                Role: p.role,
-                Family: (p.family_id && familyMap[p.family_id]) || "",
-                "Joined": format(new Date(p.created_at), "yyyy-MM-dd"),
-              }));
-              downloadCsv(rows, zawyaFilename("Users"));
-              toast.success(`Exported ${rows.length} users`);
-            }}
-          >
-            <Download className="h-3.5 w-3.5" /> Export
-          </Button>
+          <div className="flex gap-2">
+            <Select value={eventFilter} onValueChange={setEventFilter}>
+              <SelectTrigger className="w-full md:w-[160px] h-9">
+                <SelectValue placeholder="All events" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All events</SelectItem>
+                {eventOptions.map((e) => (
+                  <SelectItem key={e.id} value={e.id}>{e.title}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-9 gap-1.5 text-xs shrink-0"
+              onClick={() => {
+                const rows = filteredProfiles.map((p) => ({
+                  Name: p.name || "",
+                  Email: p.email || "",
+                  Phone: p.phone || "",
+                  Role: p.role,
+                  Family: (p.family_id && familyMap[p.family_id]) || "",
+                  "Joined": format(new Date(p.created_at), "yyyy-MM-dd"),
+                }));
+                downloadCsv(rows, zawyaFilename("Users"));
+                toast.success(`Exported ${rows.length} users`);
+              }}
+            >
+              <Download className="h-3.5 w-3.5" /> Export
+            </Button>
+          </div>
         </div>
         <div className="space-y-2">
           {filteredProfiles.map((p) => (
