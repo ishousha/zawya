@@ -94,8 +94,8 @@ export default function EventCard({ event, onShowTicket }: EventCardProps) {
             </span>
           )}
           {event.capacity && (
-            <span className="ml-auto text-xs text-muted-foreground">
-              {event.capacity} spots
+            <span className={`ml-auto text-xs ${isFull ? "text-destructive font-medium" : "text-muted-foreground"}`}>
+              {confirmedCount}/{event.capacity} spots
             </span>
           )}
         </div>
