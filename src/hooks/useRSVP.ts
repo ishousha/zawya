@@ -183,7 +183,7 @@ export function useRSVPConcurrency(eventId: string) {
       potluck_category?: string | null;
       specific_food_item?: string | null;
       attending_dependents?: Record<string, any>[] | null;
-      selections?: { sign_up_item_id: number; quantity: number }[];
+      selections?: { sign_up_item_id: number; quantity: number; description?: string | null }[];
     }) => {
       if (!user) throw new Error("Not authenticated");
 
