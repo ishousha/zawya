@@ -1,8 +1,10 @@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Users, Clock } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Users, Clock, KeyRound, RefreshCw } from "lucide-react";
 import type { EventFormState } from "./types";
+import { generateCheckinPin } from "./types";
 
 interface SettingsTabProps {
   form: EventFormState;
@@ -54,6 +56,42 @@ export default function SettingsTab({ form, setForm }: SettingsTabProps) {
             </p>
           </div>
         </div>
+      </div>
+
+      {/* Check-in PIN */}
+      <div>
+        <div className="flex items-center gap-2 mb-3">
+          <KeyRound className="h-4 w-4 text-primary" />
+          <h3 className="text-sm font-semibold text-foreground">Self Check-in PIN</h3>
+        </div>
+        <div className="flex gap-2">
+          <Input
+            id="checkin_pin"
+            type="text"
+            maxLength={4}
+            inputMode="numeric"
+            pattern="[0-9]*"
+            value={form.checkin_pin}
+            onChange={(e) => {
+              const val = e.target.value.replace(/\D/g, "").slice(0, 4);
+              update("checkin_pin", val);
+            }}
+            placeholder="4-digit PIN"
+            className="font-mono text-lg tracking-[0.3em] max-w-32"
+          />
+          <Button
+            type="button"
+            size="icon"
+            variant="outline"
+            onClick={() => update("checkin_pin", generateCheckinPin())}
+            title="Generate new PIN"
+          >
+            <RefreshCw className="h-4 w-4" />
+          </Button>
+        </div>
+        <p className="text-xs text-muted-foreground mt-1">
+          Members enter this PIN at the door to self check-in
+        </p>
       </div>
 
       {/* Event Status */}

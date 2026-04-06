@@ -1,12 +1,13 @@
 import { useState, useMemo } from "react";
 import AdminGuestApprovals from "./AdminGuestApprovals";
+import CheckinPoster from "./CheckinPoster";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Loader2, Plus, Edit2, X, Users, ChevronDown, Copy, Trash2, Ban, RotateCcw, Download, Check } from "lucide-react";
+import { Loader2, Plus, Edit2, X, Users, ChevronDown, Copy, Trash2, Ban, RotateCcw, Download, Check, Printer } from "lucide-react";
 import { downloadCsv, zawyaFilename } from "@/lib/csv-export";
 import { toast } from "sonner";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
@@ -124,6 +125,7 @@ export default function EventControlRoom() {
       payment_instructions: event.payment_instructions ?? "",
       online_link: (event as any).online_link ?? "",
       status: "active",
+      checkin_pin: (event as any).checkin_pin ?? "",
     };
 
     const copiedItems: SignUpItem[] = (items ?? []).map((item, i) => ({
@@ -402,18 +404,24 @@ export default function EventControlRoom() {
         />
       )}
 
-      {monitoringEventId && (
-        <RSVPMonitor
-          eventId={monitoringEventId}
-          eventTitle={events?.find((e) => e.id === monitoringEventId)?.title ?? "Event"}
-          onClose={() => setMonitoringEventId(null)}
-        />
-      )}
+      {monitoringEventId && (() => {
+        const monEvent = events?.find((e) => e.id === monitoringEventId);
+        return (
+          <RSVPMonitor
+            eventId={monitoringEventId}
+            eventTitle={monEvent?.title ?? "Event"}
+            eventDate={monEvent?.date_time ?? ""}
+            checkinPin={(monEvent as any)?.checkin_pin ?? ""}
+            onClose={() => setMonitoringEventId(null)}
+          />
+        );
+      })()}
     </div>
   );
 }
 
-function RSVPMonitor({ eventId, eventTitle, onClose }: { eventId: string; eventTitle: string; onClose: () => void }) {
+function RSVPMonitor({ eventId, eventTitle, eventDate, checkinPin, onClose }: { eventId: string; eventTitle: string; eventDate: string; checkinPin: string; onClose: () => void }) {
+  const [showPoster, setShowPoster] = useState(false);
   const { data: rsvps, isLoading } = useQuery({
     queryKey: ["admin-rsvps", eventId],
     queryFn: async () => {
@@ -485,11 +493,33 @@ function RSVPMonitor({ eventId, eventTitle, onClose }: { eventId: string; eventT
     );
   };
 
+  if (showPoster) {
+    return (
+      <CheckinPoster
+        eventTitle={eventTitle}
+        eventDate={eventDate}
+        eventId={eventId}
+        checkinPin={checkinPin}
+        onClose={() => setShowPoster(false)}
+      />
+    );
+  }
+
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <CardTitle className="text-lg">Guest List & RSVPs</CardTitle>
         <div className="flex items-center gap-1">
+          {checkinPin && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-8 gap-1.5 text-xs"
+              onClick={() => setShowPoster(true)}
+            >
+              <Printer className="h-3.5 w-3.5" /> Poster
+            </Button>
+          )}
           {rsvps && rsvps.length > 0 && (
             <Button
               size="sm"

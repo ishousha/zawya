@@ -11,7 +11,7 @@ import DesignTab from "./DesignTab";
 import ItemsTab from "./ItemsTab";
 import type { SignUpItem } from "./ItemsTab";
 import SettingsTab from "./SettingsTab";
-import { EventFormState, defaultEventForm } from "./types";
+import { EventFormState, defaultEventForm, generateCheckinPin } from "./types";
 import type { EventType } from "./types";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -49,6 +49,7 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
       payment_instructions: event.payment_instructions ?? "",
       online_link: (event as any).online_link ?? "",
       status: event.status,
+      checkin_pin: (event as any).checkin_pin ?? generateCheckinPin(),
     };
   });
 
@@ -103,6 +104,7 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
         ticket_fee: parseFloat(form.ticket_fee) || 0,
         payment_instructions: form.payment_instructions || null,
         online_link: form.online_link || null,
+        checkin_pin: form.checkin_pin || null,
         status: form.status,
       };
 

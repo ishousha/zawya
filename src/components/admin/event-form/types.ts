@@ -1,3 +1,7 @@
+export function generateCheckinPin(): string {
+  return String(Math.floor(1000 + Math.random() * 9000));
+}
+
 export interface EventFormState {
   title: string;
   description: string;
@@ -17,6 +21,7 @@ export interface EventFormState {
   payment_instructions: string;
   online_link: string;
   status: "active" | "full" | "cancelled";
+  checkin_pin: string;
 }
 
 export interface SignUpItemState {
@@ -45,6 +50,7 @@ export const defaultEventForm: EventFormState = {
   payment_instructions: "",
   online_link: "",
   status: "active",
+  checkin_pin: generateCheckinPin(),
 };
 
 // Keep EventType as a legacy re-export alias — no longer used

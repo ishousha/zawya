@@ -1,0 +1,1 @@
+ALTER TABLE public.events ADD COLUMN checkin_pin text DEFAULT NULL;
