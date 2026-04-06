@@ -15,6 +15,7 @@ const typeConfig: Record<string, { icon: any; label: string }> = {
   trip: { icon: Users, label: "Trip / Picnic" },
   retreat: { icon: Mountain, label: "Retreat / Rihla" },
   meeting: { icon: Handshake, label: "Community Meeting" },
+  nasiha: { icon: Video, label: "Nasiha" },
   // Legacy fallbacks
   physical: { icon: MapPin, label: "In Person" },
   online: { icon: Video, label: "Online" },
