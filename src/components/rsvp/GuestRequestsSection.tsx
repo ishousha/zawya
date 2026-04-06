@@ -65,6 +65,9 @@ export default function GuestRequestsSection({ eventId }: { eventId: string }) {
             >
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-medium text-foreground">{g.guest_name}</p>
+                {(g as any).guest_email && (
+                  <p className="text-xs text-muted-foreground">{(g as any).guest_email}</p>
+                )}
                 {g.guest_phone && (
                   <p className="text-xs text-muted-foreground">{g.guest_phone}</p>
                 )}
