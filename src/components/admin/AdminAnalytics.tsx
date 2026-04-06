@@ -242,7 +242,30 @@ export default function AdminAnalytics() {
           </Button>
         )}
 
-        <span className="text-xs text-muted-foreground ml-auto">{dateLabel}</span>
+        <div className="flex items-center gap-2 ml-auto">
+          <Button
+            size="sm"
+            variant="outline"
+            className="gap-1.5 text-xs"
+            onClick={() => {
+              const metricsRows = [
+                { Metric: "Active Members", Value: approved },
+                { Metric: "Pending Approvals", Value: pending },
+                { Metric: "Total Families", Value: totalFamilies },
+                { Metric: "Total Dependents", Value: totalDependents },
+              ];
+              const engagementRows = engagement.map((e) => ({
+                Metric: `Event: ${e.name}`,
+                Value: `${e.rsvps} RSVPs / ${e.checkins} Check-ins`,
+              }));
+              downloadCsv([...metricsRows, ...engagementRows], zawyaFilename("Analytics"));
+              toast.success("Analytics exported");
+            }}
+          >
+            <Download className="h-3.5 w-3.5" /> Export Metrics
+          </Button>
+          <span className="text-xs text-muted-foreground">{dateLabel}</span>
+        </div>
       </div>
 
       {/* KPI Cards */}
