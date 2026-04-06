@@ -20,6 +20,26 @@ export default function LoginPage() {
   const [googleLoading, setGoogleLoading] = useState(false);
   const [resending, setResending] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
+  const [otpExpiry, setOtpExpiry] = useState(0);
+  const expiryRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const startExpiryTimer = () => {
+    if (expiryRef.current) clearInterval(expiryRef.current);
+    setOtpExpiry(300); // 5 minutes
+    expiryRef.current = setInterval(() => {
+      setOtpExpiry((prev) => {
+        if (prev <= 1) {
+          if (expiryRef.current) clearInterval(expiryRef.current);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  };
+
+  useEffect(() => {
+    return () => { if (expiryRef.current) clearInterval(expiryRef.current); };
+  }, []);
 
   const handleOAuthSignIn = async (provider: "apple" | "google") => {
     const setLoaderFn = provider === "apple" ? setAppleLoading : setGoogleLoading;
