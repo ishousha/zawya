@@ -410,7 +410,7 @@ export default function UserManagement() {
                   <AdminRsvpAction
                     userId={p.id}
                     userName={p.name}
-                    existingEventIds={userRsvpMap[p.id]?.map((e) => e.event_id) ?? []}
+                    existingRsvps={userRsvpMap[p.id] ?? []}
                   />
                   <Select
                     value={p.role}
