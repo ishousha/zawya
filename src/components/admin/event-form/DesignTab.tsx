@@ -27,7 +27,7 @@ export default function DesignTab({ form, setForm }: DesignTabProps) {
     if (!selectedType) return;
     setForm((prev) => {
       const next = { ...prev };
-      const stIsVirtual = (selectedType as any).is_virtual ?? false;
+      const stIsVirtual = selectedType.is_virtual ?? false;
 
       // Set is_hybrid based on both flags
       next.is_hybrid = selectedType.requires_location && stIsVirtual;
