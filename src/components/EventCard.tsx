@@ -335,6 +335,11 @@ export default function EventCard({ event, onShowTicket }: EventCardProps) {
             </>
           )}
         </div>
+
+        {/* Potluck Menu — anonymous dish list */}
+        {!isCancelled && event.has_potluck && (
+          <PotluckMenu eventId={event.id} />
+        )}
         </div>
       </div>
 
