@@ -10,11 +10,12 @@ import FamilyManagement from "@/components/admin/FamilyManagement";
 import AllGuestApprovals from "@/components/admin/AllGuestApprovals";
 import AdminActivityLog from "@/components/admin/AdminActivityLog";
 import AdminAnalytics from "@/components/admin/AdminAnalytics";
-import { Users, CalendarPlus, ScanLine, Home, ScrollText, Settings, BarChart3 } from "lucide-react";
+import { Users, CalendarPlus, ScanLine, Home, ScrollText, Settings, BarChart3, BookOpen } from "lucide-react";
 import EventTypeManagement from "@/components/admin/EventTypeManagement";
 import { usePendingUsersCount } from "@/hooks/usePendingUsersCount";
+import ResourceManagement from "@/components/admin/ResourceManagement";
 
-const ADMIN_TABS = ["users", "families", "events", "scanner", "analytics", "settings", "activity"] as const;
+const ADMIN_TABS = ["users", "families", "events", "scanner", "resources", "analytics", "settings", "activity"] as const;
 type AdminTab = typeof ADMIN_TABS[number];
 
 const MODERATOR_TABS = ["events", "guests", "scanner"] as const;
@@ -216,6 +217,10 @@ export default function AdminDashboard() {
               <ScanLine className="h-4 w-4" />
               Scanner
             </TabsTrigger>
+            <TabsTrigger value="resources" className={tabTriggerBase}>
+              <BookOpen className="h-4 w-4" />
+              Resources
+            </TabsTrigger>
             <TabsTrigger value="analytics" className={tabTriggerBase}>
               <BarChart3 className="h-4 w-4" />
               Analytics
@@ -242,6 +247,9 @@ export default function AdminDashboard() {
             </TabsContent>
             <TabsContent value="scanner">
               <AdminDoorScanner />
+            </TabsContent>
+            <TabsContent value="resources">
+              <ResourceManagement />
             </TabsContent>
             <TabsContent value="analytics">
               <AdminAnalytics />

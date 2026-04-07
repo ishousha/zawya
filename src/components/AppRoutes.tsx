@@ -18,6 +18,7 @@ import JoinFamily, { consumePendingInviteToken } from "@/pages/JoinFamily";
 import BottomNav from "@/components/BottomNav";
 import AppHeader from "@/components/AppHeader";
 import NotFound from "@/pages/NotFound";
+import Library from "@/pages/Library";
 import { Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
@@ -123,6 +124,7 @@ export default function AppRoutes() {
         <Route path="/events/:eventId" element={<EventDetail />} />
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/admin" element={<AdminDashboard />} />
+        <Route path="/library" element={<Library />} />
         <Route path="/notifications" element={<NotificationsPage />} />
         <Route path="/guidelines" element={<CommunityGuidelines readOnly />} />
         {joinFamilyRoute}
