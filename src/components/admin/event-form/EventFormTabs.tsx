@@ -51,9 +51,14 @@ interface EventFormTabsProps {
 export default function EventFormTabs({ event, initialForm, initialItems, onClose }: EventFormTabsProps) {
   const queryClient = useQueryClient();
 
+  const isNewEvent = !event || !!initialForm;
+
   const [form, setForm] = useState<EventFormState>(() => {
     if (initialForm) return initialForm;
-    if (!event) return defaultEventForm;
+    if (!event) {
+      const draft = loadDraft();
+      return draft ? draft.form : defaultEventForm;
+    }
     return {
       title: event.title,
       description: event.description ?? "",
