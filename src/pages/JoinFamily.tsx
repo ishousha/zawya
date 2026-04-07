@@ -63,7 +63,7 @@ export default function JoinFamily() {
   const previewInvite = async (token: string) => {
     setStatus("loading");
     try {
-      const { data, error } = await supabase.rpc("preview_family_invite", {
+      const { data, error } = await (supabase.rpc as any)("preview_family_invite", {
         _token: token,
       });
 
