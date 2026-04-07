@@ -22,6 +22,7 @@ export interface EventFormState {
   online_link: string;
   status: "active" | "full" | "cancelled";
   checkin_pin: string;
+  host_id: string | null;
 }
 
 export interface SignUpItemState {
@@ -51,6 +52,7 @@ export const defaultEventForm: EventFormState = {
   online_link: "",
   status: "active",
   checkin_pin: generateCheckinPin(),
+  host_id: null,
 };
 
 // Keep EventType as a legacy re-export alias — no longer used
