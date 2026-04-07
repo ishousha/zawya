@@ -587,6 +587,27 @@ export default function UserManagement() {
                     userName={p.name}
                     existingRsvps={userRsvpMap[p.id] ?? []}
                   />
+                  {(p.role === "approved" || p.role === "admin" || p.role === "moderator") && (
+                    <div className="flex items-center gap-1.5" title="Toggle Mureed status">
+                      <span className="text-xs text-muted-foreground">M</span>
+                      <Switch
+                        checked={(p as any).is_mureed ?? false}
+                        onCheckedChange={async (checked) => {
+                          const { error } = await supabase
+                            .from("profiles")
+                            .update({ is_mureed: checked } as any)
+                            .eq("id", p.id);
+                          if (error) {
+                            toast.error("Failed to update Mureed status");
+                          } else {
+                            queryClient.invalidateQueries({ queryKey: ["admin-profiles"] });
+                            toast.success(checked ? "Marked as Mureed" : "Mureed status removed");
+                          }
+                        }}
+                        className="scale-75"
+                      />
+                    </div>
+                  )}
                   <Select
                     value={p.role}
                     onValueChange={(val) =>
