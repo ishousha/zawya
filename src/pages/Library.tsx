@@ -18,6 +18,7 @@ interface Resource {
   file_size: number | null;
   created_at: string;
   category: string;
+  signed_url?: string;
 }
 
 function formatFileSize(bytes: number | null) {
@@ -25,6 +26,11 @@ function formatFileSize(bytes: number | null) {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+/** Check if a file_url is a storage path (not a full URL) */
+function isStoragePath(url: string) {
+  return !url.startsWith("http");
 }
 
 export default function Library() {
@@ -41,7 +47,21 @@ export default function Library() {
         .select("*")
         .order("created_at", { ascending: false });
       if (error) throw error;
-      return data as Resource[];
+
+      // Generate signed URLs for private storage paths
+      const withUrls = await Promise.all(
+        (data as Resource[]).map(async (r) => {
+          if (isStoragePath(r.file_url)) {
+            const { data: signedData } = await supabase.storage
+              .from("resources")
+              .createSignedUrl(r.file_url, 3600); // 1-hour expiry
+            return { ...r, signed_url: signedData?.signedUrl || "" };
+          }
+          // Legacy full URLs (uploaded before bucket was made private)
+          return { ...r, signed_url: r.file_url };
+        })
+      );
+      return withUrls;
     },
   });
 
