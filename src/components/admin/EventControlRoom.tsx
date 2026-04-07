@@ -126,6 +126,7 @@ export default function EventControlRoom() {
       online_link: event.online_link ?? "",
       status: "active",
       checkin_pin: event.checkin_pin ?? "",
+      host_id: (event as any).host_id ?? null,
     };
 
     const copiedItems: SignUpItem[] = (items ?? []).map((item, i) => ({
