@@ -185,7 +185,8 @@ export default function RSVPModal({ event, open, onOpenChange }: RSVPModalProps)
             const dob = new Date(dep.date_of_birth);
             age = Math.floor((now.getTime() - dob.getTime()) / (365.25 * 24 * 60 * 60 * 1000));
           }
-          entries.push({ type: "dependent", id: dep.id, name: dep.first_name, age });
+          const depType = (dep as any).type || "child";
+          entries.push({ type: "dependent", id: dep.id, name: dep.first_name, age, dependent_type: depType });
         }
       }
     }
