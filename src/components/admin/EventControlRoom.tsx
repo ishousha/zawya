@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Loader2, Plus, Edit2, X, Users, ChevronDown, Copy, Trash2, Ban, RotateCcw, Download, Check, Printer } from "lucide-react";
+import { Loader2, Plus, Edit2, X, Users, ChevronDown, Copy, Trash2, Ban, RotateCcw, Download, Check, Printer, UserPlus } from "lucide-react";
 import { downloadCsv, zawyaFilename } from "@/lib/csv-export";
 import { toast } from "sonner";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
@@ -18,6 +18,7 @@ import type { EventFormState } from "./event-form/types";
 import type { SignUpItem } from "./event-form/ItemsTab";
 import { useEventTypes } from "@/hooks/useEventTypes";
 import HostDashboard from "@/components/HostDashboard";
+import WalkInRsvpModal from "./WalkInRsvpModal";
 
 type EventRow = Database["public"]["Tables"]["events"]["Row"];
 
@@ -427,6 +428,7 @@ export default function EventControlRoom() {
 
 function RSVPMonitor({ eventId, eventTitle, eventDate, checkinPin, onClose }: { eventId: string; eventTitle: string; eventDate: string; checkinPin: string; onClose: () => void }) {
   const [showPoster, setShowPoster] = useState(false);
+  const [showWalkIn, setShowWalkIn] = useState(false);
   const { data: rsvps, isLoading } = useQuery({
     queryKey: ["admin-rsvps", eventId],
     queryFn: async () => {
@@ -511,10 +513,19 @@ function RSVPMonitor({ eventId, eventTitle, eventDate, checkinPin, onClose }: { 
   }
 
   return (
+    <>
     <Card>
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <CardTitle className="text-lg">Guest List & RSVPs</CardTitle>
         <div className="flex items-center gap-1">
+          <Button
+            size="sm"
+            variant="default"
+            className="h-8 gap-1.5 text-xs"
+            onClick={() => setShowWalkIn(true)}
+          >
+            <UserPlus className="h-3.5 w-3.5" /> Walk-In
+          </Button>
           {checkinPin && (
             <Button
               size="sm"
@@ -601,6 +612,8 @@ function RSVPMonitor({ eventId, eventTitle, eventDate, checkinPin, onClose }: { 
         )}
       </CardContent>
     </Card>
+    <WalkInRsvpModal eventId={eventId} open={showWalkIn} onOpenChange={setShowWalkIn} />
+    </>
   );
 }
 
