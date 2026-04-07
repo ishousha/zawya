@@ -586,6 +586,7 @@ export type Database = {
           file_size: number | null
           file_url: string
           id: string
+          resource_type: string
           title: string
           uploaded_by: string
         }
@@ -597,6 +598,7 @@ export type Database = {
           file_size?: number | null
           file_url: string
           id?: string
+          resource_type?: string
           title: string
           uploaded_by: string
         }
@@ -608,6 +610,7 @@ export type Database = {
           file_size?: number | null
           file_url?: string
           id?: string
+          resource_type?: string
           title?: string
           uploaded_by?: string
         }
