@@ -99,7 +99,7 @@ export default function FamilyDetailsModal({
   const queryClient = useQueryClient();
   const { data: members = [], isLoading: loadingMembers } = useFamilyMembers(familyId);
   const memberIds = members.map((m) => m.id);
-  const { data: dependents = [], isLoading: loadingDeps } = useFamilyDependents(memberIds);
+  const { data: dependents = [], isLoading: loadingDeps } = useFamilyDependents(familyId, memberIds);
   const { data: rsvps = [], isLoading: loadingRsvps } = useFamilyRsvps(memberIds);
 
   const [isEditing, setIsEditing] = useState(false);
