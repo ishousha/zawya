@@ -36,6 +36,14 @@ export default function HomeFeed() {
     },
   });
 
+  const isAdminOrMod = profile?.role === "admin" || profile?.role === "moderator";
+  const isMureed = (profile as any)?.is_mureed ?? false;
+
+  const visibleEvents = events?.filter((e) => {
+    if ((e as any).mureeds_only && !isMureed && !isAdminOrMod) return false;
+    return true;
+  });
+
   // If viewing a ticket, show QR screen
   if (ticketEvent) {
     return (
