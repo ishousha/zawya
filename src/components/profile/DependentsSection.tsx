@@ -28,7 +28,7 @@ export function useDependents() {
 
       // If user has a family, get all family dependents; otherwise get their own
       if (familyId) {
-        query = query.eq("family_id" as any, familyId);
+        (query as any) = query.eq("family_id", familyId);
       } else {
         query = query.eq("parent_id", user!.id);
       }
@@ -41,7 +41,7 @@ export function useDependents() {
 }
 
 export default function DependentsSection() {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const queryClient = useQueryClient();
   const { data: dependents, isLoading } = useDependents();
   const [adding, setAdding] = useState(false);
