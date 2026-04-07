@@ -65,7 +65,7 @@ function useFamilyDependents(memberIds: string[]) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("dependents")
-        .select("id, first_name, parent_id")
+        .select("id, first_name, parent_id, type")
         .in("parent_id", memberIds);
       if (error) throw error;
       return data ?? [];
@@ -296,8 +296,15 @@ export default function FamilyDetailsModal({
                           .filter((d) => d.parent_id === m.id)
                           .map((d) => (
                             <Badge key={d.id} variant="secondary" className="text-xs">
-                              <Baby className="h-3 w-3 mr-1" /> {d.first_name}
+                              {(d as any).type === "elder" ? (
+                                <UserRound className="h-3 w-3 mr-1" />
+                              ) : (
+                                <Baby className="h-3 w-3 mr-1" />
+                              )}
+                              {d.first_name} ({(d as any).type === "elder" ? "Elder" : "Child"})
                             </Badge>
+                          ))}
+                      </div>
                           ))}
                       </div>
                     )}
