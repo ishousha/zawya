@@ -51,14 +51,11 @@ export default function ResourceManagement() {
         .upload(filePath, file, { contentType: file.type });
       if (uploadError) throw uploadError;
 
-      const { data: urlData } = supabase.storage
-        .from("resources")
-        .getPublicUrl(filePath);
-
+      // Store the storage path (not a public URL) since the bucket is now private
       const { error: insertError } = await supabase.from("resources").insert({
         title,
         description: description || null,
-        file_url: urlData.publicUrl,
+        file_url: filePath,
         file_name: file.name,
         file_size: file.size,
         uploaded_by: user.id,
