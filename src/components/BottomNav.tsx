@@ -1,5 +1,5 @@
 import { NavLink } from "react-router-dom";
-import { Home, User, Shield } from "lucide-react";
+import { Home, User, Shield, BookOpen } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePendingUsersCount } from "@/hooks/usePendingUsersCount";
 
