@@ -58,15 +58,16 @@ function useFamilyMembers(familyId: string) {
   });
 }
 
-function useFamilyDependents(memberIds: string[]) {
+function useFamilyDependents(familyId: string, memberIds: string[]) {
   return useQuery<DependentRow[]>({
-    queryKey: ["family-detail-dependents", memberIds],
+    queryKey: ["family-detail-dependents", familyId, memberIds],
     enabled: memberIds.length > 0,
     queryFn: async () => {
+      // Query by family_id first, fall back to parent_id for legacy data
       const { data, error } = await supabase
         .from("dependents")
         .select("id, first_name, parent_id, type")
-        .in("parent_id", memberIds);
+        .or(`family_id.eq.${familyId},parent_id.in.(${memberIds.join(",")})`);
       if (error) throw error;
       return data ?? [];
     },
@@ -98,7 +99,7 @@ export default function FamilyDetailsModal({
   const queryClient = useQueryClient();
   const { data: members = [], isLoading: loadingMembers } = useFamilyMembers(familyId);
   const memberIds = members.map((m) => m.id);
-  const { data: dependents = [], isLoading: loadingDeps } = useFamilyDependents(memberIds);
+  const { data: dependents = [], isLoading: loadingDeps } = useFamilyDependents(familyId, memberIds);
   const { data: rsvps = [], isLoading: loadingRsvps } = useFamilyRsvps(memberIds);
 
   const [isEditing, setIsEditing] = useState(false);
