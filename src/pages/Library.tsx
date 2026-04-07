@@ -224,7 +224,7 @@ export default function Library() {
             </DialogTitle>
             <div className="flex items-center gap-2 flex-shrink-0">
               <Button size="sm" className="gap-1.5" asChild>
-                <a href={selected?.file_url} download={selected?.file_name || "document.pdf"} target="_blank" rel="noopener noreferrer">
+                <a href={selected?.signed_url || selected?.file_url} download={selected?.file_name || "document.pdf"} target="_blank" rel="noopener noreferrer">
                   <Download className="h-4 w-4" />
                   Download
                 </a>
@@ -234,7 +234,7 @@ export default function Library() {
           <div className="flex-1 min-h-0">
             {selected && (
               <iframe
-                src={`${selected.file_url}#toolbar=1&navpanes=0`}
+                src={`${selected.signed_url || selected.file_url}#toolbar=1&navpanes=0`}
                 className="h-full w-full border-0"
                 title={selected.title}
               />
