@@ -53,6 +53,7 @@ export default function RSVPModal({ event, open, onOpenChange }: RSVPModalProps)
   const [selectedMemberIds, setSelectedMemberIds] = useState<Set<string>>(new Set());
   const [selectedDependentIds, setSelectedDependentIds] = useState<Set<string>>(new Set());
   const [selections, setSelections] = useState<Record<number, ItemSelection>>({});
+  const [potluckDish, setPotluckDish] = useState("");
 
   // Sync attendee state when data loads
   useEffect(() => {
@@ -77,9 +78,11 @@ export default function RSVPModal({ event, open, onOpenChange }: RSVPModalProps)
 
       setSelectedMemberIds(memberIds);
       setSelectedDependentIds(depIds);
+      setPotluckDish(myRSVP.specific_food_item || "");
     } else if (!myRSVP && user) {
       setSelectedMemberIds(new Set([user.id]));
       setSelectedDependentIds(new Set());
+      setPotluckDish("");
     }
   }, [myRSVP, familyMembers, dependents, user]);
 
@@ -130,6 +133,7 @@ export default function RSVPModal({ event, open, onOpenChange }: RSVPModalProps)
   }, [allSelections, myRSVP]);
 
   const showSignUpItems = event.has_potluck !== false && signUpItems && signUpItems.length > 0;
+  const isPotluck = event.has_potluck === true;
   const onlineLink = event.online_link;
   const isVirtualEvent = !!onlineLink;
 
@@ -209,6 +213,7 @@ export default function RSVPModal({ event, open, onOpenChange }: RSVPModalProps)
           rsvpId: myRSVP.id,
           guests_count: guestsCount,
           attending_dependents: attendingDeps,
+          specific_food_item: potluckDish.trim() || null,
           selections: selArray,
         });
         toast.success("RSVP updated successfully!");
@@ -216,6 +221,7 @@ export default function RSVPModal({ event, open, onOpenChange }: RSVPModalProps)
         const result = await createRSVP.mutateAsync({
           guests_count: guestsCount,
           attending_dependents: attendingDeps,
+          specific_food_item: potluckDish.trim() || null,
           selections: selArray,
         });
         if (result.is_waitlisted) {
@@ -287,6 +293,24 @@ export default function RSVPModal({ event, open, onOpenChange }: RSVPModalProps)
           <p className="text-xs text-muted-foreground">
             Total attending: <span className="font-semibold text-foreground">{guestsCount}</span>
           </p>
+
+          {/* Potluck dish input */}
+          {isPotluck && (
+            <div className="space-y-2">
+              <Label className="block text-sm font-medium">
+                What dish are you bringing? <span className="text-xs text-muted-foreground font-normal">(Optional)</span>
+              </Label>
+              <Input
+                placeholder="e.g., Hummus, Knafeh, Paper Plates..."
+                value={potluckDish}
+                onChange={(e) => setPotluckDish(e.target.value)}
+                className="text-sm"
+              />
+              <p className="text-xs text-muted-foreground">
+                Your name won't be shown — only the dish appears on the menu.
+              </p>
+            </div>
+          )}
 
           {/* Sign-up categories with checkbox + description */}
           {showSignUpItems && (

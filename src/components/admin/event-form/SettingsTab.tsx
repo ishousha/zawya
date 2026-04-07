@@ -1,8 +1,9 @@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
-import { Users, Clock, KeyRound, RefreshCw } from "lucide-react";
+import { Users, Clock, KeyRound, RefreshCw, UtensilsCrossed } from "lucide-react";
 import type { EventFormState } from "./types";
 import { generateCheckinPin } from "./types";
 
@@ -55,6 +56,26 @@ export default function SettingsTab({ form, setForm }: SettingsTabProps) {
               Extra slots for waitlist
             </p>
           </div>
+        </div>
+      </div>
+
+      {/* Potluck Toggle */}
+      <div>
+        <div className="flex items-center gap-2 mb-3">
+          <UtensilsCrossed className="h-4 w-4 text-primary" />
+          <h3 className="text-sm font-semibold text-foreground">Potluck</h3>
+        </div>
+        <div className="flex items-center justify-between rounded-lg border border-border p-3">
+          <div>
+            <p className="text-sm font-medium text-foreground">Is this a Potluck?</p>
+            <p className="text-xs text-muted-foreground">
+              Members can share what dish they're bringing
+            </p>
+          </div>
+          <Switch
+            checked={form.has_potluck}
+            onCheckedChange={(v) => update("has_potluck", v)}
+          />
         </div>
       </div>
 
