@@ -15,7 +15,7 @@ import EventTypeManagement from "@/components/admin/EventTypeManagement";
 import { usePendingUsersCount } from "@/hooks/usePendingUsersCount";
 import ResourceManagement from "@/components/admin/ResourceManagement";
 
-const ADMIN_TABS = ["users", "families", "events", "scanner", "analytics", "settings", "activity"] as const;
+const ADMIN_TABS = ["users", "families", "events", "scanner", "resources", "analytics", "settings", "activity"] as const;
 type AdminTab = typeof ADMIN_TABS[number];
 
 const MODERATOR_TABS = ["events", "guests", "scanner"] as const;
