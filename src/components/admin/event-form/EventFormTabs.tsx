@@ -202,7 +202,7 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
         <CardTitle className="text-lg font-heading">
           {isNewEvent ? "New Event" : "Edit Event"}
         </CardTitle>
-        <Button size="icon" variant="ghost" className="h-10 w-10" onClick={onClose}>
+        <Button size="icon" variant="ghost" className="h-10 w-10" onClick={handleClose}>
           <X className="h-5 w-5" />
         </Button>
       </CardHeader>
