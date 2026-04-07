@@ -517,6 +517,14 @@ function RSVPMonitor({ eventId, eventTitle, eventDate, checkinPin, onClose }: { 
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <CardTitle className="text-lg">Guest List & RSVPs</CardTitle>
         <div className="flex items-center gap-1">
+          <Button
+            size="sm"
+            variant="default"
+            className="h-8 gap-1.5 text-xs"
+            onClick={() => setShowWalkIn(true)}
+          >
+            <UserPlus className="h-3.5 w-3.5" /> Walk-In
+          </Button>
           {checkinPin && (
             <Button
               size="sm"
