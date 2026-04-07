@@ -64,6 +64,8 @@ export default function ProfilePage() {
   const [altNum, setAltNum] = useState("");
   const [dob, setDob] = useState<Date | undefined>(undefined);
   const [saving, setSaving] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
 
   // Populate form when profile loads
   useEffect(() => {
