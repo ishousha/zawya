@@ -132,6 +132,11 @@ export default function EventCard({ event, onShowTicket }: EventCardProps) {
             <TypeIcon className="h-3 w-3" />
             {typeLabel}
           </span>
+          {(event as any).mureeds_only && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-primary/20 px-2.5 py-0.5 text-xs font-medium text-primary">
+              🔒 Private
+            </span>
+          )}
           {isCancelled && (
             <span className="inline-flex items-center gap-1 rounded-full bg-destructive px-2.5 py-0.5 text-xs font-bold uppercase tracking-wider text-destructive-foreground">
               <Ban className="h-3 w-3" />
@@ -150,9 +155,9 @@ export default function EventCard({ event, onShowTicket }: EventCardProps) {
               Waitlisted{waitlistPosition > 0 ? ` #${waitlistPosition}` : ""}
             </span>
           )}
-          {!isCancelled && isAttending && (event.ticket_fee ?? 0) > 0 && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-accent/60 px-2.5 py-0.5 text-xs font-semibold text-accent-foreground">
-              💰 Pay Offline
+          {!isCancelled && (event.ticket_fee ?? 0) > 0 && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-gold/20 px-2.5 py-0.5 text-xs font-semibold text-gold-foreground">
+              💰 Fee: ${Number(event.ticket_fee).toFixed(0)}
             </span>
           )}
           {checkedInCount > 0 && isAttending && (

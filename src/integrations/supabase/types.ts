@@ -263,6 +263,7 @@ export type Database = {
           id: string
           is_hybrid: boolean
           location: string | null
+          mureeds_only: boolean
           online_link: string | null
           payment_instructions: string | null
           status: Database["public"]["Enums"]["event_status"]
@@ -289,6 +290,7 @@ export type Database = {
           id?: string
           is_hybrid?: boolean
           location?: string | null
+          mureeds_only?: boolean
           online_link?: string | null
           payment_instructions?: string | null
           status?: Database["public"]["Enums"]["event_status"]
@@ -315,6 +317,7 @@ export type Database = {
           id?: string
           is_hybrid?: boolean
           location?: string | null
+          mureeds_only?: boolean
           online_link?: string | null
           payment_instructions?: string | null
           status?: Database["public"]["Enums"]["event_status"]
@@ -522,6 +525,7 @@ export type Database = {
           family_id: string | null
           family_name: string | null
           id: string
+          is_mureed: boolean
           name: string | null
           phone: string | null
           role: Database["public"]["Enums"]["app_role"]
@@ -538,6 +542,7 @@ export type Database = {
           family_id?: string | null
           family_name?: string | null
           id: string
+          is_mureed?: boolean
           name?: string | null
           phone?: string | null
           role?: Database["public"]["Enums"]["app_role"]
@@ -554,6 +559,7 @@ export type Database = {
           family_id?: string | null
           family_name?: string | null
           id?: string
+          is_mureed?: boolean
           name?: string | null
           phone?: string | null
           role?: Database["public"]["Enums"]["app_role"]

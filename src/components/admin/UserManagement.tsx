@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
+import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -513,6 +514,7 @@ export default function UserManagement() {
                      {p.role === "moderator" && <Badge variant="secondary" className="text-[10px] px-1.5 py-0 border-primary/30 text-primary">Mod</Badge>}
                      {p.role === "suspended" && <Badge variant="destructive" className="text-[10px] px-1.5 py-0">Suspended</Badge>}
                      {(p.role as string) === "rejected" && <Badge variant="destructive" className="text-[10px] px-1.5 py-0">Rejected</Badge>}
+                     {(p as any).is_mureed && <Badge className="text-[10px] px-1.5 py-0 bg-emerald-600 text-white border-emerald-600">Mureed</Badge>}
                   </p>
                   <p className="truncate text-xs text-muted-foreground">{p.email}</p>
                   {p.whatsapp_number && (
@@ -585,6 +587,27 @@ export default function UserManagement() {
                     userName={p.name}
                     existingRsvps={userRsvpMap[p.id] ?? []}
                   />
+                  {(p.role === "approved" || p.role === "admin" || p.role === "moderator") && (
+                    <div className="flex items-center gap-1.5" title="Toggle Mureed status">
+                      <span className="text-xs text-muted-foreground">M</span>
+                      <Switch
+                        checked={(p as any).is_mureed ?? false}
+                        onCheckedChange={async (checked) => {
+                          const { error } = await supabase
+                            .from("profiles")
+                            .update({ is_mureed: checked } as any)
+                            .eq("id", p.id);
+                          if (error) {
+                            toast.error("Failed to update Mureed status");
+                          } else {
+                            queryClient.invalidateQueries({ queryKey: ["admin-profiles"] });
+                            toast.success(checked ? "Marked as Mureed" : "Mureed status removed");
+                          }
+                        }}
+                        className="scale-75"
+                      />
+                    </div>
+                  )}
                   <Select
                     value={p.role}
                     onValueChange={(val) =>

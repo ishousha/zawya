@@ -3,7 +3,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
-import { Users, Clock, KeyRound, RefreshCw, UtensilsCrossed } from "lucide-react";
+import { Users, Clock, KeyRound, RefreshCw, UtensilsCrossed, Lock, DollarSign } from "lucide-react";
 import type { EventFormState } from "./types";
 import { generateCheckinPin } from "./types";
 import HostSelector from "./HostSelector";
@@ -58,6 +58,45 @@ export default function SettingsTab({ form, setForm }: SettingsTabProps) {
             </p>
           </div>
         </div>
+      </div>
+
+      {/* Mureeds Only Toggle */}
+      <div>
+        <div className="flex items-center gap-2 mb-3">
+          <Lock className="h-4 w-4 text-primary" />
+          <h3 className="text-sm font-semibold text-foreground">Access Control</h3>
+        </div>
+        <div className="flex items-center justify-between rounded-lg border border-border p-3">
+          <div>
+            <p className="text-sm font-medium text-foreground">Private Event (Mureeds Only)</p>
+            <p className="text-xs text-muted-foreground">
+              Only users marked as Mureeds will see this event
+            </p>
+          </div>
+          <Switch
+            checked={form.mureeds_only}
+            onCheckedChange={(v) => update("mureeds_only", v)}
+          />
+        </div>
+      </div>
+
+      {/* Event Fee */}
+      <div>
+        <div className="flex items-center gap-2 mb-3">
+          <DollarSign className="h-4 w-4 text-primary" />
+          <h3 className="text-sm font-semibold text-foreground">Event Fee</h3>
+        </div>
+        <Input
+          type="number"
+          min={0}
+          step="0.01"
+          value={form.ticket_fee}
+          onChange={(e) => update("ticket_fee", e.target.value)}
+          placeholder="0 for free"
+        />
+        <p className="text-xs text-muted-foreground mt-1">
+          Leave as 0 for free events. Fee is collected offline.
+        </p>
       </div>
 
       {/* Event Host */}
