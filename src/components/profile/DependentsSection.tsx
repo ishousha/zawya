@@ -7,7 +7,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, Plus, Trash2, Loader2 } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { CalendarIcon, Plus, Trash2, Loader2, Baby, UserRound } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { format, parse } from "date-fns";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -35,49 +37,52 @@ export default function DependentsSection() {
   const { data: dependents, isLoading } = useDependents();
   const [adding, setAdding] = useState(false);
   const [firstName, setFirstName] = useState("");
+  const [depType, setDepType] = useState<"child" | "elder">("child");
   const [dob, setDob] = useState<Date | undefined>(undefined);
 
-  const addChild = useMutation({
+  const addDependent = useMutation({
     mutationFn: async () => {
       if (!user) throw new Error("Not authenticated");
       const { error } = await supabase.from("dependents").insert({
         parent_id: user.id,
         first_name: firstName.trim(),
         date_of_birth: dob ? format(dob, "yyyy-MM-dd") : null,
-      });
+        type: depType,
+      } as any);
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["dependents", user?.id] });
-      toast.success("Child added successfully.");
+      toast.success("Dependent added successfully.");
       setAdding(false);
       setFirstName("");
+      setDepType("child");
       setDob(undefined);
     },
-    onError: () => toast.error("Failed to add child."),
+    onError: () => toast.error("Failed to add dependent."),
   });
 
-  const removeChild = useMutation({
+  const removeDependent = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase.from("dependents").delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["dependents", user?.id] });
-      toast.success("Child removed.");
+      toast.success("Dependent removed.");
     },
-    onError: () => toast.error("Failed to remove child."),
+    onError: () => toast.error("Failed to remove dependent."),
   });
 
   return (
     <div className="rounded-lg border border-border bg-card p-6 space-y-4">
       <div className="flex items-center justify-between">
         <h3 className="font-heading text-lg font-semibold text-card-foreground">
-          My Dependents (Children)
+          Dependents (Children & Elders)
         </h3>
         {!adding && (
           <Button size="sm" variant="outline" onClick={() => setAdding(true)} className="gap-1">
-            <Plus className="h-4 w-4" /> Add Child
+            <Plus className="h-4 w-4" /> Add Dependent
           </Button>
         )}
       </div>
@@ -88,38 +93,65 @@ export default function DependentsSection() {
         </div>
       ) : dependents && dependents.length > 0 ? (
         <div className="space-y-2">
-          {dependents.map((child) => (
-            <div key={child.id} className="flex items-center justify-between rounded-lg border border-border p-3">
-              <div>
-                <p className="text-sm font-medium text-card-foreground">{child.first_name}</p>
-                {child.date_of_birth && (
-                  <p className="text-xs text-muted-foreground">
-                    DOB: {format(parse(child.date_of_birth, "yyyy-MM-dd", new Date()), "PPP")}
-                  </p>
-                )}
+          {dependents.map((dep) => {
+            const type = (dep as any).type || "child";
+            return (
+              <div key={dep.id} className="flex items-center justify-between rounded-lg border border-border p-3">
+                <div className="flex items-center gap-2">
+                  {type === "elder" ? (
+                    <UserRound className="h-4 w-4 text-muted-foreground" />
+                  ) : (
+                    <Baby className="h-4 w-4 text-muted-foreground" />
+                  )}
+                  <div>
+                    <p className="text-sm font-medium text-card-foreground">{dep.first_name}</p>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                        {type === "elder" ? "Elder/Adult" : "Child"}
+                      </Badge>
+                      {dep.date_of_birth && (
+                        <p className="text-xs text-muted-foreground">
+                          DOB: {format(parse(dep.date_of_birth, "yyyy-MM-dd", new Date()), "PPP")}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-8 w-8 text-destructive"
+                  onClick={() => removeDependent.mutate(dep.id)}
+                  disabled={removeDependent.isPending}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
               </div>
-              <Button
-                size="icon"
-                variant="ghost"
-                className="h-8 w-8 text-destructive"
-                onClick={() => removeChild.mutate(child.id)}
-                disabled={removeChild.isPending}
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            </div>
-          ))}
+            );
+          })}
         </div>
       ) : (
-        <p className="text-sm text-muted-foreground">No children added yet.</p>
+        <p className="text-sm text-muted-foreground">No dependents added yet.</p>
       )}
 
       {adding && (
         <div className="space-y-3 rounded-lg border border-border bg-muted/30 p-4">
           <div className="space-y-2">
+            <Label className="text-sm font-medium">Dependent Type <span className="text-destructive">*</span></Label>
+            <Select value={depType} onValueChange={(v) => setDepType(v as "child" | "elder")}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="child">Child</SelectItem>
+                <SelectItem value="elder">Elder/Adult</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
             <Label className="text-sm font-medium">First Name <span className="text-destructive">*</span></Label>
             <Input
-              placeholder="Child's first name"
+              placeholder={depType === "elder" ? "Elder's first name" : "Child's first name"}
               value={firstName}
               onChange={(e) => setFirstName(e.target.value)}
             />
@@ -144,7 +176,7 @@ export default function DependentsSection() {
                   disabled={(date) => date > new Date() || date < new Date("1900-01-01")}
                   initialFocus
                   captionLayout="dropdown-buttons"
-                  fromYear={2000}
+                  fromYear={1920}
                   toYear={new Date().getFullYear()}
                   className="p-3 pointer-events-auto"
                 />
@@ -154,13 +186,13 @@ export default function DependentsSection() {
           <div className="flex gap-2">
             <Button
               size="sm"
-              onClick={() => addChild.mutate()}
-              disabled={!firstName.trim() || addChild.isPending}
+              onClick={() => addDependent.mutate()}
+              disabled={!firstName.trim() || addDependent.isPending}
             >
-              {addChild.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {addDependent.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Save
             </Button>
-            <Button size="sm" variant="outline" onClick={() => { setAdding(false); setFirstName(""); setDob(undefined); }}>
+            <Button size="sm" variant="outline" onClick={() => { setAdding(false); setFirstName(""); setDob(undefined); setDepType("child"); }}>
               Cancel
             </Button>
           </div>

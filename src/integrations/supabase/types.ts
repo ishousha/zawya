@@ -54,6 +54,7 @@ export type Database = {
           first_name: string
           id: string
           parent_id: string | null
+          type: string
         }
         Insert: {
           created_at?: string | null
@@ -61,6 +62,7 @@ export type Database = {
           first_name: string
           id?: string
           parent_id?: string | null
+          type?: string
         }
         Update: {
           created_at?: string | null
@@ -68,6 +70,7 @@ export type Database = {
           first_name?: string
           id?: string
           parent_id?: string | null
+          type?: string
         }
         Relationships: [
           {

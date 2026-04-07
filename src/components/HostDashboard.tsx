@@ -34,13 +34,14 @@ export default function HostDashboard({ eventId }: HostDashboardProps) {
 
   const totalAdults = rsvps.reduce((sum, r) => {
     const deps = (r.attending_dependents as any[]) || [];
-    const children = deps.filter((d) => d.type === "dependent").length;
-    return sum + r.guests_count - children;
+    const childDeps = deps.filter((d) => d.type === "dependent" && d.dependent_type !== "elder").length;
+    const elderDeps = deps.filter((d) => d.type === "dependent" && d.dependent_type === "elder").length;
+    return sum + (r.guests_count - childDeps - elderDeps) + elderDeps;
   }, 0);
 
   const totalChildren = rsvps.reduce((sum, r) => {
     const deps = (r.attending_dependents as any[]) || [];
-    return sum + deps.filter((d) => d.type === "dependent").length;
+    return sum + deps.filter((d) => d.type === "dependent" && d.dependent_type !== "elder").length;
   }, 0);
 
   const totalHeadcount = totalAdults + totalChildren;
@@ -55,11 +56,14 @@ export default function HostDashboard({ eventId }: HostDashboardProps) {
   const guestList = rsvps.map((r) => {
     const profile = r.profiles as any;
     const deps = (r.attending_dependents as any[]) || [];
+    const childDeps = deps.filter((d) => d.type === "dependent" && d.dependent_type !== "elder");
+    const elderDeps = deps.filter((d) => d.type === "dependent" && d.dependent_type === "elder");
     return {
       name: profile?.name || "Unknown",
       family: profile?.family_name,
-      adultsCount: r.guests_count - deps.filter((d) => d.type === "dependent").length,
-      children: deps.filter((d) => d.type === "dependent").map((d: any) => d.name),
+      adultsCount: (r.guests_count - childDeps.length - elderDeps.length) + elderDeps.length,
+      children: childDeps.map((d: any) => d.name),
+      elders: elderDeps.map((d: any) => d.name),
     };
   });
 
@@ -107,7 +111,8 @@ export default function HostDashboard({ eventId }: HostDashboardProps) {
                     {g.family && <span className="text-muted-foreground"> — {g.family}</span>}
                     <span className="text-muted-foreground text-xs ml-1">
                       ({g.adultsCount} adult{g.adultsCount !== 1 ? "s" : ""}
-                      {g.children.length > 0 && `, ${g.children.length} kid${g.children.length !== 1 ? "s" : ""}`})
+                      {g.children.length > 0 && `, ${g.children.length} kid${g.children.length !== 1 ? "s" : ""}`}
+                      {g.elders.length > 0 && `, ${g.elders.length} elder${g.elders.length !== 1 ? "s" : ""}`})
                     </span>
                   </div>
                 </li>

@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Loader2, Users, Baby, CalendarCheck, Mail, Phone, User, Pencil, Trash2, Check, X } from "lucide-react";
+import { Loader2, Users, Baby, CalendarCheck, Mail, Phone, User, Pencil, Trash2, Check, X, UserRound } from "lucide-react";
 import UserAvatar from "@/components/UserAvatar";
 import { format } from "date-fns";
 
@@ -31,6 +31,7 @@ interface DependentRow {
   id: string;
   first_name: string;
   parent_id: string | null;
+  type?: string;
 }
 
 interface RsvpWithEvent {
@@ -64,7 +65,7 @@ function useFamilyDependents(memberIds: string[]) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("dependents")
-        .select("id, first_name, parent_id")
+        .select("id, first_name, parent_id, type")
         .in("parent_id", memberIds);
       if (error) throw error;
       return data ?? [];
@@ -295,7 +296,12 @@ export default function FamilyDetailsModal({
                           .filter((d) => d.parent_id === m.id)
                           .map((d) => (
                             <Badge key={d.id} variant="secondary" className="text-xs">
-                              <Baby className="h-3 w-3 mr-1" /> {d.first_name}
+                              {(d as any).type === "elder" ? (
+                                <UserRound className="h-3 w-3 mr-1" />
+                              ) : (
+                                <Baby className="h-3 w-3 mr-1" />
+                              )}
+                              {d.first_name} ({(d as any).type === "elder" ? "Elder" : "Child"})
                             </Badge>
                           ))}
                       </div>
