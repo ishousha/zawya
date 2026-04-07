@@ -5,9 +5,9 @@ import { Label } from "@/components/ui/label";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { LogOut, User, CalendarIcon, Loader2, ScrollText } from "lucide-react";
+import { LogOut, User, CalendarIcon, Loader2, ScrollText, Camera } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format, parse } from "date-fns";
@@ -15,6 +15,7 @@ import { cn } from "@/lib/utils";
 import DependentsSection from "@/components/profile/DependentsSection";
 import FamilyInviteSection from "@/components/profile/FamilyInviteSection";
 import LinkedAccounts from "@/components/profile/LinkedAccounts";
+import UserAvatar from "@/components/UserAvatar";
 
 const COUNTRY_CODES = [
   { code: "+971", label: "🇦🇪 +971", country: "UAE" },
