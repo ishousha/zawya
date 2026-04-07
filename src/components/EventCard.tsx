@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { format } from "date-fns";
 import { MapPin, Video, Users, Calendar, Clock, CheckCircle2, Ticket, Edit, Building2, ExternalLink, Ban, BookOpen, Mountain, Handshake, ClockIcon, ScanLine } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -30,6 +30,18 @@ export default function EventCard({ event, onShowTicket }: EventCardProps) {
   const [rsvpOpen, setRsvpOpen] = useState(false);
   const [checkinOpen, setCheckinOpen] = useState(false);
   const [now, setNow] = useState(() => new Date());
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [isClamped, setIsClamped] = useState(false);
+  const descRef = useRef<HTMLParagraphElement>(null);
+
+  const checkClamped = useCallback(() => {
+    const el = descRef.current;
+    if (el) setIsClamped(el.scrollHeight > el.clientHeight + 1);
+  }, []);
+
+  useEffect(() => {
+    checkClamped();
+  }, [event.description, checkClamped]);
   const { profile } = useAuth();
 
   const isAttending = !!myRSVP;
@@ -163,9 +175,23 @@ export default function EventCard({ event, onShowTicket }: EventCardProps) {
 
         {/* Description */}
         {event.description && (
-          <p className="mt-1 text-sm text-muted-foreground whitespace-pre-line line-clamp-3">
-            {event.description}
-          </p>
+          <>
+            <p
+              ref={descRef}
+              className={`mt-1 text-sm text-muted-foreground whitespace-pre-line ${!isExpanded ? "line-clamp-3" : ""}`}
+            >
+              {event.description}
+            </p>
+            {(isClamped || isExpanded) && (
+              <button
+                type="button"
+                onClick={() => setIsExpanded((v) => !v)}
+                className="mt-0.5 text-sm font-medium text-primary hover:underline"
+              >
+                {isExpanded ? "Show less" : "Read more"}
+              </button>
+            )}
+          </>
         )}
 
         {/* Date & Time in local timezone */}
