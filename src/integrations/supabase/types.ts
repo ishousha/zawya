@@ -51,6 +51,7 @@ export type Database = {
         Row: {
           created_at: string | null
           date_of_birth: string | null
+          family_id: string | null
           first_name: string
           id: string
           parent_id: string | null
@@ -59,6 +60,7 @@ export type Database = {
         Insert: {
           created_at?: string | null
           date_of_birth?: string | null
+          family_id?: string | null
           first_name: string
           id?: string
           parent_id?: string | null
@@ -67,12 +69,20 @@ export type Database = {
         Update: {
           created_at?: string | null
           date_of_birth?: string | null
+          family_id?: string | null
           first_name?: string
           id?: string
           parent_id?: string | null
           type?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "dependents_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "dependents_parent_id_fkey"
             columns: ["parent_id"]
