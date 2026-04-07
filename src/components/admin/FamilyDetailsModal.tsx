@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
 import { Loader2, Users, Baby, CalendarCheck, Mail, Phone, User, Pencil, Trash2, Check, X } from "lucide-react";
+import UserAvatar from "@/components/UserAvatar";
 import { format } from "date-fns";
 
 interface FamilyDetailsModalProps {
