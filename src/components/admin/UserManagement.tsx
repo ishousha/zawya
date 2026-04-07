@@ -40,6 +40,7 @@ import AdminRsvpAction from "./AdminRsvpAction";
 import type { Database } from "@/integrations/supabase/types";
 import { useAuth } from "@/contexts/AuthContext";
 import { downloadCsv, zawyaFilename } from "@/lib/csv-export";
+import UserAvatar from "@/components/UserAvatar";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 type AppRole = Database["public"]["Enums"]["app_role"];
@@ -492,7 +493,13 @@ export default function UserManagement() {
           {filteredProfiles.map((p) => (
             <Card key={p.id} className={p.role === "pending" ? "border-accent" : ""}>
               <CardContent className="flex flex-col p-4 sm:flex-row sm:items-center sm:justify-between">
-                <div className="min-w-0 flex-1">
+                <div className="min-w-0 flex-1 flex gap-3">
+                  <UserAvatar
+                    name={p.name}
+                    avatarUrl={(p as any).avatar_url}
+                    className="h-10 w-10 shrink-0"
+                  />
+                  <div className="min-w-0 flex-1">
                   <p className="font-medium text-card-foreground flex flex-wrap items-center gap-1.5">
                     <span className="truncate">{p.name || "Unnamed"}</span>
                      {p.role === "pending" && (
@@ -531,6 +538,7 @@ export default function UserManagement() {
                       ))}
                     </div>
                   )}
+                  </div>
                 </div>
                 <div className="mt-3 flex flex-wrap items-center gap-2 sm:mt-0 sm:ml-3 sm:flex-nowrap">
                   {p.role === "pending" && (
