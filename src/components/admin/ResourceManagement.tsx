@@ -91,6 +91,7 @@ export default function ResourceManagement() {
         file_size: fileSize,
         uploaded_by: user.id,
         category: finalCategory,
+        resource_type: resourceType,
       } as any);
       if (insertError) throw insertError;
     },
