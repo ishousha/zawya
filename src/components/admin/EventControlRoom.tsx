@@ -611,6 +611,8 @@ function RSVPMonitor({ eventId, eventTitle, eventDate, checkinPin, onClose }: { 
         )}
       </CardContent>
     </Card>
+    <WalkInRsvpModal eventId={eventId} open={showWalkIn} onOpenChange={setShowWalkIn} />
+    </>
   );
 }
 
