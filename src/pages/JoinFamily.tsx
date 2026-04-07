@@ -63,33 +63,21 @@ export default function JoinFamily() {
   const previewInvite = async (token: string) => {
     setStatus("loading");
     try {
-      // Look up the invite and its family name via a direct query
-      // We need a public-ish way to peek at the invite. Use an RPC or direct select.
-      // The user won't have RLS access to family_invites unless they're in that family,
-      // so we'll use accept_family_invite in "dry run" style — but we don't have that.
-      // Instead, create a lightweight edge-less approach: query families via the token.
-      // Since the user can't read family_invites, let's just show a generic preview
-      // and fetch the family name from the accept response.
-      // Actually — let's add a select policy for invites by token for authenticated users.
-      // For now, show a generic confirmation with the token, and reveal name after accept.
-
-      // Try to read the invite — if RLS blocks it, show generic preview
-      const { data, error } = await supabase
-        .from("family_invites")
-        .select("id, family_id, status, families:family_id(name)")
-        .eq("token", token)
-        .maybeSingle();
+      const { data, error } = await (supabase.rpc as any)("preview_family_invite", {
+        _token: token,
+      });
 
       if (data && !error) {
-        const name = (data as any).families?.name;
-        if ((data as any).status !== "pending") {
-          setStatus("error");
-          setMessage("This invite has already been used or has expired.");
-          return;
+        const result = data as any;
+        if (result.found) {
+          if (result.status !== "pending") {
+            setStatus("error");
+            setMessage("This invite has already been used or has expired.");
+            return;
+          }
+          setFamilyName(result.family_name || "");
         }
-        setFamilyName(name || "");
       }
-      // If RLS blocks, we still show the confirm screen with generic text
       setStatus("preview");
     } catch {
       setStatus("preview");
