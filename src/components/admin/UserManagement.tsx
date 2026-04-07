@@ -538,6 +538,7 @@ export default function UserManagement() {
                       ))}
                     </div>
                   )}
+                  </div>
                 </div>
                 <div className="mt-3 flex flex-wrap items-center gap-2 sm:mt-0 sm:ml-3 sm:flex-nowrap">
                   {p.role === "pending" && (

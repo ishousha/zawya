@@ -300,6 +300,7 @@ export default function FamilyDetailsModal({
                           ))}
                       </div>
                     )}
+                    </div>
                   </div>
                 ))}
               </div>

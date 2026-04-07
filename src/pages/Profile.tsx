@@ -124,6 +124,58 @@ export default function ProfilePage() {
     }
   };
 
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error("Image must be under 2MB.");
+      return;
+    }
+
+    setUploadingAvatar(true);
+    try {
+      const fileExt = file.name.split(".").pop();
+      const filePath = `${user.id}.${fileExt}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("avatars")
+        .upload(filePath, file, { contentType: file.type, upsert: true });
+      if (uploadError) throw uploadError;
+
+      const { data: urlData } = supabase.storage
+        .from("avatars")
+        .getPublicUrl(filePath);
+
+      // Add cache-buster to force refresh
+      const avatarUrl = `${urlData.publicUrl}?t=${Date.now()}`;
+
+      const { error: updateError } = await supabase
+        .from("profiles")
+        .update({ avatar_url: avatarUrl })
+        .eq("id", user.id);
+      if (updateError) throw updateError;
+
+      // Refresh profile in context
+      const { data: refreshed } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", user.id)
+        .single();
+      if (refreshed) {
+        // Force re-render by triggering auth context refresh
+        window.dispatchEvent(new Event("profile-updated"));
+      }
+
+      toast.success("Profile picture updated!");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to upload image.");
+    } finally {
+      setUploadingAvatar(false);
+      if (avatarInputRef.current) avatarInputRef.current.value = "";
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background pb-24">
       <header className="border-b border-border bg-card px-4 pb-4 pt-6">
@@ -134,8 +186,31 @@ export default function ProfilePage() {
         {/* Info card */}
         <div className="rounded-lg border border-border bg-card p-6">
           <div className="mb-4 flex items-center gap-4">
-            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-primary">
-              <User className="h-6 w-6 text-primary-foreground" />
+            <div className="relative group">
+              <UserAvatar
+                name={profile?.name}
+                avatarUrl={(profile as any)?.avatar_url}
+                className="h-16 w-16 text-lg"
+              />
+              <button
+                type="button"
+                onClick={() => avatarInputRef.current?.click()}
+                disabled={uploadingAvatar}
+                className="absolute inset-0 flex items-center justify-center rounded-full bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+              >
+                {uploadingAvatar ? (
+                  <Loader2 className="h-5 w-5 text-white animate-spin" />
+                ) : (
+                  <Camera className="h-5 w-5 text-white" />
+                )}
+              </button>
+              <input
+                ref={avatarInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleAvatarUpload}
+              />
             </div>
             <div>
               <h2 className="font-heading text-lg font-semibold text-card-foreground">
