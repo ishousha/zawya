@@ -150,9 +150,9 @@ export default function EventCard({ event, onShowTicket }: EventCardProps) {
               Waitlisted{waitlistPosition > 0 ? ` #${waitlistPosition}` : ""}
             </span>
           )}
-          {!isCancelled && isAttending && (event.ticket_fee ?? 0) > 0 && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-accent/60 px-2.5 py-0.5 text-xs font-semibold text-accent-foreground">
-              💰 Pay Offline
+          {!isCancelled && (event.ticket_fee ?? 0) > 0 && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-gold/20 px-2.5 py-0.5 text-xs font-semibold text-gold-foreground">
+              💰 Fee: ${Number(event.ticket_fee).toFixed(0)}
             </span>
           )}
           {checkedInCount > 0 && isAttending && (
