@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Loader2, Users, Baby, CalendarCheck, Mail, Phone, User, Pencil, Trash2, Check, X } from "lucide-react";
+import { Loader2, Users, Baby, CalendarCheck, Mail, Phone, User, Pencil, Trash2, Check, X, UserRound } from "lucide-react";
 import UserAvatar from "@/components/UserAvatar";
 import { format } from "date-fns";
 
@@ -303,8 +303,6 @@ export default function FamilyDetailsModal({
                               )}
                               {d.first_name} ({(d as any).type === "elder" ? "Elder" : "Child"})
                             </Badge>
-                          ))}
-                      </div>
                           ))}
                       </div>
                     )}
