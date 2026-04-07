@@ -1,0 +1,1 @@
+ALTER TABLE public.resources ADD COLUMN category text NOT NULL DEFAULT 'General';

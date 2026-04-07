@@ -6,9 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
-import { Loader2, Upload, Trash2, FileText, Plus, X } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { Loader2, Upload, Trash2, FileText, Plus, X, Tag } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
+
+const STANDARD_CATEGORIES = ["Daily Awrad", "Books", "Event Materials", "General"];
 
 export default function ResourceManagement() {
   const { user } = useAuth();
@@ -16,6 +20,9 @@ export default function ResourceManagement() {
   const [showForm, setShowForm] = useState(false);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [category, setCategory] = useState("General");
+  const [customCategory, setCustomCategory] = useState("");
+  const [useCustom, setUseCustom] = useState(false);
   const [file, setFile] = useState<File | null>(null);
 
   const { data: resources, isLoading } = useQuery({
@@ -33,6 +40,8 @@ export default function ResourceManagement() {
   const uploadMutation = useMutation({
     mutationFn: async () => {
       if (!file || !user) throw new Error("Missing file or user");
+      const finalCategory = useCustom ? customCategory.trim() : category;
+      if (!finalCategory) throw new Error("Category is required");
 
       const fileExt = file.name.split(".").pop();
       const filePath = `${crypto.randomUUID()}.${fileExt}`;
@@ -53,6 +62,7 @@ export default function ResourceManagement() {
         file_name: file.name,
         file_size: file.size,
         uploaded_by: user.id,
+        category: finalCategory,
       });
       if (insertError) throw insertError;
     },
@@ -67,7 +77,6 @@ export default function ResourceManagement() {
 
   const deleteMutation = useMutation({
     mutationFn: async (resource: { id: string; file_url: string }) => {
-      // Extract file path from URL
       const url = new URL(resource.file_url);
       const pathParts = url.pathname.split("/resources/");
       if (pathParts[1]) {
@@ -88,6 +97,9 @@ export default function ResourceManagement() {
     setShowForm(false);
     setTitle("");
     setDescription("");
+    setCategory("General");
+    setCustomCategory("");
+    setUseCustom(false);
     setFile(null);
   }
 
@@ -126,6 +138,46 @@ export default function ResourceManagement() {
             </div>
 
             <div>
+              <label className="text-sm font-medium text-foreground">Category *</label>
+              {!useCustom ? (
+                <div className="mt-1 space-y-2">
+                  <Select value={category} onValueChange={setCategory}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {STANDARD_CATEGORIES.map((cat) => (
+                        <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <button
+                    type="button"
+                    className="text-xs text-primary hover:underline"
+                    onClick={() => setUseCustom(true)}
+                  >
+                    + Add custom category
+                  </button>
+                </div>
+              ) : (
+                <div className="mt-1 space-y-2">
+                  <Input
+                    value={customCategory}
+                    onChange={(e) => setCustomCategory(e.target.value)}
+                    placeholder="Type a custom category name..."
+                  />
+                  <button
+                    type="button"
+                    className="text-xs text-primary hover:underline"
+                    onClick={() => { setUseCustom(false); setCustomCategory(""); }}
+                  >
+                    ← Back to standard categories
+                  </button>
+                </div>
+              )}
+            </div>
+
+            <div>
               <label className="text-sm font-medium text-foreground">Description</label>
               <Textarea
                 value={description}
@@ -157,7 +209,7 @@ export default function ResourceManagement() {
             <Button
               className="w-full h-11"
               onClick={() => uploadMutation.mutate()}
-              disabled={uploadMutation.isPending || !title.trim() || !file}
+              disabled={uploadMutation.isPending || !title.trim() || !file || (useCustom && !customCategory.trim())}
             >
               {uploadMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Upload Resource
@@ -185,7 +237,11 @@ export default function ResourceManagement() {
                   {res.description && (
                     <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">{res.description}</p>
                   )}
-                  <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
+                  <div className="flex flex-wrap items-center gap-2 mt-1 text-xs text-muted-foreground">
+                    <Badge variant="secondary" className="text-[10px] px-1.5 py-0 gap-1">
+                      <Tag className="h-2.5 w-2.5" />
+                      {(res as any).category || "General"}
+                    </Badge>
                     {res.file_size && <span>{formatFileSize(res.file_size)}</span>}
                     <span>·</span>
                     <span>{format(new Date(res.created_at), "MMM d, yyyy")}</span>
