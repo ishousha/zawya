@@ -493,7 +493,13 @@ export default function UserManagement() {
           {filteredProfiles.map((p) => (
             <Card key={p.id} className={p.role === "pending" ? "border-accent" : ""}>
               <CardContent className="flex flex-col p-4 sm:flex-row sm:items-center sm:justify-between">
-                <div className="min-w-0 flex-1">
+                <div className="min-w-0 flex-1 flex gap-3">
+                  <UserAvatar
+                    name={p.name}
+                    avatarUrl={(p as any).avatar_url}
+                    className="h-10 w-10 shrink-0"
+                  />
+                  <div className="min-w-0 flex-1">
                   <p className="font-medium text-card-foreground flex flex-wrap items-center gap-1.5">
                     <span className="truncate">{p.name || "Unnamed"}</span>
                      {p.role === "pending" && (
