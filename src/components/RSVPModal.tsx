@@ -311,6 +311,14 @@ export default function RSVPModal({ event, open, onOpenChange }: RSVPModalProps)
               <p className="text-xs text-muted-foreground">
                 Your name won't be shown — only the dish appears on the menu.
               </p>
+              {potluckDish.trim().length > 0 && isDuplicate("", potluckDish) && (
+                <div className="flex items-start gap-2 rounded-md border border-yellow-500/40 bg-yellow-50 dark:bg-yellow-950/30 px-3 py-2">
+                  <AlertTriangle className="h-4 w-4 text-yellow-600 dark:text-yellow-400 mt-0.5 shrink-0" />
+                  <p className="text-xs text-yellow-800 dark:text-yellow-300">
+                    Someone is already bringing a similar dish. Consider bringing something different to add variety!
+                  </p>
+                </div>
+              )}
             </div>
           )}
 
