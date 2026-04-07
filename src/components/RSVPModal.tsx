@@ -166,7 +166,7 @@ export default function RSVPModal({ event, open, onOpenChange }: RSVPModalProps)
   };
 
   const buildAttendingDependents = () => {
-    const entries: { type: string; id: string; name: string; age?: number | null }[] = [];
+    const entries: { type: string; id: string; name: string; age?: number | null; dependent_type?: string }[] = [];
 
     if (familyMembers) {
       for (const member of familyMembers) {
