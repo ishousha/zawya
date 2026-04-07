@@ -63,9 +63,9 @@ export default function HomeFeed() {
           <div className="flex items-center justify-center py-12">
             <Loader2 className="h-6 w-6 animate-spin text-primary" />
           </div>
-        ) : events && events.length > 0 ? (
+        ) : visibleEvents && visibleEvents.length > 0 ? (
           <div className="space-y-3">
-            {events.map((event) => (
+            {visibleEvents.map((event) => (
               <EventCard
                 key={event.id}
                 event={event}
