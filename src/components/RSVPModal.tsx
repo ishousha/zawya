@@ -133,6 +133,7 @@ export default function RSVPModal({ event, open, onOpenChange }: RSVPModalProps)
   }, [allSelections, myRSVP]);
 
   const showSignUpItems = event.has_potluck !== false && signUpItems && signUpItems.length > 0;
+  const isPotluck = event.has_potluck === true;
   const onlineLink = event.online_link;
   const isVirtualEvent = !!onlineLink;
 
@@ -212,6 +213,7 @@ export default function RSVPModal({ event, open, onOpenChange }: RSVPModalProps)
           rsvpId: myRSVP.id,
           guests_count: guestsCount,
           attending_dependents: attendingDeps,
+          specific_food_item: potluckDish.trim() || null,
           selections: selArray,
         });
         toast.success("RSVP updated successfully!");
@@ -219,6 +221,7 @@ export default function RSVPModal({ event, open, onOpenChange }: RSVPModalProps)
         const result = await createRSVP.mutateAsync({
           guests_count: guestsCount,
           attending_dependents: attendingDeps,
+          specific_food_item: potluckDish.trim() || null,
           selections: selArray,
         });
         if (result.is_waitlisted) {
