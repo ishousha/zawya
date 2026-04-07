@@ -18,6 +18,7 @@ interface Resource {
   file_size: number | null;
   created_at: string;
   category: string;
+  signed_url?: string;
 }
 
 function formatFileSize(bytes: number | null) {
@@ -25,6 +26,11 @@ function formatFileSize(bytes: number | null) {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+/** Check if a file_url is a storage path (not a full URL) */
+function isStoragePath(url: string) {
+  return !url.startsWith("http");
 }
 
 export default function Library() {
@@ -41,7 +47,21 @@ export default function Library() {
         .select("*")
         .order("created_at", { ascending: false });
       if (error) throw error;
-      return data as Resource[];
+
+      // Generate signed URLs for private storage paths
+      const withUrls = await Promise.all(
+        (data as Resource[]).map(async (r) => {
+          if (isStoragePath(r.file_url)) {
+            const { data: signedData } = await supabase.storage
+              .from("resources")
+              .createSignedUrl(r.file_url, 3600); // 1-hour expiry
+            return { ...r, signed_url: signedData?.signedUrl || "" };
+          }
+          // Legacy full URLs (uploaded before bucket was made private)
+          return { ...r, signed_url: r.file_url };
+        })
+      );
+      return withUrls;
     },
   });
 
@@ -204,7 +224,7 @@ export default function Library() {
             </DialogTitle>
             <div className="flex items-center gap-2 flex-shrink-0">
               <Button size="sm" className="gap-1.5" asChild>
-                <a href={selected?.file_url} download={selected?.file_name || "document.pdf"} target="_blank" rel="noopener noreferrer">
+                <a href={selected?.signed_url || selected?.file_url} download={selected?.file_name || "document.pdf"} target="_blank" rel="noopener noreferrer">
                   <Download className="h-4 w-4" />
                   Download
                 </a>
@@ -214,7 +234,7 @@ export default function Library() {
           <div className="flex-1 min-h-0">
             {selected && (
               <iframe
-                src={`${selected.file_url}#toolbar=1&navpanes=0`}
+                src={`${selected.signed_url || selected.file_url}#toolbar=1&navpanes=0`}
                 className="h-full w-full border-0"
                 title={selected.title}
               />
