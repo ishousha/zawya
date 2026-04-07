@@ -132,6 +132,11 @@ export default function EventCard({ event, onShowTicket }: EventCardProps) {
             <TypeIcon className="h-3 w-3" />
             {typeLabel}
           </span>
+          {(event as any).mureeds_only && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-primary/20 px-2.5 py-0.5 text-xs font-medium text-primary">
+              🔒 Private
+            </span>
+          )}
           {isCancelled && (
             <span className="inline-flex items-center gap-1 rounded-full bg-destructive px-2.5 py-0.5 text-xs font-bold uppercase tracking-wider text-destructive-foreground">
               <Ban className="h-3 w-3" />
