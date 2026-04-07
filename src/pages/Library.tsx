@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Loader2, FileText, Download, BookOpen, Search, Tag } from "lucide-react";
+import { Loader2, FileText, Download, BookOpen, Search, Tag, Video, Headphones, Link as LinkIcon, ExternalLink } from "lucide-react";
 import { format } from "date-fns";
 
 interface Resource {
@@ -18,6 +18,7 @@ interface Resource {
   file_size: number | null;
   created_at: string;
   category: string;
+  resource_type?: string;
   signed_url?: string;
 }
 
@@ -31,6 +32,20 @@ function formatFileSize(bytes: number | null) {
 /** Check if a file_url is a storage path (not a full URL) */
 function isStoragePath(url: string) {
   return !url.startsWith("http");
+}
+
+/** Check if URL is an external link (not Supabase storage) */
+function isExternalUrl(url: string) {
+  return url.startsWith("http") && !url.includes("supabase");
+}
+
+function getResourceIcon(type?: string) {
+  switch (type) {
+    case "video": return Video;
+    case "audio": return Headphones;
+    case "link": return LinkIcon;
+    default: return FileText;
+  }
 }
 
 export default function Library() {
@@ -48,16 +63,15 @@ export default function Library() {
         .order("created_at", { ascending: false });
       if (error) throw error;
 
-      // Generate signed URLs for private storage paths
       const withUrls = await Promise.all(
         (data as Resource[]).map(async (r) => {
           if (isStoragePath(r.file_url)) {
             const { data: signedData } = await supabase.storage
               .from("resources")
-              .createSignedUrl(r.file_url, 3600); // 1-hour expiry
+              .createSignedUrl(r.file_url, 3600);
             return { ...r, signed_url: signedData?.signedUrl || "" };
           }
-          // Legacy full URLs (uploaded before bucket was made private)
+          // External URLs or legacy full URLs
           return { ...r, signed_url: r.file_url };
         })
       );
@@ -88,7 +102,6 @@ export default function Library() {
     return list;
   }, [resources, search, activeCategory]);
 
-  // Auto-scroll active pill into view
   useEffect(() => {
     if (!pillsRef.current) return;
     const active = pillsRef.current.querySelector('[data-active="true"]');
@@ -105,6 +118,15 @@ export default function Library() {
     return cat.toLowerCase() + " resources";
   };
 
+  /** Handle clicking a resource: external links open in new tab, storage files open in modal */
+  const handleResourceClick = (res: Resource) => {
+    if (isExternalUrl(res.file_url)) {
+      window.open(res.file_url, "_blank", "noopener,noreferrer");
+    } else {
+      setSelected(res);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background pb-24">
       <header className="border-b border-border bg-card px-4 pb-4 pt-6">
@@ -118,7 +140,6 @@ export default function Library() {
       </header>
 
       <main className="mx-auto max-w-2xl px-4 py-4">
-        {/* Category pills */}
         {!isLoading && categories.length > 0 && (
           <div
             ref={pillsRef}
@@ -141,7 +162,6 @@ export default function Library() {
           </div>
         )}
 
-        {/* Search bar */}
         {!isLoading && resources && resources.length > 0 && (
           <div className="relative mb-4">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -183,39 +203,46 @@ export default function Library() {
           </div>
         ) : (
           <div className="grid gap-3">
-            {filtered.map((res) => (
-              <Card
-                key={res.id}
-                className="cursor-pointer transition-shadow hover:shadow-md active:scale-[0.99]"
-                onClick={() => setSelected(res)}
-              >
-                <CardContent className="flex items-start gap-3 p-4">
-                  <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-primary/10">
-                    <FileText className="h-6 w-6 text-primary" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-heading text-base font-semibold text-foreground">{res.title}</h3>
-                    {res.description && (
-                      <p className="text-sm text-muted-foreground line-clamp-2 mt-0.5">{res.description}</p>
-                    )}
-                    <div className="flex flex-wrap items-center gap-2 mt-2 text-xs text-muted-foreground">
-                      <Badge variant="secondary" className="text-[10px] px-1.5 py-0 gap-1">
-                        <Tag className="h-2.5 w-2.5" />
-                        {res.category || "General"}
-                      </Badge>
-                      {res.file_size && <span>{formatFileSize(res.file_size)}</span>}
-                      <span>·</span>
-                      <span>{format(new Date(res.created_at), "MMM d, yyyy")}</span>
+            {filtered.map((res) => {
+              const Icon = getResourceIcon(res.resource_type);
+              const isExternal = isExternalUrl(res.file_url);
+              return (
+                <Card
+                  key={res.id}
+                  className="cursor-pointer transition-shadow hover:shadow-md active:scale-[0.99]"
+                  onClick={() => handleResourceClick(res)}
+                >
+                  <CardContent className="flex items-start gap-3 p-4">
+                    <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-primary/10">
+                      <Icon className="h-6 w-6 text-primary" />
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-heading text-base font-semibold text-foreground flex items-center gap-1.5">
+                        <span className="truncate">{res.title}</span>
+                        {isExternal && <ExternalLink className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />}
+                      </h3>
+                      {res.description && (
+                        <p className="text-sm text-muted-foreground line-clamp-2 mt-0.5">{res.description}</p>
+                      )}
+                      <div className="flex flex-wrap items-center gap-2 mt-2 text-xs text-muted-foreground">
+                        <Badge variant="secondary" className="text-[10px] px-1.5 py-0 gap-1">
+                          <Tag className="h-2.5 w-2.5" />
+                          {res.category || "General"}
+                        </Badge>
+                        {res.file_size && <span>{formatFileSize(res.file_size)}</span>}
+                        <span>·</span>
+                        <span>{format(new Date(res.created_at), "MMM d, yyyy")}</span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
         )}
       </main>
 
-      {/* PDF Viewer Modal */}
+      {/* PDF Viewer Modal — only for storage files */}
       <Dialog open={!!selected} onOpenChange={(open) => !open && setSelected(null)}>
         <DialogContent className="max-w-4xl w-[95vw] h-[90vh] flex flex-col p-0 gap-0">
           <DialogHeader className="flex flex-row items-center justify-between px-4 py-3 border-b border-border flex-shrink-0">

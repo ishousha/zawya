@@ -1,0 +1,1 @@
+ALTER TABLE public.resources ADD COLUMN resource_type text NOT NULL DEFAULT 'pdf';
