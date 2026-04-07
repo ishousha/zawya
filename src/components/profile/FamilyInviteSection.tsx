@@ -70,22 +70,41 @@ export default function FamilyInviteSection() {
     const lastName = nameParts.length > 1 ? nameParts[nameParts.length - 1] : nameParts[0] || "My";
     const familyLabel = `${lastName} Family`;
 
-    const { data, error } = await supabase.functions.invoke("create-family", {
-      body: { name: familyLabel },
-    });
+    try {
+      // 1. Create the family row
+      const { data: newFamily, error: familyError } = await supabase
+        .from("families")
+        .insert({ name: familyLabel })
+        .select("id, name")
+        .single();
 
-    setCreating(false);
+      if (familyError || !newFamily) {
+        throw familyError || new Error("Failed to create family.");
+      }
 
-    if (error || !data?.success) {
-      console.error("Create family failed:", error ?? data);
-      toast.error(data?.error || error?.message || "Failed to create family group.");
-      return;
+      // 2. Link current user to the new family
+      const { error: linkError } = await supabase
+        .from("profiles")
+        .update({ family_id: newFamily.id })
+        .eq("id", user.id);
+
+      if (linkError) {
+        // Rollback: delete the orphaned family
+        await supabase.from("families").delete().eq("id", newFamily.id);
+        throw linkError;
+      }
+
+      toast.success(`"${newFamily.name}" created!`);
+      queryClient.invalidateQueries({ queryKey: ["my-family-name"] });
+      queryClient.invalidateQueries({ queryKey: ["family-members-list"] });
+      // Refresh profile in auth context
+      window.dispatchEvent(new Event("profile-updated"));
+    } catch (err: any) {
+      console.error("Create family failed:", err);
+      toast.error(err?.message || "Failed to create family group.");
+    } finally {
+      setCreating(false);
     }
-
-    toast.success(`"${data.family_name || familyLabel}" created!`);
-    queryClient.invalidateQueries({ queryKey: ["my-family-name"] });
-    queryClient.invalidateQueries({ queryKey: ["family-members-list"] });
-    window.location.reload();
   };
 
   const handleSaveName = async () => {
