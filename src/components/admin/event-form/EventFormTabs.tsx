@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,6 +14,30 @@ import SettingsTab from "./SettingsTab";
 import { EventFormState, defaultEventForm, generateCheckinPin } from "./types";
 import type { EventType } from "./types";
 import type { Database } from "@/integrations/supabase/types";
+
+const DRAFT_KEY = "zawya_event_draft";
+const DRAFT_ITEMS_KEY = "zawya_event_draft_items";
+
+function saveDraft(form: EventFormState, items: SignUpItem[]) {
+  try {
+    localStorage.setItem(DRAFT_KEY, JSON.stringify(form));
+    localStorage.setItem(DRAFT_ITEMS_KEY, JSON.stringify(items));
+  } catch { /* quota exceeded — ignore */ }
+}
+
+function loadDraft(): { form: EventFormState; items: SignUpItem[] } | null {
+  try {
+    const f = localStorage.getItem(DRAFT_KEY);
+    const i = localStorage.getItem(DRAFT_ITEMS_KEY);
+    if (!f) return null;
+    return { form: JSON.parse(f), items: i ? JSON.parse(i) : [] };
+  } catch { return null; }
+}
+
+function clearDraft() {
+  localStorage.removeItem(DRAFT_KEY);
+  localStorage.removeItem(DRAFT_ITEMS_KEY);
+}
 
 type EventRow = Database["public"]["Tables"]["events"]["Row"];
 
