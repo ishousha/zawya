@@ -273,7 +273,9 @@ export default function FamilyDetailsModal({
               </h4>
               <div className="space-y-2">
                 {members.map((m) => (
-                  <div key={m.id} className="flex flex-col gap-0.5 rounded-lg border p-3 text-sm">
+                  <div key={m.id} className="flex gap-3 items-start rounded-lg border p-3 text-sm">
+                    <UserAvatar name={m.name} avatarUrl={m.avatar_url} className="h-9 w-9 shrink-0" />
+                    <div className="flex-1 min-w-0 flex flex-col gap-0.5">
                     <span className="font-medium">{m.name || "Unnamed"}</span>
                     <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
                       {m.email && (
