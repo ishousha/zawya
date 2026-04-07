@@ -41,6 +41,17 @@ export default function Library() {
     },
   });
 
+  const filtered = useMemo(() => {
+    if (!resources) return [];
+    if (!search.trim()) return resources;
+    const q = search.toLowerCase();
+    return resources.filter(
+      (r) =>
+        r.title.toLowerCase().includes(q) ||
+        r.description?.toLowerCase().includes(q)
+    );
+  }, [resources, search]);
+
   return (
     <div className="min-h-screen bg-background pb-24">
       <header className="border-b border-border bg-card px-4 pb-4 pt-6">
