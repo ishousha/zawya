@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Loader2, FileText, Download, X, BookOpen } from "lucide-react";
+import { Loader2, FileText, Download, BookOpen, Search } from "lucide-react";
 import { format } from "date-fns";
 
 interface Resource {
@@ -26,6 +27,7 @@ function formatFileSize(bytes: number | null) {
 
 export default function Library() {
   const [selected, setSelected] = useState<Resource | null>(null);
+  const [search, setSearch] = useState("");
 
   const { data: resources, isLoading } = useQuery({
     queryKey: ["resources"],
@@ -38,6 +40,17 @@ export default function Library() {
       return data as Resource[];
     },
   });
+
+  const filtered = useMemo(() => {
+    if (!resources) return [];
+    if (!search.trim()) return resources;
+    const q = search.toLowerCase();
+    return resources.filter(
+      (r) =>
+        r.title.toLowerCase().includes(q) ||
+        r.description?.toLowerCase().includes(q)
+    );
+  }, [resources, search]);
 
   return (
     <div className="min-h-screen bg-background pb-24">
@@ -52,6 +65,19 @@ export default function Library() {
       </header>
 
       <main className="mx-auto max-w-2xl px-4 py-4">
+        {/* Search bar — only shown when resources exist */}
+        {!isLoading && resources && resources.length > 0 && (
+          <div className="relative mb-4">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search resources..."
+              className="pl-9"
+            />
+          </div>
+        )}
+
         {isLoading ? (
           <div className="flex justify-center py-12">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -62,9 +88,14 @@ export default function Library() {
             <p className="text-muted-foreground">No resources available yet.</p>
             <p className="text-xs text-muted-foreground mt-1">Check back later for community materials.</p>
           </div>
+        ) : !filtered.length ? (
+          <div className="flex flex-col items-center justify-center py-12 text-center">
+            <Search className="h-10 w-10 text-muted-foreground/50 mb-2" />
+            <p className="text-muted-foreground">No results for &ldquo;{search}&rdquo;</p>
+          </div>
         ) : (
           <div className="grid gap-3">
-            {resources.map((res) => (
+            {filtered.map((res) => (
               <Card
                 key={res.id}
                 className="cursor-pointer transition-shadow hover:shadow-md active:scale-[0.99]"
@@ -79,7 +110,7 @@ export default function Library() {
                     {res.description && (
                       <p className="text-sm text-muted-foreground line-clamp-2 mt-0.5">{res.description}</p>
                     )}
-                    <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
+                    <div className="flex flex-wrap items-center gap-2 mt-2 text-xs text-muted-foreground">
                       <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5">
                         <FileText className="h-3 w-3" /> PDF
                       </span>
