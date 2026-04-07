@@ -294,6 +294,24 @@ export default function RSVPModal({ event, open, onOpenChange }: RSVPModalProps)
             Total attending: <span className="font-semibold text-foreground">{guestsCount}</span>
           </p>
 
+          {/* Potluck dish input */}
+          {isPotluck && (
+            <div className="space-y-2">
+              <Label className="block text-sm font-medium">
+                What dish are you bringing? <span className="text-xs text-muted-foreground font-normal">(Optional)</span>
+              </Label>
+              <Input
+                placeholder="e.g., Hummus, Knafeh, Paper Plates..."
+                value={potluckDish}
+                onChange={(e) => setPotluckDish(e.target.value)}
+                className="text-sm"
+              />
+              <p className="text-xs text-muted-foreground">
+                Your name won't be shown — only the dish appears on the menu.
+              </p>
+            </div>
+          )}
+
           {/* Sign-up categories with checkbox + description */}
           {showSignUpItems && (
             <div className="space-y-3">
