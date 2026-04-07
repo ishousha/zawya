@@ -85,8 +85,12 @@ export default function EventDetail() {
 
         <EventCard event={event} onShowTicket={(e) => setTicketEvent(e)} />
 
-        {/* Host Dashboard — only visible to the assigned host */}
-        {user && (event as any).host_id === user.id && (
+        {/* Host Dashboard — visible to assigned host, admins, and moderators */}
+        {user && (
+          (event as any).host_id === user.id ||
+          profile?.role === "admin" ||
+          profile?.role === "moderator"
+        ) && (
           <div className="mt-4">
             <HostDashboard eventId={event.id} />
           </div>
