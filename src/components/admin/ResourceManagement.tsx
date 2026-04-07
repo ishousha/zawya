@@ -74,10 +74,15 @@ export default function ResourceManagement() {
 
   const deleteMutation = useMutation({
     mutationFn: async (resource: { id: string; file_url: string }) => {
-      const url = new URL(resource.file_url);
-      const pathParts = url.pathname.split("/resources/");
-      if (pathParts[1]) {
-        await supabase.storage.from("resources").remove([decodeURIComponent(pathParts[1])]);
+      // file_url may be a storage path or a full URL (legacy)
+      let storagePath = resource.file_url;
+      if (resource.file_url.startsWith("http")) {
+        const url = new URL(resource.file_url);
+        const pathParts = url.pathname.split("/resources/");
+        storagePath = pathParts[1] ? decodeURIComponent(pathParts[1]) : "";
+      }
+      if (storagePath) {
+        await supabase.storage.from("resources").remove([storagePath]);
       }
       const { error } = await supabase.from("resources").delete().eq("id", resource.id);
       if (error) throw error;
