@@ -47,7 +47,7 @@ function useFamilyMembers(familyId: string) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("profiles")
-        .select("id, name, email, phone")
+        .select("id, name, email, phone, avatar_url")
         .eq("family_id", familyId)
         .order("name");
       if (error) throw error;
