@@ -82,7 +82,26 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
     };
   });
 
-  const [signUpItems, setSignUpItems] = useState<SignUpItem[]>(initialItems ?? []);
+  const [signUpItems, setSignUpItems] = useState<SignUpItem[]>(() => {
+    if (initialItems) return initialItems;
+    if (!event) {
+      const draft = loadDraft();
+      return draft ? draft.items : [];
+    }
+    return [];
+  });
+
+  // Auto-save draft for new events
+  useEffect(() => {
+    if (!isNewEvent) return;
+    saveDraft(form, signUpItems);
+  }, [form, signUpItems, isNewEvent]);
+
+  // Handle cancel/discard — clear draft
+  const handleClose = useCallback(() => {
+    if (isNewEvent) clearDraft();
+    onClose();
+  }, [isNewEvent, onClose]);
 
   // Load existing sign-up items when editing (not duplicating)
   const { data: existingItems } = useQuery({
