@@ -185,6 +185,7 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
       }
     },
     onSuccess: () => {
+      clearDraft();
       queryClient.invalidateQueries({ queryKey: ["admin-events"] });
       queryClient.invalidateQueries({ queryKey: ["sign-up-items"] });
       toast.success(event && !initialForm ? "Event updated" : "Event created");
