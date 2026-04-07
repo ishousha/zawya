@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useMyRSVP } from "@/hooks/useRSVP";
 import EventCard from "@/components/EventCard";
+import HostDashboard from "@/components/HostDashboard";
 import QRTicketScreen from "@/components/QRTicketScreen";
 import SelfCheckinModal from "@/components/SelfCheckinModal";
 import { Loader2, ArrowLeft } from "lucide-react";
@@ -83,6 +84,13 @@ export default function EventDetail() {
         </Button>
 
         <EventCard event={event} onShowTicket={(e) => setTicketEvent(e)} />
+
+        {/* Host Dashboard — only visible to the assigned host */}
+        {user && (event as any).host_id === user.id && (
+          <div className="mt-4">
+            <HostDashboard eventId={event.id} />
+          </div>
+        )}
       </div>
 
       {myRSVP && !myRSVP.checked_in && eventId && (
