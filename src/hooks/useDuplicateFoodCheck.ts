@@ -37,12 +37,16 @@ export function useDuplicateFoodCheck(
   }, [rsvps]);
 
   const isDuplicate = (category: string, foodItem: string): boolean => {
-    const items = claimedItemsByCategory[category] || [];
-    return items.some(
-      (i) =>
-        i.userId !== currentUserId &&
-        i.item.toLowerCase().trim() === foodItem.toLowerCase().trim()
-    );
+    if (!foodItem.trim()) return false;
+    const needle = foodItem.toLowerCase().trim();
+    // If category provided, check within category; otherwise check all items
+    if (category) {
+      const items = claimedItemsByCategory[category] || [];
+      return items.some(
+        (i) => i.userId !== currentUserId && i.item.toLowerCase().trim() === needle
+      );
+    }
+    return allItems.includes(needle);
   };
 
   return { claimedItemsByCategory, isDuplicate };
