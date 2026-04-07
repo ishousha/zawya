@@ -32,12 +32,19 @@ export default function HostDashboard({ eventId }: HostDashboardProps) {
 
   if (!rsvps) return null;
 
-  const totalAdults = rsvps.reduce((sum, r) => {
+  const totalElders = rsvps.reduce((sum, r) => {
+    const deps = (r.attending_dependents as any[]) || [];
+    return sum + deps.filter((d) => d.type === "dependent" && d.dependent_type === "elder").length;
+  }, 0);
+
+  const totalRegularAdults = rsvps.reduce((sum, r) => {
     const deps = (r.attending_dependents as any[]) || [];
     const childDeps = deps.filter((d) => d.type === "dependent" && d.dependent_type !== "elder").length;
     const elderDeps = deps.filter((d) => d.type === "dependent" && d.dependent_type === "elder").length;
-    return sum + (r.guests_count - childDeps - elderDeps) + elderDeps;
+    return sum + (r.guests_count - childDeps - elderDeps);
   }, 0);
+
+  const totalAdults = totalRegularAdults + totalElders;
 
   const totalChildren = rsvps.reduce((sum, r) => {
     const deps = (r.attending_dependents as any[]) || [];
