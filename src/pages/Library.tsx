@@ -1,11 +1,12 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Loader2, FileText, Download, BookOpen, Search } from "lucide-react";
+import { Loader2, FileText, Download, BookOpen, Search, Tag } from "lucide-react";
 import { format } from "date-fns";
 
 interface Resource {
@@ -16,6 +17,7 @@ interface Resource {
   file_name: string | null;
   file_size: number | null;
   created_at: string;
+  category: string;
 }
 
 function formatFileSize(bytes: number | null) {
@@ -28,6 +30,8 @@ function formatFileSize(bytes: number | null) {
 export default function Library() {
   const [selected, setSelected] = useState<Resource | null>(null);
   const [search, setSearch] = useState("");
+  const [activeCategory, setActiveCategory] = useState("All");
+  const pillsRef = useRef<HTMLDivElement>(null);
 
   const { data: resources, isLoading } = useQuery({
     queryKey: ["resources"],
@@ -41,16 +45,45 @@ export default function Library() {
     },
   });
 
+  const categories = useMemo(() => {
+    if (!resources) return [];
+    const cats = new Set(resources.map((r) => r.category || "General"));
+    return Array.from(cats).sort();
+  }, [resources]);
+
   const filtered = useMemo(() => {
     if (!resources) return [];
-    if (!search.trim()) return resources;
-    const q = search.toLowerCase();
-    return resources.filter(
-      (r) =>
-        r.title.toLowerCase().includes(q) ||
-        r.description?.toLowerCase().includes(q)
-    );
-  }, [resources, search]);
+    let list = resources;
+    if (activeCategory !== "All") {
+      list = list.filter((r) => (r.category || "General") === activeCategory);
+    }
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      list = list.filter(
+        (r) =>
+          r.title.toLowerCase().includes(q) ||
+          r.description?.toLowerCase().includes(q)
+      );
+    }
+    return list;
+  }, [resources, search, activeCategory]);
+
+  // Auto-scroll active pill into view
+  useEffect(() => {
+    if (!pillsRef.current) return;
+    const active = pillsRef.current.querySelector('[data-active="true"]');
+    if (active) {
+      active.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
+    }
+  }, [activeCategory]);
+
+  const friendlyCategoryName = (cat: string) => {
+    const lower = cat.toLowerCase();
+    if (lower.includes("book")) return "books";
+    if (lower.includes("awrad") || lower.includes("wird")) return "awrad";
+    if (lower.includes("event")) return "event materials";
+    return cat.toLowerCase() + " resources";
+  };
 
   return (
     <div className="min-h-screen bg-background pb-24">
@@ -65,7 +98,30 @@ export default function Library() {
       </header>
 
       <main className="mx-auto max-w-2xl px-4 py-4">
-        {/* Search bar — only shown when resources exist */}
+        {/* Category pills */}
+        {!isLoading && categories.length > 0 && (
+          <div
+            ref={pillsRef}
+            className="flex gap-2 overflow-x-auto scrollbar-hide pb-3 -mx-1 px-1"
+          >
+            {["All", ...categories].map((cat) => (
+              <button
+                key={cat}
+                data-active={activeCategory === cat}
+                onClick={() => setActiveCategory(cat)}
+                className={`flex-shrink-0 rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
+                  activeCategory === cat
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-muted text-muted-foreground hover:bg-muted/80"
+                }`}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Search bar */}
         {!isLoading && resources && resources.length > 0 && (
           <div className="relative mb-4">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -90,8 +146,20 @@ export default function Library() {
           </div>
         ) : !filtered.length ? (
           <div className="flex flex-col items-center justify-center py-12 text-center">
-            <Search className="h-10 w-10 text-muted-foreground/50 mb-2" />
-            <p className="text-muted-foreground">No results for &ldquo;{search}&rdquo;</p>
+            {search.trim() ? (
+              <>
+                <Search className="h-10 w-10 text-muted-foreground/50 mb-2" />
+                <p className="text-muted-foreground">No results for &ldquo;{search}&rdquo;</p>
+              </>
+            ) : (
+              <>
+                <BookOpen className="h-10 w-10 text-muted-foreground/50 mb-2" />
+                <p className="text-muted-foreground">
+                  No {friendlyCategoryName(activeCategory)} uploaded yet.
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">Check back soon!</p>
+              </>
+            )}
           </div>
         ) : (
           <div className="grid gap-3">
@@ -111,9 +179,10 @@ export default function Library() {
                       <p className="text-sm text-muted-foreground line-clamp-2 mt-0.5">{res.description}</p>
                     )}
                     <div className="flex flex-wrap items-center gap-2 mt-2 text-xs text-muted-foreground">
-                      <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5">
-                        <FileText className="h-3 w-3" /> PDF
-                      </span>
+                      <Badge variant="secondary" className="text-[10px] px-1.5 py-0 gap-1">
+                        <Tag className="h-2.5 w-2.5" />
+                        {res.category || "General"}
+                      </Badge>
                       {res.file_size && <span>{formatFileSize(res.file_size)}</span>}
                       <span>·</span>
                       <span>{format(new Date(res.created_at), "MMM d, yyyy")}</span>
@@ -134,11 +203,7 @@ export default function Library() {
               {selected?.title}
             </DialogTitle>
             <div className="flex items-center gap-2 flex-shrink-0">
-              <Button
-                size="sm"
-                className="gap-1.5"
-                asChild
-              >
+              <Button size="sm" className="gap-1.5" asChild>
                 <a href={selected?.file_url} download={selected?.file_name || "document.pdf"} target="_blank" rel="noopener noreferrer">
                   <Download className="h-4 w-4" />
                   Download
