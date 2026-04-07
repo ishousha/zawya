@@ -12,12 +12,13 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import { useRSVPConcurrency, useSignUpItems, useEventSelections, useMyRSVP, useMySelections } from "@/hooks/useRSVP";
+import { useRSVPConcurrency, useSignUpItems, useEventSelections, useMyRSVP, useMySelections, useEventRSVPs } from "@/hooks/useRSVP";
 import { useDependents } from "@/components/profile/DependentsSection";
 import { useFamilyMembers } from "@/hooks/useFamilyMembers";
+import { useDuplicateFoodCheck } from "@/hooks/useDuplicateFoodCheck";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import { Loader2, Video, ExternalLink } from "lucide-react";
+import { Loader2, Video, ExternalLink, AlertTriangle } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
