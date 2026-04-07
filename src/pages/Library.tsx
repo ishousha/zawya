@@ -27,6 +27,7 @@ function formatFileSize(bytes: number | null) {
 
 export default function Library() {
   const [selected, setSelected] = useState<Resource | null>(null);
+  const [search, setSearch] = useState("");
 
   const { data: resources, isLoading } = useQuery({
     queryKey: ["resources"],
