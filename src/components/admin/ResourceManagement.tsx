@@ -319,10 +319,29 @@ export default function ResourceManagement() {
                   </span>
                   <input
                     type="file"
+                    accept=".pdf,.doc,.docx,.txt"
                     className="hidden"
-                    onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+                    onChange={(e) => {
+                      const picked = e.target.files?.[0] ?? null;
+                      if (picked) {
+                        if (picked.type.startsWith("video/") || picked.type.startsWith("audio/")) {
+                          toast.error("Audio and Video files cannot be uploaded directly. Please use the \"External Link\" option instead.");
+                          e.target.value = "";
+                          return;
+                        }
+                        if (picked.size > 10 * 1024 * 1024) {
+                          toast.error("File is too large. Maximum size is 10MB.");
+                          e.target.value = "";
+                          return;
+                        }
+                      }
+                      setFile(picked);
+                    }}
                   />
                 </label>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Limit 10MB. PDFs and Documents only. For audio/video, use the External Link option.
+                </p>
               </div>
             ) : (
               <div>
