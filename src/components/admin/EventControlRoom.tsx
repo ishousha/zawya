@@ -17,6 +17,7 @@ import EventFormTabs from "./event-form/EventFormTabs";
 import type { EventFormState } from "./event-form/types";
 import type { SignUpItem } from "./event-form/ItemsTab";
 import { useEventTypes } from "@/hooks/useEventTypes";
+import HostDashboard from "@/components/HostDashboard";
 
 type EventRow = Database["public"]["Tables"]["events"]["Row"];
 
@@ -560,6 +561,9 @@ function RSVPMonitor({ eventId, eventTitle, eventDate, checkinPin, onClose }: { 
           <div className="flex justify-center py-6"><Loader2 className="h-5 w-5 animate-spin text-primary" /></div>
         ) : rsvps && rsvps.length > 0 ? (
           <div className="space-y-4">
+            {/* Host Dashboard summary: headcount + potluck with names */}
+            <HostDashboard eventId={eventId} />
+
             <div>
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
                 Attending ({attending.length})
