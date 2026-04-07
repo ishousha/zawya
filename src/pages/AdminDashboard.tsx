@@ -217,6 +217,10 @@ export default function AdminDashboard() {
               <ScanLine className="h-4 w-4" />
               Scanner
             </TabsTrigger>
+            <TabsTrigger value="resources" className={tabTriggerBase}>
+              <BookOpen className="h-4 w-4" />
+              Resources
+            </TabsTrigger>
             <TabsTrigger value="analytics" className={tabTriggerBase}>
               <BarChart3 className="h-4 w-4" />
               Analytics
