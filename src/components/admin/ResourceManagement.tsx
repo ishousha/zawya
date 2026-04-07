@@ -57,11 +57,26 @@ export default function ResourceManagement() {
     },
   });
 
+  // Build unique category list from DB + defaults
+  const allCategories = useMemo(() => {
+    const dbCats = resources?.map((r) => (r as any).category as string).filter(Boolean) ?? [];
+    const merged = new Set([...DEFAULT_CATEGORIES, ...dbCats]);
+    return Array.from(merged).sort();
+  }, [resources]);
+
+  const filteredCategories = useMemo(() => {
+    if (!catSearch.trim()) return allCategories;
+    const q = catSearch.toLowerCase();
+    return allCategories.filter((c) => c.toLowerCase().includes(q));
+  }, [allCategories, catSearch]);
+
+  const isNewCategory = catSearch.trim() &&
+    !allCategories.some((c) => c.toLowerCase() === catSearch.trim().toLowerCase());
+
   const uploadMutation = useMutation({
     mutationFn: async () => {
       if (!user) throw new Error("Missing user");
-      const finalCategory = useCustom ? customCategory.trim() : category;
-      if (!finalCategory) throw new Error("Category is required");
+      if (!category.trim()) throw new Error("Category is required");
 
       let fileUrl: string;
       let fileName: string | null = null;
@@ -92,7 +107,7 @@ export default function ResourceManagement() {
         file_name: fileName,
         file_size: fileSize,
         uploaded_by: user.id,
-        category: finalCategory,
+        category: category.trim(),
         resource_type: resourceType,
       } as any);
       if (insertError) throw insertError;
@@ -108,11 +123,9 @@ export default function ResourceManagement() {
 
   const deleteMutation = useMutation({
     mutationFn: async (resource: { id: string; file_url: string }) => {
-      // Only delete from storage if it's a storage path (not an external URL)
       if (!resource.file_url.startsWith("http")) {
         await supabase.storage.from("resources").remove([resource.file_url]);
       } else if (resource.file_url.includes("supabase")) {
-        // Legacy full Supabase URLs
         const url = new URL(resource.file_url);
         const pathParts = url.pathname.split("/resources/");
         const storagePath = pathParts[1] ? decodeURIComponent(pathParts[1]) : "";
@@ -120,7 +133,6 @@ export default function ResourceManagement() {
           await supabase.storage.from("resources").remove([storagePath]);
         }
       }
-      // External URLs: just delete the DB row, nothing to remove from storage
       const { error } = await supabase.from("resources").delete().eq("id", resource.id);
       if (error) throw error;
     },
@@ -137,8 +149,7 @@ export default function ResourceManagement() {
     setTitle("");
     setDescription("");
     setCategory("General");
-    setCustomCategory("");
-    setUseCustom(false);
+    setCatSearch("");
     setFile(null);
     setSource("upload");
     setExternalUrl("");
@@ -153,7 +164,7 @@ export default function ResourceManagement() {
   }
 
   const isFormValid = title.trim() &&
-    (useCustom ? customCategory.trim() : true) &&
+    category.trim() &&
     (source === "upload" ? !!file : externalUrl.trim().length > 0);
 
   return (
@@ -183,44 +194,65 @@ export default function ResourceManagement() {
               />
             </div>
 
+            {/* Creatable Category Combobox */}
             <div>
               <label className="text-sm font-medium text-foreground">Category *</label>
-              {!useCustom ? (
-                <div className="mt-1 space-y-2">
-                  <Select value={category} onValueChange={setCategory}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select category" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {STANDARD_CATEGORIES.map((cat) => (
-                        <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <button
-                    type="button"
-                    className="text-xs text-primary hover:underline"
-                    onClick={() => setUseCustom(true)}
+              <Popover open={catOpen} onOpenChange={setCatOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={catOpen}
+                    className="mt-1 w-full justify-between font-normal"
                   >
-                    + Add custom category
-                  </button>
-                </div>
-              ) : (
-                <div className="mt-1 space-y-2">
-                  <Input
-                    value={customCategory}
-                    onChange={(e) => setCustomCategory(e.target.value)}
-                    placeholder="Type a custom category name..."
-                  />
-                  <button
-                    type="button"
-                    className="text-xs text-primary hover:underline"
-                    onClick={() => { setUseCustom(false); setCustomCategory(""); }}
-                  >
-                    ← Back to standard categories
-                  </button>
-                </div>
-              )}
+                    {category || "Select category..."}
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                  <Command shouldFilter={false}>
+                    <CommandInput
+                      placeholder="Search or create category..."
+                      value={catSearch}
+                      onValueChange={setCatSearch}
+                    />
+                    <CommandList>
+                      <CommandEmpty className="py-2 px-3 text-sm text-muted-foreground">
+                        No categories found.
+                      </CommandEmpty>
+                      <CommandGroup>
+                        {filteredCategories.map((cat) => (
+                          <CommandItem
+                            key={cat}
+                            value={cat}
+                            onSelect={() => {
+                              setCategory(cat);
+                              setCatSearch("");
+                              setCatOpen(false);
+                            }}
+                          >
+                            <Check className={cn("mr-2 h-4 w-4", category === cat ? "opacity-100" : "opacity-0")} />
+                            {cat}
+                          </CommandItem>
+                        ))}
+                        {isNewCategory && (
+                          <CommandItem
+                            value={`create-${catSearch}`}
+                            onSelect={() => {
+                              setCategory(catSearch.trim());
+                              setCatSearch("");
+                              setCatOpen(false);
+                            }}
+                          >
+                            <Plus className="mr-2 h-4 w-4 text-primary" />
+                            Create &ldquo;{catSearch.trim()}&rdquo;
+                          </CommandItem>
+                        )}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
             </div>
 
             {/* Resource Type */}
