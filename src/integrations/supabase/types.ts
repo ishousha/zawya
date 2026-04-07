@@ -492,6 +492,7 @@ export type Database = {
       profiles: {
         Row: {
           alternate_cell_number: string | null
+          avatar_url: string | null
           created_at: string
           date_of_birth: string | null
           email: string | null
@@ -507,6 +508,7 @@ export type Database = {
         }
         Insert: {
           alternate_cell_number?: string | null
+          avatar_url?: string | null
           created_at?: string
           date_of_birth?: string | null
           email?: string | null
@@ -522,6 +524,7 @@ export type Database = {
         }
         Update: {
           alternate_cell_number?: string | null
+          avatar_url?: string | null
           created_at?: string
           date_of_birth?: string | null
           email?: string | null
