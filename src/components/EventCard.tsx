@@ -163,7 +163,7 @@ export default function EventCard({ event, onShowTicket }: EventCardProps) {
 
         {/* Description */}
         {event.description && (
-          <p className="mt-1 text-sm text-muted-foreground line-clamp-2">
+          <p className="mt-1 text-sm text-muted-foreground whitespace-pre-line line-clamp-3">
             {event.description}
           </p>
         )}
