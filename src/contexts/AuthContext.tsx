@@ -58,7 +58,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(false);
     });
 
-    return () => subscription.unsubscribe();
+    // Listen for profile updates (e.g. avatar change)
+    const handleProfileUpdate = () => {
+      const userId = session?.user?.id;
+      if (userId) fetchProfile(userId);
+    };
+    window.addEventListener("profile-updated", handleProfileUpdate);
+
+    return () => {
+      subscription.unsubscribe();
+      window.removeEventListener("profile-updated", handleProfileUpdate);
+    };
   }, []);
 
   const signOut = async () => {
