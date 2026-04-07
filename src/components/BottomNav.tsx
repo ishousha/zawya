@@ -11,6 +11,7 @@ export default function BottomNav() {
 
   const tabs = [
     { to: "/", icon: Home, label: "Home" },
+    { to: "/library", icon: BookOpen, label: "Library" },
     ...((isAdmin || isModerator) ? [{ to: "/admin", icon: Shield, label: isAdmin ? "Admin" : "Manage", showBadge: isAdmin }] : []),
     { to: "/profile", icon: User, label: "Profile" },
   ];
