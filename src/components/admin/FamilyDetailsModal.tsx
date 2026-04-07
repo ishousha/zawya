@@ -31,6 +31,7 @@ interface DependentRow {
   id: string;
   first_name: string;
   parent_id: string | null;
+  type?: string;
 }
 
 interface RsvpWithEvent {

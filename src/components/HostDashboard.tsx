@@ -111,7 +111,8 @@ export default function HostDashboard({ eventId }: HostDashboardProps) {
                     {g.family && <span className="text-muted-foreground"> — {g.family}</span>}
                     <span className="text-muted-foreground text-xs ml-1">
                       ({g.adultsCount} adult{g.adultsCount !== 1 ? "s" : ""}
-                      {g.children.length > 0 && `, ${g.children.length} kid${g.children.length !== 1 ? "s" : ""}`})
+                      {g.children.length > 0 && `, ${g.children.length} kid${g.children.length !== 1 ? "s" : ""}`}
+                      {g.elders.length > 0 && `, ${g.elders.length} elder${g.elders.length !== 1 ? "s" : ""}`})
                     </span>
                   </div>
                 </li>
