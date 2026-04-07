@@ -124,6 +124,7 @@ export default function AppRoutes() {
         <Route path="/events/:eventId" element={<EventDetail />} />
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/admin" element={<AdminDashboard />} />
+        <Route path="/library" element={<Library />} />
         <Route path="/notifications" element={<NotificationsPage />} />
         <Route path="/guidelines" element={<CommunityGuidelines readOnly />} />
         {joinFamilyRoute}
