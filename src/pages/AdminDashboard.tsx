@@ -248,6 +248,9 @@ export default function AdminDashboard() {
             <TabsContent value="scanner">
               <AdminDoorScanner />
             </TabsContent>
+            <TabsContent value="resources">
+              <ResourceManagement />
+            </TabsContent>
             <TabsContent value="analytics">
               <AdminAnalytics />
             </TabsContent>
