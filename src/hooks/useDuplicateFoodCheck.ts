@@ -11,6 +11,13 @@ export function useDuplicateFoodCheck(
   rsvps: RSVP[] | undefined,
   currentUserId: string | undefined
 ) {
+  const allItems = useMemo(() => {
+    if (!rsvps) return [];
+    return rsvps
+      .filter((r) => r.specific_food_item && r.user_id !== currentUserId)
+      .map((r) => r.specific_food_item!.toLowerCase().trim());
+  }, [rsvps, currentUserId]);
+
   const claimedItemsByCategory = useMemo(() => {
     const map: Record<string, { item: string; userId: string }[]> = {};
     if (!rsvps) return map;
