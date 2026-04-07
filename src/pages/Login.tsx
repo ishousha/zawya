@@ -1,26 +1,49 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { toast } from "sonner";
-import { Loader2, LogIn, UserPlus } from "lucide-react";
+import { Mail, Loader2, ArrowLeft, RefreshCw, Clock } from "lucide-react";
 import zawyaLogo from "@/assets/logo.png";
+
+type Stage = "email" | "otp" | "magic-link";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [isSignUp, setIsSignUp] = useState(false);
+  const [otp, setOtp] = useState("");
+  const [stage, setStage] = useState<Stage>("email");
   const [loading, setLoading] = useState(false);
+  const [verifying, setVerifying] = useState(false);
   const [appleLoading, setAppleLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
-  const [magicLink, setMagicLink] = useState(false);
+  const [resending, setResending] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
+  const [otpExpiry, setOtpExpiry] = useState(0);
+  const expiryRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  const startExpiryTimer = () => {
+    if (expiryRef.current) clearInterval(expiryRef.current);
+    setOtpExpiry(300); // 5 minutes
+    expiryRef.current = setInterval(() => {
+      setOtpExpiry((prev) => {
+        if (prev <= 1) {
+          if (expiryRef.current) clearInterval(expiryRef.current);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  };
+
+  // Detect magic link tokens in URL hash and show loading state
   useEffect(() => {
     const hash = window.location.hash;
     if (hash && (hash.includes("access_token") || hash.includes("type=magiclink") || hash.includes("type=signup"))) {
-      setMagicLink(true);
+      setStage("magic-link");
     }
+    return () => { if (expiryRef.current) clearInterval(expiryRef.current); };
   }, []);
 
   const handleOAuthSignIn = async (provider: "apple" | "google") => {
@@ -37,25 +60,75 @@ export default function LoginPage() {
     setLoaderFn(false);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
-    if (isSignUp) {
-      const { error } = await supabase.auth.signUp({ email, password });
-      setLoading(false);
-      if (error) {
-        toast.error(error.message);
-      } else {
-        toast.success("Account created! Please check your email to verify.");
-      }
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+    });
+
+    setLoading(false);
+
+    if (error) {
+      toast.error("Could not send code. Please try again.");
     } else {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
-      setLoading(false);
-      if (error) {
-        toast.error(error.message);
-      }
+      setStage("otp");
+      startExpiryTimer();
+      toast.success("Code sent! Check your email.");
     }
+  };
+
+  const handleVerifyOtp = async () => {
+    if (otp.length !== 6) return;
+    setVerifying(true);
+
+    const { error } = await supabase.auth.verifyOtp({
+      email,
+      token: otp,
+      type: "email",
+    });
+
+    setVerifying(false);
+
+    if (error) {
+      toast.error("Invalid or expired code. Please try again.");
+      setOtp("");
+    }
+  };
+
+  const handleResendOtp = async () => {
+    setResending(true);
+    const { error } = await supabase.auth.signInWithOtp({ email });
+    setResending(false);
+    if (error) {
+      toast.error("Could not resend code. Please try again.");
+    } else {
+      toast.success("New code sent!");
+      setOtp("");
+      startExpiryTimer();
+      setResendCooldown(30);
+      const interval = setInterval(() => {
+        setResendCooldown((prev) => {
+          if (prev <= 1) { clearInterval(interval); return 0; }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+  };
+
+  const handleBack = () => {
+    setStage("email");
+    setOtp("");
+    setResendCooldown(0);
+    setOtpExpiry(0);
+    if (expiryRef.current) clearInterval(expiryRef.current);
+  };
+
+  const formatTime = (s: number) => {
+    const m = Math.floor(s / 60);
+    const sec = s % 60;
+    return `${m}:${sec.toString().padStart(2, "0")}`;
   };
 
   return (
@@ -70,68 +143,109 @@ export default function LoginPage() {
           </p>
         </div>
 
-        {magicLink ? (
+        {stage === "magic-link" ? (
           <div className="rounded-lg border border-border bg-card p-6 text-center">
             <Loader2 className="mx-auto mb-3 h-10 w-10 animate-spin text-primary" />
             <h2 className="font-heading text-xl font-semibold text-card-foreground">
               Signing you in…
             </h2>
             <p className="mt-2 text-sm text-muted-foreground">
-              Verifying your link, just a moment.
+              Verifying your magic link, just a moment.
             </p>
           </div>
-        ) : (
-          <form onSubmit={handleSubmit} className="rounded-lg border border-border bg-card p-6 space-y-4">
-            <h2 className="font-heading text-lg font-semibold text-card-foreground text-center">
-              {isSignUp ? "Create Account" : "Sign In"}
+        ) : stage === "otp" ? (
+          <div className="rounded-lg border border-border bg-card p-6 text-center">
+            <Mail className="mx-auto mb-3 h-10 w-10 text-primary" />
+            <h2 className="font-heading text-xl font-semibold text-card-foreground">
+              Enter your code
             </h2>
-            <div>
-              <label htmlFor="email" className="mb-1.5 block text-sm font-medium text-card-foreground">
-                Email address
-              </label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="you@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
+            <p className="mt-2 text-sm text-muted-foreground">
+              We emailed you a code to{" "}
+              <strong className="text-foreground">{email}</strong>, enter it here:
+            </p>
+
+            <div className="mt-6 flex justify-center">
+              <InputOTP
+                maxLength={6}
+                value={otp}
+                onChange={setOtp}
+              >
+                <InputOTPGroup>
+                  <InputOTPSlot index={0} className="h-12 w-12 text-lg border-input focus-within:ring-primary" />
+                  <InputOTPSlot index={1} className="h-12 w-12 text-lg border-input focus-within:ring-primary" />
+                  <InputOTPSlot index={2} className="h-12 w-12 text-lg border-input focus-within:ring-primary" />
+                  <InputOTPSlot index={3} className="h-12 w-12 text-lg border-input focus-within:ring-primary" />
+                  <InputOTPSlot index={4} className="h-12 w-12 text-lg border-input focus-within:ring-primary" />
+                  <InputOTPSlot index={5} className="h-12 w-12 text-lg border-input focus-within:ring-primary" />
+                </InputOTPGroup>
+              </InputOTP>
             </div>
-            <div>
-              <label htmlFor="password" className="mb-1.5 block text-sm font-medium text-card-foreground">
-                Password
-              </label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                minLength={6}
-              />
+
+            {otpExpiry > 0 ? (
+              <p className={`mt-3 flex items-center justify-center gap-1.5 text-xs ${otpExpiry <= 60 ? "text-destructive" : "text-muted-foreground"}`}>
+                <Clock className="h-3.5 w-3.5" />
+                Code expires in {formatTime(otpExpiry)}
+              </p>
+            ) : stage === "otp" ? (
+              <p className="mt-3 text-xs text-destructive">
+                Code expired — please resend
+              </p>
+            ) : null}
+
+            <Button
+              className="mt-4 w-full"
+              onClick={handleVerifyOtp}
+              disabled={verifying || otp.length !== 6 || otpExpiry === 0}
+            >
+              {verifying ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : null}
+              Continue
+            </Button>
+
+            <div className="mt-4 flex items-center justify-center gap-4">
+              <button
+                type="button"
+                onClick={handleBack}
+                className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <ArrowLeft className="h-3.5 w-3.5" />
+                Change email
+              </button>
+              <span className="text-border">|</span>
+              <button
+                type="button"
+                onClick={handleResendOtp}
+                disabled={resending || resendCooldown > 0}
+                className="inline-flex items-center gap-1 text-sm text-primary hover:text-primary/80 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <RefreshCw className={`h-3.5 w-3.5 ${resending ? "animate-spin" : ""}`} />
+                {resendCooldown > 0 ? `Resend (${resendCooldown}s)` : "Resend code"}
+              </button>
             </div>
+          </div>
+        ) : (
+          <form onSubmit={handleSendOtp} className="rounded-lg border border-border bg-card p-6">
+            <label htmlFor="email" className="mb-2 block text-sm font-medium text-card-foreground">
+              Email address
+            </label>
+            <Input
+              id="email"
+              type="email"
+              placeholder="you@example.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              className="mb-4"
+            />
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : isSignUp ? (
-                <UserPlus className="mr-2 h-4 w-4" />
               ) : (
-                <LogIn className="mr-2 h-4 w-4" />
+                <Mail className="mr-2 h-4 w-4" />
               )}
-              {isSignUp ? "Create Account" : "Sign In"}
+              Send Code
             </Button>
-            <p className="text-center text-sm text-muted-foreground">
-              {isSignUp ? "Already have an account?" : "Don't have an account?"}{" "}
-              <button
-                type="button"
-                onClick={() => setIsSignUp(!isSignUp)}
-                className="font-medium text-primary hover:text-primary/80 transition-colors"
-              >
-                {isSignUp ? "Sign In" : "Create Account"}
-              </button>
-            </p>
           </form>
         )}
 
