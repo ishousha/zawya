@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,6 +15,30 @@ import { EventFormState, defaultEventForm, generateCheckinPin } from "./types";
 import type { EventType } from "./types";
 import type { Database } from "@/integrations/supabase/types";
 
+const DRAFT_KEY = "zawya_event_draft";
+const DRAFT_ITEMS_KEY = "zawya_event_draft_items";
+
+function saveDraft(form: EventFormState, items: SignUpItem[]) {
+  try {
+    localStorage.setItem(DRAFT_KEY, JSON.stringify(form));
+    localStorage.setItem(DRAFT_ITEMS_KEY, JSON.stringify(items));
+  } catch { /* quota exceeded — ignore */ }
+}
+
+function loadDraft(): { form: EventFormState; items: SignUpItem[] } | null {
+  try {
+    const f = localStorage.getItem(DRAFT_KEY);
+    const i = localStorage.getItem(DRAFT_ITEMS_KEY);
+    if (!f) return null;
+    return { form: JSON.parse(f), items: i ? JSON.parse(i) : [] };
+  } catch { return null; }
+}
+
+function clearDraft() {
+  localStorage.removeItem(DRAFT_KEY);
+  localStorage.removeItem(DRAFT_ITEMS_KEY);
+}
+
 type EventRow = Database["public"]["Tables"]["events"]["Row"];
 
 interface EventFormTabsProps {
@@ -27,9 +51,14 @@ interface EventFormTabsProps {
 export default function EventFormTabs({ event, initialForm, initialItems, onClose }: EventFormTabsProps) {
   const queryClient = useQueryClient();
 
+  const isNewEvent = !event || !!initialForm;
+
   const [form, setForm] = useState<EventFormState>(() => {
     if (initialForm) return initialForm;
-    if (!event) return defaultEventForm;
+    if (!event) {
+      const draft = loadDraft();
+      return draft ? draft.form : defaultEventForm;
+    }
     return {
       title: event.title,
       description: event.description ?? "",
@@ -53,7 +82,26 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
     };
   });
 
-  const [signUpItems, setSignUpItems] = useState<SignUpItem[]>(initialItems ?? []);
+  const [signUpItems, setSignUpItems] = useState<SignUpItem[]>(() => {
+    if (initialItems) return initialItems;
+    if (!event) {
+      const draft = loadDraft();
+      return draft ? draft.items : [];
+    }
+    return [];
+  });
+
+  // Auto-save draft for new events
+  useEffect(() => {
+    if (!isNewEvent) return;
+    saveDraft(form, signUpItems);
+  }, [form, signUpItems, isNewEvent]);
+
+  // Handle cancel/discard — clear draft
+  const handleClose = useCallback(() => {
+    if (isNewEvent) clearDraft();
+    onClose();
+  }, [isNewEvent, onClose]);
 
   // Load existing sign-up items when editing (not duplicating)
   const { data: existingItems } = useQuery({
@@ -137,6 +185,7 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
       }
     },
     onSuccess: () => {
+      clearDraft();
       queryClient.invalidateQueries({ queryKey: ["admin-events"] });
       queryClient.invalidateQueries({ queryKey: ["sign-up-items"] });
       toast.success(event && !initialForm ? "Event updated" : "Event created");
@@ -145,7 +194,7 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
     onError: () => toast.error("Failed to save event"),
   });
 
-  const isNewEvent = !event || !!initialForm;
+  // isNewEvent is declared at top of component
 
   return (
     <Card>
@@ -153,7 +202,7 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
         <CardTitle className="text-lg font-heading">
           {isNewEvent ? "New Event" : "Edit Event"}
         </CardTitle>
-        <Button size="icon" variant="ghost" className="h-10 w-10" onClick={onClose}>
+        <Button size="icon" variant="ghost" className="h-10 w-10" onClick={handleClose}>
           <X className="h-5 w-5" />
         </Button>
       </CardHeader>

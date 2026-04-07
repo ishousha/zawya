@@ -20,9 +20,17 @@ type AdminTab = typeof ADMIN_TABS[number];
 const MODERATOR_TABS = ["events", "guests", "scanner"] as const;
 type ModeratorTab = typeof MODERATOR_TABS[number];
 
-/** Check if the swipe originated from a horizontally-scrollable child */
-function isInsideScrollable(target: EventTarget | null): boolean {
+/** Tags that should never trigger tab-swiping (form inputs, buttons, etc.) */
+const SWIPE_BLOCKED_TAGS = new Set(["INPUT", "TEXTAREA", "SELECT", "BUTTON"]);
+
+/** Check if the swipe originated from a form element or horizontally-scrollable child */
+function shouldBlockSwipe(target: EventTarget | null): boolean {
   let el = target as HTMLElement | null;
+
+  // Block if the touch started on a form element
+  if (el && SWIPE_BLOCKED_TAGS.has(el.tagName)) return true;
+
+  // Block if inside a scrollable container
   while (el) {
     const style = window.getComputedStyle(el);
     const isScrollable =
@@ -82,11 +90,11 @@ export default function AdminDashboard() {
   // Admin swipe handler
   const adminSwipeHandlers = useSwipeable({
     onSwipedLeft: (e) => {
-      if (isInsideScrollable(e.event.target)) return;
+      if (shouldBlockSwipe(e.event.target)) return;
       changeTab(ADMIN_TABS, activeTab, setActiveTab, "left");
     },
     onSwipedRight: (e) => {
-      if (isInsideScrollable(e.event.target)) return;
+      if (shouldBlockSwipe(e.event.target)) return;
       changeTab(ADMIN_TABS, activeTab, setActiveTab, "right");
     },
     trackTouch: true,
@@ -98,11 +106,11 @@ export default function AdminDashboard() {
   // Moderator swipe handler
   const modSwipeHandlers = useSwipeable({
     onSwipedLeft: (e) => {
-      if (isInsideScrollable(e.event.target)) return;
+      if (shouldBlockSwipe(e.event.target)) return;
       changeTab(MODERATOR_TABS, modTab, setModTab, "left");
     },
     onSwipedRight: (e) => {
-      if (isInsideScrollable(e.event.target)) return;
+      if (shouldBlockSwipe(e.event.target)) return;
       changeTab(MODERATOR_TABS, modTab, setModTab, "right");
     },
     trackTouch: true,
