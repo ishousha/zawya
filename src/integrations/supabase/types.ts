@@ -246,6 +246,7 @@ export type Database = {
           end_date_time: string | null
           event_type_id: string
           has_potluck: boolean | null
+          host_id: string | null
           id: string
           is_hybrid: boolean
           location: string | null
@@ -271,6 +272,7 @@ export type Database = {
           end_date_time?: string | null
           event_type_id: string
           has_potluck?: boolean | null
+          host_id?: string | null
           id?: string
           is_hybrid?: boolean
           location?: string | null
@@ -296,6 +298,7 @@ export type Database = {
           end_date_time?: string | null
           event_type_id?: string
           has_potluck?: boolean | null
+          host_id?: string | null
           id?: string
           is_hybrid?: boolean
           location?: string | null
@@ -316,6 +319,13 @@ export type Database = {
             columns: ["event_type_id"]
             isOneToOne: false
             referencedRelation: "event_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "events_host_id_fkey"
+            columns: ["host_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
           {
