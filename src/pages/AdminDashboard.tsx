@@ -90,11 +90,11 @@ export default function AdminDashboard() {
   // Admin swipe handler
   const adminSwipeHandlers = useSwipeable({
     onSwipedLeft: (e) => {
-      if (isInsideScrollable(e.event.target)) return;
+      if (shouldBlockSwipe(e.event.target)) return;
       changeTab(ADMIN_TABS, activeTab, setActiveTab, "left");
     },
     onSwipedRight: (e) => {
-      if (isInsideScrollable(e.event.target)) return;
+      if (shouldBlockSwipe(e.event.target)) return;
       changeTab(ADMIN_TABS, activeTab, setActiveTab, "right");
     },
     trackTouch: true,
@@ -106,11 +106,11 @@ export default function AdminDashboard() {
   // Moderator swipe handler
   const modSwipeHandlers = useSwipeable({
     onSwipedLeft: (e) => {
-      if (isInsideScrollable(e.event.target)) return;
+      if (shouldBlockSwipe(e.event.target)) return;
       changeTab(MODERATOR_TABS, modTab, setModTab, "left");
     },
     onSwipedRight: (e) => {
-      if (isInsideScrollable(e.event.target)) return;
+      if (shouldBlockSwipe(e.event.target)) return;
       changeTab(MODERATOR_TABS, modTab, setModTab, "right");
     },
     trackTouch: true,
