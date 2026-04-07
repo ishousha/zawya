@@ -15,16 +15,25 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
 export function useDependents() {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
+  const familyId = (profile as any)?.family_id as string | null;
   return useQuery({
-    queryKey: ["dependents", user?.id],
+    queryKey: ["dependents", user?.id, familyId],
     enabled: !!user,
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from("dependents")
         .select("*")
-        .eq("parent_id", user!.id)
         .order("created_at", { ascending: true });
+
+      // If user has a family, get all family dependents; otherwise get their own
+      if (familyId) {
+        query = query.eq("family_id" as any, familyId);
+      } else {
+        query = query.eq("parent_id", user!.id);
+      }
+
+      const { data, error } = await query;
       if (error) throw error;
       return data;
     },
@@ -43,11 +52,13 @@ export default function DependentsSection() {
   const addDependent = useMutation({
     mutationFn: async () => {
       if (!user) throw new Error("Not authenticated");
+      const familyId = (profile as any)?.family_id as string | null;
       const { error } = await supabase.from("dependents").insert({
         parent_id: user.id,
         first_name: firstName.trim(),
         date_of_birth: dob ? format(dob, "yyyy-MM-dd") : null,
         type: depType,
+        family_id: familyId,
       } as any);
       if (error) throw error;
     },
