@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Users, Clock, KeyRound, RefreshCw, UtensilsCrossed } from "lucide-react";
 import type { EventFormState } from "./types";
 import { generateCheckinPin } from "./types";
+import HostSelector from "./HostSelector";
 
 interface SettingsTabProps {
   form: EventFormState;
@@ -58,6 +59,12 @@ export default function SettingsTab({ form, setForm }: SettingsTabProps) {
           </div>
         </div>
       </div>
+
+      {/* Event Host */}
+      <HostSelector
+        hostId={form.host_id}
+        onChange={(id) => update("host_id", id)}
+      />
 
       {/* Potluck Toggle */}
       <div>
