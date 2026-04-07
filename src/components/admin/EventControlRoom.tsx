@@ -513,6 +513,7 @@ function RSVPMonitor({ eventId, eventTitle, eventDate, checkinPin, onClose }: { 
   }
 
   return (
+    <>
     <Card>
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <CardTitle className="text-lg">Guest List & RSVPs</CardTitle>
