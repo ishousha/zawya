@@ -40,6 +40,7 @@ import AdminRsvpAction from "./AdminRsvpAction";
 import type { Database } from "@/integrations/supabase/types";
 import { useAuth } from "@/contexts/AuthContext";
 import { downloadCsv, zawyaFilename } from "@/lib/csv-export";
+import UserAvatar from "@/components/UserAvatar";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 type AppRole = Database["public"]["Enums"]["app_role"];
