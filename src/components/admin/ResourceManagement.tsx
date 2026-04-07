@@ -38,8 +38,8 @@ export default function ResourceManagement() {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("General");
-  const [customCategory, setCustomCategory] = useState("");
-  const [useCustom, setUseCustom] = useState(false);
+  const [catOpen, setCatOpen] = useState(false);
+  const [catSearch, setCatSearch] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [source, setSource] = useState<"upload" | "external">("upload");
   const [externalUrl, setExternalUrl] = useState("");
