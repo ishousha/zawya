@@ -10,7 +10,7 @@ import FamilyManagement from "@/components/admin/FamilyManagement";
 import AllGuestApprovals from "@/components/admin/AllGuestApprovals";
 import AdminActivityLog from "@/components/admin/AdminActivityLog";
 import AdminAnalytics from "@/components/admin/AdminAnalytics";
-import { Users, CalendarPlus, ScanLine, Home, ScrollText, Settings, BarChart3 } from "lucide-react";
+import { Users, CalendarPlus, ScanLine, Home, ScrollText, Settings, BarChart3, BookOpen } from "lucide-react";
 import EventTypeManagement from "@/components/admin/EventTypeManagement";
 import { usePendingUsersCount } from "@/hooks/usePendingUsersCount";
 
