@@ -174,7 +174,7 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
     onError: () => toast.error("Failed to save event"),
   });
 
-  const isNewEvent = !event || !!initialForm;
+  // isNewEvent is declared at top of component
 
   return (
     <Card>
