@@ -8,6 +8,7 @@ import { useEventTypes, getEventTypeIcon } from "@/hooks/useEventTypes";
 import RSVPModal from "@/components/RSVPModal";
 import SelfCheckinModal from "@/components/SelfCheckinModal";
 import AddToCalendarButton from "@/components/AddToCalendarButton";
+import PotluckMenu from "@/components/PotluckMenu";
 import type { Database } from "@/integrations/supabase/types";
 
 type Event = Database["public"]["Tables"]["events"]["Row"];
