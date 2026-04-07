@@ -155,6 +155,7 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
         online_link: form.online_link || null,
         checkin_pin: form.checkin_pin || null,
         status: form.status,
+        host_id: form.host_id || null,
       };
 
       let eventId = event?.id;
