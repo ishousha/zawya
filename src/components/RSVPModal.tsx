@@ -48,7 +48,8 @@ export default function RSVPModal({ event, open, onOpenChange }: RSVPModalProps)
   const { data: dependents } = useDependents();
   const { data: familyMembers } = useFamilyMembers();
   const { createRSVP, updateRSVP, cancelRSVP } = useRSVPConcurrency(event.id);
-
+  const { data: allRsvps } = useEventRSVPs(event.id);
+  const { isDuplicate } = useDuplicateFoodCheck(allRsvps, user?.id);
   const isEditing = !!myRSVP;
 
   const [selectedMemberIds, setSelectedMemberIds] = useState<Set<string>>(new Set());
