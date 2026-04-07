@@ -175,21 +175,23 @@ export default function EventCard({ event, onShowTicket }: EventCardProps) {
 
         {/* Description */}
         {event.description && (
-          <p
-            ref={descRef}
-            className={`mt-1 text-sm text-muted-foreground whitespace-pre-line ${!isExpanded ? "line-clamp-3" : ""}`}
-          >
-            {event.description}
-          </p>
-          {(isClamped || isExpanded) && (
-            <button
-              type="button"
-              onClick={() => setIsExpanded((v) => !v)}
-              className="mt-0.5 text-sm font-medium text-primary hover:underline"
+          <>
+            <p
+              ref={descRef}
+              className={`mt-1 text-sm text-muted-foreground whitespace-pre-line ${!isExpanded ? "line-clamp-3" : ""}`}
             >
-              {isExpanded ? "Show less" : "Read more"}
-            </button>
-          )}
+              {event.description}
+            </p>
+            {(isClamped || isExpanded) && (
+              <button
+                type="button"
+                onClick={() => setIsExpanded((v) => !v)}
+                className="mt-0.5 text-sm font-medium text-primary hover:underline"
+              >
+                {isExpanded ? "Show less" : "Read more"}
+              </button>
+            )}
+          </>
         )}
 
         {/* Date & Time in local timezone */}
