@@ -69,6 +69,7 @@ export default function EventControlRoom() {
   const [creating, setCreating] = useState(false);
   const [monitoringEventId, setMonitoringEventId] = useState<string | null>(null);
   const [duplicateForm, setDuplicateForm] = useState<{ form: EventFormState; items: SignUpItem[] } | null>(null);
+  const [broadcastEvent, setBroadcastEvent] = useState<{ id: string; title: string } | null>(null);
 
   const { data: eventTypes } = useEventTypes();
   const getTypeName = (id: string) => eventTypes?.find((t) => t.id === id)?.name ?? "Event";
