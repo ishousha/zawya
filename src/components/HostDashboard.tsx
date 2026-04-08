@@ -87,7 +87,7 @@ export default function HostDashboard({ eventId }: HostDashboardProps) {
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Headcount summary */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
           <div className="rounded-lg border border-border bg-card p-3 text-center">
             <p className="text-2xl font-bold text-foreground">{totalHeadcount}</p>
             <p className="text-xs text-muted-foreground">Total</p>
@@ -106,6 +106,12 @@ export default function HostDashboard({ eventId }: HostDashboardProps) {
             <p className="text-2xl font-bold text-foreground">{totalChildren}</p>
             <p className="text-xs text-muted-foreground flex items-center justify-center gap-1">
               <Baby className="h-3 w-3" /> Kids
+            </p>
+          </div>
+          <div className="rounded-lg border border-emerald-300 bg-emerald-50 p-3 text-center">
+            <p className="text-2xl font-bold text-emerald-700">{checkedInCount}</p>
+            <p className="text-xs text-emerald-600 flex items-center justify-center gap-1">
+              <CheckCircle2 className="h-3 w-3" /> Arrived
             </p>
           </div>
         </div>
