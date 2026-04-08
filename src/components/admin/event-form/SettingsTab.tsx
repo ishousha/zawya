@@ -7,7 +7,7 @@ import { Users, Clock, KeyRound, RefreshCw, UtensilsCrossed, Lock, DollarSign } 
 import type { EventFormState } from "./types";
 import { generateCheckinPin } from "./types";
 import HostSelector from "./HostSelector";
-import SpeakerSelector from "./SpeakerSelector";
+
 
 interface SettingsTabProps {
   form: EventFormState;
