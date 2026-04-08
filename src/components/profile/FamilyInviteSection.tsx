@@ -211,10 +211,18 @@ export default function FamilyInviteSection() {
             Family Group
           </CardTitle>
         </CardHeader>
-        <CardContent className="text-center space-y-3">
-          <p className="text-sm text-muted-foreground">
-            Create a family group to manage RSVPs and invite family members.
-          </p>
+        <CardContent className="space-y-4">
+          <div className="rounded-lg border border-dashed border-primary/30 bg-primary/5 p-4 text-center space-y-2">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
+              <UserPlus className="h-6 w-6 text-primary" />
+            </div>
+            <p className="text-sm font-medium text-foreground">
+              Ready to bring your family together?
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Create a family group so your spouse can co-manage RSVPs, dependents, and event check-ins.
+            </p>
+          </div>
           <Button
             className="w-full gap-1.5"
             onClick={handleCreateFamily}
