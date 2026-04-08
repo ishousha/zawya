@@ -9,7 +9,7 @@ import HostDashboard from "@/components/HostDashboard";
 import QRTicketScreen from "@/components/QRTicketScreen";
 import SelfCheckinModal from "@/components/SelfCheckinModal";
 import ContactOrganizerModal from "@/components/ContactOrganizerModal";
-import FeaturedSpeaker from "@/components/FeaturedSpeaker";
+import FeaturedSpeakers from "@/components/FeaturedSpeaker";
 import { Loader2, ArrowLeft, Mail, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { Database } from "@/integrations/supabase/types";
@@ -95,10 +95,8 @@ export default function EventDetail() {
 
         <EventCard event={event} onShowTicket={(e) => setTicketEvent(e)} />
 
-        {/* Featured Speaker */}
-        {(event as any).speaker_id && (
-          <FeaturedSpeaker speakerId={(event as any).speaker_id} />
-        )}
+        {/* Featured Speakers */}
+        <FeaturedSpeakers eventId={event.id} />
 
         {/* Contact Organizer button — visible for upcoming, non-cancelled events */}
         {user && event.status !== "cancelled" && new Date(event.end_date_time ?? event.date_time) > new Date() && (
