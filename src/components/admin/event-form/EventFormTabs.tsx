@@ -81,6 +81,7 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
       checkin_pin: event.checkin_pin ?? generateCheckinPin(),
       host_id: (event as any).host_id ?? null,
       mureeds_only: (event as any).mureeds_only ?? false,
+      speaker_id: (event as any).speaker_id ?? null,
     };
   });
 
@@ -158,6 +159,7 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
         status: form.status,
         host_id: form.host_id || null,
         mureeds_only: form.mureeds_only,
+        speaker_id: form.speaker_id || null,
       };
 
       let eventId = event?.id;

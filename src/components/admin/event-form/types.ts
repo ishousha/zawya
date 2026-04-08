@@ -24,6 +24,7 @@ export interface EventFormState {
   checkin_pin: string;
   host_id: string | null;
   mureeds_only: boolean;
+  speaker_id: string | null;
 }
 
 export interface SignUpItemState {
@@ -55,6 +56,7 @@ export const defaultEventForm: EventFormState = {
   checkin_pin: generateCheckinPin(),
   host_id: null,
   mureeds_only: false,
+  speaker_id: null,
 };
 
 // Keep EventType as a legacy re-export alias — no longer used
