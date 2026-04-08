@@ -85,6 +85,13 @@ export default function EventDetail() {
           <ArrowLeft className="h-4 w-4" /> Back
         </Button>
 
+        {new Date(event.end_date_time ?? event.date_time) <= new Date() && event.status !== "cancelled" && (
+          <div className="mb-3 flex items-center gap-2 rounded-lg border border-muted bg-muted/40 px-4 py-2.5 text-sm text-muted-foreground">
+            <Clock className="h-4 w-4 shrink-0" />
+            This event has ended
+          </div>
+        )}
+
         <EventCard event={event} onShowTicket={(e) => setTicketEvent(e)} />
 
         {/* Contact Organizer button — visible for upcoming, non-cancelled events */}
