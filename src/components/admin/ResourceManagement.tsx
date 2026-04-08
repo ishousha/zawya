@@ -47,6 +47,9 @@ export default function ResourceManagement() {
 
   const { data: resources, isLoading } = useQuery({
     queryKey: ["admin-resources"],
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("resources")

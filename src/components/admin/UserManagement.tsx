@@ -71,6 +71,9 @@ export default function UserManagement() {
 
   const { data: profiles, isLoading: loadingProfiles } = useQuery({
     queryKey: ["admin-profiles"],
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("profiles")
@@ -87,6 +90,9 @@ export default function UserManagement() {
 
   const { data: userRoles } = useQuery({
     queryKey: ["admin-user-roles"],
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
     queryFn: async () => {
       const { data, error } = await supabase.from("user_roles").select("*");
       if (error) throw error;
@@ -105,6 +111,9 @@ export default function UserManagement() {
 
   const { data: families } = useQuery({
     queryKey: ["admin-families-lookup"],
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
     queryFn: async () => {
       const { data, error } = await supabase.from("families").select("id, name");
       if (error) throw error;
@@ -121,6 +130,9 @@ export default function UserManagement() {
   // Fetch all RSVPs with event titles for the RSVP history column
   const { data: allRsvps } = useQuery({
     queryKey: ["admin-all-rsvps"],
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("rsvps")
@@ -157,6 +169,9 @@ export default function UserManagement() {
 
   const { data: guestRequests, isLoading: loadingGuests } = useQuery({
     queryKey: ["admin-guest-requests"],
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("guest_requests")

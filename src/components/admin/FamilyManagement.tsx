@@ -30,6 +30,9 @@ interface Profile {
 function useFamilies() {
   return useQuery<Family[]>({
     queryKey: ["admin-families"],
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("families")
@@ -44,6 +47,9 @@ function useFamilies() {
 function useAllProfiles() {
   return useQuery<Profile[]>({
     queryKey: ["admin-profiles-for-families"],
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("profiles")

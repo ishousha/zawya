@@ -15,6 +15,9 @@ export default function AllGuestApprovals() {
 
   const { data: guestRequests, isLoading } = useQuery({
     queryKey: ["all-guest-requests"],
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("guest_requests")
