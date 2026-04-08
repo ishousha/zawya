@@ -295,6 +295,7 @@ export type Database = {
           mureeds_only: boolean
           online_link: string | null
           payment_instructions: string | null
+          speaker_id: string | null
           status: Database["public"]["Enums"]["event_status"]
           ticket_fee: number | null
           title: string
@@ -322,6 +323,7 @@ export type Database = {
           mureeds_only?: boolean
           online_link?: string | null
           payment_instructions?: string | null
+          speaker_id?: string | null
           status?: Database["public"]["Enums"]["event_status"]
           ticket_fee?: number | null
           title: string
@@ -349,6 +351,7 @@ export type Database = {
           mureeds_only?: boolean
           online_link?: string | null
           payment_instructions?: string | null
+          speaker_id?: string | null
           status?: Database["public"]["Enums"]["event_status"]
           ticket_fee?: number | null
           title?: string
@@ -371,6 +374,13 @@ export type Database = {
             columns: ["host_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "events_speaker_id_fkey"
+            columns: ["speaker_id"]
+            isOneToOne: false
+            referencedRelation: "speakers"
             referencedColumns: ["id"]
           },
           {
@@ -774,6 +784,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      speakers: {
+        Row: {
+          bio: string | null
+          created_at: string
+          id: string
+          image_url: string | null
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          bio?: string | null
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          bio?: string | null
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       suppressed_emails: {
         Row: {
