@@ -127,9 +127,14 @@ export default function HostDashboard({ eventId }: HostDashboardProps) {
             <ul className="space-y-1.5">
               {guestList.map((g, i) => (
                 <li key={i} className="text-sm text-foreground flex items-start gap-2">
-                  <span className="text-primary mt-0.5">•</span>
+                  {g.checkedIn ? (
+                    <CheckCircle2 className="h-4 w-4 text-emerald-600 mt-0.5 shrink-0" />
+                  ) : (
+                    <span className="text-muted-foreground/40 mt-0.5 shrink-0">○</span>
+                  )}
                   <div>
                     <span className="font-medium">{g.name}</span>
+                    {g.checkedIn && <span className="text-xs text-emerald-600 ml-1">arrived</span>}
                     {g.family && <span className="text-muted-foreground"> — {g.family}</span>}
                     <span className="text-muted-foreground text-xs ml-1">
                       ({g.adultsCount} adult{g.adultsCount !== 1 ? "s" : ""}
