@@ -25,6 +25,8 @@ export interface EventFormState {
   host_id: string | null;
   mureeds_only: boolean;
   speaker_ids: string[];
+  notify_members: boolean;
+  notify_attendees: boolean;
 }
 
 export interface SignUpItemState {
@@ -57,6 +59,8 @@ export const defaultEventForm: EventFormState = {
   host_id: null,
   mureeds_only: false,
   speaker_ids: [],
+  notify_members: false,
+  notify_attendees: false,
 };
 
 // Keep EventType as a legacy re-export alias — no longer used

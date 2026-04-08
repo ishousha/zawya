@@ -3,7 +3,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
-import { Users, Clock, KeyRound, RefreshCw, UtensilsCrossed, Lock, DollarSign } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Users, Clock, KeyRound, RefreshCw, UtensilsCrossed, Lock, DollarSign, BellRing } from "lucide-react";
 import type { EventFormState } from "./types";
 import { generateCheckinPin } from "./types";
 import HostSelector from "./HostSelector";
@@ -14,7 +15,7 @@ interface SettingsTabProps {
   setForm: React.Dispatch<React.SetStateAction<EventFormState>>;
 }
 
-export default function SettingsTab({ form, setForm }: SettingsTabProps) {
+export default function SettingsTab({ form, setForm, isEditing }: SettingsTabProps & { isEditing?: boolean }) {
   const update = <K extends keyof EventFormState>(key: K, value: EventFormState[K]) =>
     setForm((prev) => ({ ...prev, [key]: value }));
 
