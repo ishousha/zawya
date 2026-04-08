@@ -15,6 +15,7 @@ import Unsubscribe from "@/pages/Unsubscribe";
 import NotificationsPage from "@/pages/Notifications";
 import CommunityGuidelines from "@/pages/CommunityGuidelines";
 import JoinFamily, { consumePendingInviteToken } from "@/pages/JoinFamily";
+import Onboarding from "@/pages/Onboarding";
 import BottomNav from "@/components/BottomNav";
 import AppHeader from "@/components/AppHeader";
 import NotFound from "@/pages/NotFound";
