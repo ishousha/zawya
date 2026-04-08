@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Loader2, Plus, Edit2, X, Users, ChevronDown, Copy, Trash2, Ban, RotateCcw, Download, Check, Printer, UserPlus } from "lucide-react";
+import { Loader2, Plus, Edit2, X, Users, ChevronDown, Copy, Trash2, Ban, RotateCcw, Download, Check, Printer, UserPlus, Mail } from "lucide-react";
 import { downloadCsv, zawyaFilename } from "@/lib/csv-export";
 import { toast } from "sonner";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
@@ -430,6 +430,23 @@ export default function EventControlRoom() {
 function RSVPMonitor({ eventId, eventTitle, eventDate, checkinPin, onClose }: { eventId: string; eventTitle: string; eventDate: string; checkinPin: string; onClose: () => void }) {
   const [showPoster, setShowPoster] = useState(false);
   const [showWalkIn, setShowWalkIn] = useState(false);
+  const [sendingGuestList, setSendingGuestList] = useState(false);
+
+  const handleSendGuestList = async () => {
+    setSendingGuestList(true);
+    try {
+      const { error } = await supabase.functions.invoke("send-guest-list-reminder", {
+        body: { event_id: eventId },
+      });
+      if (error) throw error;
+      toast.success("Guest list sent to host, admins & moderators");
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to send guest list email");
+    } finally {
+      setSendingGuestList(false);
+    }
+  };
   const { data: rsvps, isLoading } = useQuery({
     queryKey: ["admin-rsvps", eventId],
     queryFn: async () => {
@@ -526,6 +543,16 @@ function RSVPMonitor({ eventId, eventTitle, eventDate, checkinPin, onClose }: { 
             onClick={() => setShowWalkIn(true)}
           >
             <UserPlus className="h-3.5 w-3.5" /> Walk-In
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-8 gap-1.5 text-xs"
+            onClick={handleSendGuestList}
+            disabled={sendingGuestList}
+          >
+            {sendingGuestList ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Mail className="h-3.5 w-3.5" />}
+            Guest List
           </Button>
           {checkinPin && (
             <Button
