@@ -339,6 +339,8 @@ export default function ProfilePage() {
 
         <LinkedAccounts />
 
+        <NotificationPreferences />
+
         <Button
           variant="outline"
           className="w-full gap-2"
