@@ -42,6 +42,9 @@ export default function AdminActivityLog() {
 
   const { data: logs, isLoading, refetch } = useQuery({
     queryKey: ["admin-activity-log"],
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
     queryFn: async () => {
       const { data, error } = await supabase.from("admin_activity_log")
         .select("*")
@@ -57,6 +60,9 @@ export default function AdminActivityLog() {
   const { data: actorProfiles } = useQuery({
     queryKey: ["admin-activity-actors", actorIds],
     enabled: actorIds.length > 0,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("profiles")

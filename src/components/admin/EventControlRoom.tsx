@@ -76,6 +76,9 @@ export default function EventControlRoom() {
 
   const { data: events, isLoading } = useQuery({
     queryKey: ["admin-events"],
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("events")
@@ -89,6 +92,9 @@ export default function EventControlRoom() {
   // Fetch all pending guest requests across all events
   const { data: allGuestRequests } = useQuery({
     queryKey: ["all-pending-guest-requests"],
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("guest_requests")

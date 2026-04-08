@@ -35,6 +35,9 @@ export default function SpeakerManagement() {
 
   const { data: speakers, isLoading } = useQuery({
     queryKey: ["speakers"],
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("speakers")

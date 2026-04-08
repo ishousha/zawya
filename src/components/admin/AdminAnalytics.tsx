@@ -22,6 +22,9 @@ import type { DateRange } from "react-day-picker";
 function useAllProfiles() {
   return useQuery({
     queryKey: ["analytics-profiles"],
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
     queryFn: async () => {
       const { data, error } = await supabase.from("profiles").select("id, role, created_at, family_id");
       if (error) throw error;
@@ -33,6 +36,9 @@ function useAllProfiles() {
 function useAllCounts() {
   return useQuery({
     queryKey: ["analytics-counts"],
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
     queryFn: async () => {
       const [familiesRes, dependentsRes] = await Promise.all([
         supabase.from("families").select("id", { count: "exact", head: true }),
@@ -49,6 +55,9 @@ function useAllCounts() {
 function useAllEvents() {
   return useQuery({
     queryKey: ["analytics-events"],
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("events")
@@ -63,6 +72,9 @@ function useAllEvents() {
 function useAllRsvps() {
   return useQuery({
     queryKey: ["analytics-rsvps"],
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("rsvps")
