@@ -82,6 +82,8 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
       host_id: (event as any).host_id ?? null,
       mureeds_only: (event as any).mureeds_only ?? false,
       speaker_ids: [],
+      notify_members: false,
+      notify_attendees: false,
     };
   });
 
@@ -218,6 +220,44 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
           }));
           await supabase.from("event_speakers").insert(speakerRows);
         }
+
+        // Notification logic
+        if (eventId && isNewEvent && form.notify_members) {
+          // Notify all approved members about new event
+          const { data: approvedUsers } = await supabase
+            .from("user_roles")
+            .select("user_id")
+            .eq("role", "approved");
+          if (approvedUsers && approvedUsers.length > 0) {
+            const notifRows = approvedUsers.map((u) => ({
+              user_id: u.user_id,
+              title: "New Event: " + form.title,
+              message: `A new event "${form.title}" has been posted. Check it out and RSVP!`,
+              type: "event",
+              metadata: { action: "new_event", event_id: eventId },
+            }));
+            await supabase.from("notifications").insert(notifRows);
+          }
+        }
+
+        if (eventId && !isNewEvent && form.notify_attendees) {
+          // Notify only users with active RSVPs
+          const { data: rsvpUsers } = await supabase
+            .from("rsvps")
+            .select("user_id")
+            .eq("event_id", eventId);
+          if (rsvpUsers && rsvpUsers.length > 0) {
+            const uniqueIds = [...new Set(rsvpUsers.map((r) => r.user_id))];
+            const notifRows = uniqueIds.map((uid) => ({
+              user_id: uid,
+              title: "Event Updated: " + form.title,
+              message: `"${form.title}" has been updated. Please review the latest details.`,
+              type: "event",
+              metadata: { action: "event_updated", event_id: eventId },
+            }));
+            await supabase.from("notifications").insert(notifRows);
+          }
+        }
       }
     },
     onSuccess: () => {
@@ -267,7 +307,7 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
             <ItemsTab items={signUpItems} onChange={setSignUpItems} />
           </TabsContent>
           <TabsContent value="settings">
-            <SettingsTab form={form} setForm={setForm} />
+            <SettingsTab form={form} setForm={setForm} isEditing={!isNewEvent} />
           </TabsContent>
         </Tabs>
 
