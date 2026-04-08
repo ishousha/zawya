@@ -624,6 +624,7 @@ export type Database = {
           id: string
           is_mureed: boolean
           name: string | null
+          notification_preferences: Json
           phone: string | null
           role: Database["public"]["Enums"]["app_role"]
           terms_accepted: boolean | null
@@ -641,6 +642,7 @@ export type Database = {
           id: string
           is_mureed?: boolean
           name?: string | null
+          notification_preferences?: Json
           phone?: string | null
           role?: Database["public"]["Enums"]["app_role"]
           terms_accepted?: boolean | null
@@ -658,6 +660,7 @@ export type Database = {
           id?: string
           is_mureed?: boolean
           name?: string | null
+          notification_preferences?: Json
           phone?: string | null
           role?: Database["public"]["Enums"]["app_role"]
           terms_accepted?: boolean | null
