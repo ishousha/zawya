@@ -87,8 +87,8 @@ export default function EventDetail() {
 
         <EventCard event={event} onShowTicket={(e) => setTicketEvent(e)} />
 
-        {/* Contact Organizer button — visible to all logged-in users */}
-        {user && (
+        {/* Contact Organizer button — visible for upcoming, non-cancelled events */}
+        {user && event.status !== "cancelled" && new Date(event.end_date_time ?? event.date_time) > new Date() && (
           <div className="mt-3">
             <Button
               variant="secondary"
