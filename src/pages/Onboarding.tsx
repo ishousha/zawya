@@ -120,31 +120,44 @@ export default function Onboarding() {
     }, 200);
   };
 
+  const createAndLinkFamily = useCallback(async (name: string) => {
+    if (!user) {
+      return { familyId: null, error: new Error("Missing authenticated user") };
+    }
+
+    const familyId = crypto.randomUUID();
+
+    const { error: createError } = await supabase
+      .from("families")
+      .insert({ id: familyId, name });
+
+    if (createError) {
+      console.error("Failed to create family", createError);
+      return { familyId: null, error: createError };
+    }
+
+    const { error: linkError } = await supabase
+      .from("profiles")
+      .update({ family_id: familyId })
+      .eq("id", user.id);
+
+    if (linkError) {
+      console.error("Failed to link profile to family", linkError);
+      return { familyId: null, error: linkError };
+    }
+
+    return { familyId, error: null };
+  }, [user]);
+
   // --- Step 1: Continue as individual ---
   const handleIndividual = async () => {
     setSaving(true);
     const name = profile?.name || "My";
     const label = `${name.split(/\s+/).pop() || "My"} Family`;
 
-    const { data: fam, error: fErr } = await supabase
-      .from("families")
-      .insert({ name: label })
-      .select("id")
-      .single();
+    const { familyId, error } = await createAndLinkFamily(label);
 
-    if (fErr || !fam) {
-      toast.error("Something went wrong. Please try again.");
-      setSaving(false);
-      return;
-    }
-
-    const { error: lErr } = await supabase
-      .from("profiles")
-      .update({ family_id: fam.id })
-      .eq("id", user!.id);
-
-    if (lErr) {
-      await supabase.from("families").delete().eq("id", fam.id);
+    if (error || !familyId) {
       toast.error("Something went wrong. Please try again.");
       setSaving(false);
       return;
@@ -175,31 +188,15 @@ export default function Onboarding() {
     }
     setSaving(true);
 
-    const { data: fam, error: fErr } = await supabase
-      .from("families")
-      .insert({ name: familyName.trim() })
-      .select("id")
-      .single();
+    const { familyId, error } = await createAndLinkFamily(familyName.trim());
 
-    if (fErr || !fam) {
+    if (error || !familyId) {
       toast.error("Failed to create family group.");
       setSaving(false);
       return;
     }
 
-    const { error: lErr } = await supabase
-      .from("profiles")
-      .update({ family_id: fam.id })
-      .eq("id", user!.id);
-
-    if (lErr) {
-      await supabase.from("families").delete().eq("id", fam.id);
-      toast.error("Failed to link family.");
-      setSaving(false);
-      return;
-    }
-
-    setCreatedFamilyId(fam.id);
+    setCreatedFamilyId(familyId);
     window.dispatchEvent(new Event("profile-updated"));
     setSaving(false);
     goToStep("invite-add");
