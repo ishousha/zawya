@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, UtensilsCrossed, Baby, UserRound } from "lucide-react";
+import { Users, UtensilsCrossed, Baby, UserRound, CheckCircle2 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 
 interface HostDashboardProps {
@@ -60,6 +60,8 @@ export default function HostDashboard({ eventId }: HostDashboardProps) {
       family: (r.profiles as any)?.family_name || (r.profiles as any)?.name || "Unknown",
     }));
 
+  const checkedInCount = rsvps.filter((r) => r.checked_in).length;
+
   const guestList = rsvps.map((r) => {
     const profile = r.profiles as any;
     const deps = (r.attending_dependents as any[]) || [];
@@ -71,6 +73,7 @@ export default function HostDashboard({ eventId }: HostDashboardProps) {
       adultsCount: (r.guests_count - childDeps.length - elderDeps.length) + elderDeps.length,
       children: childDeps.map((d: any) => d.name),
       elders: elderDeps.map((d: any) => d.name),
+      checkedIn: r.checked_in,
     };
   });
 
@@ -84,7 +87,7 @@ export default function HostDashboard({ eventId }: HostDashboardProps) {
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Headcount summary */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
           <div className="rounded-lg border border-border bg-card p-3 text-center">
             <p className="text-2xl font-bold text-foreground">{totalHeadcount}</p>
             <p className="text-xs text-muted-foreground">Total</p>
@@ -105,6 +108,12 @@ export default function HostDashboard({ eventId }: HostDashboardProps) {
               <Baby className="h-3 w-3" /> Kids
             </p>
           </div>
+          <div className="rounded-lg border border-emerald-300 bg-emerald-50 p-3 text-center">
+            <p className="text-2xl font-bold text-emerald-700">{checkedInCount}</p>
+            <p className="text-xs text-emerald-600 flex items-center justify-center gap-1">
+              <CheckCircle2 className="h-3 w-3" /> Arrived
+            </p>
+          </div>
         </div>
 
         <Separator />
@@ -118,9 +127,14 @@ export default function HostDashboard({ eventId }: HostDashboardProps) {
             <ul className="space-y-1.5">
               {guestList.map((g, i) => (
                 <li key={i} className="text-sm text-foreground flex items-start gap-2">
-                  <span className="text-primary mt-0.5">•</span>
+                  {g.checkedIn ? (
+                    <CheckCircle2 className="h-4 w-4 text-emerald-600 mt-0.5 shrink-0" />
+                  ) : (
+                    <span className="text-muted-foreground/40 mt-0.5 shrink-0">○</span>
+                  )}
                   <div>
                     <span className="font-medium">{g.name}</span>
+                    {g.checkedIn && <span className="text-xs text-emerald-600 ml-1">arrived</span>}
                     {g.family && <span className="text-muted-foreground"> — {g.family}</span>}
                     <span className="text-muted-foreground text-xs ml-1">
                       ({g.adultsCount} adult{g.adultsCount !== 1 ? "s" : ""}
