@@ -126,18 +126,53 @@ export default function NotificationsPage() {
               </Badge>
             )}
           </div>
-          {unreadCount > 0 && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-xs text-primary gap-1.5"
-              onClick={() => markAllAsRead.mutate()}
-              disabled={markAllAsRead.isPending}
-            >
-              <CheckCheck className="h-3.5 w-3.5" />
-              Mark all read
-            </Button>
-          )}
+          <div className="flex items-center gap-1.5">
+            {unreadCount > 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-xs text-primary gap-1.5"
+                onClick={() => markAllAsRead.mutate()}
+                disabled={markAllAsRead.isPending}
+              >
+                <CheckCheck className="h-3.5 w-3.5" />
+                Mark all read
+              </Button>
+            )}
+            {notifications.length > 0 && (
+              confirmClear ? (
+                <div className="flex items-center gap-1.5">
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    className="text-xs gap-1"
+                    onClick={() => clearAll.mutate()}
+                    disabled={clearAll.isPending}
+                  >
+                    {clearAll.isPending ? "Clearing…" : "Confirm"}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-xs"
+                    onClick={() => setConfirmClear(false)}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              ) : (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-xs text-muted-foreground gap-1.5"
+                  onClick={() => setConfirmClear(true)}
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                  Clear all
+                </Button>
+              )
+            )}
+          </div>
         </div>
 
         {/* Filter chips */}
