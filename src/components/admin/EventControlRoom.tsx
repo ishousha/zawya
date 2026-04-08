@@ -544,6 +544,16 @@ function RSVPMonitor({ eventId, eventTitle, eventDate, checkinPin, onClose }: { 
           >
             <UserPlus className="h-3.5 w-3.5" /> Walk-In
           </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-8 gap-1.5 text-xs"
+            onClick={handleSendGuestList}
+            disabled={sendingGuestList}
+          >
+            {sendingGuestList ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Mail className="h-3.5 w-3.5" />}
+            Guest List
+          </Button>
           {checkinPin && (
             <Button
               size="sm"
