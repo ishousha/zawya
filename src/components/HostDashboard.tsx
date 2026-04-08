@@ -1,4 +1,5 @@
-import { useQuery } from "@tanstack/react-query";
+import { useEffect } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, UtensilsCrossed, Baby, UserRound, CheckCircle2 } from "lucide-react";
@@ -9,6 +10,8 @@ interface HostDashboardProps {
 }
 
 export default function HostDashboard({ eventId }: HostDashboardProps) {
+  const queryClient = useQueryClient();
+
   const { data: rsvps } = useQuery({
     queryKey: ["host-rsvps", eventId],
     queryFn: async () => {
@@ -29,6 +32,24 @@ export default function HostDashboard({ eventId }: HostDashboardProps) {
       return rsvpData.map((r) => ({ ...r, profiles: profileMap.get(r.user_id) ?? null }));
     },
   });
+
+  // Realtime: auto-refresh when RSVPs change (check-ins, new RSVPs, cancellations)
+  useEffect(() => {
+    const channel = supabase
+      .channel(`host-dashboard-${eventId}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "rsvps", filter: `event_id=eq.${eventId}` },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ["host-rsvps", eventId] });
+          queryClient.invalidateQueries({ queryKey: ["rsvps", eventId] });
+          queryClient.invalidateQueries({ queryKey: ["my-rsvp"] });
+        }
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [eventId, queryClient]);
 
   if (!rsvps) return null;
 
