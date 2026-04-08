@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import confetti from "canvas-confetti";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -152,8 +153,19 @@ export default function Onboarding() {
     toast.success("You're all set!");
     window.dispatchEvent(new Event("profile-updated"));
     setSaving(false);
-    window.location.replace("/");
+    fireConfetti();
+    setTimeout(() => window.location.replace("/"), 1200);
   };
+
+  const fireConfetti = useCallback(() => {
+    const end = Date.now() + 800;
+    const colors = ["#166534", "#d4a574", "#f0e6d3"];
+    (function frame() {
+      confetti({ particleCount: 3, angle: 60, spread: 55, origin: { x: 0 }, colors });
+      confetti({ particleCount: 3, angle: 120, spread: 55, origin: { x: 1 }, colors });
+      if (Date.now() < end) requestAnimationFrame(frame);
+    })();
+  }, []);
 
   // --- Step 2: Create family ---
   const handleCreateFamily = async () => {
@@ -249,7 +261,8 @@ export default function Onboarding() {
     queryClient.invalidateQueries({ queryKey: ["family-members"] });
     toast.success("Welcome to Zawya!");
     setSaving(false);
-    window.location.replace("/");
+    fireConfetti();
+    setTimeout(() => window.location.replace("/"), 1200);
   };
 
   return (
