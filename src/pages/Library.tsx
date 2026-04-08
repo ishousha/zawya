@@ -56,6 +56,7 @@ export default function Library() {
 
   const { data: resources, isLoading } = useQuery({
     queryKey: ["resources"],
+    staleTime: 5 * 60 * 1000,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("resources")

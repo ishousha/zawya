@@ -11,6 +11,7 @@ export default function SpeakersDirectory() {
 
   const { data: speakers, isLoading } = useQuery({
     queryKey: ["speakers"],
+    staleTime: 5 * 60 * 1000,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("speakers")

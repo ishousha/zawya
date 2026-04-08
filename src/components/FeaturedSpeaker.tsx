@@ -10,6 +10,7 @@ interface FeaturedSpeakersProps {
 export default function FeaturedSpeakers({ eventId }: FeaturedSpeakersProps) {
   const { data: speakers } = useQuery({
     queryKey: ["event-speakers", eventId],
+    staleTime: 5 * 60 * 1000,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("event_speakers")
