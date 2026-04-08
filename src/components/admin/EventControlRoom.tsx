@@ -139,6 +139,8 @@ export default function EventControlRoom() {
       host_id: (event as any).host_id ?? null,
       mureeds_only: (event as any).mureeds_only ?? false,
       speaker_ids: [],
+      notify_members: false,
+      notify_attendees: false,
     };
 
     const copiedItems: SignUpItem[] = (items ?? []).map((item, i) => ({
