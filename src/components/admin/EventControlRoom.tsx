@@ -19,6 +19,7 @@ import type { SignUpItem } from "./event-form/ItemsTab";
 import { useEventTypes } from "@/hooks/useEventTypes";
 import HostDashboard from "@/components/HostDashboard";
 import WalkInRsvpModal from "./WalkInRsvpModal";
+import EventBroadcastModal from "./EventBroadcastModal";
 
 type EventRow = Database["public"]["Tables"]["events"]["Row"];
 
@@ -68,6 +69,7 @@ export default function EventControlRoom() {
   const [creating, setCreating] = useState(false);
   const [monitoringEventId, setMonitoringEventId] = useState<string | null>(null);
   const [duplicateForm, setDuplicateForm] = useState<{ form: EventFormState; items: SignUpItem[] } | null>(null);
+  const [broadcastEvent, setBroadcastEvent] = useState<{ id: string; title: string } | null>(null);
 
   const { data: eventTypes } = useEventTypes();
   const getTypeName = (id: string) => eventTypes?.find((t) => t.id === id)?.name ?? "Event";
@@ -266,6 +268,9 @@ export default function EventControlRoom() {
                       <Button size="sm" variant="ghost" className="h-9 gap-1.5 text-xs" onClick={() => handleDuplicate(event)}>
                         <Copy className="h-3.5 w-3.5" /> Copy
                       </Button>
+                      <Button size="sm" variant="ghost" className="h-9 gap-1.5 text-xs" onClick={() => setBroadcastEvent({ id: event.id, title: event.title })}>
+                        <Mail className="h-3.5 w-3.5" /> Email
+                      </Button>
                       <div className="ml-auto">
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
@@ -423,6 +428,15 @@ export default function EventControlRoom() {
           />
         );
       })()}
+
+      {broadcastEvent && (
+        <EventBroadcastModal
+          open={!!broadcastEvent}
+          onOpenChange={(open) => !open && setBroadcastEvent(null)}
+          eventId={broadcastEvent.id}
+          eventTitle={broadcastEvent.title}
+        />
+      )}
     </div>
   );
 }
