@@ -428,6 +428,15 @@ export default function EventControlRoom() {
           />
         );
       })()}
+
+      {broadcastEvent && (
+        <EventBroadcastModal
+          open={!!broadcastEvent}
+          onOpenChange={(open) => !open && setBroadcastEvent(null)}
+          eventId={broadcastEvent.id}
+          eventTitle={broadcastEvent.title}
+        />
+      )}
     </div>
   );
 }
