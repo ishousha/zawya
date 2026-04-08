@@ -1,5 +1,5 @@
 import { NavLink } from "react-router-dom";
-import { Home, User, Shield, BookOpen } from "lucide-react";
+import { Home, User, Shield, BookOpen, Mic } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePendingUsersCount } from "@/hooks/usePendingUsersCount";
 
@@ -11,6 +11,7 @@ export default function BottomNav() {
 
   const tabs = [
     { to: "/", icon: Home, label: "Home" },
+    { to: "/speakers", icon: Mic, label: "Speakers" },
     { to: "/library", icon: BookOpen, label: "Library" },
     ...((isAdmin || isModerator) ? [{ to: "/admin", icon: Shield, label: isAdmin ? "Admin" : "Manage", showBadge: isAdmin }] : []),
     { to: "/profile", icon: User, label: "Profile" },

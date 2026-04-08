@@ -81,7 +81,7 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
       checkin_pin: event.checkin_pin ?? generateCheckinPin(),
       host_id: (event as any).host_id ?? null,
       mureeds_only: (event as any).mureeds_only ?? false,
-      speaker_id: (event as any).speaker_id ?? null,
+      speaker_ids: [],
     };
   });
 
@@ -121,6 +121,20 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
     },
   });
 
+  // Load existing speakers when editing
+  const { data: existingSpeakers } = useQuery({
+    queryKey: ["event-speakers", event?.id],
+    enabled: !!event?.id && !initialForm,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("event_speakers")
+        .select("speaker_id")
+        .eq("event_id", event!.id);
+      if (error) throw error;
+      return data.map((es) => es.speaker_id);
+    },
+  });
+
   useEffect(() => {
     if (existingItems && !initialItems) {
       setSignUpItems(
@@ -133,6 +147,12 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
       );
     }
   }, [existingItems, initialItems]);
+
+  useEffect(() => {
+    if (existingSpeakers && !initialForm) {
+      setForm((prev) => ({ ...prev, speaker_ids: existingSpeakers }));
+    }
+  }, [existingSpeakers, initialForm]);
 
   const mutation = useMutation({
     mutationFn: async () => {
@@ -159,7 +179,6 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
         status: form.status,
         host_id: form.host_id || null,
         mureeds_only: form.mureeds_only,
-        speaker_id: form.speaker_id || null,
       };
 
       let eventId = event?.id;
@@ -188,12 +207,24 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
           const { error } = await supabase.from("event_sign_up_items").insert(rows);
           if (error) throw error;
         }
+
+        // Save event speakers
+        await supabase.from("event_speakers").delete().eq("event_id", eventId);
+        if (form.speaker_ids.length > 0) {
+          const speakerRows = form.speaker_ids.map((sid, i) => ({
+            event_id: eventId!,
+            speaker_id: sid,
+            display_order: i,
+          }));
+          await supabase.from("event_speakers").insert(speakerRows);
+        }
       }
     },
     onSuccess: () => {
       clearDraft();
       queryClient.invalidateQueries({ queryKey: ["admin-events"] });
       queryClient.invalidateQueries({ queryKey: ["sign-up-items"] });
+      queryClient.invalidateQueries({ queryKey: ["event-speakers"] });
       toast.success(event && !initialForm ? "Event updated" : "Event created");
       onClose();
     },

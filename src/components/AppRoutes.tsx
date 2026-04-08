@@ -20,6 +20,7 @@ import BottomNav from "@/components/BottomNav";
 import AppHeader from "@/components/AppHeader";
 import NotFound from "@/pages/NotFound";
 import Library from "@/pages/Library";
+import SpeakersDirectory from "@/pages/SpeakersDirectory";
 import { Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
@@ -140,6 +141,7 @@ export default function AppRoutes() {
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/admin" element={<AdminDashboard />} />
         <Route path="/library" element={<Library />} />
+        <Route path="/speakers" element={<SpeakersDirectory />} />
         <Route path="/notifications" element={<NotificationsPage />} />
         <Route path="/guidelines" element={<CommunityGuidelines readOnly />} />
         {joinFamilyRoute}

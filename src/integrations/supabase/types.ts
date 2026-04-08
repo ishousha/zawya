@@ -243,6 +243,45 @@ export type Database = {
           },
         ]
       }
+      event_speakers: {
+        Row: {
+          created_at: string
+          display_order: number
+          event_id: string
+          id: string
+          speaker_id: string
+        }
+        Insert: {
+          created_at?: string
+          display_order?: number
+          event_id: string
+          id?: string
+          speaker_id: string
+        }
+        Update: {
+          created_at?: string
+          display_order?: number
+          event_id?: string
+          id?: string
+          speaker_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_speakers_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_speakers_speaker_id_fkey"
+            columns: ["speaker_id"]
+            isOneToOne: false
+            referencedRelation: "speakers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       event_types: {
         Row: {
           allows_potluck: boolean
@@ -295,7 +334,6 @@ export type Database = {
           mureeds_only: boolean
           online_link: string | null
           payment_instructions: string | null
-          speaker_id: string | null
           status: Database["public"]["Enums"]["event_status"]
           ticket_fee: number | null
           title: string
@@ -323,7 +361,6 @@ export type Database = {
           mureeds_only?: boolean
           online_link?: string | null
           payment_instructions?: string | null
-          speaker_id?: string | null
           status?: Database["public"]["Enums"]["event_status"]
           ticket_fee?: number | null
           title: string
@@ -351,7 +388,6 @@ export type Database = {
           mureeds_only?: boolean
           online_link?: string | null
           payment_instructions?: string | null
-          speaker_id?: string | null
           status?: Database["public"]["Enums"]["event_status"]
           ticket_fee?: number | null
           title?: string
@@ -374,13 +410,6 @@ export type Database = {
             columns: ["host_id"]
             isOneToOne: false
             referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "events_speaker_id_fkey"
-            columns: ["speaker_id"]
-            isOneToOne: false
-            referencedRelation: "speakers"
             referencedColumns: ["id"]
           },
           {
