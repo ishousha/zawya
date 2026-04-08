@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Video, AlertCircle, Info, DollarSign } from "lucide-react";
 import CoverPhotoUpload from "./CoverPhotoUpload";
 import VenueSelector from "./VenueSelector";
+import SpeakerSelector from "./SpeakerSelector";
 import type { EventFormState } from "./types";
 import { useEventTypes } from "@/hooks/useEventTypes";
 
@@ -113,6 +114,12 @@ export default function DesignTab({ form, setForm }: DesignTabProps) {
             </SelectContent>
           </Select>
         </div>
+
+        {/* Speaker Selector — below Event Type */}
+        <SpeakerSelector
+          selectedIds={form.speaker_ids}
+          onChange={(ids) => update("speaker_ids", ids)}
+        />
 
         {/* Type-specific notes */}
         {typeName.includes("trip") && (

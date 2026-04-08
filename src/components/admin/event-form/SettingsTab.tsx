@@ -106,12 +106,6 @@ export default function SettingsTab({ form, setForm }: SettingsTabProps) {
         onChange={(id) => update("host_id", id)}
       />
 
-      {/* Speaker Selector */}
-      <SpeakerSelector
-        selectedIds={form.speaker_ids}
-        onChange={(ids) => update("speaker_ids", ids)}
-      />
-
       {/* Potluck Toggle */}
       <div>
         <div className="flex items-center gap-2 mb-3">
