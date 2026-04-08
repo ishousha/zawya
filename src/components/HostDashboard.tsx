@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, UtensilsCrossed, Baby, UserRound } from "lucide-react";
+import { Users, UtensilsCrossed, Baby, UserRound, CheckCircle2 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 
 interface HostDashboardProps {

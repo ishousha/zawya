@@ -350,6 +350,17 @@ export default function EventCard({ event, onShowTicket }: EventCardProps) {
                   </Button>
                 )}
               </div>
+              {isCheckedIn && (
+                <Button
+                  size="sm"
+                  variant="default"
+                  disabled
+                  className="w-full gap-1.5 bg-emerald-600 hover:bg-emerald-600 text-white border-emerald-600 cursor-default opacity-100"
+                >
+                  <CheckCircle2 className="h-4 w-4" />
+                  ✓ Checked In
+                </Button>
+              )}
               {canSelfCheckin && (
                 <Button
                   size="sm"
@@ -359,7 +370,7 @@ export default function EventCard({ event, onShowTicket }: EventCardProps) {
                   className="w-full gap-1.5"
                 >
                   <ScanLine className="h-3.5 w-3.5" />
-                  {isCheckinActive ? "Self Check-In" : "Check-in opens 2hrs before event"}
+                  {isCheckinActive ? "Check In Now" : "Check-in opens 2hrs before event"}
                 </Button>
               )}
               {isAttending && <AddToCalendarButton event={event} />}
