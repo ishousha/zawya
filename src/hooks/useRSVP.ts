@@ -277,6 +277,49 @@ export function useRSVPConcurrency(eventId: string) {
       }
 
       notifyRSVPCreated(data.id, eventId, user.id);
+
+      // Send RSVP confirmation email
+      (async () => {
+        try {
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("email, name")
+            .eq("id", user.id)
+            .maybeSingle();
+          const { data: event } = await supabase
+            .from("events")
+            .select("title, date_time, location, address")
+            .eq("id", eventId)
+            .maybeSingle();
+          if (profile?.email && event) {
+            const eventDate = new Date(event.date_time).toLocaleString("en-US", {
+              weekday: "long", year: "numeric", month: "long", day: "numeric",
+              hour: "numeric", minute: "2-digit",
+            });
+            const eventLocation = event.location
+              ? `${event.location}${event.address ? ` — ${event.address}` : ""}`
+              : "";
+            await supabase.functions.invoke("send-transactional-email", {
+              body: {
+                templateName: "rsvp-confirmation",
+                recipientEmail: profile.email,
+                idempotencyKey: `rsvp-confirm-${data.id}`,
+                templateData: {
+                  memberName: profile.name || undefined,
+                  eventTitle: event.title,
+                  eventDate,
+                  eventLocation,
+                  guestsCount: input.guests_count,
+                  isWaitlisted,
+                },
+              },
+            });
+          }
+        } catch (e) {
+          console.warn("Failed to send RSVP confirmation email:", e);
+        }
+      })();
+
       return data as RSVP;
     },
     onMutate: async (input) => {

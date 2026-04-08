@@ -13,3 +13,7 @@ project_id = "ikzaalswkajtaxejyskw"
     verify_jwt = false
   [functions.handle-email-suppression]
     verify_jwt = false
+  [functions.send-event-reminders]
+    verify_jwt = true
+  [functions.send-guest-list-reminder]
+    verify_jwt = true
