@@ -8,7 +8,8 @@ import EventCard from "@/components/EventCard";
 import HostDashboard from "@/components/HostDashboard";
 import QRTicketScreen from "@/components/QRTicketScreen";
 import SelfCheckinModal from "@/components/SelfCheckinModal";
-import { Loader2, ArrowLeft } from "lucide-react";
+import ContactOrganizerModal from "@/components/ContactOrganizerModal";
+import { Loader2, ArrowLeft, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -25,6 +26,7 @@ export default function EventDetail() {
 
   const [showCheckin, setShowCheckin] = useState(false);
   const [ticketEvent, setTicketEvent] = useState<Event | null>(null);
+  const [showContact, setShowContact] = useState(false);
 
   const { data: event, isLoading: eventLoading } = useQuery({
     queryKey: ["event-detail", eventId],
@@ -84,6 +86,20 @@ export default function EventDetail() {
         </Button>
 
         <EventCard event={event} onShowTicket={(e) => setTicketEvent(e)} />
+
+        {/* Contact Organizer button — visible to all logged-in users */}
+        {user && (
+          <div className="mt-3">
+            <Button
+              variant="secondary"
+              className="w-full gap-2"
+              onClick={() => setShowContact(true)}
+            >
+              <Mail className="h-4 w-4" />
+              Contact Organizer
+            </Button>
+          </div>
+        )}
 
         {/* Host Dashboard — visible to assigned host, admins, and moderators */}
         {user && (
