@@ -116,6 +116,20 @@ export default function AppRoutes() {
     );
   }
 
+  // Onboarding gate: user has no family_id yet → show wizard
+  // Skip if they're on /join-family (they may be accepting an invite)
+  const needsOnboarding = !profile?.family_id;
+
+  if (needsOnboarding) {
+    return (
+      <Routes>
+        {joinFamilyRoute}
+        <Route path="/onboarding" element={<Onboarding />} />
+        <Route path="*" element={<Onboarding />} />
+      </Routes>
+    );
+  }
+
   // Approved / Admin
   return (
     <>
