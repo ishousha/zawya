@@ -179,6 +179,35 @@ export type Database = {
         }
         Relationships: []
       }
+      event_reminders_sent: {
+        Row: {
+          event_id: string
+          id: string
+          reminder_type: string
+          sent_at: string
+        }
+        Insert: {
+          event_id: string
+          id?: string
+          reminder_type?: string
+          sent_at?: string
+        }
+        Update: {
+          event_id?: string
+          id?: string
+          reminder_type?: string
+          sent_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_reminders_sent_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       event_sign_up_items: {
         Row: {
           created_at: string

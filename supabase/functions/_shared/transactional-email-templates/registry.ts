@@ -16,6 +16,8 @@ import { template as userRejected } from './user-rejected.tsx'
 import { template as familyMemberLeft } from './family-member-left.tsx'
 import { template as guestApproved } from './guest-approved.tsx'
 import { template as guestListReminder } from './guest-list-reminder.tsx'
+import { template as rsvpConfirmation } from './rsvp-confirmation.tsx'
+import { template as eventReminder } from './event-reminder.tsx'
 
 export const TEMPLATES: Record<string, TemplateEntry> = {
   'event-cancelled': eventCancelled,
@@ -25,4 +27,6 @@ export const TEMPLATES: Record<string, TemplateEntry> = {
   'family-member-left': familyMemberLeft,
   'guest-approved': guestApproved,
   'guest-list-reminder': guestListReminder,
+  'rsvp-confirmation': rsvpConfirmation,
+  'event-reminder': eventReminder,
 }
