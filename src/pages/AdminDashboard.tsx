@@ -1,20 +1,22 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { Navigate } from "react-router-dom";
-import { useRef, useEffect, useCallback, useState } from "react";
+import { useRef, useEffect, useCallback, useState, lazy, Suspense } from "react";
 import { useSwipeable } from "react-swipeable";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import UserManagement from "@/components/admin/UserManagement";
-import EventControlRoom from "@/components/admin/EventControlRoom";
-import AdminDoorScanner from "@/components/admin/AdminDoorScanner";
-import FamilyManagement from "@/components/admin/FamilyManagement";
-import AllGuestApprovals from "@/components/admin/AllGuestApprovals";
-import AdminActivityLog from "@/components/admin/AdminActivityLog";
-import AdminAnalytics from "@/components/admin/AdminAnalytics";
 import { Users, CalendarPlus, ScanLine, Home, ScrollText, Settings, BarChart3, BookOpen, Mic } from "lucide-react";
-import EventTypeManagement from "@/components/admin/EventTypeManagement";
-import SpeakerManagement from "@/components/admin/SpeakerManagement";
 import { usePendingUsersCount } from "@/hooks/usePendingUsersCount";
-import ResourceManagement from "@/components/admin/ResourceManagement";
+import { Loader2 } from "lucide-react";
+
+const UserManagement = lazy(() => import("@/components/admin/UserManagement"));
+const EventControlRoom = lazy(() => import("@/components/admin/EventControlRoom"));
+const AdminDoorScanner = lazy(() => import("@/components/admin/AdminDoorScanner"));
+const FamilyManagement = lazy(() => import("@/components/admin/FamilyManagement"));
+const AllGuestApprovals = lazy(() => import("@/components/admin/AllGuestApprovals"));
+const AdminActivityLog = lazy(() => import("@/components/admin/AdminActivityLog"));
+const AdminAnalytics = lazy(() => import("@/components/admin/AdminAnalytics"));
+const EventTypeManagement = lazy(() => import("@/components/admin/EventTypeManagement"));
+const SpeakerManagement = lazy(() => import("@/components/admin/SpeakerManagement"));
+const ResourceManagement = lazy(() => import("@/components/admin/ResourceManagement"));
 
 const ADMIN_TABS = ["users", "families", "events", "scanner", "speakers", "resources", "analytics", "settings", "activity"] as const;
 type AdminTab = typeof ADMIN_TABS[number];
@@ -168,15 +170,17 @@ export default function AdminDashboard() {
             </TabsList>
 
             <div {...modSwipeHandlers} data-swipe-root className={`touch-pan-y overflow-hidden ${slideDir === "left" ? "animate-slide-in-right" : slideDir === "right" ? "animate-slide-in-left" : "animate-fade-in-fast"}`} key={slideKey}>
-              <TabsContent value="events">
-                <EventControlRoom />
-              </TabsContent>
-              <TabsContent value="guests">
-                <AllGuestApprovals />
-              </TabsContent>
-              <TabsContent value="scanner">
-                <AdminDoorScanner />
-              </TabsContent>
+              <Suspense fallback={<div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>}>
+                <TabsContent value="events">
+                  <EventControlRoom />
+                </TabsContent>
+                <TabsContent value="guests">
+                  <AllGuestApprovals />
+                </TabsContent>
+                <TabsContent value="scanner">
+                  <AdminDoorScanner />
+                </TabsContent>
+              </Suspense>
             </div>
           </Tabs>
         </main>
@@ -241,33 +245,35 @@ export default function AdminDashboard() {
           </TabsList>
 
           <div {...adminSwipeHandlers} data-swipe-root className={`touch-pan-y overflow-hidden ${slideDir === "left" ? "animate-slide-in-right" : slideDir === "right" ? "animate-slide-in-left" : "animate-fade-in-fast"}`} key={slideKey}>
-            <TabsContent value="users">
-              <UserManagement />
-            </TabsContent>
-            <TabsContent value="families">
-              <FamilyManagement />
-            </TabsContent>
-            <TabsContent value="events">
-              <EventControlRoom />
-            </TabsContent>
-            <TabsContent value="scanner">
-              <AdminDoorScanner />
-            </TabsContent>
-            <TabsContent value="speakers">
-              <SpeakerManagement />
-            </TabsContent>
-            <TabsContent value="resources">
-              <ResourceManagement />
-            </TabsContent>
-            <TabsContent value="analytics">
-              <AdminAnalytics />
-            </TabsContent>
-            <TabsContent value="settings">
-              <EventTypeManagement />
-            </TabsContent>
-            <TabsContent value="activity">
-              <AdminActivityLog />
-            </TabsContent>
+            <Suspense fallback={<div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>}>
+              <TabsContent value="users">
+                <UserManagement />
+              </TabsContent>
+              <TabsContent value="families">
+                <FamilyManagement />
+              </TabsContent>
+              <TabsContent value="events">
+                <EventControlRoom />
+              </TabsContent>
+              <TabsContent value="scanner">
+                <AdminDoorScanner />
+              </TabsContent>
+              <TabsContent value="speakers">
+                <SpeakerManagement />
+              </TabsContent>
+              <TabsContent value="resources">
+                <ResourceManagement />
+              </TabsContent>
+              <TabsContent value="analytics">
+                <AdminAnalytics />
+              </TabsContent>
+              <TabsContent value="settings">
+                <EventTypeManagement />
+              </TabsContent>
+              <TabsContent value="activity">
+                <AdminActivityLog />
+              </TabsContent>
+            </Suspense>
           </div>
         </Tabs>
       </main>

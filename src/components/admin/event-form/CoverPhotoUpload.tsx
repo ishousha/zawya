@@ -59,6 +59,7 @@ export default function CoverPhotoUpload({ value, onChange }: CoverPhotoUploadPr
           <img
             src={value}
             alt="Event cover"
+            loading="lazy"
             className="w-full h-48 object-cover"
           />
           <Button

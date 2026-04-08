@@ -23,13 +23,15 @@ export default function HomeFeed() {
 
   const { data: events, isLoading } = useQuery({
     queryKey: ["events"],
+    staleTime: 2 * 60 * 1000,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("events")
         .select("*")
         .in("status", ["active", "full", "cancelled"])
         .gte("date_time", new Date().toISOString())
-        .order("date_time", { ascending: true });
+        .order("date_time", { ascending: true })
+        .limit(10);
 
       if (error) throw error;
       return data;
