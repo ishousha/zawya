@@ -124,6 +124,23 @@ export default function AdminDoorScanner() {
     },
   });
 
+  // Undo / reverse check-in
+  const undoCheckIn = useMutation({
+    mutationFn: async (attendee: AttendeeRow) => {
+      const { error } = await supabase.from("rsvps").update({ checked_in: false }).eq("id", attendee.rsvp_id);
+      if (error) throw error;
+      return attendee;
+    },
+    onSuccess: (attendee) => {
+      setLastResult({ success: true, message: `↩ ${attendee.name} check-in reversed` });
+      toast.success(`${attendee.name} check-in undone`);
+      invalidateAll();
+    },
+    onError: () => {
+      toast.error("Failed to undo check-in");
+    },
+  });
+
   const checkIn = useMutation({
     mutationFn: async (payload: QRPayload) => {
       const { data: rsvp, error: findError } = await supabase
