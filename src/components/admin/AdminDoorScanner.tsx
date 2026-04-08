@@ -341,7 +341,18 @@ export default function AdminDoorScanner() {
                       </div>
                     </div>
                     {attendee.checked_in ? (
-                      <Badge variant="secondary" className="shrink-0 text-xs">Checked in</Badge>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <Badge variant="secondary" className="text-xs">Checked in</Badge>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-7 px-2 text-xs text-muted-foreground hover:text-destructive"
+                          onClick={() => undoCheckIn.mutate(attendee)}
+                          disabled={undoCheckIn.isPending}
+                        >
+                          Undo
+                        </Button>
+                      </div>
                     ) : (
                       <Button
                         size="sm"
