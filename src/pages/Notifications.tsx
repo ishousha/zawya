@@ -73,6 +73,23 @@ export default function NotificationsPage() {
     },
   });
 
+  const [confirmClear, setConfirmClear] = useState(false);
+
+  const clearAll = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase
+        .from("notifications")
+        .delete()
+        .eq("user_id", user!.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      setConfirmClear(false);
+      queryClient.invalidateQueries({ queryKey: ["notifications-full", user?.id] });
+      queryClient.invalidateQueries({ queryKey: ["notifications", user?.id] });
+    },
+  });
+
   const typeIcon = (type: string) => {
     switch (type) {
       case "rsvp": return "📋";
