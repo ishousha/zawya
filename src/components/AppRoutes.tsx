@@ -15,6 +15,7 @@ import Unsubscribe from "@/pages/Unsubscribe";
 import NotificationsPage from "@/pages/Notifications";
 import CommunityGuidelines from "@/pages/CommunityGuidelines";
 import JoinFamily, { consumePendingInviteToken } from "@/pages/JoinFamily";
+import Onboarding from "@/pages/Onboarding";
 import BottomNav from "@/components/BottomNav";
 import AppHeader from "@/components/AppHeader";
 import NotFound from "@/pages/NotFound";
@@ -111,6 +112,20 @@ export default function AppRoutes() {
       <Routes>
         {joinFamilyRoute}
         <Route path="*" element={<CommunityGuidelines />} />
+      </Routes>
+    );
+  }
+
+  // Onboarding gate: user has no family_id yet → show wizard
+  // Skip if they're on /join-family (they may be accepting an invite)
+  const needsOnboarding = !profile?.family_id;
+
+  if (needsOnboarding) {
+    return (
+      <Routes>
+        {joinFamilyRoute}
+        <Route path="/onboarding" element={<Onboarding />} />
+        <Route path="*" element={<Onboarding />} />
       </Routes>
     );
   }
