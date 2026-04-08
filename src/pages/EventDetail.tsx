@@ -123,6 +123,13 @@ export default function EventDetail() {
           autoPin={pinParam ?? undefined}
         />
       )}
+
+      <ContactOrganizerModal
+        open={showContact}
+        onOpenChange={setShowContact}
+        eventId={event.id}
+        eventTitle={event.title}
+      />
     </div>
   );
 }
