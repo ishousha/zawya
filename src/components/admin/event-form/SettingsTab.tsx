@@ -7,6 +7,7 @@ import { Users, Clock, KeyRound, RefreshCw, UtensilsCrossed, Lock, DollarSign } 
 import type { EventFormState } from "./types";
 import { generateCheckinPin } from "./types";
 import HostSelector from "./HostSelector";
+import SpeakerSelector from "./SpeakerSelector";
 
 interface SettingsTabProps {
   form: EventFormState;
@@ -103,6 +104,12 @@ export default function SettingsTab({ form, setForm }: SettingsTabProps) {
       <HostSelector
         hostId={form.host_id}
         onChange={(id) => update("host_id", id)}
+      />
+
+      {/* Speaker Selector */}
+      <SpeakerSelector
+        speakerId={form.speaker_id}
+        onChange={(id) => update("speaker_id", id)}
       />
 
       {/* Potluck Toggle */}
