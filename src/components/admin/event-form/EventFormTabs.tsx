@@ -248,7 +248,7 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
           <TabsList className="grid w-full grid-cols-3 bg-muted">
             <TabsTrigger value="design" className="gap-1.5 text-xs">
               <Palette className="h-4 w-4" />
-              Design
+              Details
             </TabsTrigger>
             <TabsTrigger value="items" className="gap-1.5 text-xs">
               <PackagePlus className="h-4 w-4" />
