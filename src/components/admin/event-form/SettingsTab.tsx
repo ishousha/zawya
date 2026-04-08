@@ -184,6 +184,46 @@ export default function SettingsTab({ form, setForm, isEditing }: SettingsTabPro
           Set to 'Cancelled' to hide from member feeds
         </p>
       </div>
+
+      {/* Notification Options */}
+      <div>
+        <div className="flex items-center gap-2 mb-3">
+          <BellRing className="h-4 w-4 text-primary" />
+          <h3 className="text-sm font-semibold text-foreground">Notifications</h3>
+        </div>
+        <div className="space-y-3">
+          {!isEditing && (
+            <label className="flex items-start gap-3 rounded-lg border border-border p-3 cursor-pointer hover:bg-accent/50 transition-colors">
+              <Checkbox
+                checked={form.notify_members}
+                onCheckedChange={(v) => update("notify_members", !!v)}
+                className="mt-0.5"
+              />
+              <div>
+                <p className="text-sm font-medium text-foreground">Notify all approved members</p>
+                <p className="text-xs text-muted-foreground">
+                  Send an in-app notification about this new event to all approved members
+                </p>
+              </div>
+            </label>
+          )}
+          {isEditing && (
+            <label className="flex items-start gap-3 rounded-lg border border-border p-3 cursor-pointer hover:bg-accent/50 transition-colors">
+              <Checkbox
+                checked={form.notify_attendees}
+                onCheckedChange={(v) => update("notify_attendees", !!v)}
+                className="mt-0.5"
+              />
+              <div>
+                <p className="text-sm font-medium text-foreground">Notify attendees of changes</p>
+                <p className="text-xs text-muted-foreground">
+                  Send an in-app notification to all users with an active RSVP
+                </p>
+              </div>
+            </label>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

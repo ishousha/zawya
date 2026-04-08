@@ -82,6 +82,8 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
       host_id: (event as any).host_id ?? null,
       mureeds_only: (event as any).mureeds_only ?? false,
       speaker_ids: [],
+      notify_members: false,
+      notify_attendees: false,
     };
   });
 
