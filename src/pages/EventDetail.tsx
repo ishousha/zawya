@@ -9,7 +9,7 @@ import HostDashboard from "@/components/HostDashboard";
 import QRTicketScreen from "@/components/QRTicketScreen";
 import SelfCheckinModal from "@/components/SelfCheckinModal";
 import ContactOrganizerModal from "@/components/ContactOrganizerModal";
-import { Loader2, ArrowLeft, Mail } from "lucide-react";
+import { Loader2, ArrowLeft, Mail, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -84,6 +84,13 @@ export default function EventDetail() {
         <Button variant="ghost" size="sm" className="mb-3 gap-1.5" onClick={() => navigate("/")}>
           <ArrowLeft className="h-4 w-4" /> Back
         </Button>
+
+        {new Date(event.end_date_time ?? event.date_time) <= new Date() && event.status !== "cancelled" && (
+          <div className="mb-3 flex items-center gap-2 rounded-lg border border-muted bg-muted/40 px-4 py-2.5 text-sm text-muted-foreground">
+            <Clock className="h-4 w-4 shrink-0" />
+            This event has ended
+          </div>
+        )}
 
         <EventCard event={event} onShowTicket={(e) => setTicketEvent(e)} />
 
