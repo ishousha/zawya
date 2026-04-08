@@ -15,6 +15,7 @@ import { cn } from "@/lib/utils";
 import DependentsSection from "@/components/profile/DependentsSection";
 import FamilyInviteSection from "@/components/profile/FamilyInviteSection";
 import LinkedAccounts from "@/components/profile/LinkedAccounts";
+import NotificationPreferences from "@/components/profile/NotificationPreferences";
 import UserAvatar from "@/components/UserAvatar";
 
 const COUNTRY_CODES = [
