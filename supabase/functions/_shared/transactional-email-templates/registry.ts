@@ -19,6 +19,7 @@ import { template as guestListReminder } from './guest-list-reminder.tsx'
 import { template as rsvpConfirmation } from './rsvp-confirmation.tsx'
 import { template as eventReminder } from './event-reminder.tsx'
 import { template as eventBroadcast } from './event-broadcast.tsx'
+import { template as contactOrganizer } from './contact-organizer.tsx'
 
 export const TEMPLATES: Record<string, TemplateEntry> = {
   'event-cancelled': eventCancelled,
@@ -31,4 +32,5 @@ export const TEMPLATES: Record<string, TemplateEntry> = {
   'rsvp-confirmation': rsvpConfirmation,
   'event-reminder': eventReminder,
   'event-broadcast': eventBroadcast,
+  'contact-organizer': contactOrganizer,
 }
