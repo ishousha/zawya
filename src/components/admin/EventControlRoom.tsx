@@ -430,6 +430,23 @@ export default function EventControlRoom() {
 function RSVPMonitor({ eventId, eventTitle, eventDate, checkinPin, onClose }: { eventId: string; eventTitle: string; eventDate: string; checkinPin: string; onClose: () => void }) {
   const [showPoster, setShowPoster] = useState(false);
   const [showWalkIn, setShowWalkIn] = useState(false);
+  const [sendingGuestList, setSendingGuestList] = useState(false);
+
+  const handleSendGuestList = async () => {
+    setSendingGuestList(true);
+    try {
+      const { error } = await supabase.functions.invoke("send-guest-list-reminder", {
+        body: { event_id: eventId },
+      });
+      if (error) throw error;
+      toast.success("Guest list sent to host, admins & moderators");
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to send guest list email");
+    } finally {
+      setSendingGuestList(false);
+    }
+  };
   const { data: rsvps, isLoading } = useQuery({
     queryKey: ["admin-rsvps", eventId],
     queryFn: async () => {
