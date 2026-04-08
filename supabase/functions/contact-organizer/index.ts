@@ -137,6 +137,28 @@ Deno.serve(async (req) => {
     }
   }
 
+  // Also create in-app notifications for all admins
+  const { data: adminRoles } = await supabase
+    .from('user_roles')
+    .select('user_id')
+    .eq('role', 'admin')
+
+  if (adminRoles && adminRoles.length > 0) {
+    const notifRows = adminRoles.map((r: any) => ({
+      user_id: r.user_id,
+      title: `Message from ${senderName}`,
+      message: `Re: ${event.title} — "${message.trim().slice(0, 200)}"`,
+      type: 'info',
+      metadata: {
+        action: 'contact_organizer',
+        event_id: eventId,
+        sender_name: senderName,
+        sender_email: senderEmail,
+      },
+    }))
+    await supabase.from('notifications').insert(notifRows)
+  }
+
   console.log(`Contact organizer: ${sent} emails sent for event "${event.title}" from ${senderName}`)
 
   return new Response(JSON.stringify({ sent }), {
