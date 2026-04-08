@@ -23,6 +23,7 @@ export default function HomeFeed() {
 
   const { data: events, isLoading } = useQuery({
     queryKey: ["events"],
+    staleTime: 2 * 60 * 1000,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("events")
