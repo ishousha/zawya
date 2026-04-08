@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { User } from "lucide-react";
+import { Link } from "react-router-dom";
 
 interface FeaturedSpeakersProps {
   eventId: string;
@@ -34,8 +35,12 @@ export default function FeaturedSpeakers({ eventId }: FeaturedSpeakersProps) {
           const speaker = es.speakers;
           if (!speaker) return null;
           return (
-            <div key={speaker.id} className="flex flex-col items-center text-center gap-3">
-              <Avatar className="h-20 w-20 ring-2 ring-primary/20 ring-offset-2 ring-offset-background">
+            <Link
+              key={speaker.id}
+              to={`/speakers/${speaker.id}`}
+              className="flex flex-col items-center text-center gap-3 group"
+            >
+              <Avatar className="h-20 w-20 ring-2 ring-primary/20 ring-offset-2 ring-offset-background group-hover:ring-primary/40 transition-all">
                 {speaker.image_url ? (
                   <AvatarImage src={speaker.image_url} alt={speaker.name} />
                 ) : null}
@@ -44,7 +49,7 @@ export default function FeaturedSpeakers({ eventId }: FeaturedSpeakersProps) {
                 </AvatarFallback>
               </Avatar>
               <div>
-                <h3 className="font-heading text-lg font-bold text-card-foreground">
+                <h3 className="font-heading text-lg font-bold text-card-foreground group-hover:text-primary transition-colors">
                   {speaker.name}
                 </h3>
                 {speaker.bio && (
@@ -53,7 +58,7 @@ export default function FeaturedSpeakers({ eventId }: FeaturedSpeakersProps) {
                   </p>
                 )}
               </div>
-            </div>
+            </Link>
           );
         })}
       </div>

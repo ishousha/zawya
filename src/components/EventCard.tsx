@@ -9,6 +9,7 @@ import RSVPModal from "@/components/RSVPModal";
 import SelfCheckinModal from "@/components/SelfCheckinModal";
 import AddToCalendarButton from "@/components/AddToCalendarButton";
 import PotluckMenu from "@/components/PotluckMenu";
+import SpeakerBadge from "@/components/SpeakerBadge";
 import type { Database } from "@/integrations/supabase/types";
 
 type Event = Database["public"]["Tables"]["events"]["Row"];
@@ -211,7 +212,8 @@ export default function EventCard({ event, onShowTicket }: EventCardProps) {
           </span>
         </div>
 
-        {/* Show private location/link only when attending & not cancelled */}
+        {/* Speaker Badge */}
+        <SpeakerBadge eventId={event.id} />
         {!isCancelled && isAttending && event.location && (
           <div className="mt-2 space-y-1">
             <p className="text-sm text-foreground inline-flex items-center gap-1.5">
