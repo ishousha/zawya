@@ -60,6 +60,8 @@ export default function HostDashboard({ eventId }: HostDashboardProps) {
       family: (r.profiles as any)?.family_name || (r.profiles as any)?.name || "Unknown",
     }));
 
+  const checkedInCount = rsvps.filter((r) => r.checked_in).length;
+
   const guestList = rsvps.map((r) => {
     const profile = r.profiles as any;
     const deps = (r.attending_dependents as any[]) || [];
@@ -71,6 +73,7 @@ export default function HostDashboard({ eventId }: HostDashboardProps) {
       adultsCount: (r.guests_count - childDeps.length - elderDeps.length) + elderDeps.length,
       children: childDeps.map((d: any) => d.name),
       elders: elderDeps.map((d: any) => d.name),
+      checkedIn: r.checked_in,
     };
   });
 
