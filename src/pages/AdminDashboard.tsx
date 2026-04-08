@@ -243,33 +243,35 @@ export default function AdminDashboard() {
           </TabsList>
 
           <div {...adminSwipeHandlers} data-swipe-root className={`touch-pan-y overflow-hidden ${slideDir === "left" ? "animate-slide-in-right" : slideDir === "right" ? "animate-slide-in-left" : "animate-fade-in-fast"}`} key={slideKey}>
-            <TabsContent value="users">
-              <UserManagement />
-            </TabsContent>
-            <TabsContent value="families">
-              <FamilyManagement />
-            </TabsContent>
-            <TabsContent value="events">
-              <EventControlRoom />
-            </TabsContent>
-            <TabsContent value="scanner">
-              <AdminDoorScanner />
-            </TabsContent>
-            <TabsContent value="speakers">
-              <SpeakerManagement />
-            </TabsContent>
-            <TabsContent value="resources">
-              <ResourceManagement />
-            </TabsContent>
-            <TabsContent value="analytics">
-              <AdminAnalytics />
-            </TabsContent>
-            <TabsContent value="settings">
-              <EventTypeManagement />
-            </TabsContent>
-            <TabsContent value="activity">
-              <AdminActivityLog />
-            </TabsContent>
+            <Suspense fallback={<div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>}>
+              <TabsContent value="users">
+                <UserManagement />
+              </TabsContent>
+              <TabsContent value="families">
+                <FamilyManagement />
+              </TabsContent>
+              <TabsContent value="events">
+                <EventControlRoom />
+              </TabsContent>
+              <TabsContent value="scanner">
+                <AdminDoorScanner />
+              </TabsContent>
+              <TabsContent value="speakers">
+                <SpeakerManagement />
+              </TabsContent>
+              <TabsContent value="resources">
+                <ResourceManagement />
+              </TabsContent>
+              <TabsContent value="analytics">
+                <AdminAnalytics />
+              </TabsContent>
+              <TabsContent value="settings">
+                <EventTypeManagement />
+              </TabsContent>
+              <TabsContent value="activity">
+                <AdminActivityLog />
+              </TabsContent>
+            </Suspense>
           </div>
         </Tabs>
       </main>
