@@ -772,6 +772,7 @@ export type Database = {
             | null
           qr_hash: string | null
           specific_food_item: string | null
+          status: Database["public"]["Enums"]["rsvp_status"]
           updated_at: string
           user_id: string
         }
@@ -788,6 +789,7 @@ export type Database = {
             | null
           qr_hash?: string | null
           specific_food_item?: string | null
+          status?: Database["public"]["Enums"]["rsvp_status"]
           updated_at?: string
           user_id: string
         }
@@ -804,6 +806,7 @@ export type Database = {
             | null
           qr_hash?: string | null
           specific_food_item?: string | null
+          status?: Database["public"]["Enums"]["rsvp_status"]
           updated_at?: string
           user_id?: string
         }
@@ -964,6 +967,7 @@ export type Database = {
       guest_request_status: "pending" | "approved" | "rejected"
       invite_status: "pending" | "accepted" | "expired"
       potluck_category: "main" | "side" | "dessert" | "drinks"
+      rsvp_status: "attending" | "waitlisted" | "cancelled"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1104,6 +1108,7 @@ export const Constants = {
       guest_request_status: ["pending", "approved", "rejected"],
       invite_status: ["pending", "accepted", "expired"],
       potluck_category: ["main", "side", "dessert", "drinks"],
+      rsvp_status: ["attending", "waitlisted", "cancelled"],
     },
   },
 } as const

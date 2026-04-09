@@ -45,12 +45,12 @@ export default function EventCard({ event, onShowTicket }: EventCardProps) {
   }, [event.description, checkClamped]);
   const { profile } = useAuth();
 
-  const isAttending = !!myRSVP;
-  const isWaitlisted = myRSVP?.is_waitlisted ?? false;
+  const isAttending = !!myRSVP && myRSVP.status !== "cancelled";
+  const isWaitlisted = myRSVP?.status === "waitlisted";
   const isCancelled = event.status === "cancelled";
 
-  const confirmedCount = allRsvps?.filter((r) => !r.is_waitlisted).length ?? 0;
-  const checkedInCount = allRsvps?.filter((r) => r.checked_in).length ?? 0;
+  const confirmedCount = allRsvps?.filter((r) => r.status === "attending").length ?? 0;
+  const checkedInCount = allRsvps?.filter((r) => r.checked_in && r.status === "attending").length ?? 0;
   const isFull = !!event.capacity && confirmedCount >= event.capacity;
 
   // Time-gate: refresh every second for countdown
@@ -90,7 +90,7 @@ export default function EventCard({ event, onShowTicket }: EventCardProps) {
   // Calculate waitlist position for the current user
   const waitlistPosition = isWaitlisted && allRsvps
     ? allRsvps
-        .filter((r) => r.is_waitlisted)
+        .filter((r) => r.status === "waitlisted")
         .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
         .findIndex((r) => r.user_id === myRSVP?.user_id) + 1
     : 0;
