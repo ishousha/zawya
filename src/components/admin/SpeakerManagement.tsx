@@ -193,21 +193,28 @@ function SpeakerForm({ speaker, onClose }: { speaker: Speaker | null; onClose: (
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Photo must be under 5 MB");
+      return;
+    }
     setUploading(true);
     try {
-      const ext = file.name.split(".").pop();
+      const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
       const path = `speakers/${crypto.randomUUID()}.${ext}`;
       const { error: uploadError } = await supabase.storage
         .from("avatars")
-        .upload(path, file, { upsert: true });
+        .upload(path, file, { upsert: false, contentType: file.type });
       if (uploadError) throw uploadError;
       const { data } = supabase.storage.from("avatars").getPublicUrl(path);
       setImageUrl(data.publicUrl);
       toast.success("Photo uploaded");
-    } catch {
-      toast.error("Failed to upload photo");
+    } catch (err: any) {
+      console.error("Speaker photo upload error:", err);
+      toast.error(err?.message || "Failed to upload photo");
     } finally {
       setUploading(false);
+      // Reset input so same file can be re-selected
+      e.target.value = "";
     }
   };
 
