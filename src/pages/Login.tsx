@@ -17,7 +17,6 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [verifying, setVerifying] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
-  const [googleLoading, setGoogleLoading] = useState(false);
   const [resending, setResending] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
   const [otpExpiry, setOtpExpiry] = useState(0);
@@ -46,18 +45,17 @@ export default function LoginPage() {
     return () => { if (expiryRef.current) clearInterval(expiryRef.current); };
   }, []);
 
-  const handleOAuthSignIn = async (provider: "apple" | "google") => {
-    const setLoaderFn = provider === "apple" ? setAppleLoading : setGoogleLoading;
-    setLoaderFn(true);
-    const result = await lovable.auth.signInWithOAuth(provider, {
+  const handleGoogleSignIn = async () => {
+    setGoogleLoading(true);
+    const result = await lovable.auth.signInWithOAuth("google", {
       redirect_uri: window.location.origin,
     });
     if (result.error) {
-      toast.error(`${provider === "apple" ? "Apple" : "Google"} sign-in failed. Please try again.`);
-      setLoaderFn(false);
+      toast.error("Google sign-in failed. Please try again.");
+      setGoogleLoading(false);
     }
     if (result.redirected) return;
-    setLoaderFn(false);
+    setGoogleLoading(false);
   };
 
   const handleSendOtp = async (e: React.FormEvent) => {
