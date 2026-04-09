@@ -207,7 +207,7 @@ export default function RSVPModal({ event, open, onOpenChange }: RSVPModalProps)
       return;
     }
 
-    if (isPotluck && potluckChoice !== "none" && !showSignUpItems && !potluckDish.trim() && Object.keys(selections).length === 0) {
+    if (isPotluck && potluckChoice === "bringing" && !showSignUpItems && !potluckDish.trim()) {
       toast.error("Please enter what dish you're bringing, or skip the potluck.");
       return;
     }
