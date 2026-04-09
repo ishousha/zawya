@@ -207,15 +207,11 @@ export default function RSVPModal({ event, open, onOpenChange }: RSVPModalProps)
       return;
     }
 
-    if (isPotluck && !potluckChoice) {
-      toast.error("Please select a potluck option.");
+    if (isPotluck && potluckChoice !== "none" && !showSignUpItems && !potluckDish.trim() && Object.keys(selections).length === 0) {
+      toast.error("Please enter what dish you're bringing, or skip the potluck.");
       return;
     }
 
-    if (isPotluck && potluckChoice === "bringing" && !showSignUpItems && !potluckDish.trim()) {
-      toast.error("Please enter what dish you're bringing.");
-      return;
-    }
 
     const selArray = Object.entries(selections)
       .filter(([, val]) => val.selected)
@@ -315,54 +311,17 @@ export default function RSVPModal({ event, open, onOpenChange }: RSVPModalProps)
             Total attending: <span className="font-semibold text-foreground">{guestsCount}</span>
           </p>
 
-          {/* Potluck contribution — progressive disclosure */}
+          {/* Potluck contribution — default-to-yes pattern */}
           {isPotluck && (
             <div className="space-y-3">
               <Label className="block text-sm font-medium">Potluck Contribution</Label>
-              <div className="space-y-2">
-                <label
-                  className={`flex items-center gap-3 rounded-lg border p-3 cursor-pointer transition-colors ${
-                    potluckChoice === "bringing"
-                      ? "border-primary bg-primary/5"
-                      : "border-border bg-card hover:bg-muted/30"
-                  }`}
-                >
-                  <input
-                    type="radio"
-                    name="potluck-choice"
-                    checked={potluckChoice === "bringing"}
-                    onChange={() => setPotluckChoice("bringing")}
-                    className="accent-primary h-4 w-4"
-                  />
-                  <span className="text-sm font-medium text-foreground">I'm bringing a dish</span>
-                </label>
+              <p className="text-xs italic text-muted-foreground leading-relaxed">
+                Our gatherings are made beautiful by everyone's contributions. Please select an item to share if you can!
+              </p>
 
-                <label
-                  className={`flex items-center gap-3 rounded-lg border p-3 cursor-pointer transition-colors ${
-                    potluckChoice === "none"
-                      ? "border-primary bg-primary/5"
-                      : "border-border bg-card hover:bg-muted/30"
-                  }`}
-                >
-                  <input
-                    type="radio"
-                    name="potluck-choice"
-                    checked={potluckChoice === "none"}
-                    onChange={() => {
-                      setPotluckChoice("none");
-                      setPotluckDish("");
-                      setSelections({});
-                    }}
-                    className="accent-primary h-4 w-4"
-                  />
-                  <span className="text-sm font-medium text-foreground">None / can't bring anything this week</span>
-                </label>
-              </div>
-
-              {/* Sign-up categories — only visible when "bringing a dish" */}
-              {potluckChoice === "bringing" && showSignUpItems && (
-                <div className="animate-fade-in space-y-2 pt-1">
-                  <p className="text-xs font-medium text-muted-foreground">Select a category:</p>
+              {/* Sign-up categories — shown by default unless opted out */}
+              {potluckChoice !== "none" && showSignUpItems && (
+                <div className="animate-fade-in space-y-2">
                   {signUpItems!.map((item) => {
                     const itemId = Number(item.id);
                     const sel = selections[itemId];
@@ -414,7 +373,7 @@ export default function RSVPModal({ event, open, onOpenChange }: RSVPModalProps)
               )}
 
               {/* Plain text input when no sign-up items configured */}
-              {potluckChoice === "bringing" && !showSignUpItems && (
+              {potluckChoice !== "none" && !showSignUpItems && (
                 <div className="animate-fade-in space-y-2">
                   <Input
                     placeholder="e.g., Hummus, Knafeh, Paper Plates..."
@@ -434,6 +393,29 @@ export default function RSVPModal({ event, open, onOpenChange }: RSVPModalProps)
                     </div>
                   )}
                 </div>
+              )}
+
+              {/* Ghost opt-out / opt-back-in toggle */}
+              {potluckChoice === "none" ? (
+                <button
+                  type="button"
+                  onClick={() => setPotluckChoice("bringing")}
+                  className="text-xs text-primary underline underline-offset-2 hover:text-primary/80 transition-colors pt-1"
+                >
+                  Actually, I can bring something →
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPotluckChoice("none");
+                    setPotluckDish("");
+                    setSelections({});
+                  }}
+                  className="text-xs text-muted-foreground/60 hover:text-muted-foreground transition-colors pt-1"
+                >
+                  I cannot bring anything this week
+                </button>
               )}
             </div>
           )}
