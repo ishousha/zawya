@@ -82,7 +82,7 @@ export default function RSVPModal({ event, open, onOpenChange }: RSVPModalProps)
       setSelectedMemberIds(memberIds);
       setSelectedDependentIds(depIds);
       setPotluckDish(myRSVP.specific_food_item || "");
-      if (myRSVP.specific_food_item) {
+      if (myRSVP.specific_food_item || Object.keys(selections).length > 0) {
         setPotluckChoice("bringing");
       } else if (isEditing) {
         setPotluckChoice("none");
@@ -91,7 +91,7 @@ export default function RSVPModal({ event, open, onOpenChange }: RSVPModalProps)
       setSelectedMemberIds(new Set([user.id]));
       setSelectedDependentIds(new Set());
       setPotluckDish("");
-      setPotluckChoice(null);
+      setPotluckChoice("bringing");
     }
   }, [myRSVP, familyMembers, dependents, user]);
 
