@@ -16,7 +16,7 @@ export default function LoginPage() {
   const [stage, setStage] = useState<Stage>("email");
   const [loading, setLoading] = useState(false);
   const [verifying, setVerifying] = useState(false);
-  const [appleLoading, setAppleLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [resending, setResending] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
