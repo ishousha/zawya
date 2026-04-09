@@ -39,29 +39,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
-    let initialSessionHandled = false;
+    let mounted = true;
+    let initialDone = false;
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
-        // Skip the initial INITIAL_SESSION event — handled by getSession below
-        if (!initialSessionHandled) return;
+        if (!initialDone) return;
+        if (!mounted) return;
         setSession(session);
         if (session?.user) {
           await fetchProfile(session.user.id);
         } else {
           setProfile(null);
         }
-        setLoading(false);
+        if (mounted) setLoading(false);
       }
     );
 
     supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (!mounted) return;
       setSession(session);
       if (session?.user) {
         await fetchProfile(session.user.id);
       }
-      setLoading(false);
-      initialSessionHandled = true;
+      if (mounted) {
+        setLoading(false);
+        initialDone = true;
+      }
     });
 
     // Listen for profile updates (e.g. avatar change)
@@ -72,6 +76,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     window.addEventListener("profile-updated", handleProfileUpdate);
 
     return () => {
+      mounted = false;
       subscription.unsubscribe();
       window.removeEventListener("profile-updated", handleProfileUpdate);
     };
