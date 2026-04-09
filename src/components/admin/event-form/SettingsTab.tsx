@@ -1,10 +1,11 @@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Users, Clock, KeyRound, RefreshCw, UtensilsCrossed, Lock, DollarSign, BellRing } from "lucide-react";
+import { Users, Clock, KeyRound, RefreshCw, UtensilsCrossed, Lock, DollarSign, BellRing, ScrollText } from "lucide-react";
 import type { EventFormState } from "./types";
 import { generateCheckinPin } from "./types";
 import HostSelector from "./HostSelector";
@@ -182,6 +183,24 @@ export default function SettingsTab({ form, setForm, isEditing }: SettingsTabPro
         </Select>
         <p className="text-xs text-muted-foreground mt-1">
           Set to 'Cancelled' to hide from member feeds
+        </p>
+      </div>
+
+      {/* Etiquette / Adab Notes */}
+      <div>
+        <div className="flex items-center gap-2 mb-3">
+          <ScrollText className="h-4 w-4 text-primary" />
+          <h3 className="text-sm font-semibold text-foreground">Gathering Etiquette</h3>
+        </div>
+        <Textarea
+          value={form.etiquette_notes}
+          onChange={(e) => update("etiquette_notes", e.target.value)}
+          placeholder="E.g. Please park responsibly, arrive on time, and keep phones on silent..."
+          rows={3}
+          className="resize-none"
+        />
+        <p className="text-xs text-muted-foreground mt-1">
+          Custom rules shown to attendees. Leave blank for default community etiquette.
         </p>
       </div>
 

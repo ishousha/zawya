@@ -10,7 +10,7 @@ import QRTicketScreen from "@/components/QRTicketScreen";
 import SelfCheckinModal from "@/components/SelfCheckinModal";
 import ContactOrganizerModal from "@/components/ContactOrganizerModal";
 import FeaturedSpeakers from "@/components/FeaturedSpeaker";
-import { Loader2, ArrowLeft, Mail, Clock } from "lucide-react";
+import { Loader2, ArrowLeft, Mail, Clock, ScrollText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -98,6 +98,9 @@ export default function EventDetail() {
         {/* Featured Speakers */}
         <FeaturedSpeakers eventId={event.id} />
 
+        {/* Gathering Etiquette (Adab) */}
+        <GatheringEtiquette event={event} />
+
         {/* Contact Organizer button — visible for upcoming, non-cancelled events */}
         {user && event.status !== "cancelled" && new Date(event.end_date_time ?? event.date_time) > new Date() && (
           <div className="mt-3">
@@ -141,6 +144,39 @@ export default function EventDetail() {
         eventId={event.id}
         eventTitle={event.title}
       />
+    </div>
+  );
+}
+
+const DEFAULT_ETIQUETTE = [
+  "Please arrive on time to respect everyone's schedule",
+  "Keep phones on silent during the gathering",
+  "Park responsibly and be mindful of neighbors",
+  "Help with clean-up before you leave",
+];
+
+function GatheringEtiquette({ event }: { event: Event }) {
+  const customNotes = (event as any).etiquette_notes as string | null;
+  const hasCustom = !!customNotes?.trim();
+
+  return (
+    <div className="mt-4 rounded-lg border border-border bg-muted/30 p-4">
+      <div className="flex items-center gap-2 mb-2">
+        <ScrollText className="h-4 w-4 text-primary" />
+        <h3 className="font-heading text-sm font-semibold text-foreground">Gathering Etiquette</h3>
+      </div>
+      {hasCustom ? (
+        <p className="text-sm text-muted-foreground whitespace-pre-line">{customNotes}</p>
+      ) : (
+        <ul className="space-y-1.5">
+          {DEFAULT_ETIQUETTE.map((rule, i) => (
+            <li key={i} className="text-sm text-muted-foreground flex items-start gap-2">
+              <span className="text-primary mt-0.5">•</span>
+              {rule}
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }
