@@ -56,7 +56,7 @@ export default function RSVPModal({ event, open, onOpenChange }: RSVPModalProps)
   const [selectedDependentIds, setSelectedDependentIds] = useState<Set<string>>(new Set());
   const [selections, setSelections] = useState<Record<number, ItemSelection>>({});
   const [potluckDish, setPotluckDish] = useState("");
-  const [potluckChoice, setPotluckChoice] = useState<string | null>(null);
+  const [potluckChoice, setPotluckChoice] = useState<string>("bringing");
 
   // Sync attendee state when data loads
   useEffect(() => {
@@ -82,7 +82,7 @@ export default function RSVPModal({ event, open, onOpenChange }: RSVPModalProps)
       setSelectedMemberIds(memberIds);
       setSelectedDependentIds(depIds);
       setPotluckDish(myRSVP.specific_food_item || "");
-      if (myRSVP.specific_food_item) {
+      if (myRSVP.specific_food_item || Object.keys(selections).length > 0) {
         setPotluckChoice("bringing");
       } else if (isEditing) {
         setPotluckChoice("none");
@@ -91,7 +91,7 @@ export default function RSVPModal({ event, open, onOpenChange }: RSVPModalProps)
       setSelectedMemberIds(new Set([user.id]));
       setSelectedDependentIds(new Set());
       setPotluckDish("");
-      setPotluckChoice(null);
+      setPotluckChoice("bringing");
     }
   }, [myRSVP, familyMembers, dependents, user]);
 
@@ -207,7 +207,7 @@ export default function RSVPModal({ event, open, onOpenChange }: RSVPModalProps)
       return;
     }
 
-    if (isPotluck && potluckChoice !== "none" && !showSignUpItems && !potluckDish.trim() && Object.keys(selections).length === 0) {
+    if (isPotluck && potluckChoice === "bringing" && !showSignUpItems && !potluckDish.trim()) {
       toast.error("Please enter what dish you're bringing, or skip the potluck.");
       return;
     }
@@ -250,12 +250,15 @@ export default function RSVPModal({ event, open, onOpenChange }: RSVPModalProps)
       }
       onOpenChange(false);
     } catch (err: any) {
+      console.error("RSVP error:", err);
       if (err?.message === "FULL") {
         toast.error("Event and Waitlist are Full", {
           description: "No more spots available at this time.",
         });
       } else {
-        toast.error("Failed to save RSVP. Please try again.");
+        toast.error("Failed to save RSVP", {
+          description: err?.message || "Please try again.",
+        });
       }
     }
   };
