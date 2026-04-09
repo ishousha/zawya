@@ -256,7 +256,7 @@ export default function LoginPage() {
         <Button
           variant="outline"
           className="mt-4 w-full gap-2"
-          onClick={() => handleOAuthSignIn("google")}
+          onClick={handleGoogleSignIn}
           disabled={googleLoading}
         >
           {googleLoading ? (
