@@ -212,10 +212,6 @@ export default function RSVPModal({ event, open, onOpenChange }: RSVPModalProps)
       return;
     }
 
-    if (isPotluck && potluckChoice === "bringing" && !showSignUpItems && !potluckDish.trim()) {
-      toast.error("Please enter what dish you're bringing.");
-      return;
-    }
 
     const selArray = Object.entries(selections)
       .filter(([, val]) => val.selected)
