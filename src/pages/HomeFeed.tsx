@@ -25,13 +25,17 @@ export default function HomeFeed() {
     queryKey: ["events"],
     staleTime: 2 * 60 * 1000,
     queryFn: async () => {
+      const now = new Date().toISOString();
+      // Fallback: show events for 4 hours after start if no end_date_time
+      const fallbackCutoff = new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString();
+
       const { data, error } = await supabase
         .from("events")
         .select("*")
         .in("status", ["active", "full", "cancelled"])
-        .gte("date_time", new Date().toISOString())
+        .or(`end_date_time.gte.${now},and(end_date_time.is.null,date_time.gte.${fallbackCutoff})`)
         .order("date_time", { ascending: true })
-        .limit(10);
+        .limit(20);
 
       if (error) throw error;
       return data;

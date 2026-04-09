@@ -17,9 +17,10 @@ type Event = Database["public"]["Tables"]["events"]["Row"];
 interface EventCardProps {
   event: Event;
   onShowTicket?: (event: Event) => void;
+  isPast?: boolean;
 }
 
-export default function EventCard({ event, onShowTicket }: EventCardProps) {
+export default function EventCard({ event, onShowTicket, isPast = false }: EventCardProps) {
   const localDate = new Date(event.date_time);
   const { data: eventTypes } = useEventTypes();
   const eventType = eventTypes?.find((t) => t.id === event.event_type_id);
