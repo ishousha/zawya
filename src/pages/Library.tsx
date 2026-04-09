@@ -5,9 +5,14 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Loader2, FileText, Download, BookOpen, Search, Tag, Video, Headphones, Link as LinkIcon, ExternalLink } from "lucide-react";
+import { Loader2, FileText, Download, BookOpen, Search, Tag, Video, Headphones, Link as LinkIcon, ExternalLink, Calendar } from "lucide-react";
 import { format } from "date-fns";
+import EventCard from "@/components/EventCard";
+import type { Database } from "@/integrations/supabase/types";
+
+type Event = Database["public"]["Tables"]["events"]["Row"];
 
 interface Resource {
   id: string;
@@ -128,6 +133,27 @@ export default function Library() {
     }
   };
 
+  // Past events query
+  const { data: pastEvents, isLoading: pastLoading } = useQuery({
+    queryKey: ["past-events"],
+    staleTime: 5 * 60 * 1000,
+    queryFn: async () => {
+      const now = new Date().toISOString();
+      const fallbackCutoff = new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString();
+
+      const { data, error } = await supabase
+        .from("events")
+        .select("*")
+        .in("status", ["active", "full", "cancelled"])
+        .or(`and(end_date_time.not.is.null,end_date_time.lt.${now}),and(end_date_time.is.null,date_time.lt.${fallbackCutoff})`)
+        .order("date_time", { ascending: false })
+        .limit(50);
+
+      if (error) throw error;
+      return data as Event[];
+    },
+  });
+
   return (
     <div className="min-h-screen bg-background pb-24">
       <header className="border-b border-border bg-card px-4 pb-4 pt-6">
@@ -136,111 +162,139 @@ export default function Library() {
           <h1 className="font-heading text-2xl font-bold text-foreground">Library</h1>
         </div>
         <p className="mt-1 text-sm text-muted-foreground">
-          Browse and download community resources
+          Resources & past gatherings
         </p>
       </header>
 
       <main className="mx-auto max-w-2xl px-4 py-4">
-        {!isLoading && categories.length > 0 && (
-          <div
-            ref={pillsRef}
-            className="flex gap-2 overflow-x-auto scrollbar-hide pb-3 -mx-1 px-1"
-          >
-            {["All", ...categories].map((cat) => (
-              <button
-                key={cat}
-                data-active={activeCategory === cat}
-                onClick={() => setActiveCategory(cat)}
-                className={`flex-shrink-0 rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
-                  activeCategory === cat
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-muted text-muted-foreground hover:bg-muted/80"
-                }`}
+        <Tabs defaultValue="resources" className="w-full">
+          <TabsList className="w-full mb-4">
+            <TabsTrigger value="resources" className="flex-1">Resources</TabsTrigger>
+            <TabsTrigger value="past" className="flex-1">Past Gatherings</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="resources">
+            {!isLoading && categories.length > 0 && (
+              <div
+                ref={pillsRef}
+                className="flex gap-2 overflow-x-auto scrollbar-hide pb-3 -mx-1 px-1"
               >
-                {cat}
-              </button>
-            ))}
-          </div>
-        )}
-
-        {!isLoading && resources && resources.length > 0 && (
-          <div className="relative mb-4">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search resources..."
-              className="pl-9"
-            />
-          </div>
-        )}
-
-        {isLoading ? (
-          <div className="flex justify-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          </div>
-        ) : !resources?.length ? (
-          <div className="flex flex-col items-center justify-center py-16 text-center">
-            <BookOpen className="h-12 w-12 text-muted-foreground/50 mb-3" />
-            <p className="text-muted-foreground">No resources available yet.</p>
-            <p className="text-xs text-muted-foreground mt-1">Check back later for community materials.</p>
-          </div>
-        ) : !filtered.length ? (
-          <div className="flex flex-col items-center justify-center py-12 text-center">
-            {search.trim() ? (
-              <>
-                <Search className="h-10 w-10 text-muted-foreground/50 mb-2" />
-                <p className="text-muted-foreground">No results for &ldquo;{search}&rdquo;</p>
-              </>
-            ) : (
-              <>
-                <BookOpen className="h-10 w-10 text-muted-foreground/50 mb-2" />
-                <p className="text-muted-foreground">
-                  No {friendlyCategoryName(activeCategory)} uploaded yet.
-                </p>
-                <p className="text-xs text-muted-foreground mt-1">Check back soon!</p>
-              </>
+                {["All", ...categories].map((cat) => (
+                  <button
+                    key={cat}
+                    data-active={activeCategory === cat}
+                    onClick={() => setActiveCategory(cat)}
+                    className={`flex-shrink-0 rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
+                      activeCategory === cat
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-muted text-muted-foreground hover:bg-muted/80"
+                    }`}
+                  >
+                    {cat}
+                  </button>
+                ))}
+              </div>
             )}
-          </div>
-        ) : (
-          <div className="grid gap-3">
-            {filtered.map((res) => {
-              const Icon = getResourceIcon(res.resource_type);
-              const isExternal = isExternalUrl(res.file_url);
-              return (
-                <Card
-                  key={res.id}
-                  className="cursor-pointer transition-shadow hover:shadow-md active:scale-[0.99]"
-                  onClick={() => handleResourceClick(res)}
-                >
-                  <CardContent className="flex items-start gap-3 p-4">
-                    <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-primary/10">
-                      <Icon className="h-6 w-6 text-primary" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-heading text-base font-semibold text-foreground flex items-center gap-1.5">
-                        <span className="truncate">{res.title}</span>
-                        {isExternal && <ExternalLink className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />}
-                      </h3>
-                      {res.description && (
-                        <p className="text-sm text-muted-foreground line-clamp-2 mt-0.5">{res.description}</p>
-                      )}
-                      <div className="flex flex-wrap items-center gap-2 mt-2 text-xs text-muted-foreground">
-                        <Badge variant="secondary" className="text-[10px] px-1.5 py-0 gap-1">
-                          <Tag className="h-2.5 w-2.5" />
-                          {res.category || "General"}
-                        </Badge>
-                        {res.file_size && <span>{formatFileSize(res.file_size)}</span>}
-                        <span>·</span>
-                        <span>{format(new Date(res.created_at), "MMM d, yyyy")}</span>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
-        )}
+
+            {!isLoading && resources && resources.length > 0 && (
+              <div className="relative mb-4">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Search resources..."
+                  className="pl-9"
+                />
+              </div>
+            )}
+
+            {isLoading ? (
+              <div className="flex justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              </div>
+            ) : !resources?.length ? (
+              <div className="flex flex-col items-center justify-center py-16 text-center">
+                <BookOpen className="h-12 w-12 text-muted-foreground/50 mb-3" />
+                <p className="text-muted-foreground">No resources available yet.</p>
+                <p className="text-xs text-muted-foreground mt-1">Check back later for community materials.</p>
+              </div>
+            ) : !filtered.length ? (
+              <div className="flex flex-col items-center justify-center py-12 text-center">
+                {search.trim() ? (
+                  <>
+                    <Search className="h-10 w-10 text-muted-foreground/50 mb-2" />
+                    <p className="text-muted-foreground">No results for &ldquo;{search}&rdquo;</p>
+                  </>
+                ) : (
+                  <>
+                    <BookOpen className="h-10 w-10 text-muted-foreground/50 mb-2" />
+                    <p className="text-muted-foreground">
+                      No {friendlyCategoryName(activeCategory)} uploaded yet.
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">Check back soon!</p>
+                  </>
+                )}
+              </div>
+            ) : (
+              <div className="grid gap-3">
+                {filtered.map((res) => {
+                  const Icon = getResourceIcon(res.resource_type);
+                  const isExternal = isExternalUrl(res.file_url);
+                  return (
+                    <Card
+                      key={res.id}
+                      className="cursor-pointer transition-shadow hover:shadow-md active:scale-[0.99]"
+                      onClick={() => handleResourceClick(res)}
+                    >
+                      <CardContent className="flex items-start gap-3 p-4">
+                        <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-primary/10">
+                          <Icon className="h-6 w-6 text-primary" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-heading text-base font-semibold text-foreground flex items-center gap-1.5">
+                            <span className="truncate">{res.title}</span>
+                            {isExternal && <ExternalLink className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />}
+                          </h3>
+                          {res.description && (
+                            <p className="text-sm text-muted-foreground line-clamp-2 mt-0.5">{res.description}</p>
+                          )}
+                          <div className="flex flex-wrap items-center gap-2 mt-2 text-xs text-muted-foreground">
+                            <Badge variant="secondary" className="text-[10px] px-1.5 py-0 gap-1">
+                              <Tag className="h-2.5 w-2.5" />
+                              {res.category || "General"}
+                            </Badge>
+                            {res.file_size && <span>{formatFileSize(res.file_size)}</span>}
+                            <span>·</span>
+                            <span>{format(new Date(res.created_at), "MMM d, yyyy")}</span>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="past">
+            {pastLoading ? (
+              <div className="flex justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              </div>
+            ) : !pastEvents?.length ? (
+              <div className="flex flex-col items-center justify-center py-16 text-center">
+                <Calendar className="h-12 w-12 text-muted-foreground/50 mb-3" />
+                <p className="text-muted-foreground">No past gatherings yet.</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {pastEvents.map((event) => (
+                  <EventCard key={event.id} event={event} isPast />
+                ))}
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
       </main>
 
       {/* PDF Viewer Modal — only for storage files */}
