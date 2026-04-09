@@ -54,6 +54,10 @@ export default function EventCard({ event, onShowTicket, isPast = false }: Event
   const checkedInCount = allRsvps?.filter((r) => r.checked_in && r.status === "attending").length ?? 0;
   const isFull = !!event.capacity && confirmedCount >= event.capacity;
 
+  // Live Now detection
+  const endTime = event.end_date_time ? new Date(event.end_date_time).getTime() : eventTime + 4 * 60 * 60 * 1000;
+  const isLiveNow = !isPast && now.getTime() >= eventTime && now.getTime() < endTime;
+
   // Time-gate: refresh every second for countdown
   const onlineLink = event.online_link;
   const eventTime = new Date(event.date_time).getTime();
