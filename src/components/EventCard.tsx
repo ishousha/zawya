@@ -17,9 +17,10 @@ type Event = Database["public"]["Tables"]["events"]["Row"];
 interface EventCardProps {
   event: Event;
   onShowTicket?: (event: Event) => void;
+  isPast?: boolean;
 }
 
-export default function EventCard({ event, onShowTicket }: EventCardProps) {
+export default function EventCard({ event, onShowTicket, isPast = false }: EventCardProps) {
   const localDate = new Date(event.date_time);
   const { data: eventTypes } = useEventTypes();
   const eventType = eventTypes?.find((t) => t.id === event.event_type_id);
@@ -56,6 +57,10 @@ export default function EventCard({ event, onShowTicket }: EventCardProps) {
   // Time-gate: refresh every second for countdown
   const onlineLink = event.online_link;
   const eventTime = new Date(event.date_time).getTime();
+
+  // Live Now detection
+  const endTime = event.end_date_time ? new Date(event.end_date_time).getTime() : eventTime + 4 * 60 * 60 * 1000;
+  const isLiveNow = !isPast && now.getTime() >= eventTime && now.getTime() < endTime;
   const linkActivatesAt = eventTime - 15 * 60 * 1000;
   const isLinkActive = now.getTime() >= linkActivatesAt;
   const isAdminOrMod = profile?.role === "admin" || profile?.role === "moderator";
@@ -138,6 +143,15 @@ export default function EventCard({ event, onShowTicket }: EventCardProps) {
               🔒 Private
             </span>
           )}
+          {isLiveNow && !isCancelled && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-accent px-2.5 py-0.5 text-xs font-bold text-accent-foreground">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent-foreground opacity-75" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-accent-foreground" />
+              </span>
+              Live Now
+            </span>
+          )}
           {isCancelled && (
             <span className="inline-flex items-center gap-1 rounded-full bg-destructive px-2.5 py-0.5 text-xs font-bold uppercase tracking-wider text-destructive-foreground">
               <Ban className="h-3 w-3" />
@@ -201,7 +215,7 @@ export default function EventCard({ event, onShowTicket }: EventCardProps) {
         )}
 
         {/* Date & Time in local timezone */}
-        <div className={`mt-2 flex flex-wrap items-center gap-3 text-sm text-muted-foreground ${isCancelled ? "line-through" : ""}`}>
+        <div className={`mt-2 flex flex-wrap items-center gap-3 text-sm ${isCancelled ? "line-through text-muted-foreground" : isLiveNow ? "text-accent-foreground font-medium" : "text-muted-foreground"}`}>
           <span className="inline-flex items-center gap-1">
             <Calendar className="h-3.5 w-3.5" />
             {format(localDate, "EEE, MMM d")}
@@ -306,7 +320,12 @@ export default function EventCard({ event, onShowTicket }: EventCardProps) {
 
         {/* Action buttons */}
         <div className="mt-3 space-y-2">
-          {isCancelled ? (
+          {isPast ? (
+            <Button size="sm" variant="outline" className="w-full gap-1.5" disabled>
+              <Calendar className="h-3.5 w-3.5" />
+              Past Event
+            </Button>
+          ) : isCancelled ? (
             <Button size="sm" variant="outline" disabled className="w-full gap-1.5 opacity-70">
               <Ban className="h-3.5 w-3.5" />
               Event Cancelled
@@ -357,7 +376,7 @@ export default function EventCard({ event, onShowTicket }: EventCardProps) {
                   size="sm"
                   variant="default"
                   disabled
-                  className="w-full gap-1.5 bg-emerald-600 hover:bg-emerald-600 text-white border-emerald-600 cursor-default opacity-100"
+                  className="w-full gap-1.5 bg-primary hover:bg-primary text-primary-foreground border-primary cursor-default opacity-100"
                 >
                   <CheckCircle2 className="h-4 w-4" />
                   ✓ Checked In
@@ -381,7 +400,7 @@ export default function EventCard({ event, onShowTicket }: EventCardProps) {
         </div>
 
         {/* Potluck Menu — anonymous dish list */}
-        {!isCancelled && event.has_potluck && (
+        {!isPast && !isCancelled && event.has_potluck && (
           <PotluckMenu eventId={event.id} />
         )}
         </div>
