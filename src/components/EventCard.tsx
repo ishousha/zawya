@@ -151,7 +151,7 @@ export default function EventCard({ event, onShowTicket, isPast = false }: Event
               </span>
               Live Now
             </span>
-          )
+          )}
           {isCancelled && (
             <span className="inline-flex items-center gap-1 rounded-full bg-destructive px-2.5 py-0.5 text-xs font-bold uppercase tracking-wider text-destructive-foreground">
               <Ban className="h-3 w-3" />
