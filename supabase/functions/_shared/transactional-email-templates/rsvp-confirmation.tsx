@@ -67,6 +67,16 @@ const RsvpConfirmationEmail = ({
           <Text style={detailValue}>{guestsCount} {guestsCount === 1 ? 'person' : 'people'}</Text>
         </Section>
 
+        {!isWaitlisted && (
+          <Section style={remindersBox}>
+            <Text style={remindersHeading}>📋 Friendly Reminders</Text>
+            <Text style={reminderItem}>• Please arrive on time to respect everyone's schedule</Text>
+            <Text style={reminderItem}>• Keep phones on silent during the gathering</Text>
+            <Text style={reminderItem}>• Park responsibly and be mindful of neighbors</Text>
+            <Text style={reminderItem}>• Help with clean-up before you leave</Text>
+          </Section>
+        )}
+
         <Hr style={hr} />
         <Text style={footer}>— The {SITE_NAME} Team</Text>
       </Container>
@@ -100,3 +110,6 @@ const footer = { fontSize: '13px', color: '#9ca3af', margin: '0' }
 const detailsBox = { backgroundColor: '#f9fafb', borderRadius: '8px', padding: '16px 20px', margin: '0 0 16px' }
 const detailLabel = { fontSize: '11px', color: '#9ca3af', textTransform: 'uppercase' as const, letterSpacing: '0.05em', margin: '0 0 2px', fontWeight: 'bold' as const }
 const detailValue = { fontSize: '15px', color: '#374151', margin: '0 0 12px' }
+const remindersBox = { backgroundColor: '#f0fdf4', borderRadius: '8px', padding: '14px 20px', margin: '16px 0 0' }
+const remindersHeading = { fontSize: '13px', fontWeight: 'bold' as const, color: '#2d6a4f', margin: '0 0 8px' }
+const reminderItem = { fontSize: '13px', color: '#374151', lineHeight: '1.5', margin: '0 0 4px' }
