@@ -212,7 +212,7 @@ export default function RSVPModal({ event, open, onOpenChange }: RSVPModalProps)
       return;
     }
 
-    if (isPotluck && potluckChoice === "bringing" && !potluckDish.trim()) {
+    if (isPotluck && potluckChoice === "bringing" && !showSignUpItems && !potluckDish.trim()) {
       toast.error("Please enter what dish you're bringing.");
       return;
     }
@@ -300,6 +300,7 @@ export default function RSVPModal({ event, open, onOpenChange }: RSVPModalProps)
               <ExternalLink className="ml-auto h-3.5 w-3.5" />
             </a>
           )}
+
           {/* Attendee checklist */}
           <AttendeeChecklist
             familyMembers={familyMembers ?? []}
@@ -314,12 +315,10 @@ export default function RSVPModal({ event, open, onOpenChange }: RSVPModalProps)
             Total attending: <span className="font-semibold text-foreground">{guestsCount}</span>
           </p>
 
-          {/* Potluck contribution */}
+          {/* Potluck contribution — progressive disclosure */}
           {isPotluck && (
             <div className="space-y-3">
-              <Label className="block text-sm font-medium">
-                What are you contributing to the potluck?
-              </Label>
+              <Label className="block text-sm font-medium">Potluck Contribution</Label>
               <div className="space-y-2">
                 <label
                   className={`flex items-center gap-3 rounded-lg border p-3 cursor-pointer transition-colors ${
@@ -349,15 +348,74 @@ export default function RSVPModal({ event, open, onOpenChange }: RSVPModalProps)
                     type="radio"
                     name="potluck-choice"
                     checked={potluckChoice === "none"}
-                    onChange={() => { setPotluckChoice("none"); setPotluckDish(""); }}
+                    onChange={() => {
+                      setPotluckChoice("none");
+                      setPotluckDish("");
+                      setSelections({});
+                    }}
                     className="accent-primary h-4 w-4"
                   />
                   <span className="text-sm font-medium text-foreground">None / can't bring anything this week</span>
                 </label>
               </div>
 
-              {potluckChoice === "bringing" && (
-                <div className="space-y-2">
+              {/* Sign-up categories — only visible when "bringing a dish" */}
+              {potluckChoice === "bringing" && showSignUpItems && (
+                <div className="animate-fade-in space-y-2 pt-1">
+                  <p className="text-xs font-medium text-muted-foreground">Select a category:</p>
+                  {signUpItems!.map((item) => {
+                    const itemId = Number(item.id);
+                    const sel = selections[itemId];
+                    const isSelected = sel?.selected ?? false;
+                    const claimed = claimedPerItem[itemId] || 0;
+                    const full = isItemFull(item);
+
+                    return (
+                      <div key={item.id}>
+                        <label
+                          className={`flex items-center gap-3 rounded-lg border p-3 cursor-pointer transition-colors ${
+                            full
+                              ? "border-border bg-muted/50 opacity-60 cursor-not-allowed"
+                              : isSelected
+                              ? "border-primary bg-primary/5"
+                              : "border-border bg-card hover:bg-muted/30"
+                          }`}
+                        >
+                          <Checkbox
+                            checked={isSelected}
+                            onCheckedChange={() => !full && toggleItem(itemId)}
+                            disabled={full}
+                          />
+                          <div className="flex-1 min-w-0">
+                            <span className="text-sm font-medium text-foreground">{item.item_name}</span>
+                            <p className="text-xs text-muted-foreground">
+                              {item.quantity_limit === 0
+                                ? "No limit"
+                                : `${claimed + (isSelected ? 1 : 0)}/${item.quantity_limit} claimed`}
+                              {full && " — Full"}
+                            </p>
+                          </div>
+                        </label>
+
+                        {isSelected && (
+                          <div className="animate-fade-in ml-8 mt-2">
+                            <Input
+                              placeholder="What dish? (e.g., Mac & Cheese)"
+                              value={sel?.description || ""}
+                              onChange={(e) => updateItemDescription(itemId, e.target.value)}
+                              className="text-sm"
+                            />
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Plain text input when no sign-up items configured */}
+              {potluckChoice === "bringing" && !showSignUpItems && (
+                <div className="animate-fade-in space-y-2">
                   <Input
                     placeholder="e.g., Hummus, Knafeh, Paper Plates..."
                     value={potluckDish}
@@ -380,12 +438,12 @@ export default function RSVPModal({ event, open, onOpenChange }: RSVPModalProps)
             </div>
           )}
 
-          {/* Sign-up categories with checkbox + description */}
-          {showSignUpItems && (
+          {/* Sign-up items for NON-potluck events */}
+          {!isPotluck && showSignUpItems && (
             <div className="space-y-3">
-              <Label className="block text-sm font-medium">What are you bringing?</Label>
+              <Label className="block text-sm font-medium">Sign-up Items</Label>
               <div className="space-y-2">
-                {signUpItems.map((item) => {
+                {signUpItems!.map((item) => {
                   const itemId = Number(item.id);
                   const sel = selections[itemId];
                   const isSelected = sel?.selected ?? false;
@@ -393,7 +451,7 @@ export default function RSVPModal({ event, open, onOpenChange }: RSVPModalProps)
                   const full = isItemFull(item);
 
                   return (
-                    <div key={item.id} className="space-y-2">
+                    <div key={item.id}>
                       <label
                         className={`flex items-center gap-3 rounded-lg border p-3 cursor-pointer transition-colors ${
                           full
@@ -420,9 +478,9 @@ export default function RSVPModal({ event, open, onOpenChange }: RSVPModalProps)
                       </label>
 
                       {isSelected && (
-                        <div className="ml-8">
+                        <div className="animate-fade-in ml-8 mt-2">
                           <Input
-                            placeholder="What are you bringing? (e.g., Mac & Cheese)"
+                            placeholder="Details (optional)"
                             value={sel?.description || ""}
                             onChange={(e) => updateItemDescription(itemId, e.target.value)}
                             className="text-sm"
