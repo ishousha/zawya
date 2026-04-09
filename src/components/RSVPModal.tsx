@@ -56,6 +56,7 @@ export default function RSVPModal({ event, open, onOpenChange }: RSVPModalProps)
   const [selectedDependentIds, setSelectedDependentIds] = useState<Set<string>>(new Set());
   const [selections, setSelections] = useState<Record<number, ItemSelection>>({});
   const [potluckDish, setPotluckDish] = useState("");
+  const [potluckChoice, setPotluckChoice] = useState<string | null>(null);
 
   // Sync attendee state when data loads
   useEffect(() => {
@@ -81,10 +82,16 @@ export default function RSVPModal({ event, open, onOpenChange }: RSVPModalProps)
       setSelectedMemberIds(memberIds);
       setSelectedDependentIds(depIds);
       setPotluckDish(myRSVP.specific_food_item || "");
+      if (myRSVP.specific_food_item) {
+        setPotluckChoice("bringing");
+      } else if (isEditing) {
+        setPotluckChoice("none");
+      }
     } else if (!myRSVP && user) {
       setSelectedMemberIds(new Set([user.id]));
       setSelectedDependentIds(new Set());
       setPotluckDish("");
+      setPotluckChoice(null);
     }
   }, [myRSVP, familyMembers, dependents, user]);
 
@@ -200,6 +207,16 @@ export default function RSVPModal({ event, open, onOpenChange }: RSVPModalProps)
       return;
     }
 
+    if (isPotluck && !potluckChoice) {
+      toast.error("Please select a potluck option.");
+      return;
+    }
+
+    if (isPotluck && potluckChoice === "bringing" && !potluckDish.trim()) {
+      toast.error("Please enter what dish you're bringing.");
+      return;
+    }
+
     const selArray = Object.entries(selections)
       .filter(([, val]) => val.selected)
       .map(([id, val]) => ({
@@ -216,7 +233,7 @@ export default function RSVPModal({ event, open, onOpenChange }: RSVPModalProps)
           rsvpId: myRSVP.id,
           guests_count: guestsCount,
           attending_dependents: attendingDeps,
-          specific_food_item: potluckDish.trim() || null,
+          specific_food_item: potluckChoice === "bringing" ? potluckDish.trim() || null : null,
           selections: selArray,
         });
         toast.success("RSVP updated successfully!");
@@ -224,7 +241,7 @@ export default function RSVPModal({ event, open, onOpenChange }: RSVPModalProps)
         const result = await createRSVP.mutateAsync({
           guests_count: guestsCount,
           attending_dependents: attendingDeps,
-          specific_food_item: potluckDish.trim() || null,
+          specific_food_item: potluckChoice === "bringing" ? potluckDish.trim() || null : null,
           selections: selArray,
         });
         if (result.is_waitlisted) {
@@ -297,27 +314,67 @@ export default function RSVPModal({ event, open, onOpenChange }: RSVPModalProps)
             Total attending: <span className="font-semibold text-foreground">{guestsCount}</span>
           </p>
 
-          {/* Potluck dish input */}
+          {/* Potluck contribution */}
           {isPotluck && (
-            <div className="space-y-2">
+            <div className="space-y-3">
               <Label className="block text-sm font-medium">
-                What dish are you bringing? <span className="text-xs text-muted-foreground font-normal">(Optional)</span>
+                What are you contributing to the potluck?
               </Label>
-              <Input
-                placeholder="e.g., Hummus, Knafeh, Paper Plates..."
-                value={potluckDish}
-                onChange={(e) => setPotluckDish(e.target.value)}
-                className="text-sm"
-              />
-              <p className="text-xs text-muted-foreground">
-                Your name won't be shown — only the dish appears on the menu.
-              </p>
-              {potluckDish.trim().length > 0 && isDuplicate("", potluckDish) && (
-                <div className="flex items-start gap-2 rounded-md border border-yellow-500/40 bg-yellow-50 dark:bg-yellow-950/30 px-3 py-2">
-                  <AlertTriangle className="h-4 w-4 text-yellow-600 dark:text-yellow-400 mt-0.5 shrink-0" />
-                  <p className="text-xs text-yellow-800 dark:text-yellow-300">
-                    Someone is already bringing a similar dish. Consider bringing something different to add variety!
+              <div className="space-y-2">
+                <label
+                  className={`flex items-center gap-3 rounded-lg border p-3 cursor-pointer transition-colors ${
+                    potluckChoice === "bringing"
+                      ? "border-primary bg-primary/5"
+                      : "border-border bg-card hover:bg-muted/30"
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="potluck-choice"
+                    checked={potluckChoice === "bringing"}
+                    onChange={() => setPotluckChoice("bringing")}
+                    className="accent-primary h-4 w-4"
+                  />
+                  <span className="text-sm font-medium text-foreground">I'm bringing a dish</span>
+                </label>
+
+                <label
+                  className={`flex items-center gap-3 rounded-lg border p-3 cursor-pointer transition-colors ${
+                    potluckChoice === "none"
+                      ? "border-primary bg-primary/5"
+                      : "border-border bg-card hover:bg-muted/30"
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="potluck-choice"
+                    checked={potluckChoice === "none"}
+                    onChange={() => { setPotluckChoice("none"); setPotluckDish(""); }}
+                    className="accent-primary h-4 w-4"
+                  />
+                  <span className="text-sm font-medium text-foreground">None / can't bring anything this week</span>
+                </label>
+              </div>
+
+              {potluckChoice === "bringing" && (
+                <div className="space-y-2">
+                  <Input
+                    placeholder="e.g., Hummus, Knafeh, Paper Plates..."
+                    value={potluckDish}
+                    onChange={(e) => setPotluckDish(e.target.value)}
+                    className="text-sm"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Your name won't be shown — only the dish appears on the menu.
                   </p>
+                  {potluckDish.trim().length > 0 && isDuplicate("", potluckDish) && (
+                    <div className="flex items-start gap-2 rounded-md border border-yellow-500/40 bg-yellow-50 dark:bg-yellow-950/30 px-3 py-2">
+                      <AlertTriangle className="h-4 w-4 text-yellow-600 dark:text-yellow-400 mt-0.5 shrink-0" />
+                      <p className="text-xs text-yellow-800 dark:text-yellow-300">
+                        Someone is already bringing a similar dish. Consider bringing something different to add variety!
+                      </p>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
