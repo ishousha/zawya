@@ -325,6 +325,7 @@ export type Database = {
           date_time: string
           description: string | null
           end_date_time: string | null
+          etiquette_notes: string | null
           event_type_id: string
           has_potluck: boolean | null
           host_id: string | null
@@ -352,6 +353,7 @@ export type Database = {
           date_time: string
           description?: string | null
           end_date_time?: string | null
+          etiquette_notes?: string | null
           event_type_id: string
           has_potluck?: boolean | null
           host_id?: string | null
@@ -379,6 +381,7 @@ export type Database = {
           date_time?: string
           description?: string | null
           end_date_time?: string | null
+          etiquette_notes?: string | null
           event_type_id?: string
           has_potluck?: boolean | null
           host_id?: string | null
