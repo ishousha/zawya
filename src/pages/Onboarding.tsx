@@ -163,6 +163,9 @@ export default function Onboarding() {
       return;
     }
 
+    // Mark onboarding as completed
+    await supabase.from("profiles").update({ onboarding_completed: true } as any).eq("id", user!.id);
+
     toast.success("You're all set!");
     window.dispatchEvent(new Event("profile-updated"));
     setSaving(false);
@@ -254,6 +257,10 @@ export default function Onboarding() {
       }));
       await supabase.from("dependents").insert(rows as any);
     }
+
+    // Mark onboarding as completed
+    await supabase.from("profiles").update({ onboarding_completed: true } as any).eq("id", user!.id);
+
     queryClient.invalidateQueries({ queryKey: ["dependents"] });
     queryClient.invalidateQueries({ queryKey: ["family-members"] });
     toast.success("Welcome to Zawya!");

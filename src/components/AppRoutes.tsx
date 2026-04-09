@@ -118,9 +118,8 @@ export default function AppRoutes() {
     );
   }
 
-  // Onboarding gate: user has no family_id yet → show wizard
-  // Skip if they're on /join-family (they may be accepting an invite)
-  const needsOnboarding = !profile?.family_id;
+  // Onboarding gate: check the explicit flag (not family_id which can be set later)
+  const needsOnboarding = !(profile as any)?.onboarding_completed;
 
   if (needsOnboarding) {
     return (
