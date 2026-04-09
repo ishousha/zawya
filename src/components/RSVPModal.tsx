@@ -207,9 +207,17 @@ export default function RSVPModal({ event, open, onOpenChange }: RSVPModalProps)
       return;
     }
 
-    if (isPotluck && potluckChoice === "bringing" && !showSignUpItems && !potluckDish.trim()) {
-      toast.error("Please enter what dish you're bringing, or skip the potluck.");
-      return;
+    if (isPotluck && potluckChoice === "bringing") {
+      if (showSignUpItems) {
+        const hasSelection = Object.values(selections).some((s) => s.selected);
+        if (!hasSelection) {
+          toast.error("Please select at least one potluck item, or click 'I cannot bring anything this week'.");
+          return;
+        }
+      } else if (!potluckDish.trim()) {
+        toast.error("Please enter what dish you're bringing, or click 'I cannot bring anything this week'.");
+        return;
+      }
     }
 
 
