@@ -250,12 +250,15 @@ export default function RSVPModal({ event, open, onOpenChange }: RSVPModalProps)
       }
       onOpenChange(false);
     } catch (err: any) {
+      console.error("RSVP error:", err);
       if (err?.message === "FULL") {
         toast.error("Event and Waitlist are Full", {
           description: "No more spots available at this time.",
         });
       } else {
-        toast.error("Failed to save RSVP. Please try again.");
+        toast.error("Failed to save RSVP", {
+          description: err?.message || "Please try again.",
+        });
       }
     }
   };
