@@ -34,6 +34,7 @@ export function useMyRSVP(eventId: string) {
         .select("*")
         .eq("event_id", eventId)
         .eq("user_id", user.id)
+        .neq("status", "cancelled")
         .maybeSingle();
       if (error) throw error;
       return data as RSVP | null;
@@ -81,7 +82,8 @@ export function useEventSelections(eventId: string) {
       const { data: rsvps, error: rsvpErr } = await supabase
         .from("rsvps")
         .select("id")
-        .eq("event_id", eventId);
+        .eq("event_id", eventId)
+        .neq("status", "cancelled");
       if (rsvpErr) throw rsvpErr;
       if (!rsvps || rsvps.length === 0) return [];
 
@@ -113,58 +115,6 @@ export function useMySelections(rsvpId: string | undefined) {
 }
 
 /**
- * Promotes the first waitlisted RSVP to confirmed and sends a notification email.
- */
-async function promoteNextWaitlisted(eventId: string) {
-  // Find the earliest waitlisted RSVP
-  const { data: nextRsvp, error: fetchErr } = await supabase
-    .from("rsvps")
-    .select("id, user_id")
-    .eq("event_id", eventId)
-    .eq("is_waitlisted", true)
-    .order("created_at", { ascending: true })
-    .limit(1)
-    .maybeSingle();
-  if (fetchErr || !nextRsvp) return;
-
-  // Promote to confirmed
-  const { error: updateErr } = await supabase
-    .from("rsvps")
-    .update({ is_waitlisted: false })
-    .eq("id", nextRsvp.id);
-  if (updateErr) throw updateErr;
-
-  // Get user email for notification
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("email, name")
-    .eq("id", nextRsvp.user_id)
-    .maybeSingle();
-
-  // Get event title
-  const { data: event } = await supabase
-    .from("events")
-    .select("title")
-    .eq("id", eventId)
-    .maybeSingle();
-
-  if (profile?.email && event?.title) {
-    supabase.functions.invoke("send-transactional-email", {
-      body: {
-        templateName: "event-reactivated",
-        recipientEmail: profile.email,
-        idempotencyKey: `waitlist-promote-${nextRsvp.id}-${Date.now()}`,
-        templateData: {
-          memberName: profile.name || undefined,
-          eventTitle: event.title,
-          message: "Great news! A spot has opened up and you've been moved from the waitlist to confirmed. Your RSVP is now active!",
-        },
-      },
-    }).catch((err) => console.warn("Failed to send waitlist promotion email:", err));
-  }
-}
-
-/**
  * Checks capacity & waitlist, returns whether the RSVP should be waitlisted.
  * Throws if both event and waitlist are full.
  */
@@ -172,7 +122,6 @@ async function checkWaitlistStatus(
   eventId: string,
   currentUserId: string
 ): Promise<boolean> {
-  // Fetch event capacity info
   const { data: event, error: evErr } = await supabase
     .from("events")
     .select("capacity, waitlist_capacity")
@@ -183,21 +132,18 @@ async function checkWaitlistStatus(
   const capacity = (event as any).capacity as number | null;
   const waitlistCapacity = ((event as any).waitlist_capacity ?? 0) as number;
 
-  // No capacity set = unlimited, never waitlist
   if (!capacity) return false;
 
-  // Count existing confirmed (non-waitlisted) RSVPs
+  // Count existing attending RSVPs (using status column)
   const { count: confirmedCount, error: cErr } = await supabase
     .from("rsvps")
     .select("*", { count: "exact", head: true })
     .eq("event_id", eventId)
-    .eq("is_waitlisted", false)
+    .eq("status", "attending")
     .neq("user_id", currentUserId);
   if (cErr) throw cErr;
 
   const confirmed = confirmedCount ?? 0;
-
-  // Still has room — not waitlisted
   if (confirmed < capacity) return false;
 
   // Event is full — check waitlist room
@@ -205,17 +151,16 @@ async function checkWaitlistStatus(
     .from("rsvps")
     .select("*", { count: "exact", head: true })
     .eq("event_id", eventId)
-    .eq("is_waitlisted", true)
+    .eq("status", "waitlisted")
     .neq("user_id", currentUserId);
   if (wErr) throw wErr;
 
   const waitlisted = waitlistedCount ?? 0;
-
   if (waitlisted >= waitlistCapacity) {
     throw new Error("FULL");
   }
 
-  return true; // should be waitlisted
+  return true;
 }
 
 export function useRSVPConcurrency(eventId: string) {
@@ -239,7 +184,6 @@ export function useRSVPConcurrency(eventId: string) {
     }) => {
       if (!user) throw new Error("Not authenticated");
 
-      // Check waitlist status
       const isWaitlisted = await checkWaitlistStatus(eventId, user.id);
 
       const rsvpId = crypto.randomUUID();
@@ -254,6 +198,7 @@ export function useRSVPConcurrency(eventId: string) {
         specific_food_item: input.specific_food_item ?? null,
         qr_hash: qrHash,
         is_waitlisted: isWaitlisted,
+        status: isWaitlisted ? "waitlisted" : "attending",
         attending_dependents: input.attending_dependents ?? null,
       };
 
@@ -337,6 +282,7 @@ export function useRSVPConcurrency(eventId: string) {
         attending_dependents: input.attending_dependents ?? null,
         checked_in: false,
         is_waitlisted: false,
+        status: "attending",
         qr_hash: null,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
@@ -407,19 +353,18 @@ export function useRSVPConcurrency(eventId: string) {
       // Release claimed sign-up items first
       await supabase.from("rsvp_sign_up_selections").delete().eq("rsvp_id", rsvpId);
 
+      // Soft-cancel: update status to 'cancelled' instead of deleting
       const { error } = await supabase
         .from("rsvps")
-        .delete()
+        .update({ status: "cancelled" as any, is_waitlisted: false })
         .eq("id", rsvpId)
         .eq("user_id", user.id);
       if (error) throw error;
+
       removeCachedTicket(rsvpId);
       notifyRSVPCancelled(rsvpId, eventId, user.id);
 
-      // Auto-promote first waitlisted person
-      promoteNextWaitlisted(eventId).catch((err) =>
-        console.warn("Waitlist promotion failed:", err)
-      );
+      // The DB trigger `promote_waitlisted_on_cancel` handles auto-promotion + notification
     },
     onMutate: async () => {
       await queryClient.cancelQueries({ queryKey: ["rsvps", eventId] });
