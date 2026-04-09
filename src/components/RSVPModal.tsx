@@ -244,7 +244,7 @@ export default function RSVPModal({ event, open, onOpenChange }: RSVPModalProps)
           specific_food_item: potluckChoice === "bringing" ? potluckDish.trim() || null : null,
           selections: selArray,
         });
-        if (result.is_waitlisted) {
+        if (result.status === "waitlisted") {
           toast.success("Added to the Waitlist", {
             description: "You'll be notified if a spot opens up.",
           });
@@ -471,15 +471,15 @@ export default function RSVPModal({ event, open, onOpenChange }: RSVPModalProps)
           {isEditing && (
             <AlertDialog>
               <AlertDialogTrigger asChild>
-                <Button variant="outline" disabled={isPending} className="text-destructive border-destructive/30 hover:bg-destructive/10">
-                  Cancel RSVP
+                <Button variant="destructive" disabled={isPending} className="w-full">
+                  Cancel My RSVP
                 </Button>
               </AlertDialogTrigger>
               <AlertDialogContent>
                 <AlertDialogHeader>
                   <AlertDialogTitle>Cancel your RSVP?</AlertDialogTitle>
                   <AlertDialogDescription>
-                    This will remove your reservation for <span className="font-semibold">{event.title}</span> and release any sign-up items you claimed. This action cannot be undone.
+                    Are you sure? This will release your spot and any potluck item you signed up for. This action cannot be undone.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
