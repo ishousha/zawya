@@ -975,6 +975,10 @@ export type Database = {
           read_ct: number
         }[]
       }
+      verify_checkin_pin: {
+        Args: { _event_id: string; _pin: string }
+        Returns: boolean
+      }
     }
     Enums: {
       app_role:
