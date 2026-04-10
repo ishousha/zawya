@@ -9,7 +9,7 @@ export function useNotifications() {
   const { data: notifications = [], isLoading } = useQuery({
     queryKey: ["notifications", user?.id],
     enabled: !!user,
-    staleTime: 60 * 1000,
+    staleTime: 2 * 60 * 1000,
     gcTime: 5 * 60 * 1000,
     queryFn: async () => {
       const { data, error } = await supabase
@@ -21,7 +21,7 @@ export function useNotifications() {
       if (error) throw error;
       return data;
     },
-    refetchInterval: 30000, // poll every 30s
+    refetchInterval: 60_000, // poll every 60s instead of 30s
   });
 
   const unreadCount = notifications.filter((n: any) => !n.is_read).length;
