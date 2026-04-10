@@ -401,9 +401,9 @@ export default function AdminAnalytics() {
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
         <KpiCard icon={<Users className="h-5 w-5 text-primary" />} label="Total Registered" value={totalRegistered} />
         <KpiCard icon={<UserCheck className="h-5 w-5 text-primary" />} label="Active Members" value={approved} />
-        <KpiCard icon={<TrendingUp className="h-5 w-5 text-emerald-600" />} label="Total Mureeds" value={totalMureeds} />
+        <KpiCard icon={<TrendingUp className="h-5 w-5 text-primary" />} label="Total Mureeds" value={totalMureeds} />
         <KpiCard icon={<Users className="h-5 w-5 text-accent" />} label="Total Guests" value={totalGuests} />
-        <KpiCard icon={<Users className="h-5 w-5 text-amber-500" />} label="Pending" value={pending} />
+        <KpiCard icon={<Users className="h-5 w-5 text-muted-foreground" />} label="Pending" value={pending} />
         <KpiCard icon={<Home className="h-5 w-5 text-primary" />} label="Families" value={totalFamilies} />
         <KpiCard icon={<Baby className="h-5 w-5 text-accent" />} label="Dependents" value={totalDependents} />
         <KpiCard icon={<BarChart3 className="h-5 w-5 text-primary" />} label="Avg Attendance Rate" value={`${attendanceRate}%`} />
