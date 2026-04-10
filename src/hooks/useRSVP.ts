@@ -12,6 +12,8 @@ type RSVPInsert = Database["public"]["Tables"]["rsvps"]["Insert"];
 export function useEventRSVPs(eventId: string) {
   return useQuery({
     queryKey: ["rsvps", eventId],
+    staleTime: 2 * 60 * 1000,
+    gcTime: 5 * 60 * 1000,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("rsvps")
@@ -27,6 +29,8 @@ export function useMyRSVP(eventId: string) {
   const { user } = useAuth();
   return useQuery({
     queryKey: ["my-rsvp", eventId, user?.id],
+    staleTime: 2 * 60 * 1000,
+    gcTime: 5 * 60 * 1000,
     queryFn: async () => {
       if (!user) return null;
       const { data, error } = await supabase
@@ -47,6 +51,8 @@ export function useMyRSVP(eventId: string) {
 export function usePotluckConfig(eventId: string) {
   return useQuery({
     queryKey: ["potluck-config", eventId],
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("potluck_config")
@@ -62,6 +68,8 @@ export function usePotluckConfig(eventId: string) {
 export function useSignUpItems(eventId: string) {
   return useQuery({
     queryKey: ["sign-up-items", eventId],
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("event_sign_up_items")
@@ -78,7 +86,10 @@ export function useSignUpItems(eventId: string) {
 export function useEventSelections(eventId: string) {
   return useQuery({
     queryKey: ["event-selections", eventId],
+    staleTime: 2 * 60 * 1000,
+    gcTime: 5 * 60 * 1000,
     queryFn: async () => {
+      // Fetch RSVPs and selections in parallel once we have rsvp IDs
       const { data: rsvps, error: rsvpErr } = await supabase
         .from("rsvps")
         .select("id")
@@ -103,6 +114,8 @@ export function useMySelections(rsvpId: string | undefined) {
   return useQuery({
     queryKey: ["my-selections", rsvpId],
     enabled: !!rsvpId,
+    staleTime: 2 * 60 * 1000,
+    gcTime: 5 * 60 * 1000,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("rsvp_sign_up_selections")
