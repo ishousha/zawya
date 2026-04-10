@@ -38,6 +38,8 @@ export default function SpeakersDirectory() {
   const { data: speakerEvents } = useQuery({
     queryKey: ["speaker-events-directory"],
     staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("event_speakers")

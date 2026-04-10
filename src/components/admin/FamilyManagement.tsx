@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { useDebounce } from "@/hooks/useDebounce";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -155,12 +156,14 @@ export default function FamilyManagement() {
   const getMembersOfFamily = (familyId: string) =>
     profiles?.filter((p) => p.family_id === familyId) ?? [];
 
+  const debouncedTableSearch = useDebounce(tableSearch, 300);
+
   const filteredFamilies = useMemo(() => {
     if (!families) return [];
-    if (!tableSearch.trim()) return families;
-    const q = tableSearch.toLowerCase();
+    if (!debouncedTableSearch.trim()) return families;
+    const q = debouncedTableSearch.toLowerCase();
     return families.filter((f) => f.name.toLowerCase().includes(q));
-  }, [families, tableSearch]);
+  }, [families, debouncedTableSearch]);
 
   // Check if the family search term matches an existing family (for inline creation)
   const familySearchTrimmed = familySearch.trim();

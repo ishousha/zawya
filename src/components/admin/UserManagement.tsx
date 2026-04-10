@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
+import { useDebounce } from "@/hooks/useDebounce";
 import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
@@ -298,10 +299,12 @@ export default function UserManagement() {
     onError: (err: Error) => toast.error(err.message || "Failed to delete user"),
   });
 
+  const debouncedSearch = useDebounce(search, 300);
+
   const filteredProfiles = useMemo(() => {
     if (!profiles) return [];
     return profiles.filter((p) => {
-      const q = search.toLowerCase();
+      const q = debouncedSearch.toLowerCase();
       const matchesSearch =
         !q ||
         (p.name || "").toLowerCase().includes(q) ||
@@ -312,7 +315,7 @@ export default function UserManagement() {
       const matchesEvent = eventFilter === "all" || (userRsvpMap[p.id]?.some((e) => e.event_id === eventFilter));
       return matchesSearch && matchesRole && matchesEvent;
     });
-  }, [profiles, search, roleFilter, familyMap]);
+  }, [profiles, debouncedSearch, roleFilter, familyMap]);
 
   if (loadingProfiles || loadingGuests) {
     return (

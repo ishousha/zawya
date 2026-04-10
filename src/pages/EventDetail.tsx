@@ -32,6 +32,8 @@ export default function EventDetail() {
   const { data: event, isLoading: eventLoading } = useQuery({
     queryKey: ["event-detail", eventId],
     enabled: !!eventId,
+    staleTime: 2 * 60 * 1000,
+    gcTime: 5 * 60 * 1000,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("events")
