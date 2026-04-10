@@ -36,20 +36,17 @@ export default function SelfCheckinModal({
     setError("");
 
     try {
-      // Validate PIN against the event
-      const { data: event, error: fetchErr } = await supabase
-        .from("events")
-        .select("checkin_pin")
-        .eq("id", eventId)
-        .single();
+      // Validate PIN server-side (never exposes real PIN to client)
+      const { data: pinValid, error: pinErr } = await supabase
+        .rpc("verify_checkin_pin", { _event_id: eventId, _pin: enteredPin });
 
-      if (fetchErr || !event) {
+      if (pinErr) {
         setError("Could not verify PIN. Please try again.");
         setChecking(false);
         return;
       }
 
-      if (event.checkin_pin !== enteredPin) {
+      if (!pinValid) {
         setError("Incorrect PIN. Please check the poster and try again.");
         setPin("");
         setChecking(false);

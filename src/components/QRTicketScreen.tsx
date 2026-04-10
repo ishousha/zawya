@@ -70,19 +70,16 @@ export default function QRTicketScreen({ event, rsvp, profileName, isOffline, on
         return;
       }
 
-      // Validate PIN against event
-      const { data: eventData, error: fetchErr } = await supabase
-        .from("events")
-        .select("checkin_pin")
-        .eq("id", event.id)
-        .single();
+      // Validate PIN server-side (never exposes real PIN to client)
+      const { data: pinValid, error: pinErr } = await supabase
+        .rpc("verify_checkin_pin", { _event_id: event.id, _pin: pin });
 
-      if (fetchErr || !eventData) {
+      if (pinErr) {
         toast.error("Could not verify PIN.");
         return;
       }
 
-      if (eventData.checkin_pin !== pin) {
+      if (!pinValid) {
         toast.error("PIN mismatch. Make sure you're scanning the correct event poster.");
         return;
       }
