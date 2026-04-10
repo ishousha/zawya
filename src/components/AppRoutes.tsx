@@ -1,29 +1,41 @@
 import { Routes, Route, Navigate, useLocation } from "react-router-dom";
-import { useEffect, useMemo } from "react";
+import { lazy, Suspense, useEffect, useMemo } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import LoginPage from "@/pages/Login";
 import { usePendingUserAlerts } from "@/hooks/usePendingUserAlerts";
-import Rejected from "@/pages/Rejected";
-import CompleteProfile from "@/pages/CompleteProfile";
-import PendingApproval from "@/pages/PendingApproval";
-import Suspended from "@/pages/Suspended";
-import HomeFeed from "@/pages/HomeFeed";
-import EventDetail from "@/pages/EventDetail";
-import ProfilePage from "@/pages/Profile";
-import AdminDashboard from "@/pages/AdminDashboard";
-import Unsubscribe from "@/pages/Unsubscribe";
-import NotificationsPage from "@/pages/Notifications";
-import CommunityGuidelines from "@/pages/CommunityGuidelines";
-import JoinFamily, { consumePendingInviteToken } from "@/pages/JoinFamily";
-import Onboarding from "@/pages/Onboarding";
-import BottomNav from "@/components/BottomNav";
-import AppHeader from "@/components/AppHeader";
-import NotFound from "@/pages/NotFound";
-import Library from "@/pages/Library";
-import SpeakersDirectory from "@/pages/SpeakersDirectory";
-import SpeakerProfile from "@/pages/SpeakerProfile";
 import { Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+
+// Eagerly loaded (needed immediately for unauthenticated users)
+import LoginPage from "@/pages/Login";
+import AppHeader from "@/components/AppHeader";
+import BottomNav from "@/components/BottomNav";
+
+// Lazy-loaded pages
+const Rejected = lazy(() => import("@/pages/Rejected"));
+const CompleteProfile = lazy(() => import("@/pages/CompleteProfile"));
+const PendingApproval = lazy(() => import("@/pages/PendingApproval"));
+const Suspended = lazy(() => import("@/pages/Suspended"));
+const HomeFeed = lazy(() => import("@/pages/HomeFeed"));
+const EventDetail = lazy(() => import("@/pages/EventDetail"));
+const ProfilePage = lazy(() => import("@/pages/Profile"));
+const AdminDashboard = lazy(() => import("@/pages/AdminDashboard"));
+const Unsubscribe = lazy(() => import("@/pages/Unsubscribe"));
+const NotificationsPage = lazy(() => import("@/pages/Notifications"));
+const CommunityGuidelines = lazy(() => import("@/pages/CommunityGuidelines"));
+const JoinFamily = lazy(() => import("@/pages/JoinFamily"));
+const Onboarding = lazy(() => import("@/pages/Onboarding"));
+const NotFound = lazy(() => import("@/pages/NotFound"));
+const Library = lazy(() => import("@/pages/Library"));
+const SpeakersDirectory = lazy(() => import("@/pages/SpeakersDirectory"));
+const SpeakerProfile = lazy(() => import("@/pages/SpeakerProfile"));
+
+function LazyFallback() {
+  return (
+    <div className="flex min-h-[50vh] items-center justify-center">
+      <Loader2 className="h-6 w-6 animate-spin text-primary" />
+    </div>
+  );
+}
 
 function usePendingInviteRedirect() {
   const { session, loading } = useAuth();
@@ -59,29 +71,35 @@ export default function AppRoutes() {
   // Not logged in — allow /join-family and /unsubscribe
   if (!session) {
     return (
-      <Routes>
-        <Route path="/join-family" element={<JoinFamily />} />
-        <Route path="/unsubscribe" element={<Unsubscribe />} />
-        <Route path="*" element={<LoginPage />} />
-      </Routes>
+      <Suspense fallback={<LazyFallback />}>
+        <Routes>
+          <Route path="/join-family" element={<JoinFamily />} />
+          <Route path="/unsubscribe" element={<Unsubscribe />} />
+          <Route path="*" element={<LoginPage />} />
+        </Routes>
+      </Suspense>
     );
   }
 
   // Suspended users are blocked entirely
   if (profile?.role === "suspended") {
     return (
-      <Routes>
-        <Route path="*" element={<Suspended />} />
-      </Routes>
+      <Suspense fallback={<LazyFallback />}>
+        <Routes>
+          <Route path="*" element={<Suspended />} />
+        </Routes>
+      </Suspense>
     );
   }
 
   // Rejected users see a final decline screen
   if ((profile?.role as string) === "rejected") {
     return (
-      <Routes>
-        <Route path="*" element={<Rejected />} />
-      </Routes>
+      <Suspense fallback={<LazyFallback />}>
+        <Routes>
+          <Route path="*" element={<Rejected />} />
+        </Routes>
+      </Suspense>
     );
   }
 
@@ -93,28 +111,34 @@ export default function AppRoutes() {
 
     if (!needsOnboarding && !(profile as any).terms_accepted) {
       return (
-        <Routes>
-          {joinFamilyRoute}
-          <Route path="*" element={<CommunityGuidelines />} />
-        </Routes>
+        <Suspense fallback={<LazyFallback />}>
+          <Routes>
+            {joinFamilyRoute}
+            <Route path="*" element={<CommunityGuidelines />} />
+          </Routes>
+        </Suspense>
       );
     }
 
     return (
-      <Routes>
-        {joinFamilyRoute}
-        <Route path="*" element={needsOnboarding ? <CompleteProfile /> : <PendingApproval />} />
-      </Routes>
+      <Suspense fallback={<LazyFallback />}>
+        <Routes>
+          {joinFamilyRoute}
+          <Route path="*" element={needsOnboarding ? <CompleteProfile /> : <PendingApproval />} />
+        </Routes>
+      </Suspense>
     );
   }
 
   // Terms gate for approved/admin users
   if (!(profile as any)?.terms_accepted) {
     return (
-      <Routes>
-        {joinFamilyRoute}
-        <Route path="*" element={<CommunityGuidelines />} />
-      </Routes>
+      <Suspense fallback={<LazyFallback />}>
+        <Routes>
+          {joinFamilyRoute}
+          <Route path="*" element={<CommunityGuidelines />} />
+        </Routes>
+      </Suspense>
     );
   }
 
@@ -123,11 +147,13 @@ export default function AppRoutes() {
 
   if (needsOnboarding) {
     return (
-      <Routes>
-        {joinFamilyRoute}
-        <Route path="/onboarding" element={<Onboarding />} />
-        <Route path="*" element={<Onboarding />} />
-      </Routes>
+      <Suspense fallback={<LazyFallback />}>
+        <Routes>
+          {joinFamilyRoute}
+          <Route path="/onboarding" element={<Onboarding />} />
+          <Route path="*" element={<Onboarding />} />
+        </Routes>
+      </Suspense>
     );
   }
 
@@ -164,35 +190,37 @@ function StableLayout({ profile }: { profile: any }) {
     <>
       <AppHeader />
 
-      {/* Stable tab pages — kept mounted, hidden via CSS */}
-      <div style={{ display: stableTab === "home" ? "block" : "none" }}>
-        {visitedRef.has("home") && <HomeFeed />}
-      </div>
-      <div style={{ display: stableTab === "library" ? "block" : "none" }}>
-        {visitedRef.has("library") && <Library />}
-      </div>
-      {(isAdmin || isModerator) && (
-        <div style={{ display: stableTab === "admin" ? "block" : "none" }}>
-          {visitedRef.has("admin") && <AdminDashboard />}
+      <Suspense fallback={<LazyFallback />}>
+        {/* Stable tab pages — kept mounted, hidden via CSS */}
+        <div style={{ display: stableTab === "home" ? "block" : "none" }}>
+          {visitedRef.has("home") && <HomeFeed />}
         </div>
-      )}
-      <div style={{ display: stableTab === "profile" ? "block" : "none" }}>
-        {visitedRef.has("profile") && <ProfilePage />}
-      </div>
+        <div style={{ display: stableTab === "library" ? "block" : "none" }}>
+          {visitedRef.has("library") && <Library />}
+        </div>
+        {(isAdmin || isModerator) && (
+          <div style={{ display: stableTab === "admin" ? "block" : "none" }}>
+            {visitedRef.has("admin") && <AdminDashboard />}
+          </div>
+        )}
+        <div style={{ display: stableTab === "profile" ? "block" : "none" }}>
+          {visitedRef.has("profile") && <ProfilePage />}
+        </div>
 
-      {/* Non-tab routes render normally */}
-      {!isStableRoute && (
-        <Routes>
-          <Route path="/events/:eventId" element={<EventDetail />} />
-          <Route path="/speakers" element={<SpeakersDirectory />} />
-          <Route path="/speakers/:speakerId" element={<SpeakerProfile />} />
-          <Route path="/notifications" element={<NotificationsPage />} />
-          <Route path="/guidelines" element={<CommunityGuidelines readOnly />} />
-          <Route path="/join-family" element={<JoinFamily />} />
-          <Route path="/unsubscribe" element={<Unsubscribe />} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      )}
+        {/* Non-tab routes render normally */}
+        {!isStableRoute && (
+          <Routes>
+            <Route path="/events/:eventId" element={<EventDetail />} />
+            <Route path="/speakers" element={<SpeakersDirectory />} />
+            <Route path="/speakers/:speakerId" element={<SpeakerProfile />} />
+            <Route path="/notifications" element={<NotificationsPage />} />
+            <Route path="/guidelines" element={<CommunityGuidelines readOnly />} />
+            <Route path="/join-family" element={<JoinFamily />} />
+            <Route path="/unsubscribe" element={<Unsubscribe />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        )}
+      </Suspense>
 
       <BottomNav />
     </>
