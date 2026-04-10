@@ -63,6 +63,8 @@ export default function Library() {
   const { data: resources, isLoading } = useQuery({
     queryKey: ["resources"],
     staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("resources")
@@ -140,6 +142,8 @@ export default function Library() {
   const { data: pastEvents, isLoading: pastLoading } = useQuery({
     queryKey: ["past-events"],
     staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
     queryFn: async () => {
       const now = new Date().toISOString();
       const fallbackCutoff = new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString();
