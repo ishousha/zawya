@@ -227,7 +227,7 @@ export default function EventCard({ event, onShowTicket, isPast = false }: Event
         </div>
 
         {/* Speaker Badge */}
-        <SpeakerBadge eventId={event.id} prefetchedSpeakers={propSpeakers} />
+        <SpeakerBadge eventId={event.id} />
         {!isCancelled && isAttending && event.location && (
           <div className="mt-2 space-y-1">
             <p className="text-sm text-foreground inline-flex items-center gap-1.5">
@@ -401,7 +401,7 @@ export default function EventCard({ event, onShowTicket, isPast = false }: Event
 
         {/* Potluck Menu — anonymous dish list */}
         {!isPast && !isCancelled && event.has_potluck && (
-          <PotluckMenu eventId={event.id} prefetchedDishes={propDishes} />
+          <PotluckMenu eventId={event.id} />
         )}
         </div>
       </div>
