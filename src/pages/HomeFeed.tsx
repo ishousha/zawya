@@ -1,8 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useMyRSVP } from "@/hooks/useRSVP";
+import { useBatchEventRSVPs, useBatchEventSpeakers, useBatchPotluckDishes } from "@/hooks/useBatchRSVPs";
 import EventCard from "@/components/EventCard";
 import QRTicketScreen from "@/components/QRTicketScreen";
 import InstallAppBanner from "@/components/InstallAppBanner";
@@ -13,7 +14,7 @@ import type { Database } from "@/integrations/supabase/types";
 type Event = Database["public"]["Tables"]["events"]["Row"];
 
 export default function HomeFeed() {
-  const { profile } = useAuth();
+  const { profile, user } = useAuth();
   const [ticketEvent, setTicketEvent] = useState<Event | null>(null);
 
   // Clean expired tickets on mount
@@ -26,7 +27,6 @@ export default function HomeFeed() {
     staleTime: 60_000,
     queryFn: async () => {
       const now = new Date().toISOString();
-      // Fallback: show events for 4 hours after start if no end_date_time
       const fallbackCutoff = new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString();
 
       const { data, error } = await supabase
@@ -45,11 +45,34 @@ export default function HomeFeed() {
   const isAdminOrMod = profile?.role === "admin" || profile?.role === "moderator";
   const isMureed = (profile as any)?.is_mureed ?? false;
 
-  const visibleEvents = events?.filter((e) => {
-    // Hide mureeds_only events from non-mureeds (treat null as false)
+  const visibleEvents = useMemo(() => events?.filter((e) => {
     if ((e as any).mureeds_only === true && !isMureed && !isAdminOrMod) return false;
     return true;
-  });
+  }), [events, isMureed, isAdminOrMod]);
+
+  const eventIds = useMemo(() => visibleEvents?.map((e) => e.id) ?? [], [visibleEvents]);
+
+  // Batch queries: 3 requests instead of N*4
+  const { data: batchRsvps } = useBatchEventRSVPs(eventIds);
+  const { data: batchSpeakers } = useBatchEventSpeakers(eventIds);
+
+  // Only fetch potluck dishes for events that have potluck
+  const potluckEventIds = useMemo(
+    () => visibleEvents?.filter((e) => e.has_potluck && e.status !== "cancelled").map((e) => e.id) ?? [],
+    [visibleEvents]
+  );
+  const { data: batchDishes } = useBatchPotluckDishes(potluckEventIds);
+
+  // Derive my RSVPs from the batch data
+  const myRsvpMap = useMemo(() => {
+    if (!batchRsvps || !user) return {};
+    const map: Record<string, any> = {};
+    for (const [eventId, rsvps] of Object.entries(batchRsvps)) {
+      const mine = rsvps.find((r) => r.user_id === user.id && r.status !== "cancelled");
+      if (mine) map[eventId] = mine;
+    }
+    return map;
+  }, [batchRsvps, user]);
 
   // If viewing a ticket, show QR screen
   if (ticketEvent) {
@@ -60,13 +83,6 @@ export default function HomeFeed() {
 
   return (
     <div className="min-h-screen bg-background pb-24">
-      <header className="border-b border-border bg-card px-4 pb-4 pt-6">
-        <h1 className="font-heading text-2xl font-bold text-foreground">Zawya</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Welcome back{profile?.name ? `, ${profile.name}` : ""}
-        </p>
-      </header>
-
       <InstallAppBanner />
 
       <main className="mx-auto max-w-lg px-4 py-6">
@@ -85,6 +101,10 @@ export default function HomeFeed() {
                 key={event.id}
                 event={event}
                 onShowTicket={(e) => setTicketEvent(e)}
+                myRSVP={myRsvpMap[event.id] ?? null}
+                allRsvps={batchRsvps?.[event.id] ?? []}
+                speakers={batchSpeakers?.[event.id] ?? []}
+                potluckDishes={batchDishes?.[event.id] ?? []}
               />
             ))}
           </div>
@@ -110,7 +130,6 @@ function TicketView({ event, onBack }: { event: Event; onBack: () => void }) {
     }
   }, [myRSVP, event, profile?.name]);
 
-  // No RSVP at all — navigate back (must be a hook, not a side-effect in render)
   useEffect(() => {
     if (!isLoading && !myRSVP && !isError) {
       onBack();
@@ -125,12 +144,10 @@ function TicketView({ event, onBack }: { event: Event; onBack: () => void }) {
     );
   }
 
-  // Online and have RSVP
   if (myRSVP) {
     return <QRTicketScreen event={event} rsvp={myRSVP} onBack={onBack} />;
   }
 
-  // No RSVP from network — try offline cache
   const cached = getCachedTicketByEvent(event.id);
   if (cached) {
     return (
@@ -144,7 +161,6 @@ function TicketView({ event, onBack }: { event: Event; onBack: () => void }) {
     );
   }
 
-  // Fallback while the useEffect navigates back
   return (
     <div className="flex min-h-screen items-center justify-center bg-background">
       <Loader2 className="h-6 w-6 animate-spin text-primary" />
