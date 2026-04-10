@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -17,6 +17,7 @@ export default function HomeFeed() {
   const { profile, user } = useAuth();
   const queryClient = useQueryClient();
   const [ticketEvent, setTicketEvent] = useState<Event | null>(null);
+  const handleShowTicket = useCallback((e: Event) => setTicketEvent(e), []);
 
   useEffect(() => {
     cleanExpiredTickets();
@@ -167,7 +168,7 @@ export default function HomeFeed() {
               <EventCard
                 key={event.id}
                 event={event}
-                onShowTicket={(e) => setTicketEvent(e)}
+                onShowTicket={handleShowTicket}
               />
             ))}
           </div>
