@@ -42,7 +42,7 @@ function useAllCounts() {
     queryFn: async () => {
       const [familiesRes, dependentsRes] = await Promise.all([
         supabase.from("families").select("id", { count: "exact", head: true }),
-        supabase.from("dependents").select("id, parent_id, created_at"),
+        supabase.from("dependents").select("id, parent_id, created_at, gender, age_group"),
       ]);
       return {
         totalFamilies: familiesRes.count ?? 0,
