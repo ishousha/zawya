@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { toast } from "sonner";
 import { Mail, Loader2, ArrowLeft, RefreshCw, Clock } from "lucide-react";
-import zawyaLogo from "@/assets/logo.png";
+import zawyaLogo from "@/assets/logo.webp";
 
 type Stage = "email" | "otp" | "magic-link";
 
