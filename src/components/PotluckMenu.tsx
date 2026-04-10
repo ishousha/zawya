@@ -5,6 +5,7 @@ import { useMemo } from "react";
 
 interface PotluckMenuProps {
   eventId: string;
+  prefetchedDishes?: string[];
 }
 
 /** Shuffles an array using Fisher-Yates */
@@ -17,9 +18,10 @@ function shuffle<T>(arr: T[]): T[] {
   return a;
 }
 
-export default function PotluckMenu({ eventId }: PotluckMenuProps) {
-  const { data: dishes } = useQuery({
+export default function PotluckMenu({ eventId, prefetchedDishes }: PotluckMenuProps) {
+  const { data: fetchedDishes } = useQuery({
     queryKey: ["potluck-menu", eventId],
+    enabled: !prefetchedDishes,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("rsvps")
@@ -34,6 +36,7 @@ export default function PotluckMenu({ eventId }: PotluckMenuProps) {
     },
   });
 
+  const dishes = prefetchedDishes ?? fetchedDishes;
   const shuffledDishes = useMemo(() => shuffle(dishes ?? []), [dishes]);
 
   return (
