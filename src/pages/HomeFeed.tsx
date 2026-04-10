@@ -6,6 +6,7 @@ import { useMyRSVP } from "@/hooks/useRSVP";
 import EventCard from "@/components/EventCard";
 import QRTicketScreen from "@/components/QRTicketScreen";
 import InstallAppBanner from "@/components/InstallAppBanner";
+import { Loader2 } from "lucide-react";
 import EventCardSkeleton from "@/components/EventCardSkeleton";
 import { cacheTicket, getCachedTicketByEvent, cleanExpiredTickets } from "@/lib/offline-ticket-cache";
 import type { Database } from "@/integrations/supabase/types";
