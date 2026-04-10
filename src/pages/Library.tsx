@@ -1,4 +1,5 @@
 import { useState, useMemo, useRef, useEffect } from "react";
+import { useDebounce } from "@/hooks/useDebounce";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
@@ -91,14 +92,16 @@ export default function Library() {
     return Array.from(cats).sort();
   }, [resources]);
 
+  const debouncedSearch = useDebounce(search, 300);
+
   const filtered = useMemo(() => {
     if (!resources) return [];
     let list = resources;
     if (activeCategory !== "All") {
       list = list.filter((r) => (r.category || "General") === activeCategory);
     }
-    if (search.trim()) {
-      const q = search.toLowerCase();
+    if (debouncedSearch.trim()) {
+      const q = debouncedSearch.toLowerCase();
       list = list.filter(
         (r) =>
           r.title.toLowerCase().includes(q) ||
@@ -106,7 +109,7 @@ export default function Library() {
       );
     }
     return list;
-  }, [resources, search, activeCategory]);
+  }, [resources, debouncedSearch, activeCategory]);
 
   useEffect(() => {
     if (!pillsRef.current) return;
