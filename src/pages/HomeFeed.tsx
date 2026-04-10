@@ -17,6 +17,7 @@ export default function HomeFeed() {
   const { profile, user } = useAuth();
   const queryClient = useQueryClient();
   const [ticketEvent, setTicketEvent] = useState<Event | null>(null);
+  const handleShowTicket = useCallback((e: Event) => setTicketEvent(e), []);
 
   useEffect(() => {
     cleanExpiredTickets();
