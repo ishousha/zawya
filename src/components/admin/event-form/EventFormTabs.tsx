@@ -408,9 +408,11 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
             <SettingsTab form={form} setForm={setForm} isEditing={!isNewEvent} />
           </TabsContent>
         </Tabs>
+      </CardContent>
 
+      <div className="px-6 pb-4 pt-2 border-t bg-card shrink-0">
         <Button
-          className="w-full h-12 mt-4"
+          className="w-full h-12"
           onClick={() => {
             if (form.end_date_time && form.end_date_time <= form.date_time) {
               toast.error("End time must be after start time");
@@ -423,9 +425,9 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
           {mutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
           {isNewEvent ? "Create Event" : "Update Event"}
         </Button>
-      </CardContent>
+      </div>
 
-      <AlertDialog open={showCloseConfirm} onOpenChange={setShowCloseConfirm}>
+      <AlertDialog open={showCloseConfirm} onOpenChange={cancelClose}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Discard unsaved changes?</AlertDialogTitle>
@@ -434,7 +436,7 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Keep Editing</AlertDialogCancel>
+            <AlertDialogCancel onClick={cancelClose}>Keep Editing</AlertDialogCancel>
             <AlertDialogAction onClick={confirmClose} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
               Discard
             </AlertDialogAction>
