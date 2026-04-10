@@ -581,7 +581,7 @@ export default function AdminAnalytics() {
 
 // ── Sub-components ──────────────────────────────────────────
 
-function KpiCard({ icon, label, value }: { icon: React.ReactNode; label: string; value: number }) {
+function KpiCard({ icon, label, value }: { icon: React.ReactNode; label: string; value: number | string }) {
   return (
     <Card>
       <CardContent className="p-3 flex items-center gap-3">
