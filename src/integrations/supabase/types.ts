@@ -49,28 +49,34 @@ export type Database = {
       }
       dependents: {
         Row: {
+          age_group: string | null
           created_at: string | null
           date_of_birth: string | null
           family_id: string | null
           first_name: string
+          gender: string | null
           id: string
           parent_id: string | null
           type: string
         }
         Insert: {
+          age_group?: string | null
           created_at?: string | null
           date_of_birth?: string | null
           family_id?: string | null
           first_name: string
+          gender?: string | null
           id?: string
           parent_id?: string | null
           type?: string
         }
         Update: {
+          age_group?: string | null
           created_at?: string | null
           date_of_birth?: string | null
           family_id?: string | null
           first_name?: string
+          gender?: string | null
           id?: string
           parent_id?: string | null
           type?: string
@@ -631,6 +637,7 @@ export type Database = {
           email: string | null
           family_id: string | null
           family_name: string | null
+          gender: string | null
           id: string
           is_mureed: boolean
           name: string | null
@@ -650,6 +657,7 @@ export type Database = {
           email?: string | null
           family_id?: string | null
           family_name?: string | null
+          gender?: string | null
           id: string
           is_mureed?: boolean
           name?: string | null
@@ -669,6 +677,7 @@ export type Database = {
           email?: string | null
           family_id?: string | null
           family_name?: string | null
+          gender?: string | null
           id?: string
           is_mureed?: boolean
           name?: string | null
