@@ -314,7 +314,11 @@ export function useRSVPConcurrency(eventId: string) {
       }
       queryClient.setQueryData(["my-rsvp", eventId, user?.id], null);
     },
-    onSettled: invalidateAll,
+    onSettled: () => {
+      invalidateAll();
+      queryClient.invalidateQueries({ queryKey: ["potluck-menu", eventId] });
+      queryClient.invalidateQueries({ queryKey: ["events"] });
+    },
   });
 
   const updateRSVP = useMutation({
@@ -358,7 +362,11 @@ export function useRSVPConcurrency(eventId: string) {
       notifyRSVPUpdated(data.id, eventId, user.id);
       return data as RSVP;
     },
-    onSettled: invalidateAll,
+    onSettled: () => {
+      invalidateAll();
+      queryClient.invalidateQueries({ queryKey: ["potluck-menu", eventId] });
+      queryClient.invalidateQueries({ queryKey: ["events"] });
+    },
   });
 
   const cancelRSVP = useMutation({
@@ -395,7 +403,11 @@ export function useRSVPConcurrency(eventId: string) {
         queryClient.setQueryData(["rsvps", eventId], context.previousRSVPs);
       }
     },
-    onSettled: invalidateAll,
+    onSettled: () => {
+      invalidateAll();
+      queryClient.invalidateQueries({ queryKey: ["potluck-menu", eventId] });
+      queryClient.invalidateQueries({ queryKey: ["events"] });
+    },
   });
 
   return { createRSVP, updateRSVP, cancelRSVP };

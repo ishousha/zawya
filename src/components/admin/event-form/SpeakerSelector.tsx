@@ -1,8 +1,12 @@
+import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Mic } from "lucide-react";
+import { Mic, Check, ChevronsUpDown, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 
 interface SpeakerSelectorProps {
   selectedIds: string[];
@@ -10,8 +14,11 @@ interface SpeakerSelectorProps {
 }
 
 export default function SpeakerSelector({ selectedIds, onChange }: SpeakerSelectorProps) {
+  const [open, setOpen] = useState(false);
+
   const { data: speakers } = useQuery({
     queryKey: ["speakers"],
+    staleTime: 5 * 60 * 1000,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("speakers")
@@ -21,6 +28,11 @@ export default function SpeakerSelector({ selectedIds, onChange }: SpeakerSelect
       return data;
     },
   });
+
+  const selectedSpeakers = useMemo(
+    () => (speakers ?? []).filter((s) => selectedIds.includes(s.id)),
+    [speakers, selectedIds]
+  );
 
   const toggle = (id: string) => {
     if (selectedIds.includes(id)) {
@@ -40,20 +52,67 @@ export default function SpeakerSelector({ selectedIds, onChange }: SpeakerSelect
         <Mic className="h-4 w-4 text-primary" />
         <h3 className="text-sm font-semibold text-foreground">Featured Speakers</h3>
       </div>
-      <div className="space-y-2 rounded-lg border border-border p-3">
-        {speakers.map((s) => (
-          <label
-            key={s.id}
-            className="flex items-center gap-3 cursor-pointer rounded-md px-2 py-1.5 hover:bg-muted/50 transition-colors"
+
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <Button
+            variant="outline"
+            role="combobox"
+            aria-expanded={open}
+            className="w-full justify-between h-auto min-h-10 font-normal"
           >
-            <Checkbox
-              checked={selectedIds.includes(s.id)}
-              onCheckedChange={() => toggle(s.id)}
-            />
-            <span className="text-sm text-foreground">{s.name}</span>
-          </label>
-        ))}
-      </div>
+            <span className="text-sm text-muted-foreground">
+              {selectedIds.length === 0
+                ? "Select speakers…"
+                : `${selectedIds.length} speaker${selectedIds.length > 1 ? "s" : ""} selected`}
+            </span>
+            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
+          <Command>
+            <CommandInput placeholder="Search speakers…" />
+            <CommandList>
+              <CommandEmpty>No speakers found.</CommandEmpty>
+              <CommandGroup>
+                {speakers.map((s) => (
+                  <CommandItem
+                    key={s.id}
+                    value={s.name}
+                    onSelect={() => toggle(s.id)}
+                  >
+                    <Check
+                      className={cn(
+                        "mr-2 h-4 w-4",
+                        selectedIds.includes(s.id) ? "opacity-100" : "opacity-0"
+                      )}
+                    />
+                    {s.name}
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            </CommandList>
+          </Command>
+        </PopoverContent>
+      </Popover>
+
+      {selectedSpeakers.length > 0 && (
+        <div className="flex flex-wrap gap-1.5 mt-2">
+          {selectedSpeakers.map((s) => (
+            <Badge key={s.id} variant="secondary" className="gap-1 pr-1">
+              {s.name}
+              <button
+                type="button"
+                onClick={() => toggle(s.id)}
+                className="ml-0.5 rounded-full hover:bg-muted p-0.5"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </Badge>
+          ))}
+        </div>
+      )}
+
       <p className="text-xs text-muted-foreground mt-1">
         Select one or more guest speakers for this event
       </p>

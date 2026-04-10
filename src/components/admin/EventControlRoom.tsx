@@ -557,66 +557,68 @@ function RSVPMonitor({ eventId, eventTitle, eventDate, checkinPin, onClose }: { 
   return (
     <>
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between pb-2">
-        <CardTitle className="text-lg">Guest List & RSVPs</CardTitle>
-        <div className="flex items-center gap-1">
-          <Button
-            size="sm"
-            variant="default"
-            className="h-8 gap-1.5 text-xs"
-            onClick={() => setShowWalkIn(true)}
-          >
-            <UserPlus className="h-3.5 w-3.5" /> Walk-In
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            className="h-8 gap-1.5 text-xs"
-            onClick={handleSendGuestList}
-            disabled={sendingGuestList}
-          >
-            {sendingGuestList ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Mail className="h-3.5 w-3.5" />}
-            Guest List
-          </Button>
-          {checkinPin && (
+      <CardHeader className="pb-2">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+          <CardTitle className="text-lg">Guest List & RSVPs</CardTitle>
+          <div className="flex flex-wrap items-center gap-1.5">
+            <Button
+              size="sm"
+              variant="default"
+              className="h-8 gap-1.5 text-xs"
+              onClick={() => setShowWalkIn(true)}
+            >
+              <UserPlus className="h-3.5 w-3.5" /> Walk-In
+            </Button>
             <Button
               size="sm"
               variant="outline"
               className="h-8 gap-1.5 text-xs"
-              onClick={() => setShowPoster(true)}
+              onClick={handleSendGuestList}
+              disabled={sendingGuestList}
             >
-              <Printer className="h-3.5 w-3.5" /> Poster
+              {sendingGuestList ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Mail className="h-3.5 w-3.5" />}
+              Guest List
             </Button>
-          )}
-          {rsvps && rsvps.length > 0 && (
-            <Button
-              size="sm"
-              variant="outline"
-              className="h-8 gap-1.5 text-xs"
-              onClick={() => {
-                const rows = (rsvps ?? []).map((r: any) => {
-                  const deps: { name: string }[] = r.attending_dependents ?? [];
-                  return {
-                    Name: r.profiles?.name || "",
-                    Email: r.profiles?.email || "",
-                    Role: r.profiles?.role || "",
-                    "Plus Ones": r.guests_count - 1,
-                    Dependents: deps.map((d) => d.name).join("; "),
-                    Waitlisted: r.is_waitlisted ? "Yes" : "No",
-                    "Checked In": r.checked_in ? "Yes" : "No",
-                    "Potluck Item": r.specific_food_item || "",
-                  };
-                });
-                downloadCsv(rows, zawyaFilename("GuestList", eventTitle));
-                toast.success(`Exported ${rows.length} RSVPs`);
-              }}
-            >
-              <Download className="h-3.5 w-3.5" /> Export
+            {checkinPin && (
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-8 gap-1.5 text-xs"
+                onClick={() => setShowPoster(true)}
+              >
+                <Printer className="h-3.5 w-3.5" /> Poster
+              </Button>
+            )}
+            {rsvps && rsvps.length > 0 && (
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-8 gap-1.5 text-xs"
+                onClick={() => {
+                  const rows = (rsvps ?? []).map((r: any) => {
+                    const deps: { name: string }[] = r.attending_dependents ?? [];
+                    return {
+                      Name: r.profiles?.name || "",
+                      Email: r.profiles?.email || "",
+                      Role: r.profiles?.role || "",
+                      "Plus Ones": r.guests_count - 1,
+                      Dependents: deps.map((d) => d.name).join("; "),
+                      Waitlisted: r.is_waitlisted ? "Yes" : "No",
+                      "Checked In": r.checked_in ? "Yes" : "No",
+                      "Potluck Item": r.specific_food_item || "",
+                    };
+                  });
+                  downloadCsv(rows, zawyaFilename("GuestList", eventTitle));
+                  toast.success(`Exported ${rows.length} RSVPs`);
+                }}
+              >
+                <Download className="h-3.5 w-3.5" /> Export
+              </Button>
+            )}
+            <Button size="icon" variant="ghost" className="h-10 w-10" onClick={onClose}>
+              <X className="h-5 w-5" />
             </Button>
-          )}
-          <Button size="icon" variant="ghost" className="h-10 w-10" onClick={onClose}>
-            <X className="h-5 w-5" />
-          </Button>
+          </div>
         </div>
       </CardHeader>
       <CardContent>

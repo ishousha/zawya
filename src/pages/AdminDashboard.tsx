@@ -165,7 +165,7 @@ export default function AdminDashboard() {
               </TabsTrigger>
               <TabsTrigger value="scanner" className="gap-1.5 text-xs sm:text-sm">
                 <ScanLine className="h-4 w-4" />
-                Scanner
+                Check-in
               </TabsTrigger>
             </TabsList>
 
@@ -220,7 +220,7 @@ export default function AdminDashboard() {
             </TabsTrigger>
             <TabsTrigger value="scanner" className={scannerTrigger}>
               <ScanLine className="h-4 w-4" />
-              Scanner
+              Check-in
             </TabsTrigger>
             <TabsTrigger value="speakers" className={tabTriggerBase}>
               <Mic className="h-4 w-4" />
