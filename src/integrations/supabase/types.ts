@@ -548,6 +548,13 @@ export type Database = {
             referencedRelation: "events"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "guest_requests_requesting_user_id_fkey"
+            columns: ["requesting_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
         ]
       }
       notifications: {
