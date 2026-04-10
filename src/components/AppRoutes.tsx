@@ -1,5 +1,5 @@
 import { Routes, Route, Navigate, useLocation } from "react-router-dom";
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import LoginPage from "@/pages/Login";
 import { usePendingUserAlerts } from "@/hooks/usePendingUserAlerts";
@@ -131,24 +131,69 @@ export default function AppRoutes() {
     );
   }
 
-  // Approved / Admin
+  // Approved / Admin — stable layout keeps Home/Library/Admin/Profile mounted
+  return <StableLayout profile={profile} />;
+}
+
+/**
+ * StableLayout keeps the four main tab pages mounted at all times (hidden via CSS)
+ * so they preserve scroll position & component state across tab switches.
+ * Non-tab routes (event detail, speakers, etc.) render normally via Routes.
+ */
+function StableLayout({ profile }: { profile: any }) {
+  const location = useLocation();
+  const isAdmin = profile?.role === "admin";
+  const isModerator = (profile?.role as string) === "moderator";
+
+  // Determine which stable tab (if any) matches the current path
+  const stableTab = useMemo(() => {
+    if (location.pathname === "/") return "home";
+    if (location.pathname === "/library") return "library";
+    if (location.pathname === "/admin" && (isAdmin || isModerator)) return "admin";
+    if (location.pathname === "/profile") return "profile";
+    return null;
+  }, [location.pathname, isAdmin, isModerator]);
+
+  // Track which tabs have been visited so we only mount them on first visit
+  const visitedRef = useMemo(() => new Set<string>(), []);
+  if (stableTab) visitedRef.add(stableTab);
+
+  const isStableRoute = stableTab !== null;
+
   return (
     <>
       <AppHeader />
-      <Routes>
-        <Route path="/" element={<HomeFeed />} />
-        <Route path="/events/:eventId" element={<EventDetail />} />
-        <Route path="/profile" element={<ProfilePage />} />
-        <Route path="/admin" element={<AdminDashboard />} />
-        <Route path="/library" element={<Library />} />
-        <Route path="/speakers" element={<SpeakersDirectory />} />
-        <Route path="/speakers/:speakerId" element={<SpeakerProfile />} />
-        <Route path="/notifications" element={<NotificationsPage />} />
-        <Route path="/guidelines" element={<CommunityGuidelines readOnly />} />
-        {joinFamilyRoute}
-        <Route path="/unsubscribe" element={<Unsubscribe />} />
-        <Route path="*" element={<NotFound />} />
-      </Routes>
+
+      {/* Stable tab pages — kept mounted, hidden via CSS */}
+      <div style={{ display: stableTab === "home" ? "block" : "none" }}>
+        {visitedRef.has("home") && <HomeFeed />}
+      </div>
+      <div style={{ display: stableTab === "library" ? "block" : "none" }}>
+        {visitedRef.has("library") && <Library />}
+      </div>
+      {(isAdmin || isModerator) && (
+        <div style={{ display: stableTab === "admin" ? "block" : "none" }}>
+          {visitedRef.has("admin") && <AdminDashboard />}
+        </div>
+      )}
+      <div style={{ display: stableTab === "profile" ? "block" : "none" }}>
+        {visitedRef.has("profile") && <ProfilePage />}
+      </div>
+
+      {/* Non-tab routes render normally */}
+      {!isStableRoute && (
+        <Routes>
+          <Route path="/events/:eventId" element={<EventDetail />} />
+          <Route path="/speakers" element={<SpeakersDirectory />} />
+          <Route path="/speakers/:speakerId" element={<SpeakerProfile />} />
+          <Route path="/notifications" element={<NotificationsPage />} />
+          <Route path="/guidelines" element={<CommunityGuidelines readOnly />} />
+          <Route path="/join-family" element={<JoinFamily />} />
+          <Route path="/unsubscribe" element={<Unsubscribe />} />
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      )}
+
       <BottomNav />
     </>
   );
