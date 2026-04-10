@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useState, useEffect, useMemo } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useMyRSVP } from "@/hooks/useRSVP";
@@ -13,10 +13,10 @@ import type { Database } from "@/integrations/supabase/types";
 type Event = Database["public"]["Tables"]["events"]["Row"];
 
 export default function HomeFeed() {
-  const { profile } = useAuth();
+  const { profile, user } = useAuth();
+  const queryClient = useQueryClient();
   const [ticketEvent, setTicketEvent] = useState<Event | null>(null);
 
-  // Clean expired tickets on mount
   useEffect(() => {
     cleanExpiredTickets();
   }, []);
@@ -26,7 +26,6 @@ export default function HomeFeed() {
     staleTime: 60_000,
     queryFn: async () => {
       const now = new Date().toISOString();
-      // Fallback: show events for 4 hours after start if no end_date_time
       const fallbackCutoff = new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString();
 
       const { data, error } = await supabase
@@ -45,28 +44,109 @@ export default function HomeFeed() {
   const isAdminOrMod = profile?.role === "admin" || profile?.role === "moderator";
   const isMureed = (profile as any)?.is_mureed ?? false;
 
-  const visibleEvents = events?.filter((e) => {
-    // Hide mureeds_only events from non-mureeds (treat null as false)
+  const visibleEvents = useMemo(() => events?.filter((e) => {
     if ((e as any).mureeds_only === true && !isMureed && !isAdminOrMod) return false;
     return true;
+  }), [events, isMureed, isAdminOrMod]);
+
+  const eventIds = useMemo(() => visibleEvents?.map((e) => e.id) ?? [], [visibleEvents]);
+
+  // Batch-fetch all RSVPs for visible events, then seed per-card caches
+  useQuery({
+    queryKey: ["batch-rsvps", eventIds],
+    staleTime: 2 * 60 * 1000,
+    enabled: eventIds.length > 0,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("rsvps")
+        .select("*")
+        .in("event_id", eventIds);
+      if (error) throw error;
+
+      // Seed individual query caches so EventCard hooks hit cache
+      const byEvent: Record<string, typeof data> = {};
+      for (const rsvp of data) {
+        if (!byEvent[rsvp.event_id]) byEvent[rsvp.event_id] = [];
+        byEvent[rsvp.event_id].push(rsvp);
+      }
+      for (const eid of eventIds) {
+        const eventRsvps = byEvent[eid] ?? [];
+        queryClient.setQueryData(["rsvps", eid], eventRsvps);
+        if (user) {
+          const mine = eventRsvps.find((r) => r.user_id === user.id && r.status !== "cancelled") ?? null;
+          queryClient.setQueryData(["my-rsvp", eid, user.id], mine);
+        }
+      }
+      return data;
+    },
   });
 
-  // If viewing a ticket, show QR screen
+  // Batch-fetch speakers for visible events
+  useQuery({
+    queryKey: ["batch-speakers", eventIds],
+    staleTime: 5 * 60 * 1000,
+    enabled: eventIds.length > 0,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("event_speakers")
+        .select("speaker_id, display_order, speakers(id, name, image_url), event_id")
+        .in("event_id", eventIds)
+        .order("display_order");
+      if (error) throw error;
+
+      // Seed per-event speaker caches
+      const byEvent: Record<string, typeof data> = {};
+      for (const row of data) {
+        if (!byEvent[row.event_id]) byEvent[row.event_id] = [];
+        byEvent[row.event_id].push(row);
+      }
+      for (const eid of eventIds) {
+        queryClient.setQueryData(["event-speakers", eid], byEvent[eid] ?? []);
+      }
+      return data;
+    },
+  });
+
+  // Batch-fetch potluck dishes
+  const potluckEventIds = useMemo(
+    () => visibleEvents?.filter((e) => e.has_potluck && e.status !== "cancelled").map((e) => e.id) ?? [],
+    [visibleEvents]
+  );
+  useQuery({
+    queryKey: ["batch-potluck", potluckEventIds],
+    staleTime: 2 * 60 * 1000,
+    enabled: potluckEventIds.length > 0,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("rsvps")
+        .select("event_id, specific_food_item")
+        .in("event_id", potluckEventIds)
+        .not("specific_food_item", "is", null)
+        .neq("specific_food_item", "");
+      if (error) throw error;
+
+      // Seed per-event potluck caches
+      const byEvent: Record<string, string[]> = {};
+      for (const row of data) {
+        const item = row.specific_food_item?.trim();
+        if (item) {
+          if (!byEvent[row.event_id]) byEvent[row.event_id] = [];
+          byEvent[row.event_id].push(item);
+        }
+      }
+      for (const eid of potluckEventIds) {
+        queryClient.setQueryData(["potluck-menu", eid], byEvent[eid] ?? []);
+      }
+      return data;
+    },
+  });
+
   if (ticketEvent) {
-    return (
-      <TicketView event={ticketEvent} onBack={() => setTicketEvent(null)} />
-    );
+    return <TicketView event={ticketEvent} onBack={() => setTicketEvent(null)} />;
   }
 
   return (
     <div className="min-h-screen bg-background pb-24">
-      <header className="border-b border-border bg-card px-4 pb-4 pt-6">
-        <h1 className="font-heading text-2xl font-bold text-foreground">Zawya</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Welcome back{profile?.name ? `, ${profile.name}` : ""}
-        </p>
-      </header>
-
       <InstallAppBanner />
 
       <main className="mx-auto max-w-lg px-4 py-6">
@@ -103,14 +183,12 @@ function TicketView({ event, onBack }: { event: Event; onBack: () => void }) {
   const { profile } = useAuth();
   const { data: myRSVP, isLoading, isError } = useMyRSVP(event.id);
 
-  // When RSVP loads successfully, cache the ticket
   useEffect(() => {
     if (myRSVP && profile?.name) {
       cacheTicket(myRSVP, event, profile.name);
     }
   }, [myRSVP, event, profile?.name]);
 
-  // No RSVP at all — navigate back (must be a hook, not a side-effect in render)
   useEffect(() => {
     if (!isLoading && !myRSVP && !isError) {
       onBack();
@@ -125,12 +203,10 @@ function TicketView({ event, onBack }: { event: Event; onBack: () => void }) {
     );
   }
 
-  // Online and have RSVP
   if (myRSVP) {
     return <QRTicketScreen event={event} rsvp={myRSVP} onBack={onBack} />;
   }
 
-  // No RSVP from network — try offline cache
   const cached = getCachedTicketByEvent(event.id);
   if (cached) {
     return (
@@ -144,7 +220,6 @@ function TicketView({ event, onBack }: { event: Event; onBack: () => void }) {
     );
   }
 
-  // Fallback while the useEffect navigates back
   return (
     <div className="flex min-h-screen items-center justify-center bg-background">
       <Loader2 className="h-6 w-6 animate-spin text-primary" />
