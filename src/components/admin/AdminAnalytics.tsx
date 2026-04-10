@@ -195,11 +195,69 @@ export default function AdminAnalytics() {
       .sort((a, b) => b.value - a.value);
   }, [profiles, filteredProfiles, hasRange]);
 
+  // ── Gender split (donut) – profiles + dependents ───────────
+
+  const genderData = useMemo(() => {
+    const src = hasRange ? filteredProfiles : profiles;
+    const depSrc = hasRange ? filteredDependents : (counts?.dependents ?? []);
+    let male = 0, female = 0, unknown = 0;
+    src.forEach((p) => {
+      const g = (p as any).gender;
+      if (g === "male") male++;
+      else if (g === "female") female++;
+      else unknown++;
+    });
+    depSrc.forEach((d) => {
+      const g = (d as any).gender;
+      if (g === "male") male++;
+      else if (g === "female") female++;
+      else unknown++;
+    });
+    const result = [];
+    if (male > 0) result.push({ name: "Male", value: male });
+    if (female > 0) result.push({ name: "Female", value: female });
+    if (unknown > 0) result.push({ name: "Not Set", value: unknown });
+    return result;
+  }, [profiles, filteredProfiles, counts, filteredDependents, hasRange]);
+
+  // ── Mureed vs General (pie) – main accounts only ──────────
+
+  const mureedData = useMemo(() => {
+    const src = hasRange ? filteredProfiles : profiles;
+    const mureeds = src.filter((p) => (p as any).is_mureed).length;
+    const general = src.length - mureeds;
+    return [
+      { name: "Mureeds", value: mureeds },
+      { name: "General", value: general },
+    ].filter((d) => d.value > 0);
+  }, [profiles, filteredProfiles, hasRange]);
+
+  // ── Age group distribution (dependents) ───────────────────
+
+  const AGE_GROUP_LABELS: Record<string, string> = {
+    infant_0_3: "Infant (0-3)",
+    child_4_12: "Child (4-12)",
+    youth_13_17: "Youth (13-17)",
+    adult_18_plus: "Adult (18+)",
+  };
+
+  const ageGroupData = useMemo(() => {
+    const depSrc = hasRange ? filteredDependents : (counts?.dependents ?? []);
+    const buckets: Record<string, number> = {};
+    depSrc.forEach((d) => {
+      const ag = (d as any).age_group as string | null;
+      if (ag) buckets[ag] = (buckets[ag] || 0) + 1;
+    });
+    return Object.entries(buckets)
+      .map(([key, value]) => ({ name: AGE_GROUP_LABELS[key] || key, value }))
+      .sort((a, b) => b.value - a.value);
+  }, [counts, filteredDependents, hasRange]);
+
   // ── Demographics pie (adults vs children) ─────────────────
 
   const pieData = [
-    { name: "Adults", value: approved },
-    { name: "Children", value: totalDependents },
+    { name: "Main Accounts", value: totalRegistered },
+    { name: "Dependents", value: totalDependents },
   ].filter((d) => d.value > 0);
 
   // ── Event engagement bar chart ────────────────────────────
