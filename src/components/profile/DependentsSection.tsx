@@ -5,14 +5,26 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { CalendarIcon, Plus, Trash2, Loader2, Baby, UserRound } from "lucide-react";
+import { Plus, Trash2, Loader2, Baby, UserRound } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { format, parse } from "date-fns";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { GenderToggle } from "@/pages/CompleteProfile";
+
+const AGE_GROUPS = [
+  { value: "infant_0_3", label: "Infant (0-3)" },
+  { value: "child_4_12", label: "Child (4-12)" },
+  { value: "youth_13_17", label: "Youth (13-17)" },
+  { value: "adult_18_plus", label: "Adult (18+)" },
+];
+
+const AGE_GROUP_LABELS: Record<string, string> = {
+  infant_0_3: "Infant (0-3)",
+  child_4_12: "Child (4-12)",
+  youth_13_17: "Youth (13-17)",
+  adult_18_plus: "Adult (18+)",
+};
 
 export function useDependents() {
   const { user, profile } = useAuth();
@@ -26,7 +38,6 @@ export function useDependents() {
         .select("*")
         .order("created_at", { ascending: true });
 
-      // If user has a family, get all family dependents; otherwise get their own
       if (familyId) {
         (query as any) = query.eq("family_id", familyId);
       } else {
@@ -47,7 +58,16 @@ export default function DependentsSection() {
   const [adding, setAdding] = useState(false);
   const [firstName, setFirstName] = useState("");
   const [depType, setDepType] = useState<"child" | "elder">("child");
-  const [dob, setDob] = useState<Date | undefined>(undefined);
+  const [gender, setGender] = useState("");
+  const [ageGroup, setAgeGroup] = useState("");
+
+  const resetForm = () => {
+    setAdding(false);
+    setFirstName("");
+    setDepType("child");
+    setGender("");
+    setAgeGroup("");
+  };
 
   const addDependent = useMutation({
     mutationFn: async () => {
@@ -56,19 +76,17 @@ export default function DependentsSection() {
       const { error } = await supabase.from("dependents").insert({
         parent_id: user.id,
         first_name: firstName.trim(),
-        date_of_birth: dob ? format(dob, "yyyy-MM-dd") : null,
         type: depType,
         family_id: familyId,
+        gender: gender || null,
+        age_group: ageGroup || null,
       } as any);
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["dependents", user?.id] });
       toast.success("Dependent added successfully.");
-      setAdding(false);
-      setFirstName("");
-      setDepType("child");
-      setDob(undefined);
+      resetForm();
     },
     onError: () => toast.error("Failed to add dependent."),
   });
@@ -106,6 +124,8 @@ export default function DependentsSection() {
         <div className="space-y-2">
           {dependents.map((dep) => {
             const type = (dep as any).type || "child";
+            const depGender = (dep as any).gender as string | null;
+            const depAgeGroup = (dep as any).age_group as string | null;
             return (
               <div key={dep.id} className="flex items-center justify-between rounded-lg border border-border p-3">
                 <div className="flex items-center gap-2">
@@ -116,14 +136,19 @@ export default function DependentsSection() {
                   )}
                   <div>
                     <p className="text-sm font-medium text-card-foreground">{dep.first_name}</p>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
                         {type === "elder" ? "Elder/Adult" : "Child"}
                       </Badge>
-                      {dep.date_of_birth && (
-                        <p className="text-xs text-muted-foreground">
-                          DOB: {format(parse(dep.date_of_birth, "yyyy-MM-dd", new Date()), "PPP")}
-                        </p>
+                      {depGender && (
+                        <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                          {depGender === "male" ? "♂ Male" : "♀ Female"}
+                        </Badge>
+                      )}
+                      {depAgeGroup && (
+                        <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                          {AGE_GROUP_LABELS[depAgeGroup] || depAgeGroup}
+                        </Badge>
                       )}
                     </div>
                   </div>
@@ -168,31 +193,23 @@ export default function DependentsSection() {
             />
           </div>
           <div className="space-y-2">
-            <Label className="text-sm font-medium">Date of Birth</Label>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className={cn("w-full justify-start text-left font-normal", !dob && "text-muted-foreground")}
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {dob ? format(dob, "PPP") : "Pick a date"}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="single"
-                  selected={dob}
-                  onSelect={setDob}
-                  disabled={(date) => date > new Date() || date < new Date("1900-01-01")}
-                  initialFocus
-                  captionLayout="dropdown-buttons"
-                  fromYear={1920}
-                  toYear={new Date().getFullYear()}
-                  className="p-3 pointer-events-auto"
-                />
-              </PopoverContent>
-            </Popover>
+            <Label className="text-sm font-medium">Gender</Label>
+            <GenderToggle value={gender} onChange={setGender} />
+          </div>
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">Age Group</Label>
+            <Select value={ageGroup} onValueChange={setAgeGroup}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select age group" />
+              </SelectTrigger>
+              <SelectContent>
+                {AGE_GROUPS.map((ag) => (
+                  <SelectItem key={ag.value} value={ag.value}>
+                    {ag.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <div className="flex gap-2">
             <Button
@@ -203,7 +220,7 @@ export default function DependentsSection() {
               {addDependent.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Save
             </Button>
-            <Button size="sm" variant="outline" onClick={() => { setAdding(false); setFirstName(""); setDob(undefined); setDepType("child"); }}>
+            <Button size="sm" variant="outline" onClick={resetForm}>
               Cancel
             </Button>
           </div>
