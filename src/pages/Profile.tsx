@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import { format, parse } from "date-fns";
 import { cn } from "@/lib/utils";
 import DependentsSection from "@/components/profile/DependentsSection";
+import { GenderToggle } from "@/pages/CompleteProfile";
 import FamilyInviteSection from "@/components/profile/FamilyInviteSection";
 import LinkedAccounts from "@/components/profile/LinkedAccounts";
 import NotificationPreferences from "@/components/profile/NotificationPreferences";
@@ -59,6 +60,7 @@ export default function ProfilePage() {
   const { profile, user, signOut } = useAuth();
   const navigate = useNavigate();
 
+  const [gender, setGender] = useState("");
   const [whatsappCC, setWhatsappCC] = useState("+971");
   const [whatsappNum, setWhatsappNum] = useState("");
   const [altCC, setAltCC] = useState("+971");
@@ -71,6 +73,8 @@ export default function ProfilePage() {
   // Populate form when profile loads
   useEffect(() => {
     if (profile) {
+      setGender((profile as any).gender || "");
+
       const wa = extractCountryAndNumber(profile.whatsapp_number);
       setWhatsappCC(wa.countryCode);
       setWhatsappNum(wa.localNumber);
@@ -109,6 +113,7 @@ export default function ProfilePage() {
       whatsapp_number: toE164(whatsappCC, whatsappNum),
       alternate_cell_number: altNum.trim() ? toE164(altCC, altNum) : null,
       date_of_birth: dob ? format(dob, "yyyy-MM-dd") : null,
+      gender: gender || null,
     };
 
     const { error } = await supabase
@@ -293,6 +298,12 @@ export default function ProfilePage() {
                 onChange={(e) => setAltNum(e.target.value)}
               />
             </div>
+          </div>
+
+          {/* Gender */}
+          <div className="space-y-2">
+            <Label className="text-sm font-medium text-foreground">Gender</Label>
+            <GenderToggle value={gender} onChange={setGender} />
           </div>
 
           {/* Date of Birth */}
