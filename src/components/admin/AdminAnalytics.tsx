@@ -26,7 +26,7 @@ function useAllProfiles() {
     gcTime: 10 * 60 * 1000,
     refetchOnWindowFocus: false,
     queryFn: async () => {
-      const { data, error } = await supabase.from("profiles").select("id, role, created_at, family_id");
+      const { data, error } = await supabase.from("profiles").select("id, role, is_mureed, created_at, family_id");
       if (error) throw error;
       return data ?? [];
     },
@@ -160,18 +160,25 @@ export default function AdminAnalytics() {
   const filteredProfiles = useMemo(() => profiles.filter((p) => inRange(p.created_at)), [profiles, rangeFrom, rangeTo]);
   const filteredDependents = useMemo(() => (counts?.dependents ?? []).filter((d) => inRange(d.created_at ?? "")), [counts, rangeFrom, rangeTo]);
 
-  const approved = useMemo(() => {
-    const src = hasRange ? filteredProfiles : profiles;
-    return src.filter((p) => p.role === "approved" || p.role === "admin").length;
-  }, [profiles, filteredProfiles, hasRange]);
+  const profilesSrc = hasRange ? filteredProfiles : profiles;
 
-  const pending = useMemo(() => {
-    const src = hasRange ? filteredProfiles : profiles;
-    return src.filter((p) => p.role === "pending").length;
-  }, [profiles, filteredProfiles, hasRange]);
+  const approved = useMemo(() => profilesSrc.filter((p) => p.role === "approved" || p.role === "admin").length, [profilesSrc]);
+  const pending = useMemo(() => profilesSrc.filter((p) => p.role === "pending").length, [profilesSrc]);
+  const totalMureeds = useMemo(() => profilesSrc.filter((p) => (p as any).is_mureed).length, [profilesSrc]);
+  const totalGuests = useMemo(() => profilesSrc.filter((p) => p.role === "guest").length, [profilesSrc]);
+  const totalRegistered = profilesSrc.length;
 
   const totalDependents = hasRange ? filteredDependents.length : (counts?.dependents ?? []).length;
   const totalFamilies = counts?.totalFamilies ?? 0;
+
+  // Attendance rate: total checked-in / total RSVPs across all past events
+  const attendanceRate = useMemo(() => {
+    const pastEventIds = new Set(events.filter((e) => new Date(e.date_time) <= new Date()).map((e) => e.id));
+    const pastRsvps = rsvps.filter((r) => pastEventIds.has(r.event_id));
+    if (pastRsvps.length === 0) return 0;
+    const checkedIn = pastRsvps.filter((r) => r.checked_in).length;
+    return Math.round((checkedIn / pastRsvps.length) * 100);
+  }, [events, rsvps]);
 
   // ── Role breakdown (donut) ────────────────────────────────
 
@@ -391,11 +398,15 @@ export default function AdminAnalytics() {
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+        <KpiCard icon={<Users className="h-5 w-5 text-primary" />} label="Total Registered" value={totalRegistered} />
         <KpiCard icon={<UserCheck className="h-5 w-5 text-primary" />} label="Active Members" value={approved} />
-        <KpiCard icon={<Users className="h-5 w-5 text-accent" />} label="Pending" value={pending} />
+        <KpiCard icon={<TrendingUp className="h-5 w-5 text-emerald-600" />} label="Total Mureeds" value={totalMureeds} />
+        <KpiCard icon={<Users className="h-5 w-5 text-accent" />} label="Total Guests" value={totalGuests} />
+        <KpiCard icon={<Users className="h-5 w-5 text-amber-500" />} label="Pending" value={pending} />
         <KpiCard icon={<Home className="h-5 w-5 text-primary" />} label="Families" value={totalFamilies} />
         <KpiCard icon={<Baby className="h-5 w-5 text-accent" />} label="Dependents" value={totalDependents} />
+        <KpiCard icon={<BarChart3 className="h-5 w-5 text-primary" />} label="Avg Attendance Rate" value={`${attendanceRate}%`} />
       </div>
 
       {/* Row 1: Role Breakdown + Demographics */}
@@ -570,7 +581,7 @@ export default function AdminAnalytics() {
 
 // ── Sub-components ──────────────────────────────────────────
 
-function KpiCard({ icon, label, value }: { icon: React.ReactNode; label: string; value: number }) {
+function KpiCard({ icon, label, value }: { icon: React.ReactNode; label: string; value: number | string }) {
   return (
     <Card>
       <CardContent className="p-3 flex items-center gap-3">
