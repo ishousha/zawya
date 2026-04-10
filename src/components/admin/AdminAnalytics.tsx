@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Loader2, Users, Baby, Home, UserCheck, CalendarIcon, X, Download, TrendingUp, BarChart3 } from "lucide-react";
+import { Loader2, Users, Baby, Home, UserCheck, CalendarIcon, X, Download, TrendingUp, BarChart3, UserRound } from "lucide-react";
 import { toast } from "sonner";
 import { downloadCsv, zawyaFilename } from "@/lib/csv-export";
 import {
@@ -26,7 +26,7 @@ function useAllProfiles() {
     gcTime: 10 * 60 * 1000,
     refetchOnWindowFocus: false,
     queryFn: async () => {
-      const { data, error } = await supabase.from("profiles").select("id, role, is_mureed, created_at, family_id");
+      const { data, error } = await supabase.from("profiles").select("id, role, is_mureed, created_at, family_id, gender");
       if (error) throw error;
       return data ?? [];
     },
@@ -42,7 +42,7 @@ function useAllCounts() {
     queryFn: async () => {
       const [familiesRes, dependentsRes] = await Promise.all([
         supabase.from("families").select("id", { count: "exact", head: true }),
-        supabase.from("dependents").select("id, parent_id, created_at"),
+        supabase.from("dependents").select("id, parent_id, created_at, gender, age_group"),
       ]);
       return {
         totalFamilies: familiesRes.count ?? 0,
@@ -195,11 +195,69 @@ export default function AdminAnalytics() {
       .sort((a, b) => b.value - a.value);
   }, [profiles, filteredProfiles, hasRange]);
 
+  // ── Gender split (donut) – profiles + dependents ───────────
+
+  const genderData = useMemo(() => {
+    const src = hasRange ? filteredProfiles : profiles;
+    const depSrc = hasRange ? filteredDependents : (counts?.dependents ?? []);
+    let male = 0, female = 0, unknown = 0;
+    src.forEach((p) => {
+      const g = (p as any).gender;
+      if (g === "male") male++;
+      else if (g === "female") female++;
+      else unknown++;
+    });
+    depSrc.forEach((d) => {
+      const g = (d as any).gender;
+      if (g === "male") male++;
+      else if (g === "female") female++;
+      else unknown++;
+    });
+    const result = [];
+    if (male > 0) result.push({ name: "Male", value: male });
+    if (female > 0) result.push({ name: "Female", value: female });
+    if (unknown > 0) result.push({ name: "Not Set", value: unknown });
+    return result;
+  }, [profiles, filteredProfiles, counts, filteredDependents, hasRange]);
+
+  // ── Mureed vs General (pie) – main accounts only ──────────
+
+  const mureedData = useMemo(() => {
+    const src = hasRange ? filteredProfiles : profiles;
+    const mureeds = src.filter((p) => (p as any).is_mureed).length;
+    const general = src.length - mureeds;
+    return [
+      { name: "Mureeds", value: mureeds },
+      { name: "General", value: general },
+    ].filter((d) => d.value > 0);
+  }, [profiles, filteredProfiles, hasRange]);
+
+  // ── Age group distribution (dependents) ───────────────────
+
+  const AGE_GROUP_LABELS: Record<string, string> = {
+    infant_0_3: "Infant (0-3)",
+    child_4_12: "Child (4-12)",
+    youth_13_17: "Youth (13-17)",
+    adult_18_plus: "Adult (18+)",
+  };
+
+  const ageGroupData = useMemo(() => {
+    const depSrc = hasRange ? filteredDependents : (counts?.dependents ?? []);
+    const buckets: Record<string, number> = {};
+    depSrc.forEach((d) => {
+      const ag = (d as any).age_group as string | null;
+      if (ag) buckets[ag] = (buckets[ag] || 0) + 1;
+    });
+    return Object.entries(buckets)
+      .map(([key, value]) => ({ name: AGE_GROUP_LABELS[key] || key, value }))
+      .sort((a, b) => b.value - a.value);
+  }, [counts, filteredDependents, hasRange]);
+
   // ── Demographics pie (adults vs children) ─────────────────
 
   const pieData = [
-    { name: "Adults", value: approved },
-    { name: "Children", value: totalDependents },
+    { name: "Main Accounts", value: totalRegistered },
+    { name: "Dependents", value: totalDependents },
   ].filter((d) => d.value > 0);
 
   // ── Event engagement bar chart ────────────────────────────
@@ -399,13 +457,13 @@ export default function AdminAnalytics() {
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-        <KpiCard icon={<Users className="h-5 w-5 text-primary" />} label="Total Registered" value={totalRegistered} />
+        <KpiCard icon={<UserRound className="h-5 w-5 text-primary" />} label="Main Accounts" value={totalRegistered} />
+        <KpiCard icon={<Baby className="h-5 w-5 text-accent" />} label="Total Dependents" value={totalDependents} />
         <KpiCard icon={<UserCheck className="h-5 w-5 text-primary" />} label="Active Members" value={approved} />
         <KpiCard icon={<TrendingUp className="h-5 w-5 text-primary" />} label="Total Mureeds" value={totalMureeds} />
         <KpiCard icon={<Users className="h-5 w-5 text-accent" />} label="Total Guests" value={totalGuests} />
         <KpiCard icon={<Users className="h-5 w-5 text-muted-foreground" />} label="Pending" value={pending} />
         <KpiCard icon={<Home className="h-5 w-5 text-primary" />} label="Families" value={totalFamilies} />
-        <KpiCard icon={<Baby className="h-5 w-5 text-accent" />} label="Dependents" value={totalDependents} />
         <KpiCard icon={<BarChart3 className="h-5 w-5 text-primary" />} label="Avg Attendance Rate" value={`${attendanceRate}%`} />
       </div>
 
@@ -444,7 +502,86 @@ export default function AdminAnalytics() {
           )}
         </ChartCard>
 
-        <ChartCard title="Community Demographics">
+        <ChartCard title="Gender Split (All Members)">
+          {genderData.length === 0 ? (
+            <EmptyChart />
+          ) : (
+            <ResponsiveContainer width="100%" height={240}>
+              <PieChart>
+                <Pie
+                  data={genderData}
+                  dataKey="value"
+                  nameKey="name"
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={50}
+                  outerRadius={85}
+                  paddingAngle={3}
+                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                  labelLine={{ strokeWidth: 1 }}
+                >
+                  <Cell fill={CHART_COLORS.blue} />
+                  <Cell fill={CHART_COLORS.rose} />
+                  {genderData.length > 2 && <Cell fill={CHART_COLORS.muted} />}
+                </Pie>
+                <Tooltip content={<CustomTooltip />} />
+                <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: "11px", paddingTop: "8px" }} />
+              </PieChart>
+            </ResponsiveContainer>
+          )}
+        </ChartCard>
+      </div>
+
+      {/* Row 2: Mureed vs General + Age Demographics */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <ChartCard title="Mureed vs. General Members">
+          {mureedData.length === 0 ? (
+            <EmptyChart />
+          ) : (
+            <ResponsiveContainer width="100%" height={240}>
+              <PieChart>
+                <Pie
+                  data={mureedData}
+                  dataKey="value"
+                  nameKey="name"
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={50}
+                  outerRadius={85}
+                  paddingAngle={3}
+                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                  labelLine={{ strokeWidth: 1 }}
+                >
+                  <Cell fill={CHART_COLORS.primary} />
+                  <Cell fill={CHART_COLORS.accent} />
+                </Pie>
+                <Tooltip content={<CustomTooltip />} />
+                <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: "11px", paddingTop: "8px" }} />
+              </PieChart>
+            </ResponsiveContainer>
+          )}
+        </ChartCard>
+
+        <ChartCard title="Dependent Age Distribution">
+          {ageGroupData.length === 0 ? (
+            <EmptyChart message="No age data yet" />
+          ) : (
+            <ResponsiveContainer width="100%" height={240}>
+              <BarChart data={ageGroupData} margin={{ top: 5, right: 5, left: -15, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" className="stroke-border" vertical={false} />
+                <XAxis dataKey="name" tick={{ fontSize: 10 }} />
+                <YAxis allowDecimals={false} tick={{ fontSize: 10 }} />
+                <Tooltip content={<CustomTooltip />} />
+                <Bar dataKey="value" name="Dependents" fill={CHART_COLORS.warm} radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          )}
+        </ChartCard>
+      </div>
+
+      {/* Row 3: Main Accounts vs Dependents + Community Demographics */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <ChartCard title="Account Breakdown">
           {pieData.length === 0 ? (
             <EmptyChart />
           ) : (
@@ -466,11 +603,7 @@ export default function AdminAnalytics() {
                   <Cell fill={CHART_COLORS.accent} />
                 </Pie>
                 <Tooltip content={<CustomTooltip />} />
-                <Legend
-                  iconType="circle"
-                  iconSize={8}
-                  wrapperStyle={{ fontSize: "11px", paddingTop: "8px" }}
-                />
+                <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: "11px", paddingTop: "8px" }} />
               </PieChart>
             </ResponsiveContainer>
           )}

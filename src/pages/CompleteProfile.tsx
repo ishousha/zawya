@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 const COUNTRY_CODES = [
   { code: "+971", label: "🇦🇪 +971" },
@@ -32,10 +33,40 @@ function isValidLocalNumber(num: string): boolean {
   return /^\d{4,15}$/.test(cleaned);
 }
 
+function GenderToggle({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  return (
+    <div className="grid grid-cols-2 gap-2">
+      {[
+        { val: "male", label: "Male", icon: "♂" },
+        { val: "female", label: "Female", icon: "♀" },
+      ].map((opt) => (
+        <button
+          key={opt.val}
+          type="button"
+          onClick={() => onChange(opt.val)}
+          className={cn(
+            "flex items-center justify-center gap-2 rounded-lg border-2 py-3 text-sm font-medium transition-all",
+            "min-h-[44px]",
+            value === opt.val
+              ? "border-primary bg-primary/10 text-primary"
+              : "border-border bg-card text-muted-foreground hover:border-primary/40"
+          )}
+        >
+          <span className="text-lg">{opt.icon}</span>
+          {opt.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+export { GenderToggle };
+
 export default function CompleteProfile() {
   const { user, signOut } = useAuth();
   const [name, setName] = useState("");
   const [familyName, setFamilyName] = useState("");
+  const [gender, setGender] = useState("");
   const [whatsappCC, setWhatsappCC] = useState("+971");
   const [whatsappNum, setWhatsappNum] = useState("");
   const [saving, setSaving] = useState(false);
@@ -45,6 +76,10 @@ export default function CompleteProfile() {
 
     if (!name.trim()) {
       toast.error("Please enter your full name.");
+      return;
+    }
+    if (!gender) {
+      toast.error("Please select your gender.");
       return;
     }
     if (!whatsappNum.trim() || !isValidLocalNumber(whatsappNum)) {
@@ -58,8 +93,9 @@ export default function CompleteProfile() {
       .update({
         name: name.trim(),
         family_name: familyName.trim() || null,
+        gender,
         whatsapp_number: toE164(whatsappCC, whatsappNum),
-      })
+      } as any)
       .eq("id", user.id);
 
     if (error) {
@@ -69,7 +105,6 @@ export default function CompleteProfile() {
     }
 
     toast.success("Profile saved! Awaiting admin approval.");
-    // Force profile refresh by reloading
     window.location.reload();
   };
 
@@ -109,6 +144,13 @@ export default function CompleteProfile() {
               value={familyName}
               onChange={(e) => setFamilyName(e.target.value)}
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-sm font-medium text-foreground">
+              Gender <span className="text-destructive">*</span>
+            </Label>
+            <GenderToggle value={gender} onChange={setGender} />
           </div>
 
           <div className="space-y-2">
