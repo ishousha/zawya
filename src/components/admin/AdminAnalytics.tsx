@@ -502,7 +502,86 @@ export default function AdminAnalytics() {
           )}
         </ChartCard>
 
-        <ChartCard title="Community Demographics">
+        <ChartCard title="Gender Split (All Members)">
+          {genderData.length === 0 ? (
+            <EmptyChart />
+          ) : (
+            <ResponsiveContainer width="100%" height={240}>
+              <PieChart>
+                <Pie
+                  data={genderData}
+                  dataKey="value"
+                  nameKey="name"
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={50}
+                  outerRadius={85}
+                  paddingAngle={3}
+                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                  labelLine={{ strokeWidth: 1 }}
+                >
+                  <Cell fill={CHART_COLORS.blue} />
+                  <Cell fill={CHART_COLORS.rose} />
+                  {genderData.length > 2 && <Cell fill={CHART_COLORS.muted} />}
+                </Pie>
+                <Tooltip content={<CustomTooltip />} />
+                <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: "11px", paddingTop: "8px" }} />
+              </PieChart>
+            </ResponsiveContainer>
+          )}
+        </ChartCard>
+      </div>
+
+      {/* Row 2: Mureed vs General + Age Demographics */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <ChartCard title="Mureed vs. General Members">
+          {mureedData.length === 0 ? (
+            <EmptyChart />
+          ) : (
+            <ResponsiveContainer width="100%" height={240}>
+              <PieChart>
+                <Pie
+                  data={mureedData}
+                  dataKey="value"
+                  nameKey="name"
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={50}
+                  outerRadius={85}
+                  paddingAngle={3}
+                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                  labelLine={{ strokeWidth: 1 }}
+                >
+                  <Cell fill={CHART_COLORS.primary} />
+                  <Cell fill={CHART_COLORS.accent} />
+                </Pie>
+                <Tooltip content={<CustomTooltip />} />
+                <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: "11px", paddingTop: "8px" }} />
+              </PieChart>
+            </ResponsiveContainer>
+          )}
+        </ChartCard>
+
+        <ChartCard title="Dependent Age Distribution">
+          {ageGroupData.length === 0 ? (
+            <EmptyChart message="No age data yet" />
+          ) : (
+            <ResponsiveContainer width="100%" height={240}>
+              <BarChart data={ageGroupData} margin={{ top: 5, right: 5, left: -15, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" className="stroke-border" vertical={false} />
+                <XAxis dataKey="name" tick={{ fontSize: 10 }} />
+                <YAxis allowDecimals={false} tick={{ fontSize: 10 }} />
+                <Tooltip content={<CustomTooltip />} />
+                <Bar dataKey="value" name="Dependents" fill={CHART_COLORS.warm} radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          )}
+        </ChartCard>
+      </div>
+
+      {/* Row 3: Main Accounts vs Dependents + Community Demographics */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <ChartCard title="Account Breakdown">
           {pieData.length === 0 ? (
             <EmptyChart />
           ) : (
@@ -524,11 +603,7 @@ export default function AdminAnalytics() {
                   <Cell fill={CHART_COLORS.accent} />
                 </Pie>
                 <Tooltip content={<CustomTooltip />} />
-                <Legend
-                  iconType="circle"
-                  iconSize={8}
-                  wrapperStyle={{ fontSize: "11px", paddingTop: "8px" }}
-                />
+                <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: "11px", paddingTop: "8px" }} />
               </PieChart>
             </ResponsiveContainer>
           )}
