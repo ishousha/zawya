@@ -245,7 +245,7 @@ export default function EventCard({
         </div>
 
         {/* Speaker Badge */}
-        <SpeakerBadge eventId={event.id} />
+        <SpeakerBadge eventId={event.id} prefetchedSpeakers={propSpeakers} />
         {!isCancelled && isAttending && event.location && (
           <div className="mt-2 space-y-1">
             <p className="text-sm text-foreground inline-flex items-center gap-1.5">
@@ -419,7 +419,7 @@ export default function EventCard({
 
         {/* Potluck Menu — anonymous dish list */}
         {!isPast && !isCancelled && event.has_potluck && (
-          <PotluckMenu eventId={event.id} />
+          <PotluckMenu eventId={event.id} prefetchedDishes={propDishes} />
         )}
         </div>
       </div>

@@ -6,12 +6,14 @@ import { Link } from "react-router-dom";
 
 interface SpeakerBadgeProps {
   eventId: string;
+  prefetchedSpeakers?: any[];
 }
 
-export default function SpeakerBadge({ eventId }: SpeakerBadgeProps) {
-  const { data: speakers } = useQuery({
+export default function SpeakerBadge({ eventId, prefetchedSpeakers }: SpeakerBadgeProps) {
+  const { data: fetchedSpeakers } = useQuery({
     queryKey: ["event-speakers", eventId],
     staleTime: 5 * 60 * 1000,
+    enabled: !prefetchedSpeakers,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("event_speakers")
@@ -22,6 +24,8 @@ export default function SpeakerBadge({ eventId }: SpeakerBadgeProps) {
       return data;
     },
   });
+
+  const speakers = prefetchedSpeakers ?? fetchedSpeakers;
 
   if (!speakers || speakers.length === 0) return null;
 
