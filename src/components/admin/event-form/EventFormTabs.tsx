@@ -204,82 +204,90 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
       }
 
       if (eventId) {
-        if (event && !initialForm) {
-          const { error: deleteItemsError } = await supabase.from("event_sign_up_items").delete().eq("event_id", eventId);
-          if (deleteItemsError) throw deleteItemsError;
-        }
+        // Run sign-up items and speakers operations in parallel
+        const parallelOps: Promise<void>[] = [];
 
-        if (signUpItems.length > 0) {
-          const rows = signUpItems.map((item, i) => ({
-            event_id: eventId,
-            item_name: item.item_name,
-            quantity_limit: item.quantity_limit,
-            order_index: i,
-          }));
-          const { error: signUpItemsError } = await supabase.from("event_sign_up_items").insert(rows);
-          if (signUpItemsError) throw signUpItemsError;
-        }
-
-        const { error: deleteSpeakersError } = await supabase.from("event_speakers").delete().eq("event_id", eventId);
-        if (deleteSpeakersError) throw deleteSpeakersError;
-
-        if (form.speaker_ids.length > 0) {
-          const speakerRows = form.speaker_ids.map((sid, i) => ({
-            event_id: eventId,
-            speaker_id: sid,
-            display_order: i,
-          }));
-          const { error: speakerInsertError } = await supabase.from("event_speakers").insert(speakerRows);
-          if (speakerInsertError) throw speakerInsertError;
-        }
-
-        if (isNewEvent && form.notify_members) {
-          try {
-            const { data: approvedUsers, error: approvedUsersError } = await supabase
-              .from("user_roles")
-              .select("user_id")
-              .eq("role", "approved");
-            if (approvedUsersError) throw approvedUsersError;
-
-            if (approvedUsers && approvedUsers.length > 0) {
-              const notifRows = approvedUsers.map((u) => ({
-                user_id: u.user_id,
-                title: "New Event: " + form.title,
-                message: `A new event "${form.title}" has been posted. Check it out and RSVP!`,
-                type: "event",
-                metadata: { action: "new_event", event_id: eventId },
-              }));
-              const { error: notificationsError } = await supabase.from("notifications").insert(notifRows);
-              if (notificationsError) throw notificationsError;
-            }
-          } catch (notificationError) {
-            console.warn("Failed to notify members after event save:", notificationError);
+        // Sign-up items
+        parallelOps.push((async () => {
+          if (event && !initialForm) {
+            const { error: deleteItemsError } = await supabase.from("event_sign_up_items").delete().eq("event_id", eventId!);
+            if (deleteItemsError) throw deleteItemsError;
           }
+          if (signUpItems.length > 0) {
+            const rows = signUpItems.map((item, i) => ({
+              event_id: eventId,
+              item_name: item.item_name,
+              quantity_limit: item.quantity_limit,
+              order_index: i,
+            }));
+            const { error: signUpItemsError } = await supabase.from("event_sign_up_items").insert(rows);
+            if (signUpItemsError) throw signUpItemsError;
+          }
+        })());
+
+        // Speakers
+        parallelOps.push((async () => {
+          const { error: deleteSpeakersError } = await supabase.from("event_speakers").delete().eq("event_id", eventId!);
+          if (deleteSpeakersError) throw deleteSpeakersError;
+          if (form.speaker_ids.length > 0) {
+            const speakerRows = form.speaker_ids.map((sid, i) => ({
+              event_id: eventId,
+              speaker_id: sid,
+              display_order: i,
+            }));
+            const { error: speakerInsertError } = await supabase.from("event_speakers").insert(speakerRows);
+            if (speakerInsertError) throw speakerInsertError;
+          }
+        })());
+
+        await Promise.all(parallelOps);
+
+        // Notifications (fire-and-forget — don't block the user)
+        if (isNewEvent && form.notify_members) {
+          (async () => {
+            try {
+              const { data: approvedUsers } = await supabase
+                .from("user_roles")
+                .select("user_id")
+                .eq("role", "approved");
+              if (approvedUsers && approvedUsers.length > 0) {
+                const notifRows = approvedUsers.map((u) => ({
+                  user_id: u.user_id,
+                  title: "New Event: " + form.title,
+                  message: `A new event "${form.title}" has been posted. Check it out and RSVP!`,
+                  type: "event",
+                  metadata: { action: "new_event", event_id: eventId },
+                }));
+                await supabase.from("notifications").insert(notifRows);
+              }
+            } catch (e) {
+              console.warn("Failed to notify members:", e);
+            }
+          })();
         }
 
         if (!isNewEvent && form.notify_attendees) {
-          try {
-            const { data: rsvpUsers, error: rsvpUsersError } = await supabase
-              .from("rsvps")
-              .select("user_id")
-              .eq("event_id", eventId);
-            if (rsvpUsersError) throw rsvpUsersError;
-
-            if (rsvpUsers && rsvpUsers.length > 0) {
-              const uniqueIds = [...new Set(rsvpUsers.map((r) => r.user_id))];
-              const notifRows = uniqueIds.map((uid) => ({
-                user_id: uid,
-                title: "Event Updated: " + form.title,
-                message: `"${form.title}" has been updated. Please review the latest details.`,
-                type: "event",
-                metadata: { action: "event_updated", event_id: eventId },
-              }));
-              const { error: attendeeNotificationsError } = await supabase.from("notifications").insert(notifRows);
-              if (attendeeNotificationsError) throw attendeeNotificationsError;
+          (async () => {
+            try {
+              const { data: rsvpUsers } = await supabase
+                .from("rsvps")
+                .select("user_id")
+                .eq("event_id", eventId!);
+              if (rsvpUsers && rsvpUsers.length > 0) {
+                const uniqueIds = [...new Set(rsvpUsers.map((r) => r.user_id))];
+                const notifRows = uniqueIds.map((uid) => ({
+                  user_id: uid,
+                  title: "Event Updated: " + form.title,
+                  message: `"${form.title}" has been updated. Please review the latest details.`,
+                  type: "event",
+                  metadata: { action: "event_updated", event_id: eventId },
+                }));
+                await supabase.from("notifications").insert(notifRows);
+              }
+            } catch (e) {
+              console.warn("Failed to notify attendees:", e);
             }
-          } catch (notificationError) {
-            console.warn("Failed to notify attendees after event save:", notificationError);
-          }
+          })();
         }
       }
 
