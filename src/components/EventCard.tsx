@@ -10,6 +10,7 @@ import SelfCheckinModal from "@/components/SelfCheckinModal";
 import AddToCalendarButton from "@/components/AddToCalendarButton";
 import PotluckMenu from "@/components/PotluckMenu";
 import SpeakerBadge from "@/components/SpeakerBadge";
+import LazyImage from "@/components/LazyImage";
 import type { Database } from "@/integrations/supabase/types";
 
 type Event = Database["public"]["Tables"]["events"]["Row"];
@@ -115,11 +116,10 @@ export default function EventCard({ event, onShowTicket, isPast = false }: Event
         {/* Cover Photo */}
         {event.cover_photo_url && (
           <div className="relative w-full h-40">
-            <img
+            <LazyImage
               src={event.cover_photo_url}
               alt={event.title}
               className={`w-full h-full object-cover ${isCancelled ? "grayscale" : ""}`}
-              loading="lazy"
             />
             {isCancelled && (
               <div className="absolute inset-0 flex items-center justify-center bg-black/30">

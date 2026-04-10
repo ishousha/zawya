@@ -7,6 +7,7 @@ import EventCard from "@/components/EventCard";
 import QRTicketScreen from "@/components/QRTicketScreen";
 import InstallAppBanner from "@/components/InstallAppBanner";
 import { Loader2 } from "lucide-react";
+import EventCardSkeleton from "@/components/EventCardSkeleton";
 import { cacheTicket, getCachedTicketByEvent, cleanExpiredTickets } from "@/lib/offline-ticket-cache";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -155,8 +156,10 @@ export default function HomeFeed() {
         </h2>
 
         {isLoading ? (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+          <div className="space-y-3">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <EventCardSkeleton key={i} />
+            ))}
           </div>
         ) : visibleEvents && visibleEvents.length > 0 ? (
           <div className="space-y-3">
