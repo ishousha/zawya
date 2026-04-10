@@ -73,6 +73,8 @@ export default function ProfilePage() {
   // Populate form when profile loads
   useEffect(() => {
     if (profile) {
+      setGender((profile as any).gender || "");
+
       const wa = extractCountryAndNumber(profile.whatsapp_number);
       setWhatsappCC(wa.countryCode);
       setWhatsappNum(wa.localNumber);
