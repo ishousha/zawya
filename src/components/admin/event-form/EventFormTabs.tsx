@@ -351,7 +351,7 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
   // isNewEvent is declared at top of component
 
   return (
-    <Card>
+    <Card className="max-h-[calc(100vh-12rem)] flex flex-col">
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <CardTitle className="text-lg font-heading">
           {isNewEvent ? "New Event" : "Edit Event"}
@@ -360,7 +360,7 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
           <X className="h-5 w-5" />
         </Button>
       </CardHeader>
-      <CardContent>
+      <CardContent className="overflow-y-auto flex-1 min-h-0">
         <Tabs defaultValue="design" className="w-full">
           <TabsList className="grid w-full grid-cols-3 bg-muted">
             <TabsTrigger value="design" className="gap-1.5 text-xs">
