@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+import { useBlocker } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -134,6 +135,15 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
     return () => window.removeEventListener("beforeunload", handler);
   }, [isDirty]);
 
+  // Route navigation blocker (bottom tabs, back button, etc.)
+  const blocker = useBlocker(isDirty);
+
+  useEffect(() => {
+    if (blocker.state === "blocked") {
+      setShowCloseConfirm(true);
+    }
+  }, [blocker.state]);
+
   useEffect(() => {
     if (!isNewEvent) return;
     saveDraft(form, signUpItems);
@@ -150,9 +160,20 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
 
   const confirmClose = useCallback(() => {
     setShowCloseConfirm(false);
+    if (blocker.state === "blocked") {
+      blocker.proceed();
+      return;
+    }
     if (isNewEvent) clearDraft();
     onClose();
-  }, [isNewEvent, onClose]);
+  }, [isNewEvent, onClose, blocker]);
+
+  const cancelClose = useCallback(() => {
+    setShowCloseConfirm(false);
+    if (blocker.state === "blocked") {
+      blocker.reset();
+    }
+  }, [blocker]);
 
   const { data: existingItems } = useQuery({
     queryKey: ["sign-up-items", event?.id],
@@ -387,9 +408,11 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
             <SettingsTab form={form} setForm={setForm} isEditing={!isNewEvent} />
           </TabsContent>
         </Tabs>
+      </CardContent>
 
+      <div className="px-6 pb-4 pt-2 border-t bg-card shrink-0">
         <Button
-          className="w-full h-12 mt-4"
+          className="w-full h-12"
           onClick={() => {
             if (form.end_date_time && form.end_date_time <= form.date_time) {
               toast.error("End time must be after start time");
@@ -402,9 +425,9 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
           {mutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
           {isNewEvent ? "Create Event" : "Update Event"}
         </Button>
-      </CardContent>
+      </div>
 
-      <AlertDialog open={showCloseConfirm} onOpenChange={setShowCloseConfirm}>
+      <AlertDialog open={showCloseConfirm} onOpenChange={cancelClose}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Discard unsaved changes?</AlertDialogTitle>
@@ -413,7 +436,7 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Keep Editing</AlertDialogCancel>
+            <AlertDialogCancel onClick={cancelClose}>Keep Editing</AlertDialogCancel>
             <AlertDialogAction onClick={confirmClose} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
               Discard
             </AlertDialogAction>
