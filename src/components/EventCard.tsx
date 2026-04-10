@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { format } from "date-fns";
 import { MapPin, Video, Users, Calendar, Clock, CheckCircle2, Ticket, Edit, Building2, ExternalLink, Ban, BookOpen, Mountain, Handshake, ClockIcon, ScanLine } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -13,40 +13,22 @@ import SpeakerBadge from "@/components/SpeakerBadge";
 import type { Database } from "@/integrations/supabase/types";
 
 type Event = Database["public"]["Tables"]["events"]["Row"];
-type RSVP = Database["public"]["Tables"]["rsvps"]["Row"];
 
 interface EventCardProps {
   event: Event;
   onShowTicket?: (event: Event) => void;
   isPast?: boolean;
-  /** Pre-fetched data from batch queries (optional — falls back to per-card queries) */
-  myRSVP?: RSVP | null;
-  allRsvps?: RSVP[];
-  speakers?: any[];
-  potluckDishes?: string[];
 }
 
-export default function EventCard({
-  event,
-  onShowTicket,
-  isPast = false,
-  myRSVP: propMyRSVP,
-  allRsvps: propAllRsvps,
-  speakers: propSpeakers,
-  potluckDishes: propDishes,
-}: EventCardProps) {
+export default function EventCard({ event, onShowTicket, isPast = false }: EventCardProps) {
   const localDate = new Date(event.date_time);
   const { data: eventTypes } = useEventTypes();
   const eventType = eventTypes?.find((t) => t.id === event.event_type_id);
   const TypeIcon = eventType ? getEventTypeIcon(eventType.icon) : MapPin;
   const typeLabel = eventType?.name ?? "Event";
 
-  // Use batch data if provided, otherwise fall back to per-card queries
-  const hasBatchRsvp = propMyRSVP !== undefined;
-  const { data: fetchedMyRSVP } = useMyRSVP(event.id);
-  const { data: fetchedAllRsvps } = useEventRSVPs(event.id);
-  const myRSVP = hasBatchRsvp ? propMyRSVP : fetchedMyRSVP;
-  const allRsvps = propAllRsvps ?? fetchedAllRsvps;
+  const { data: myRSVP } = useMyRSVP(event.id);
+  const { data: allRsvps } = useEventRSVPs(event.id);
   const [rsvpOpen, setRsvpOpen] = useState(false);
   const [checkinOpen, setCheckinOpen] = useState(false);
   const [now, setNow] = useState(() => new Date());
