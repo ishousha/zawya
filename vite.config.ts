@@ -22,7 +22,25 @@ export default defineConfig(({ mode }) => ({
       },
       workbox: {
         navigateFallbackDenylist: [/^\/~oauth/],
+        // Network-first for HTML so users always get fresh layouts on deploy
         runtimeCaching: [
+          {
+            urlPattern: ({ request }) => request.mode === "navigate",
+            handler: "NetworkFirst",
+            options: {
+              cacheName: "html-cache",
+              expiration: { maxEntries: 10, maxAgeSeconds: 60 * 60 },
+              networkTimeoutSeconds: 3,
+            },
+          },
+          {
+            urlPattern: /\.(js|css)$/,
+            handler: "StaleWhileRevalidate",
+            options: {
+              cacheName: "static-assets",
+              expiration: { maxEntries: 60, maxAgeSeconds: 60 * 60 * 24 * 7 },
+            },
+          },
           {
             urlPattern: /\/ticket/,
             handler: "CacheFirst",

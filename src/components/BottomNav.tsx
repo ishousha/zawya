@@ -1,13 +1,37 @@
+import { useCallback } from "react";
 import { NavLink } from "react-router-dom";
 import { Home, User, Shield, BookOpen } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePendingUsersCount } from "@/hooks/usePendingUsersCount";
+import { prefetchHome, prefetchLibrary, prefetchAdmin, prefetchProfile } from "@/lib/prefetch";
 
 export default function BottomNav() {
-  const { profile } = useAuth();
+  const { profile, user } = useAuth();
+  const queryClient = useQueryClient();
   const isAdmin = profile?.role === "admin";
   const isModerator = (profile?.role as string) === "moderator";
   const { data: pendingCount } = usePendingUsersCount();
+
+  const handlePrefetch = useCallback(
+    (to: string) => {
+      switch (to) {
+        case "/":
+          prefetchHome(queryClient);
+          break;
+        case "/library":
+          prefetchLibrary(queryClient);
+          break;
+        case "/admin":
+          prefetchAdmin(queryClient);
+          break;
+        case "/profile":
+          prefetchProfile(queryClient, user?.id);
+          break;
+      }
+    },
+    [queryClient, user?.id]
+  );
 
   const tabs = [
     { to: "/", icon: Home, label: "Home" },
@@ -23,6 +47,9 @@ export default function BottomNav() {
           <NavLink
             key={to}
             to={to}
+            onMouseEnter={() => handlePrefetch(to)}
+            onFocus={() => handlePrefetch(to)}
+            onTouchStart={() => handlePrefetch(to)}
             className={({ isActive }) =>
               `flex flex-1 flex-col items-center gap-1 py-3 text-xs transition-colors ${
                 isActive
