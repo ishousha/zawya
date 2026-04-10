@@ -457,13 +457,13 @@ export default function AdminAnalytics() {
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-        <KpiCard icon={<Users className="h-5 w-5 text-primary" />} label="Total Registered" value={totalRegistered} />
+        <KpiCard icon={<UserRound className="h-5 w-5 text-primary" />} label="Main Accounts" value={totalRegistered} />
+        <KpiCard icon={<Baby className="h-5 w-5 text-accent" />} label="Total Dependents" value={totalDependents} />
         <KpiCard icon={<UserCheck className="h-5 w-5 text-primary" />} label="Active Members" value={approved} />
         <KpiCard icon={<TrendingUp className="h-5 w-5 text-primary" />} label="Total Mureeds" value={totalMureeds} />
         <KpiCard icon={<Users className="h-5 w-5 text-accent" />} label="Total Guests" value={totalGuests} />
         <KpiCard icon={<Users className="h-5 w-5 text-muted-foreground" />} label="Pending" value={pending} />
         <KpiCard icon={<Home className="h-5 w-5 text-primary" />} label="Families" value={totalFamilies} />
-        <KpiCard icon={<Baby className="h-5 w-5 text-accent" />} label="Dependents" value={totalDependents} />
         <KpiCard icon={<BarChart3 className="h-5 w-5 text-primary" />} label="Avg Attendance Rate" value={`${attendanceRate}%`} />
       </div>
 
