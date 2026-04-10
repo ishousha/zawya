@@ -135,6 +135,15 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
     return () => window.removeEventListener("beforeunload", handler);
   }, [isDirty]);
 
+  // Route navigation blocker (bottom tabs, back button, etc.)
+  const blocker = useBlocker(isDirty);
+
+  useEffect(() => {
+    if (blocker.state === "blocked") {
+      setShowCloseConfirm(true);
+    }
+  }, [blocker.state]);
+
   useEffect(() => {
     if (!isNewEvent) return;
     saveDraft(form, signUpItems);
