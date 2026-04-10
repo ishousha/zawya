@@ -113,6 +113,7 @@ export default function ProfilePage() {
       whatsapp_number: toE164(whatsappCC, whatsappNum),
       alternate_cell_number: altNum.trim() ? toE164(altCC, altNum) : null,
       date_of_birth: dob ? format(dob, "yyyy-MM-dd") : null,
+      gender: gender || null,
     };
 
     const { error } = await supabase
