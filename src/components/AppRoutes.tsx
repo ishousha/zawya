@@ -1,5 +1,5 @@
 import { Routes, Route, Navigate, useLocation } from "react-router-dom";
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import LoginPage from "@/pages/Login";
 import { usePendingUserAlerts } from "@/hooks/usePendingUserAlerts";
