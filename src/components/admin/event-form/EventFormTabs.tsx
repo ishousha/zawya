@@ -115,12 +115,41 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
     return [];
   });
 
+  // --- Dirty tracking ---
+  const initialFormRef = useRef(JSON.stringify(form));
+  const initialItemsRef = useRef(JSON.stringify(signUpItems));
+  const [showCloseConfirm, setShowCloseConfirm] = useState(false);
+
+  const isDirty = JSON.stringify(form) !== initialFormRef.current ||
+    JSON.stringify(signUpItems) !== initialItemsRef.current;
+
+  // Browser tab/window close guard
+  useEffect(() => {
+    if (!isDirty) return;
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [isDirty]);
+
   useEffect(() => {
     if (!isNewEvent) return;
     saveDraft(form, signUpItems);
   }, [form, signUpItems, isNewEvent]);
 
   const handleClose = useCallback(() => {
+    if (isDirty) {
+      setShowCloseConfirm(true);
+      return;
+    }
+    if (isNewEvent) clearDraft();
+    onClose();
+  }, [isDirty, isNewEvent, onClose]);
+
+  const confirmClose = useCallback(() => {
+    setShowCloseConfirm(false);
     if (isNewEvent) clearDraft();
     onClose();
   }, [isNewEvent, onClose]);
