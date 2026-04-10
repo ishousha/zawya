@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Loader2, Users, Baby, Home, UserCheck, CalendarIcon, X, Download, TrendingUp, BarChart3 } from "lucide-react";
+import { Loader2, Users, Baby, Home, UserCheck, CalendarIcon, X, Download, TrendingUp, BarChart3, UserRound } from "lucide-react";
 import { toast } from "sonner";
 import { downloadCsv, zawyaFilename } from "@/lib/csv-export";
 import {
