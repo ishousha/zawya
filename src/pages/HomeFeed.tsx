@@ -167,7 +167,7 @@ export default function HomeFeed() {
               <EventCard
                 key={event.id}
                 event={event}
-                onShowTicket={(e) => setTicketEvent(e)}
+                onShowTicket={handleShowTicket}
               />
             ))}
           </div>

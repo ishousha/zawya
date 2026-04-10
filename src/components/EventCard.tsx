@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo, memo } from "react";
 import { format } from "date-fns";
 import { MapPin, Video, Users, Calendar, Clock, CheckCircle2, Ticket, Edit, Building2, ExternalLink, Ban, BookOpen, Mountain, Handshake, ClockIcon, ScanLine } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -21,7 +21,7 @@ interface EventCardProps {
   isPast?: boolean;
 }
 
-export default function EventCard({ event, onShowTicket, isPast = false }: EventCardProps) {
+function EventCardInner({ event, onShowTicket, isPast = false }: EventCardProps) {
   const localDate = new Date(event.date_time);
   const { data: eventTypes } = useEventTypes();
   const eventType = eventTypes?.find((t) => t.id === event.event_type_id);
@@ -423,3 +423,6 @@ export default function EventCard({ event, onShowTicket, isPast = false }: Event
     </>
   );
 }
+
+const EventCard = memo(EventCardInner);
+export default EventCard;
