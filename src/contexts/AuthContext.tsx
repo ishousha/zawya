@@ -38,17 +38,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return data;
   };
 
+  // Track session in a ref so the profile-updated listener always has the current value
+  const sessionRef = React.useRef<Session | null>(null);
+
   useEffect(() => {
     let mounted = true;
     let initialDone = false;
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
+      async (_event, newSession) => {
         if (!initialDone) return;
         if (!mounted) return;
-        setSession(session);
-        if (session?.user) {
-          await fetchProfile(session.user.id);
+        setSession(newSession);
+        sessionRef.current = newSession;
+        if (newSession?.user) {
+          await fetchProfile(newSession.user.id);
         } else {
           setProfile(null);
         }
@@ -56,11 +60,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     );
 
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session: initSession } }) => {
       if (!mounted) return;
-      setSession(session);
-      if (session?.user) {
-        await fetchProfile(session.user.id);
+      setSession(initSession);
+      sessionRef.current = initSession;
+      if (initSession?.user) {
+        await fetchProfile(initSession.user.id);
       }
       if (mounted) {
         setLoading(false);
@@ -68,9 +73,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     });
 
-    // Listen for profile updates (e.g. avatar change)
+    // Listen for profile updates (e.g. avatar change, terms acceptance)
     const handleProfileUpdate = () => {
-      const userId = session?.user?.id;
+      const userId = sessionRef.current?.user?.id;
       if (userId) fetchProfile(userId);
     };
     window.addEventListener("profile-updated", handleProfileUpdate);
