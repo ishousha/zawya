@@ -22,7 +22,7 @@ export default function CommunityGuidelines({ readOnly = false }: CommunityGuide
     setSaving(true);
     const { error } = await supabase
       .from("profiles")
-      .update({ terms_accepted: true } as any)
+      .update({ terms_accepted: true })
       .eq("id", user.id);
     setSaving(false);
 
@@ -32,7 +32,8 @@ export default function CommunityGuidelines({ readOnly = false }: CommunityGuide
     }
 
     toast.success("Welcome to the Suhba! ✨");
-    window.location.href = "/";
+    // Signal AuthContext to refetch profile so routing picks up terms_accepted = true
+    window.dispatchEvent(new Event("profile-updated"));
   };
 
   return (
