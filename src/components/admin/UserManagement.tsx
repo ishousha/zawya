@@ -67,7 +67,11 @@ export default function UserManagement() {
     queryKey: ["admin-profiles"],
     staleTime: 5 * 60 * 1000, gcTime: 10 * 60 * 1000, refetchOnWindowFocus: false,
     queryFn: async () => {
-      const { data, error } = await supabase.from("profiles").select("*").order("created_at", { ascending: false });
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(50);
       if (error) throw error;
       return (data ?? []).sort((a, b) => {
         if (a.role === "pending" && b.role !== "pending") return -1;

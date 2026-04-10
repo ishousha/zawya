@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -21,6 +21,14 @@ interface EditUserModalProps {
   onOpenChange: (open: boolean) => void;
 }
 
+function getErrorMessage(error: unknown, fallback: string) {
+  if (error instanceof Error && error.message) return error.message;
+  if (typeof error === "object" && error && "message" in error && typeof (error as { message?: unknown }).message === "string") {
+    return (error as { message: string }).message;
+  }
+  return fallback;
+}
+
 export default function EditUserModal({ profile, open, onOpenChange }: EditUserModalProps) {
   const queryClient = useQueryClient();
   const [name, setName] = useState("");
@@ -31,7 +39,6 @@ export default function EditUserModal({ profile, open, onOpenChange }: EditUserM
   const [isMureed, setIsMureed] = useState(false);
   const [selectedFamilyId, setSelectedFamilyId] = useState<string | null>(null);
 
-  // Fetch families for the dropdown
   const { data: families = [] } = useQuery({
     queryKey: ["admin-families"],
     queryFn: async () => {
@@ -41,10 +48,8 @@ export default function EditUserModal({ profile, open, onOpenChange }: EditUserM
     },
   });
 
-  // Sync state when profile changes
-  const [lastId, setLastId] = useState<string | null>(null);
-  if (profile && profile.id !== lastId) {
-    setLastId(profile.id);
+  useEffect(() => {
+    if (!profile || !open) return;
     setName(profile.name || "");
     setPhone(profile.phone || "");
     setFamilyName(profile.family_name || "");
@@ -52,11 +57,11 @@ export default function EditUserModal({ profile, open, onOpenChange }: EditUserM
     setRole(profile.role);
     setIsMureed((profile as any).is_mureed ?? false);
     setSelectedFamilyId(profile.family_id || null);
-  }
+  }, [profile, open]);
 
   const updateUser = useMutation({
     mutationFn: async () => {
-      if (!profile) return;
+      if (!profile) throw new Error("No user selected");
 
       const { error: profileError } = await supabase
         .from("profiles")
@@ -72,9 +77,16 @@ export default function EditUserModal({ profile, open, onOpenChange }: EditUserM
         .eq("id", profile.id);
       if (profileError) throw profileError;
 
-      // Sync user_roles table
-      await supabase.from("user_roles").delete().eq("user_id", profile.id);
-      await supabase.from("user_roles").upsert({ user_id: profile.id, role }, { onConflict: "user_id,role" });
+      const { error: deleteRolesError } = await supabase
+        .from("user_roles")
+        .delete()
+        .eq("user_id", profile.id);
+      if (deleteRolesError) throw deleteRolesError;
+
+      const { error: upsertRoleError } = await supabase
+        .from("user_roles")
+        .upsert({ user_id: profile.id, role }, { onConflict: "user_id,role" });
+      if (upsertRoleError) throw upsertRoleError;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-profiles"] });
@@ -82,7 +94,8 @@ export default function EditUserModal({ profile, open, onOpenChange }: EditUserM
       toast.success("User updated successfully");
       onOpenChange(false);
     },
-    onError: () => toast.error("Failed to update user"),
+    onError: (err) => toast.error(getErrorMessage(err, "Failed to update user")),
+    onSettled: () => {},
   });
 
   if (!profile) return null;

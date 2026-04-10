@@ -23,16 +23,22 @@ import EventBroadcastModal from "./EventBroadcastModal";
 
 type EventRow = Database["public"]["Tables"]["events"]["Row"];
 
+function getErrorMessage(error: unknown, fallback: string) {
+  if (error instanceof Error && error.message) return error.message;
+  if (typeof error === "object" && error && "message" in error && typeof (error as { message?: unknown }).message === "string") {
+    return (error as { message: string }).message;
+  }
+  return fallback;
+}
+
 async function notifyRsvpMembers(eventId: string, eventTitle: string, eventDate: string, templateName: string) {
   try {
-    // Fetch all RSVPs for this event
     const { data: rsvps } = await supabase
       .from("rsvps")
       .select("id, user_id")
       .eq("event_id", eventId);
     if (!rsvps || rsvps.length === 0) return;
 
-    // Fetch profiles for these users
     const userIds = [...new Set(rsvps.map(r => r.user_id))];
     const { data: profiles } = await supabase
       .from("profiles")
@@ -42,7 +48,6 @@ async function notifyRsvpMembers(eventId: string, eventTitle: string, eventDate:
 
     const formattedDate = format(new Date(eventDate), "PPPP p");
 
-    // Send email to each RSVPed member
     for (const profile of profiles) {
       if (!profile.email) continue;
       await supabase.functions.invoke("send-transactional-email", {
@@ -83,13 +88,13 @@ export default function EventControlRoom() {
       const { data, error } = await supabase
         .from("events")
         .select("*")
-        .order("date_time", { ascending: true });
+        .order("date_time", { ascending: true })
+        .limit(50);
       if (error) throw error;
       return data;
     },
   });
 
-  // Fetch all pending guest requests across all events
   const { data: allGuestRequests } = useQuery({
     queryKey: ["all-pending-guest-requests"],
     staleTime: 5 * 60 * 1000,
@@ -100,7 +105,8 @@ export default function EventControlRoom() {
         .from("guest_requests")
         .select("*, profiles:requesting_user_id(name, email), events:event_id(title, date_time, location, address, virtual_link, online_link)")
         .eq("status", "pending")
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: false })
+        .limit(50);
       if (error) throw error;
       return data ?? [];
     },
@@ -109,7 +115,6 @@ export default function EventControlRoom() {
   const pendingGuestCount = allGuestRequests?.length ?? 0;
 
   const handleDuplicate = async (event: EventRow) => {
-    // Fetch sign-up items for this event
     const { data: items } = await supabase
       .from("event_sign_up_items")
       .select("*")
@@ -157,14 +162,15 @@ export default function EventControlRoom() {
     mutationFn: async (event: EventRow) => {
       const { error } = await supabase.from("events").update({ status: "cancelled" as const }).eq("id", event.id);
       if (error) throw error;
-      // Send cancellation emails to RSVPed members (fire and forget)
       notifyRsvpMembers(event.id, event.title, event.date_time, "event-cancelled");
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-events"] });
+      queryClient.invalidateQueries({ queryKey: ["events"] });
       toast.success("Event cancelled — members will be notified");
     },
-    onError: () => toast.error("Failed to cancel event"),
+    onError: (err) => toast.error(getErrorMessage(err, "Failed to cancel event")),
+    onSettled: () => {},
   });
 
   const reactivateMutation = useMutation({
@@ -175,29 +181,46 @@ export default function EventControlRoom() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-events"] });
+      queryClient.invalidateQueries({ queryKey: ["events"] });
       toast.success("Event reactivated — members will be notified");
     },
-    onError: () => toast.error("Failed to reactivate event"),
+    onError: (err) => toast.error(getErrorMessage(err, "Failed to reactivate event")),
+    onSettled: () => {},
   });
 
   const deleteMutation = useMutation({
     mutationFn: async (eventId: string) => {
-      await supabase.from("rsvp_sign_up_selections").delete().in(
-        "rsvp_id",
-        (await supabase.from("rsvps").select("id").eq("event_id", eventId)).data?.map(r => r.id) ?? []
-      );
-      await supabase.from("rsvps").delete().eq("event_id", eventId);
-      await supabase.from("event_sign_up_items").delete().eq("event_id", eventId);
-      await supabase.from("guest_requests").delete().eq("event_id", eventId);
-      await supabase.from("potluck_config").delete().eq("event_id", eventId);
+      const { data: rsvps, error: rsvpsFetchError } = await supabase.from("rsvps").select("id").eq("event_id", eventId);
+      if (rsvpsFetchError) throw rsvpsFetchError;
+
+      const rsvpIds = rsvps?.map((r) => r.id) ?? [];
+      if (rsvpIds.length > 0) {
+        const { error: selectionsError } = await supabase.from("rsvp_sign_up_selections").delete().in("rsvp_id", rsvpIds);
+        if (selectionsError) throw selectionsError;
+      }
+
+      const { error: rsvpsDeleteError } = await supabase.from("rsvps").delete().eq("event_id", eventId);
+      if (rsvpsDeleteError) throw rsvpsDeleteError;
+
+      const { error: signUpItemsDeleteError } = await supabase.from("event_sign_up_items").delete().eq("event_id", eventId);
+      if (signUpItemsDeleteError) throw signUpItemsDeleteError;
+
+      const { error: guestRequestsDeleteError } = await supabase.from("guest_requests").delete().eq("event_id", eventId);
+      if (guestRequestsDeleteError) throw guestRequestsDeleteError;
+
+      const { error: potluckDeleteError } = await supabase.from("potluck_config").delete().eq("event_id", eventId);
+      if (potluckDeleteError) throw potluckDeleteError;
+
       const { error } = await supabase.from("events").delete().eq("id", eventId);
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-events"] });
+      queryClient.invalidateQueries({ queryKey: ["events"] });
       toast.success("Event permanently deleted");
     },
-    onError: () => toast.error("Failed to delete event"),
+    onError: (err) => toast.error(getErrorMessage(err, "Failed to delete event")),
+    onSettled: () => {},
   });
 
   if (isLoading) {
