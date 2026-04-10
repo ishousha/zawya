@@ -160,9 +160,20 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
 
   const confirmClose = useCallback(() => {
     setShowCloseConfirm(false);
+    if (blocker.state === "blocked") {
+      blocker.proceed();
+      return;
+    }
     if (isNewEvent) clearDraft();
     onClose();
-  }, [isNewEvent, onClose]);
+  }, [isNewEvent, onClose, blocker]);
+
+  const cancelClose = useCallback(() => {
+    setShowCloseConfirm(false);
+    if (blocker.state === "blocked") {
+      blocker.reset();
+    }
+  }, [blocker]);
 
   const { data: existingItems } = useQuery({
     queryKey: ["sign-up-items", event?.id],
