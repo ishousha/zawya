@@ -160,18 +160,25 @@ export default function AdminAnalytics() {
   const filteredProfiles = useMemo(() => profiles.filter((p) => inRange(p.created_at)), [profiles, rangeFrom, rangeTo]);
   const filteredDependents = useMemo(() => (counts?.dependents ?? []).filter((d) => inRange(d.created_at ?? "")), [counts, rangeFrom, rangeTo]);
 
-  const approved = useMemo(() => {
-    const src = hasRange ? filteredProfiles : profiles;
-    return src.filter((p) => p.role === "approved" || p.role === "admin").length;
-  }, [profiles, filteredProfiles, hasRange]);
+  const profilesSrc = hasRange ? filteredProfiles : profiles;
 
-  const pending = useMemo(() => {
-    const src = hasRange ? filteredProfiles : profiles;
-    return src.filter((p) => p.role === "pending").length;
-  }, [profiles, filteredProfiles, hasRange]);
+  const approved = useMemo(() => profilesSrc.filter((p) => p.role === "approved" || p.role === "admin").length, [profilesSrc]);
+  const pending = useMemo(() => profilesSrc.filter((p) => p.role === "pending").length, [profilesSrc]);
+  const totalMureeds = useMemo(() => profilesSrc.filter((p) => (p as any).is_mureed).length, [profilesSrc]);
+  const totalGuests = useMemo(() => profilesSrc.filter((p) => p.role === "guest").length, [profilesSrc]);
+  const totalRegistered = profilesSrc.length;
 
   const totalDependents = hasRange ? filteredDependents.length : (counts?.dependents ?? []).length;
   const totalFamilies = counts?.totalFamilies ?? 0;
+
+  // Attendance rate: total checked-in / total RSVPs across all past events
+  const attendanceRate = useMemo(() => {
+    const pastEventIds = new Set(events.filter((e) => new Date(e.date_time) <= new Date()).map((e) => e.id));
+    const pastRsvps = rsvps.filter((r) => pastEventIds.has(r.event_id));
+    if (pastRsvps.length === 0) return 0;
+    const checkedIn = pastRsvps.filter((r) => r.checked_in).length;
+    return Math.round((checkedIn / pastRsvps.length) * 100);
+  }, [events, rsvps]);
 
   // ── Role breakdown (donut) ────────────────────────────────
 
