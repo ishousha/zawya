@@ -35,7 +35,7 @@ export default function HomeFeed() {
         .in("status", ["active", "full", "cancelled"])
         .or(`end_date_time.gte.${now},and(end_date_time.is.null,date_time.gte.${fallbackCutoff})`)
         .order("date_time", { ascending: true })
-        .limit(20);
+        .limit(10);
 
       if (error) throw error;
       return data;

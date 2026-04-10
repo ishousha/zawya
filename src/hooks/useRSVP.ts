@@ -4,10 +4,19 @@ import { useAuth } from "@/contexts/AuthContext";
 import { generateQRHash } from "@/lib/qr-hash";
 import { notifyRSVPCreated, notifyRSVPUpdated, notifyRSVPCancelled } from "@/lib/webhooks";
 import { removeCachedTicket } from "@/lib/offline-ticket-cache";
+import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
 
 type RSVP = Database["public"]["Tables"]["rsvps"]["Row"];
 type RSVPInsert = Database["public"]["Tables"]["rsvps"]["Insert"];
+
+function getErrorMessage(error: unknown, fallback: string) {
+  if (error instanceof Error && error.message) return error.message;
+  if (typeof error === "object" && error && "message" in error && typeof (error as { message?: unknown }).message === "string") {
+    return (error as { message: string }).message;
+  }
+  return fallback;
+}
 
 export function useEventRSVPs(eventId: string) {
   return useQuery({
@@ -47,7 +56,6 @@ export function useMyRSVP(eventId: string) {
   });
 }
 
-/** Legacy — kept for backward compat but prefer useSignUpItems */
 export function usePotluckConfig(eventId: string) {
   return useQuery({
     queryKey: ["potluck-config", eventId],
@@ -64,7 +72,6 @@ export function usePotluckConfig(eventId: string) {
   });
 }
 
-/** Fetch flexible sign-up items for an event */
 export function useSignUpItems(eventId: string) {
   return useQuery({
     queryKey: ["sign-up-items", eventId],
@@ -82,14 +89,12 @@ export function useSignUpItems(eventId: string) {
   });
 }
 
-/** Fetch all selections for an event (across all RSVPs) */
 export function useEventSelections(eventId: string) {
   return useQuery({
     queryKey: ["event-selections", eventId],
     staleTime: 2 * 60 * 1000,
     gcTime: 5 * 60 * 1000,
     queryFn: async () => {
-      // Fetch RSVPs and selections in parallel once we have rsvp IDs
       const { data: rsvps, error: rsvpErr } = await supabase
         .from("rsvps")
         .select("id")
@@ -109,7 +114,6 @@ export function useEventSelections(eventId: string) {
   });
 }
 
-/** Fetch my selections for a specific RSVP */
 export function useMySelections(rsvpId: string | undefined) {
   return useQuery({
     queryKey: ["my-selections", rsvpId],
@@ -127,10 +131,6 @@ export function useMySelections(rsvpId: string | undefined) {
   });
 }
 
-/**
- * Checks capacity & waitlist, returns whether the RSVP should be waitlisted.
- * Throws if both event and waitlist are full.
- */
 async function checkWaitlistStatus(
   eventId: string,
   currentUserId: string
@@ -147,7 +147,6 @@ async function checkWaitlistStatus(
 
   if (!capacity) return false;
 
-  // Count existing attending RSVPs (using status column)
   const { count: confirmedCount, error: cErr } = await supabase
     .from("rsvps")
     .select("*", { count: "exact", head: true })
@@ -159,7 +158,6 @@ async function checkWaitlistStatus(
   const confirmed = confirmedCount ?? 0;
   if (confirmed < capacity) return false;
 
-  // Event is full — check waitlist room
   const { count: waitlistedCount, error: wErr } = await supabase
     .from("rsvps")
     .select("*", { count: "exact", head: true })
@@ -185,6 +183,8 @@ export function useRSVPConcurrency(eventId: string) {
     queryClient.invalidateQueries({ queryKey: ["my-rsvp", eventId, user?.id] });
     queryClient.invalidateQueries({ queryKey: ["event-selections", eventId] });
     queryClient.invalidateQueries({ queryKey: ["my-selections"] });
+    queryClient.invalidateQueries({ queryKey: ["potluck-menu", eventId] });
+    queryClient.invalidateQueries({ queryKey: ["events"] });
   };
 
   const createRSVP = useMutation({
@@ -198,7 +198,6 @@ export function useRSVPConcurrency(eventId: string) {
       if (!user) throw new Error("Not authenticated");
 
       const isWaitlisted = await checkWaitlistStatus(eventId, user.id);
-
       const rsvpId = crypto.randomUUID();
       const qrHash = await generateQRHash(rsvpId);
 
@@ -222,7 +221,6 @@ export function useRSVPConcurrency(eventId: string) {
         .single();
       if (error) throw error;
 
-      // Save selections
       if (input.selections && input.selections.length > 0) {
         const rows = input.selections.map((s) => ({
           rsvp_id: data.id,
@@ -236,7 +234,6 @@ export function useRSVPConcurrency(eventId: string) {
 
       notifyRSVPCreated(data.id, eventId, user.id);
 
-      // Send RSVP confirmation email
       (async () => {
         try {
           const [{ data: profile }, { data: event }] = await Promise.all([
@@ -308,17 +305,17 @@ export function useRSVPConcurrency(eventId: string) {
 
       return { previousRSVPs };
     },
-    onError: (_err, _input, context) => {
+    onSuccess: () => {
+      invalidateAll();
+    },
+    onError: (err, _input, context) => {
       if (context?.previousRSVPs) {
         queryClient.setQueryData(["rsvps", eventId], context.previousRSVPs);
       }
       queryClient.setQueryData(["my-rsvp", eventId, user?.id], null);
+      toast.error(getErrorMessage(err, "Failed to create RSVP"));
     },
-    onSettled: () => {
-      invalidateAll();
-      queryClient.invalidateQueries({ queryKey: ["potluck-menu", eventId] });
-      queryClient.invalidateQueries({ queryKey: ["events"] });
-    },
+    onSettled: () => {},
   });
 
   const updateRSVP = useMutation({
@@ -346,8 +343,9 @@ export function useRSVPConcurrency(eventId: string) {
         .single();
       if (error) throw error;
 
-      // Replace selections
-      await supabase.from("rsvp_sign_up_selections").delete().eq("rsvp_id", input.rsvpId);
+      const { error: deleteSelectionsError } = await supabase.from("rsvp_sign_up_selections").delete().eq("rsvp_id", input.rsvpId);
+      if (deleteSelectionsError) throw deleteSelectionsError;
+
       if (input.selections && input.selections.length > 0) {
         const rows = input.selections.map((s) => ({
           rsvp_id: input.rsvpId,
@@ -362,21 +360,22 @@ export function useRSVPConcurrency(eventId: string) {
       notifyRSVPUpdated(data.id, eventId, user.id);
       return data as RSVP;
     },
-    onSettled: () => {
+    onSuccess: () => {
       invalidateAll();
-      queryClient.invalidateQueries({ queryKey: ["potluck-menu", eventId] });
-      queryClient.invalidateQueries({ queryKey: ["events"] });
     },
+    onError: (err) => {
+      toast.error(getErrorMessage(err, "Failed to update RSVP"));
+    },
+    onSettled: () => {},
   });
 
   const cancelRSVP = useMutation({
     mutationFn: async (rsvpId: string) => {
       if (!user) throw new Error("Not authenticated");
 
-      // Release claimed sign-up items first
-      await supabase.from("rsvp_sign_up_selections").delete().eq("rsvp_id", rsvpId);
+      const { error: deleteSelectionsError } = await supabase.from("rsvp_sign_up_selections").delete().eq("rsvp_id", rsvpId);
+      if (deleteSelectionsError) throw deleteSelectionsError;
 
-      // Soft-cancel: update status to 'cancelled' instead of deleting
       const { error } = await supabase
         .from("rsvps")
         .update({ status: "cancelled" as any, is_waitlisted: false })
@@ -386,8 +385,6 @@ export function useRSVPConcurrency(eventId: string) {
 
       removeCachedTicket(rsvpId);
       notifyRSVPCancelled(rsvpId, eventId, user.id);
-
-      // The DB trigger `promote_waitlisted_on_cancel` handles auto-promotion + notification
     },
     onMutate: async () => {
       await queryClient.cancelQueries({ queryKey: ["rsvps", eventId] });
@@ -398,16 +395,16 @@ export function useRSVPConcurrency(eventId: string) {
       queryClient.setQueryData(["my-rsvp", eventId, user?.id], null);
       return { previousRSVPs };
     },
-    onError: (_err, _id, context) => {
+    onSuccess: () => {
+      invalidateAll();
+    },
+    onError: (err, _id, context) => {
       if (context?.previousRSVPs) {
         queryClient.setQueryData(["rsvps", eventId], context.previousRSVPs);
       }
+      toast.error(getErrorMessage(err, "Failed to cancel RSVP"));
     },
-    onSettled: () => {
-      invalidateAll();
-      queryClient.invalidateQueries({ queryKey: ["potluck-menu", eventId] });
-      queryClient.invalidateQueries({ queryKey: ["events"] });
-    },
+    onSettled: () => {},
   });
 
   return { createRSVP, updateRSVP, cancelRSVP };

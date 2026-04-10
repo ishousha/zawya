@@ -48,6 +48,14 @@ interface EventFormTabsProps {
   onClose: () => void;
 }
 
+function getErrorMessage(error: unknown, fallback: string) {
+  if (error instanceof Error && error.message) return error.message;
+  if (typeof error === "object" && error && "message" in error && typeof (error as { message?: unknown }).message === "string") {
+    return (error as { message: string }).message;
+  }
+  return fallback;
+}
+
 export default function EventFormTabs({ event, initialForm, initialItems, onClose }: EventFormTabsProps) {
   const queryClient = useQueryClient();
 
@@ -97,19 +105,16 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
     return [];
   });
 
-  // Auto-save draft for new events
   useEffect(() => {
     if (!isNewEvent) return;
     saveDraft(form, signUpItems);
   }, [form, signUpItems, isNewEvent]);
 
-  // Handle cancel/discard — clear draft
   const handleClose = useCallback(() => {
     if (isNewEvent) clearDraft();
     onClose();
   }, [isNewEvent, onClose]);
 
-  // Load existing sign-up items when editing (not duplicating)
   const { data: existingItems } = useQuery({
     queryKey: ["sign-up-items", event?.id],
     enabled: !!event?.id && !initialItems,
@@ -124,7 +129,6 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
     },
   });
 
-  // Load existing speakers when editing
   const { data: existingSpeakers } = useQuery({
     queryKey: ["event-speakers", event?.id],
     enabled: !!event?.id && !initialForm,
@@ -159,77 +163,84 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
 
   const mutation = useMutation({
     mutationFn: async () => {
-      try {
-        const payload: any = {
-          title: form.title,
-          description: form.description || null,
-          date_time: new Date(form.date_time).toISOString(),
-          end_date_time: form.end_date_time ? new Date(form.end_date_time).toISOString() : null,
-          event_type_id: form.event_type_id,
-          location: form.location || null,
-          address: form.address || null,
-          venue_id: form.venue_id || null,
-          virtual_link: form.virtual_link || null,
-          zoom_link: form.virtual_link || null,
-          cover_photo_url: form.cover_photo_url,
-          capacity: form.capacity ? parseInt(form.capacity) : null,
-          waitlist_capacity: parseInt(form.waitlist_capacity) || 0,
-          is_hybrid: form.is_hybrid,
-          has_potluck: form.has_potluck,
-          ticket_fee: parseFloat(form.ticket_fee) || 0,
-          payment_instructions: form.payment_instructions || null,
-          online_link: form.online_link || null,
-          checkin_pin: form.checkin_pin || null,
-          status: form.status,
-          host_id: form.host_id || null,
-          mureeds_only: form.mureeds_only === true ? true : false,
-          etiquette_notes: form.etiquette_notes || null,
-        };
+      if (!form.title.trim()) throw new Error("Event title is required");
+      if (!form.date_time) throw new Error("Start date and time is required");
+      if (!form.event_type_id) throw new Error("Event type is required");
 
-        let eventId = event?.id;
+      const payload: any = {
+        title: form.title,
+        description: form.description || null,
+        date_time: new Date(form.date_time).toISOString(),
+        end_date_time: form.end_date_time ? new Date(form.end_date_time).toISOString() : null,
+        event_type_id: form.event_type_id,
+        location: form.location || null,
+        address: form.address || null,
+        venue_id: form.venue_id || null,
+        virtual_link: form.virtual_link || null,
+        zoom_link: form.virtual_link || null,
+        cover_photo_url: form.cover_photo_url,
+        capacity: form.capacity ? parseInt(form.capacity) : null,
+        waitlist_capacity: parseInt(form.waitlist_capacity) || 0,
+        is_hybrid: form.is_hybrid,
+        has_potluck: form.has_potluck,
+        ticket_fee: parseFloat(form.ticket_fee) || 0,
+        payment_instructions: form.payment_instructions || null,
+        online_link: form.online_link || null,
+        checkin_pin: form.checkin_pin || null,
+        status: form.status,
+        host_id: form.host_id || null,
+        mureeds_only: form.mureeds_only === true,
+        etiquette_notes: form.etiquette_notes || null,
+      };
+
+      let eventId = event?.id;
+      if (event && !initialForm) {
+        const { error } = await supabase.from("events").update(payload).eq("id", event.id);
+        if (error) throw error;
+      } else {
+        const { data, error } = await supabase.from("events").insert(payload).select("id").single();
+        if (error) throw error;
+        eventId = data.id;
+      }
+
+      if (eventId) {
         if (event && !initialForm) {
-          const { error } = await supabase.from("events").update(payload).eq("id", event.id);
-          if (error) throw error;
-        } else {
-          const { data, error } = await supabase.from("events").insert(payload).select("id").single();
-          if (error) throw error;
-          eventId = data.id;
+          const { error: deleteItemsError } = await supabase.from("event_sign_up_items").delete().eq("event_id", eventId);
+          if (deleteItemsError) throw deleteItemsError;
         }
 
-        // Save sign-up items
-        if (eventId) {
-          if (event && !initialForm) {
-            await supabase.from("event_sign_up_items").delete().eq("event_id", eventId);
-          }
+        if (signUpItems.length > 0) {
+          const rows = signUpItems.map((item, i) => ({
+            event_id: eventId,
+            item_name: item.item_name,
+            quantity_limit: item.quantity_limit,
+            order_index: i,
+          }));
+          const { error: signUpItemsError } = await supabase.from("event_sign_up_items").insert(rows);
+          if (signUpItemsError) throw signUpItemsError;
+        }
 
-          if (signUpItems.length > 0) {
-            const rows = signUpItems.map((item, i) => ({
-              event_id: eventId!,
-              item_name: item.item_name,
-              quantity_limit: item.quantity_limit,
-              order_index: i,
-            }));
-            const { error } = await supabase.from("event_sign_up_items").insert(rows);
-            if (error) throw error;
-          }
+        const { error: deleteSpeakersError } = await supabase.from("event_speakers").delete().eq("event_id", eventId);
+        if (deleteSpeakersError) throw deleteSpeakersError;
 
-          // Save event speakers
-          await supabase.from("event_speakers").delete().eq("event_id", eventId);
-          if (form.speaker_ids.length > 0) {
-            const speakerRows = form.speaker_ids.map((sid, i) => ({
-              event_id: eventId!,
-              speaker_id: sid,
-              display_order: i,
-            }));
-            await supabase.from("event_speakers").insert(speakerRows);
-          }
+        if (form.speaker_ids.length > 0) {
+          const speakerRows = form.speaker_ids.map((sid, i) => ({
+            event_id: eventId,
+            speaker_id: sid,
+            display_order: i,
+          }));
+          const { error: speakerInsertError } = await supabase.from("event_speakers").insert(speakerRows);
+          if (speakerInsertError) throw speakerInsertError;
+        }
 
-          // Notification logic
-          if (eventId && isNewEvent && form.notify_members) {
-            const { data: approvedUsers } = await supabase
+        if (isNewEvent && form.notify_members) {
+          try {
+            const { data: approvedUsers, error: approvedUsersError } = await supabase
               .from("user_roles")
               .select("user_id")
               .eq("role", "approved");
+            if (approvedUsersError) throw approvedUsersError;
+
             if (approvedUsers && approvedUsers.length > 0) {
               const notifRows = approvedUsers.map((u) => ({
                 user_id: u.user_id,
@@ -238,15 +249,22 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
                 type: "event",
                 metadata: { action: "new_event", event_id: eventId },
               }));
-              await supabase.from("notifications").insert(notifRows);
+              const { error: notificationsError } = await supabase.from("notifications").insert(notifRows);
+              if (notificationsError) throw notificationsError;
             }
+          } catch (notificationError) {
+            console.warn("Failed to notify members after event save:", notificationError);
           }
+        }
 
-          if (eventId && !isNewEvent && form.notify_attendees) {
-            const { data: rsvpUsers } = await supabase
+        if (!isNewEvent && form.notify_attendees) {
+          try {
+            const { data: rsvpUsers, error: rsvpUsersError } = await supabase
               .from("rsvps")
               .select("user_id")
               .eq("event_id", eventId);
+            if (rsvpUsersError) throw rsvpUsersError;
+
             if (rsvpUsers && rsvpUsers.length > 0) {
               const uniqueIds = [...new Set(rsvpUsers.map((r) => r.user_id))];
               const notifRows = uniqueIds.map((uid) => ({
@@ -256,13 +274,16 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
                 type: "event",
                 metadata: { action: "event_updated", event_id: eventId },
               }));
-              await supabase.from("notifications").insert(notifRows);
+              const { error: attendeeNotificationsError } = await supabase.from("notifications").insert(notifRows);
+              if (attendeeNotificationsError) throw attendeeNotificationsError;
             }
+          } catch (notificationError) {
+            console.warn("Failed to notify attendees after event save:", notificationError);
           }
         }
-      } catch (err) {
-        throw err;
       }
+
+      return eventId;
     },
     onSuccess: () => {
       clearDraft();
@@ -273,10 +294,11 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
       toast.success(event && !initialForm ? "Event updated" : "Event created");
       onClose();
     },
-    onError: (err: any) => {
+    onError: (err) => {
       console.error("Event save error:", err);
-      toast.error(err?.message || "Failed to save event");
+      toast.error(getErrorMessage(err, "Failed to save event"));
     },
+    onSettled: () => {},
   });
 
   // isNewEvent is declared at top of component

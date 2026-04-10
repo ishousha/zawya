@@ -180,10 +180,6 @@ function StableLayout({ profile }: { profile: any }) {
     return null;
   }, [location.pathname, isAdmin, isModerator]);
 
-  // Track which tabs have been visited so we only mount them on first visit
-  const visitedRef = useMemo(() => new Set<string>(), []);
-  if (stableTab) visitedRef.add(stableTab);
-
   const isStableRoute = stableTab !== null;
 
   return (
@@ -191,21 +187,11 @@ function StableLayout({ profile }: { profile: any }) {
       <AppHeader />
 
       <Suspense fallback={<LazyFallback />}>
-        {/* Stable tab pages — kept mounted, hidden via CSS */}
-        <div style={{ display: stableTab === "home" ? "block" : "none" }}>
-          {visitedRef.has("home") && <HomeFeed />}
-        </div>
-        <div style={{ display: stableTab === "library" ? "block" : "none" }}>
-          {visitedRef.has("library") && <Library />}
-        </div>
-        {(isAdmin || isModerator) && (
-          <div style={{ display: stableTab === "admin" ? "block" : "none" }}>
-            {visitedRef.has("admin") && <AdminDashboard />}
-          </div>
-        )}
-        <div style={{ display: stableTab === "profile" ? "block" : "none" }}>
-          {visitedRef.has("profile") && <ProfilePage />}
-        </div>
+        {/* Only render the active tab to avoid hidden tabs running heavy queries in the background */}
+        {stableTab === "home" && <HomeFeed />}
+        {stableTab === "library" && <Library />}
+        {stableTab === "admin" && (isAdmin || isModerator) && <AdminDashboard />}
+        {stableTab === "profile" && <ProfilePage />}
 
         {/* Non-tab routes render normally */}
         {!isStableRoute && (
