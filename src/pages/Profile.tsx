@@ -60,6 +60,7 @@ export default function ProfilePage() {
   const { profile, user, signOut } = useAuth();
   const navigate = useNavigate();
 
+  const [gender, setGender] = useState("");
   const [whatsappCC, setWhatsappCC] = useState("+971");
   const [whatsappNum, setWhatsappNum] = useState("");
   const [altCC, setAltCC] = useState("+971");
