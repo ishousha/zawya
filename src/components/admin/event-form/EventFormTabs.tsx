@@ -159,118 +159,124 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
 
   const mutation = useMutation({
     mutationFn: async () => {
-      const payload: any = {
-        title: form.title,
-        description: form.description || null,
-        date_time: new Date(form.date_time).toISOString(),
-        end_date_time: form.end_date_time ? new Date(form.end_date_time).toISOString() : null,
-        event_type_id: form.event_type_id,
-        location: form.location || null,
-        address: form.address || null,
-        venue_id: form.venue_id || null,
-        virtual_link: form.virtual_link || null,
-        zoom_link: form.virtual_link || null,
-        cover_photo_url: form.cover_photo_url,
-        capacity: form.capacity ? parseInt(form.capacity) : null,
-        waitlist_capacity: parseInt(form.waitlist_capacity) || 0,
-        is_hybrid: form.is_hybrid,
-        has_potluck: form.has_potluck,
-        ticket_fee: parseFloat(form.ticket_fee) || 0,
-        payment_instructions: form.payment_instructions || null,
-        online_link: form.online_link || null,
-        checkin_pin: form.checkin_pin || null,
-        status: form.status,
-        host_id: form.host_id || null,
-        mureeds_only: form.mureeds_only,
-        etiquette_notes: form.etiquette_notes || null,
-      };
+      try {
+        const payload: any = {
+          title: form.title,
+          description: form.description || null,
+          date_time: new Date(form.date_time).toISOString(),
+          end_date_time: form.end_date_time ? new Date(form.end_date_time).toISOString() : null,
+          event_type_id: form.event_type_id,
+          location: form.location || null,
+          address: form.address || null,
+          venue_id: form.venue_id || null,
+          virtual_link: form.virtual_link || null,
+          zoom_link: form.virtual_link || null,
+          cover_photo_url: form.cover_photo_url,
+          capacity: form.capacity ? parseInt(form.capacity) : null,
+          waitlist_capacity: parseInt(form.waitlist_capacity) || 0,
+          is_hybrid: form.is_hybrid,
+          has_potluck: form.has_potluck,
+          ticket_fee: parseFloat(form.ticket_fee) || 0,
+          payment_instructions: form.payment_instructions || null,
+          online_link: form.online_link || null,
+          checkin_pin: form.checkin_pin || null,
+          status: form.status,
+          host_id: form.host_id || null,
+          mureeds_only: form.mureeds_only === true ? true : false,
+          etiquette_notes: form.etiquette_notes || null,
+        };
 
-      let eventId = event?.id;
-      if (event && !initialForm) {
-        const { error } = await supabase.from("events").update(payload).eq("id", event.id);
-        if (error) throw error;
-      } else {
-        const { data, error } = await supabase.from("events").insert(payload).select("id").single();
-        if (error) throw error;
-        eventId = data.id;
-      }
-
-      // Save sign-up items
-      if (eventId) {
+        let eventId = event?.id;
         if (event && !initialForm) {
-          await supabase.from("event_sign_up_items").delete().eq("event_id", eventId);
-        }
-
-        if (signUpItems.length > 0) {
-          const rows = signUpItems.map((item, i) => ({
-            event_id: eventId!,
-            item_name: item.item_name,
-            quantity_limit: item.quantity_limit,
-            order_index: i,
-          }));
-          const { error } = await supabase.from("event_sign_up_items").insert(rows);
+          const { error } = await supabase.from("events").update(payload).eq("id", event.id);
           if (error) throw error;
+        } else {
+          const { data, error } = await supabase.from("events").insert(payload).select("id").single();
+          if (error) throw error;
+          eventId = data.id;
         }
 
-        // Save event speakers
-        await supabase.from("event_speakers").delete().eq("event_id", eventId);
-        if (form.speaker_ids.length > 0) {
-          const speakerRows = form.speaker_ids.map((sid, i) => ({
-            event_id: eventId!,
-            speaker_id: sid,
-            display_order: i,
-          }));
-          await supabase.from("event_speakers").insert(speakerRows);
-        }
+        // Save sign-up items
+        if (eventId) {
+          if (event && !initialForm) {
+            await supabase.from("event_sign_up_items").delete().eq("event_id", eventId);
+          }
 
-        // Notification logic
-        if (eventId && isNewEvent && form.notify_members) {
-          // Notify all approved members about new event
-          const { data: approvedUsers } = await supabase
-            .from("user_roles")
-            .select("user_id")
-            .eq("role", "approved");
-          if (approvedUsers && approvedUsers.length > 0) {
-            const notifRows = approvedUsers.map((u) => ({
-              user_id: u.user_id,
-              title: "New Event: " + form.title,
-              message: `A new event "${form.title}" has been posted. Check it out and RSVP!`,
-              type: "event",
-              metadata: { action: "new_event", event_id: eventId },
+          if (signUpItems.length > 0) {
+            const rows = signUpItems.map((item, i) => ({
+              event_id: eventId!,
+              item_name: item.item_name,
+              quantity_limit: item.quantity_limit,
+              order_index: i,
             }));
-            await supabase.from("notifications").insert(notifRows);
+            const { error } = await supabase.from("event_sign_up_items").insert(rows);
+            if (error) throw error;
+          }
+
+          // Save event speakers
+          await supabase.from("event_speakers").delete().eq("event_id", eventId);
+          if (form.speaker_ids.length > 0) {
+            const speakerRows = form.speaker_ids.map((sid, i) => ({
+              event_id: eventId!,
+              speaker_id: sid,
+              display_order: i,
+            }));
+            await supabase.from("event_speakers").insert(speakerRows);
+          }
+
+          // Notification logic
+          if (eventId && isNewEvent && form.notify_members) {
+            const { data: approvedUsers } = await supabase
+              .from("user_roles")
+              .select("user_id")
+              .eq("role", "approved");
+            if (approvedUsers && approvedUsers.length > 0) {
+              const notifRows = approvedUsers.map((u) => ({
+                user_id: u.user_id,
+                title: "New Event: " + form.title,
+                message: `A new event "${form.title}" has been posted. Check it out and RSVP!`,
+                type: "event",
+                metadata: { action: "new_event", event_id: eventId },
+              }));
+              await supabase.from("notifications").insert(notifRows);
+            }
+          }
+
+          if (eventId && !isNewEvent && form.notify_attendees) {
+            const { data: rsvpUsers } = await supabase
+              .from("rsvps")
+              .select("user_id")
+              .eq("event_id", eventId);
+            if (rsvpUsers && rsvpUsers.length > 0) {
+              const uniqueIds = [...new Set(rsvpUsers.map((r) => r.user_id))];
+              const notifRows = uniqueIds.map((uid) => ({
+                user_id: uid,
+                title: "Event Updated: " + form.title,
+                message: `"${form.title}" has been updated. Please review the latest details.`,
+                type: "event",
+                metadata: { action: "event_updated", event_id: eventId },
+              }));
+              await supabase.from("notifications").insert(notifRows);
+            }
           }
         }
-
-        if (eventId && !isNewEvent && form.notify_attendees) {
-          // Notify only users with active RSVPs
-          const { data: rsvpUsers } = await supabase
-            .from("rsvps")
-            .select("user_id")
-            .eq("event_id", eventId);
-          if (rsvpUsers && rsvpUsers.length > 0) {
-            const uniqueIds = [...new Set(rsvpUsers.map((r) => r.user_id))];
-            const notifRows = uniqueIds.map((uid) => ({
-              user_id: uid,
-              title: "Event Updated: " + form.title,
-              message: `"${form.title}" has been updated. Please review the latest details.`,
-              type: "event",
-              metadata: { action: "event_updated", event_id: eventId },
-            }));
-            await supabase.from("notifications").insert(notifRows);
-          }
-        }
+      } catch (err) {
+        throw err;
       }
     },
     onSuccess: () => {
       clearDraft();
       queryClient.invalidateQueries({ queryKey: ["admin-events"] });
+      queryClient.invalidateQueries({ queryKey: ["events"] });
       queryClient.invalidateQueries({ queryKey: ["sign-up-items"] });
       queryClient.invalidateQueries({ queryKey: ["event-speakers"] });
       toast.success(event && !initialForm ? "Event updated" : "Event created");
       onClose();
     },
-    onError: () => toast.error("Failed to save event"),
+    onError: (err: any) => {
+      console.error("Event save error:", err);
+      toast.error(err?.message || "Failed to save event");
+    },
   });
 
   // isNewEvent is declared at top of component

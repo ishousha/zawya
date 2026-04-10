@@ -46,7 +46,8 @@ export default function HomeFeed() {
   const isMureed = (profile as any)?.is_mureed ?? false;
 
   const visibleEvents = events?.filter((e) => {
-    if ((e as any).mureeds_only && !isMureed && !isAdminOrMod) return false;
+    // Hide mureeds_only events from non-mureeds (treat null as false)
+    if ((e as any).mureeds_only === true && !isMureed && !isAdminOrMod) return false;
     return true;
   });
 
