@@ -239,16 +239,18 @@ export function useRSVPConcurrency(eventId: string) {
       // Send RSVP confirmation email
       (async () => {
         try {
-          const { data: profile } = await supabase
-            .from("profiles")
-            .select("email, name")
-            .eq("id", user.id)
-            .maybeSingle();
-          const { data: event } = await supabase
-            .from("events")
-            .select("title, date_time, location, address")
-            .eq("id", eventId)
-            .maybeSingle();
+          const [{ data: profile }, { data: event }] = await Promise.all([
+            supabase
+              .from("profiles")
+              .select("email, name")
+              .eq("id", user.id)
+              .maybeSingle(),
+            supabase
+              .from("events")
+              .select("title, date_time, location, address")
+              .eq("id", eventId)
+              .maybeSingle(),
+          ]);
           if (profile?.email && event) {
             const eventDate = new Date(event.date_time).toLocaleString("en-US", {
               weekday: "long", year: "numeric", month: "long", day: "numeric",
