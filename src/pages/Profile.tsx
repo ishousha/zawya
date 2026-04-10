@@ -300,6 +300,12 @@ export default function ProfilePage() {
             </div>
           </div>
 
+          {/* Gender */}
+          <div className="space-y-2">
+            <Label className="text-sm font-medium text-foreground">Gender</Label>
+            <GenderToggle value={gender} onChange={setGender} />
+          </div>
+
           {/* Date of Birth */}
           <div className="space-y-2">
             <Label className="text-sm font-medium text-foreground">Date of Birth</Label>
