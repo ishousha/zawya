@@ -581,9 +581,9 @@ export default function AdminAnalytics() {
 
 // ── Sub-components ──────────────────────────────────────────
 
-function KpiCard({ icon, label, value }: { icon: React.ReactNode; label: string; value: number | string }) {
-  return (
-    <Card>
+const KpiCard = React.forwardRef<HTMLDivElement, { icon: React.ReactNode; label: string; value: number | string }>(
+  ({ icon, label, value, ...props }, ref) => (
+    <Card ref={ref} {...props}>
       <CardContent className="p-3 flex items-center gap-3">
         <div className="flex-shrink-0 rounded-lg bg-muted p-2">{icon}</div>
         <div className="min-w-0">
@@ -592,8 +592,9 @@ function KpiCard({ icon, label, value }: { icon: React.ReactNode; label: string;
         </div>
       </CardContent>
     </Card>
-  );
-}
+  )
+);
+KpiCard.displayName = "KpiCard";
 
 function ChartCard({ title, children }: { title: string; children: React.ReactNode }) {
   return (
