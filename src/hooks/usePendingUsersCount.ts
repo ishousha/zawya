@@ -1,9 +1,15 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 export function usePendingUsersCount() {
+  const { profile } = useAuth();
+  const isAdmin = profile?.role === "admin";
+
   return useQuery({
     queryKey: ["pending-users-count"],
+    enabled: isAdmin,
+    staleTime: 60_000,
     queryFn: async () => {
       const { count, error } = await supabase
         .from("profiles")
@@ -12,6 +18,6 @@ export function usePendingUsersCount() {
       if (error) throw error;
       return count ?? 0;
     },
-    refetchInterval: 30_000, // refresh every 30s
+    refetchInterval: isAdmin ? 60_000 : false,
   });
 }

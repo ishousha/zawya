@@ -113,7 +113,11 @@ export default function UserManagement() {
     queryKey: ["admin-all-rsvps"],
     staleTime: 5 * 60 * 1000, gcTime: 10 * 60 * 1000, refetchOnWindowFocus: false,
     queryFn: async () => {
-      const { data, error } = await supabase.from("rsvps").select("user_id, event_id, events:event_id(id, title)");
+      const { data, error } = await supabase
+        .from("rsvps")
+        .select("user_id, event_id, events:event_id(id, title)")
+        .neq("status", "cancelled")
+        .limit(1000);
       if (error) throw error;
       return data ?? [];
     },

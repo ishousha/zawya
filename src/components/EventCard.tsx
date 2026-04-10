@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { format } from "date-fns";
 import { MapPin, Video, Users, Calendar, Clock, CheckCircle2, Ticket, Edit, Building2, ExternalLink, Ban, BookOpen, Mountain, Handshake, ClockIcon, ScanLine } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -51,8 +51,8 @@ export default function EventCard({ event, onShowTicket, isPast = false }: Event
   const isWaitlisted = myRSVP?.status === "waitlisted";
   const isCancelled = event.status === "cancelled";
 
-  const confirmedCount = allRsvps?.filter((r) => r.status === "attending").length ?? 0;
-  const checkedInCount = allRsvps?.filter((r) => r.checked_in && r.status === "attending").length ?? 0;
+  const confirmedCount = useMemo(() => allRsvps?.filter((r) => r.status === "attending").length ?? 0, [allRsvps]);
+  const checkedInCount = useMemo(() => allRsvps?.filter((r) => r.checked_in && r.status === "attending").length ?? 0, [allRsvps]);
   const isFull = !!event.capacity && confirmedCount >= event.capacity;
 
   // Time-gate: refresh every second for countdown
@@ -94,12 +94,13 @@ export default function EventCard({ event, onShowTicket, isPast = false }: Event
   }, [onlineLink, isLinkActive]);
 
   // Calculate waitlist position for the current user
-  const waitlistPosition = isWaitlisted && allRsvps
-    ? allRsvps
-        .filter((r) => r.status === "waitlisted")
-        .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
-        .findIndex((r) => r.user_id === myRSVP?.user_id) + 1
-    : 0;
+  const waitlistPosition = useMemo(() => {
+    if (!isWaitlisted || !allRsvps) return 0;
+    return allRsvps
+      .filter((r) => r.status === "waitlisted")
+      .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+      .findIndex((r) => r.user_id === myRSVP?.user_id) + 1;
+  }, [isWaitlisted, allRsvps, myRSVP?.user_id]);
 
   // Check if this is a virtual-only event type (no location required)
   const requiresLocation = eventType?.requires_location ?? true;
