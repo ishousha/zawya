@@ -26,7 +26,7 @@ function useAllProfiles() {
     gcTime: 10 * 60 * 1000,
     refetchOnWindowFocus: false,
     queryFn: async () => {
-      const { data, error } = await supabase.from("profiles").select("id, role, is_mureed, created_at, family_id");
+      const { data, error } = await supabase.from("profiles").select("id, role, is_mureed, created_at, family_id, gender");
       if (error) throw error;
       return data ?? [];
     },
