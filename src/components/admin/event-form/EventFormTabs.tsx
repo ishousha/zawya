@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,6 +14,16 @@ import SettingsTab from "./SettingsTab";
 import { EventFormState, defaultEventForm, generateCheckinPin } from "./types";
 import type { EventType } from "./types";
 import type { Database } from "@/integrations/supabase/types";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const DRAFT_KEY = "zawya_event_draft";
 const DRAFT_ITEMS_KEY = "zawya_event_draft_items";
@@ -105,12 +115,41 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
     return [];
   });
 
+  // --- Dirty tracking ---
+  const initialFormRef = useRef(JSON.stringify(form));
+  const initialItemsRef = useRef(JSON.stringify(signUpItems));
+  const [showCloseConfirm, setShowCloseConfirm] = useState(false);
+
+  const isDirty = JSON.stringify(form) !== initialFormRef.current ||
+    JSON.stringify(signUpItems) !== initialItemsRef.current;
+
+  // Browser tab/window close guard
+  useEffect(() => {
+    if (!isDirty) return;
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [isDirty]);
+
   useEffect(() => {
     if (!isNewEvent) return;
     saveDraft(form, signUpItems);
   }, [form, signUpItems, isNewEvent]);
 
   const handleClose = useCallback(() => {
+    if (isDirty) {
+      setShowCloseConfirm(true);
+      return;
+    }
+    if (isNewEvent) clearDraft();
+    onClose();
+  }, [isDirty, isNewEvent, onClose]);
+
+  const confirmClose = useCallback(() => {
+    setShowCloseConfirm(false);
     if (isNewEvent) clearDraft();
     onClose();
   }, [isNewEvent, onClose]);
@@ -364,6 +403,23 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
           {isNewEvent ? "Create Event" : "Update Event"}
         </Button>
       </CardContent>
+
+      <AlertDialog open={showCloseConfirm} onOpenChange={setShowCloseConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Discard unsaved changes?</AlertDialogTitle>
+            <AlertDialogDescription>
+              You have unsaved event data. Closing now will lose your changes.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Keep Editing</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmClose} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Discard
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   );
 }
