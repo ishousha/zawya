@@ -6,7 +6,16 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/contexts/AuthContext";
 import AppRoutes from "@/components/AppRoutes";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 60_000,       // 60s — prevents re-fetch on tab switch
+      gcTime: 5 * 60 * 1000,   // keep unused data 5 min before GC
+      refetchOnWindowFocus: false,
+      retry: 1,
+    },
+  },
+});
 
 const App = () => (
   <QueryClientProvider client={queryClient}>

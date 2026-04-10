@@ -23,7 +23,7 @@ export default function HomeFeed() {
 
   const { data: events, isLoading } = useQuery({
     queryKey: ["events"],
-    staleTime: 2 * 60 * 1000,
+    staleTime: 60_000,
     queryFn: async () => {
       const now = new Date().toISOString();
       // Fallback: show events for 4 hours after start if no end_date_time
