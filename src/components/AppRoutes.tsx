@@ -130,17 +130,8 @@ export default function AppRoutes() {
     );
   }
 
-  // Terms gate for approved/admin users
-  if (!(profile as any)?.terms_accepted) {
-    return (
-      <Suspense fallback={<LazyFallback />}>
-        <Routes>
-          {joinFamilyRoute}
-          <Route path="*" element={<CommunityGuidelines />} />
-        </Routes>
-      </Suspense>
-    );
-  }
+  // Terms gate removed for approved/admin users — guidelines are shown
+  // only during the pending/sign-up flow (handled above at line 112).
 
   // Onboarding gate: check the explicit flag (not family_id which can be set later)
   const needsOnboarding = !(profile as any)?.onboarding_completed;
