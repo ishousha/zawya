@@ -408,7 +408,6 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
             {mutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             {isNewEvent ? "Create Event" : "Update Event"}
           </Button>
-        </div>
       </div>
 
       <AlertDialog open={showCloseConfirm} onOpenChange={cancelClose}>
