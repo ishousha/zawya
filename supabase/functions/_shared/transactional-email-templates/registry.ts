@@ -21,6 +21,7 @@ import { template as rsvpConfirmation } from './rsvp-confirmation.tsx'
 import { template as eventReminder } from './event-reminder.tsx'
 import { template as eventBroadcast } from './event-broadcast.tsx'
 import { template as contactOrganizer } from './contact-organizer.tsx'
+import { template as userReinstated } from './user-reinstated.tsx'
 
 export const TEMPLATES: Record<string, TemplateEntry> = {
   'event-cancelled': eventCancelled,
