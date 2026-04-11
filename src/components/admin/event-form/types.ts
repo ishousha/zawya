@@ -48,7 +48,7 @@ export const defaultEventForm: EventFormState = {
   location: "",
   address: "",
   virtual_link: "",
-  cover_photo_url: null,
+  cover_photo_url: "https://ikzaalswkajtaxejyskw.supabase.co/storage/v1/object/public/event-covers/Event_Cover_27r1gi27r1gi27r1.webp",
   capacity: "",
   waitlist_capacity: "0",
   is_hybrid: false,
