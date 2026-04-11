@@ -49,9 +49,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       async (_event, newSession) => {
         if (!initialDone) return;
         if (!mounted) return;
+
+        const prevUserId = sessionRef.current?.user?.id;
+        const newUserId = newSession?.user?.id;
+
         setSession(newSession);
         sessionRef.current = newSession;
+
         if (newSession?.user) {
+          // If a different user signed in (or first sign-in after null session),
+          // show loading while we fetch their profile to avoid routing flicker.
+          if (newUserId !== prevUserId) {
+            setLoading(true);
+          }
           await fetchProfile(newSession.user.id);
         } else {
           setProfile(null);
