@@ -496,7 +496,7 @@ export default function UserManagement() {
         </div>
 
         <div className="space-y-2">
-          {filteredProfiles.map((p) => (
+          {filteredProfiles.slice(0, visibleCount).map((p) => (
             <Card key={p.id} className={p.role === "pending" ? "border-accent" : ""}>
               <CardContent className="flex flex-col p-4 sm:flex-row sm:items-center sm:justify-between">
                 <div className="min-w-0 flex-1 flex gap-3">
