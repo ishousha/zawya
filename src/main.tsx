@@ -9,7 +9,7 @@ Sentry.init({
     Sentry.browserTracingIntegration(),
     Sentry.replayIntegration(),
   ],
-  tracesSampleRate: 0.3,
+  tracesSampleRate: import.meta.env.PROD ? 0.1 : 0.3,
   replaysSessionSampleRate: 0,
   replaysOnErrorSampleRate: 1.0,
   environment: import.meta.env.MODE,
