@@ -24,6 +24,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import GuestRequestsSection from "@/components/rsvp/GuestRequestsSection";
 import AttendeeChecklist from "@/components/rsvp/AttendeeChecklist";
+import CurrentMenuPreview from "@/components/rsvp/CurrentMenuPreview";
+import { useGroupedPotluckMenu } from "@/hooks/useGroupedPotluckMenu";
 import type { Database } from "@/integrations/supabase/types";
 
 type Event = Database["public"]["Tables"]["events"]["Row"];
