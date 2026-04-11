@@ -88,6 +88,12 @@ export default function DesignTab({ form, setForm }: DesignTabProps) {
         next.has_potluck = true;
         next.ticket_fee = "0";
       }
+
+      // Clear virtual fields when switching to a non-virtual type
+      if (!stIsVirtual) {
+        next.online_link = "";
+      }
+
       return next;
     });
   }, [form.event_type_id, selectedType, setForm]);
@@ -326,56 +332,53 @@ export default function DesignTab({ form, setForm }: DesignTabProps) {
         </>
       )}
 
-      {/* Generate Zoom Link — available for all event types */}
-      <div className="rounded-md border border-border p-3 bg-muted/30 space-y-2">
-        <div className="flex items-center justify-between">
-          <Label className="flex items-center gap-1.5 mb-0 text-sm">
-            <Video className="h-4 w-4 text-primary" />
-            One-Click Zoom Booking
-          </Label>
-          <Button
-            type="button"
-            size="sm"
-            variant={zoomError ? "destructive" : "outline"}
-            disabled={bookingZoom}
-            onClick={handleGenerateZoom}
-            className="gap-1.5"
-          >
-            {bookingZoom ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Video className="h-3.5 w-3.5" />}
-            {bookingZoom ? "Booking…" : zoomError ? "Retry" : "Generate Zoom Link"}
-          </Button>
-        </div>
-        {zoomError && (
-          <p className="flex items-center gap-1 text-xs text-destructive">
-            <AlertCircle className="h-3 w-3 shrink-0" />
-            {zoomError}
-          </p>
-        )}
-        <p className="text-xs text-muted-foreground">
-          Generates a Zoom meeting and fills in the link + meeting details automatically.
-        </p>
-      </div>
+      {/* Zoom booking + online link — only for virtual event types */}
+      {showVirtual && (
+        <>
+          <div className="rounded-md border border-border p-3 bg-muted/30 space-y-2">
+            <div className="flex items-center justify-between">
+              <Label className="flex items-center gap-1.5 mb-0 text-sm">
+                <Video className="h-4 w-4 text-primary" />
+                One-Click Zoom Booking
+              </Label>
+              <Button
+                type="button"
+                size="sm"
+                variant={zoomError ? "destructive" : "outline"}
+                disabled={bookingZoom}
+                onClick={handleGenerateZoom}
+                className="gap-1.5"
+              >
+                {bookingZoom ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Video className="h-3.5 w-3.5" />}
+                {bookingZoom ? "Booking…" : zoomError ? "Retry" : "Generate Zoom Link"}
+              </Button>
+            </div>
+            {zoomError && (
+              <p className="flex items-center gap-1 text-xs text-destructive">
+                <AlertCircle className="h-3 w-3 shrink-0" />
+                {zoomError}
+              </p>
+            )}
+            <p className="text-xs text-muted-foreground">
+              Generates a Zoom meeting and fills in the link + meeting details automatically.
+            </p>
+          </div>
 
-      {/* Online link field — always visible so admins can paste or see the generated link */}
-      <div>
-        <Label htmlFor="online_link" className="flex items-center gap-1.5">
-          <Video className="h-3.5 w-3.5 text-primary" />
-          Online Meeting Link
-        </Label>
-        <Input
-          id="online_link"
-          value={form.online_link}
-          onChange={(e) => update("online_link", e.target.value)}
-          placeholder="https://zoom.us/... or meet.google.com/..."
-          className="mt-1.5"
-        />
-        {!showVirtual && form.online_link && (
-          <p className="flex items-start gap-1 text-xs text-muted-foreground mt-1">
-            <Info className="h-3 w-3 mt-0.5 shrink-0" />
-            This link will be shared with attendees even though the event type isn't virtual.
-          </p>
-        )}
-      </div>
+          <div>
+            <Label htmlFor="online_link" className="flex items-center gap-1.5">
+              <Video className="h-3.5 w-3.5 text-primary" />
+              Online Meeting Link
+            </Label>
+            <Input
+              id="online_link"
+              value={form.online_link}
+              onChange={(e) => update("online_link", e.target.value)}
+              placeholder="https://zoom.us/... or meet.google.com/..."
+              className="mt-1.5"
+            />
+          </div>
+        </>
+      )}
     </div>
   );
 }
