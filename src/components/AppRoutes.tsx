@@ -9,6 +9,7 @@ import { useNavigate } from "react-router-dom";
 import LoginPage from "@/pages/Login";
 import AppHeader from "@/components/AppHeader";
 import BottomNav from "@/components/BottomNav";
+import OfflineBanner from "@/components/OfflineBanner";
 
 // Lazy-loaded pages
 const Rejected = lazy(() => import("@/pages/Rejected"));
