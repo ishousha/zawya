@@ -1,4 +1,5 @@
 import { useAuth } from "@/contexts/AuthContext";
+import { ClearInstallDismissButton } from "@/components/InstallAppBanner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -427,6 +428,13 @@ export default function ProfilePage() {
           <ScrollText className="h-4 w-4" />
           Community Guidelines
         </Button>
+
+        {profile?.role === "admin" && (
+          <div className="rounded-lg border border-border bg-card p-4 space-y-2">
+            <p className="text-xs font-medium text-muted-foreground">Admin Tools</p>
+            <ClearInstallDismissButton />
+          </div>
+        )}
 
         <Button
           variant="outline"
