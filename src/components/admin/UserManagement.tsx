@@ -64,6 +64,7 @@ export default function UserManagement() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [sortOrder, setSortOrder] = useState<"newest" | "oldest">("newest");
   const [dateFilter, setDateFilter] = useState<string>("all");
+  const [visibleCount, setVisibleCount] = useState(50);
 
   const { data: profiles, isLoading: loadingProfiles } = useQuery({
     queryKey: ["admin-profiles"],
