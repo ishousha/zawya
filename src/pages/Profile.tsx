@@ -68,7 +68,38 @@ export default function ProfilePage() {
   const [dob, setDob] = useState<Date | undefined>(undefined);
   const [saving, setSaving] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [installPrompt, setInstallPrompt] = useState<any>(null);
   const avatarInputRef = useRef<HTMLInputElement>(null);
+
+  const isStandalone =
+    typeof window !== "undefined" &&
+    (window.matchMedia("(display-mode: standalone)").matches ||
+      (navigator as any).standalone === true);
+
+  const isIOSSafari = (() => {
+    if (typeof navigator === "undefined") return false;
+    const ua = navigator.userAgent;
+    const isIOS = /iPad|iPhone|iPod/.test(ua) && !(window as any).MSStream;
+    const isSafari = /Safari/.test(ua) && !/CriOS|FxiOS|OPiOS|EdgiOS/.test(ua);
+    return isIOS && isSafari;
+  })();
+
+  useEffect(() => {
+    if (isStandalone) return;
+    const handler = (e: Event) => {
+      e.preventDefault();
+      setInstallPrompt(e);
+    };
+    window.addEventListener("beforeinstallprompt", handler);
+    return () => window.removeEventListener("beforeinstallprompt", handler);
+  }, [isStandalone]);
+
+  const handleInstallApp = async () => {
+    if (!installPrompt) return;
+    await installPrompt.prompt();
+    const { outcome } = await installPrompt.userChoice;
+    if (outcome === "accepted") setInstallPrompt(null);
+  };
 
   // Populate form when profile loads
   useEffect(() => {
