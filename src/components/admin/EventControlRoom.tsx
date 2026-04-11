@@ -367,7 +367,7 @@ export default function EventControlRoom() {
                         </p>
                       )}
                     </div>
-                    <div className="flex items-center gap-1 border-t border-border pt-2">
+                    <div className="flex flex-wrap items-center gap-1 border-t border-border pt-2">
                       <Button size="sm" variant="ghost" className="h-9 gap-1.5 text-xs" onClick={() => setMonitoringEventId(event.id)}>
                         <Users className="h-3.5 w-3.5" /> RSVPs
                       </Button>
