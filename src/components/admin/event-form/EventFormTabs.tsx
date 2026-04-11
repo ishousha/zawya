@@ -210,7 +210,8 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
   }, [existingSpeakers, initialForm]);
 
   const mutation = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (publishOverride?: boolean) => {
+      const shouldPublish = publishOverride ?? form.published;
       if (!form.title.trim()) throw new Error("Event title is required");
       if (!form.date_time) throw new Error("Start date and time is required");
       if (!form.event_type_id) throw new Error("Event type is required");
