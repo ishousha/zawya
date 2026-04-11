@@ -411,6 +411,16 @@ export default function UserManagement() {
                 {eventOptions.map((e) => (<SelectItem key={e.id} value={e.id}>{e.title}</SelectItem>))}
               </SelectContent>
             </Select>
+            <Select value={sortOrder} onValueChange={(v) => setSortOrder(v as "newest" | "oldest")}>
+              <SelectTrigger className="w-full md:w-[150px] h-9">
+                <ArrowUpDown className="h-3.5 w-3.5 mr-1.5 shrink-0" />
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="newest">Newest first</SelectItem>
+                <SelectItem value="oldest">Oldest first</SelectItem>
+              </SelectContent>
+            </Select>
             <Button size="sm" variant="outline" className="h-9 gap-1.5 text-xs shrink-0" onClick={() => {
               const rows = filteredProfiles.map((p) => ({ Name: p.name || "", Email: p.email || "", Phone: p.phone || "", Role: p.role === "approved" ? "Member" : p.role, Family: (p.family_id && familyMap[p.family_id]) || "", Joined: format(new Date(p.created_at), "yyyy-MM-dd") }));
               downloadCsv(rows, zawyaFilename("Users")); toast.success(`Exported ${rows.length} users`);
@@ -481,7 +491,8 @@ export default function UserManagement() {
                       {(p.role as string) === "rejected" && <Badge variant="destructive" className="text-[10px] px-1.5 py-0">Rejected</Badge>}
                       {(p as any).is_mureed && <Badge className="text-[10px] px-1.5 py-0 bg-emerald-600 text-white border-emerald-600">Mureed</Badge>}
                     </p>
-                    <p className="truncate text-xs text-muted-foreground">{p.email}</p>
+                    <p className="text-xs text-muted-foreground">{p.email}</p>
+                    <p className="text-[11px] text-muted-foreground/70">Joined {format(new Date(p.created_at), "MMM d, yyyy")}</p>
                     {p.whatsapp_number && <p className="text-xs text-muted-foreground">📱 {p.whatsapp_number}</p>}
                     {p.family_id && familyMap[p.family_id] && <p className="text-xs text-muted-foreground">🏠 {familyMap[p.family_id]}</p>}
                     {p.family_name && !p.family_id && <p className="text-xs text-muted-foreground">Family: {p.family_name}</p>}
