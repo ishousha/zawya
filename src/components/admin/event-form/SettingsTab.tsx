@@ -5,7 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Users, Clock, KeyRound, RefreshCw, UtensilsCrossed, Lock, DollarSign, BellRing, ScrollText } from "lucide-react";
+import { Users, Clock, KeyRound, RefreshCw, UtensilsCrossed, Lock, DollarSign, BellRing, ScrollText, CalendarClock } from "lucide-react";
 import type { EventFormState } from "./types";
 import { generateCheckinPin } from "./types";
 import HostSelector from "./HostSelector";
@@ -201,6 +201,28 @@ export default function SettingsTab({ form, setForm, isEditing }: SettingsTabPro
             checked={form.published}
             onCheckedChange={(v) => update("published", v)}
           />
+        </div>
+      )}
+
+      {/* Scheduled Publish */}
+      {!form.published && (
+        <div>
+          <div className="flex items-center gap-2 mb-3">
+            <CalendarClock className="h-4 w-4 text-primary" />
+            <h3 className="text-sm font-semibold text-foreground">Scheduled Publish</h3>
+          </div>
+          <Input
+            type="datetime-local"
+            value={form.scheduled_publish_at}
+            onChange={(e) => update("scheduled_publish_at", e.target.value)}
+            min={new Date().toISOString().slice(0, 16)}
+            className="mt-1.5"
+          />
+          <p className="text-xs text-muted-foreground mt-1">
+            {form.scheduled_publish_at
+              ? "This draft will auto-publish at the selected time and notify all members."
+              : "Optional — set a future date/time to auto-publish this draft."}
+          </p>
         </div>
       )}
 

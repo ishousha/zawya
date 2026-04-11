@@ -264,6 +264,9 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
         location_hint: form.location_hint || null,
         age_group: form.age_group || "All Ages",
         published: shouldPublish,
+        scheduled_publish_at: !shouldPublish && form.scheduled_publish_at
+          ? new Date(form.scheduled_publish_at).toISOString()
+          : null,
       };
 
       let eventId = event?.id;
