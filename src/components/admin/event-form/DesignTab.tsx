@@ -9,6 +9,7 @@ import CoverPhotoUpload from "./CoverPhotoUpload";
 import VenueSelector from "./VenueSelector";
 import SpeakerSelector from "./SpeakerSelector";
 import type { EventFormState } from "./types";
+import { AGE_GROUP_OPTIONS } from "./types";
 import { useEventTypes } from "@/hooks/useEventTypes";
 
 interface DesignTabProps {
@@ -109,6 +110,26 @@ export default function DesignTab({ form, setForm }: DesignTabProps) {
               {eventTypes?.map((t) => (
                 <SelectItem key={t.id} value={t.id}>
                   {t.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Age Group */}
+        <div>
+          <Label>Target Age Group</Label>
+          <Select
+            value={form.age_group}
+            onValueChange={(v) => update("age_group", v)}
+          >
+            <SelectTrigger className="mt-1.5">
+              <SelectValue placeholder="Select age group..." />
+            </SelectTrigger>
+            <SelectContent>
+              {AGE_GROUP_OPTIONS.map((opt) => (
+                <SelectItem key={opt} value={opt}>
+                  {opt}
                 </SelectItem>
               ))}
             </SelectContent>
