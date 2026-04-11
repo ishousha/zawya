@@ -55,9 +55,9 @@ export default function SpeakerManagement() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["speakers"] });
-      toast.success("Speaker removed");
+      toast.success("Special guest removed");
     },
-    onError: () => toast.error("Failed to delete speaker"),
+    onError: () => toast.error("Failed to delete special guest"),
   });
 
   if (isLoading) {
@@ -83,7 +83,7 @@ export default function SpeakerManagement() {
   return (
     <div className="space-y-4 py-4">
       <Button onClick={() => setCreating(true)} className="w-full gap-2 h-12">
-        <Plus className="h-5 w-5" /> Add New Speaker
+        <Plus className="h-5 w-5" /> Add New Special Guest
       </Button>
 
       {speakers && speakers.length > 0 ? (
@@ -131,7 +131,7 @@ export default function SpeakerManagement() {
                         <AlertDialogHeader>
                           <AlertDialogTitle>Remove {speaker.name}?</AlertDialogTitle>
                           <AlertDialogDescription>
-                            This will remove the speaker. Events linked to this speaker will have their speaker unset.
+                            This will remove this special guest. Events linked to them will have their special guest unset.
                           </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
@@ -153,7 +153,7 @@ export default function SpeakerManagement() {
         </div>
       ) : (
         <p className="text-sm text-muted-foreground text-center py-8">
-          No speakers yet. Add guest speakers and Sheikhs here.
+          No special guests yet. Add guest speakers and Sheikhs here.
         </p>
       )}
     </div>
@@ -184,10 +184,10 @@ function SpeakerForm({ speaker, onClose }: { speaker: Speaker | null; onClose: (
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["speakers"] });
-      toast.success(speaker ? "Speaker updated" : "Speaker added");
+      toast.success(speaker ? "Special guest updated" : "Special guest added");
       onClose();
     },
-    onError: () => toast.error("Failed to save speaker"),
+    onError: () => toast.error("Failed to save special guest"),
   });
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -209,7 +209,7 @@ function SpeakerForm({ speaker, onClose }: { speaker: Speaker | null; onClose: (
       setImageUrl(data.publicUrl);
       toast.success("Photo uploaded");
     } catch (err: any) {
-      console.error("Speaker photo upload error:", err);
+      console.error("Special guest photo upload error:", err);
       toast.error(err?.message || "Failed to upload photo");
     } finally {
       setUploading(false);
@@ -223,7 +223,7 @@ function SpeakerForm({ speaker, onClose }: { speaker: Speaker | null; onClose: (
       <CardContent className="p-4 space-y-4">
         <div className="flex items-center justify-between">
           <h3 className="font-heading text-lg font-semibold">
-            {speaker ? "Edit Speaker" : "Add Speaker"}
+            {speaker ? "Edit Special Guest" : "Add Special Guest"}
           </h3>
           <Button size="icon" variant="ghost" onClick={onClose}>
             <X className="h-5 w-5" />
@@ -281,7 +281,7 @@ function SpeakerForm({ speaker, onClose }: { speaker: Speaker | null; onClose: (
           disabled={mutation.isPending || !name.trim()}
         >
           {mutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          {speaker ? "Update Speaker" : "Add Speaker"}
+          {speaker ? "Update Special Guest" : "Add Special Guest"}
         </Button>
       </CardContent>
     </Card>

@@ -54,7 +54,7 @@ export default function SpeakerProfile() {
     return (
       <div className="min-h-screen bg-background pb-24">
         <div className="px-4 py-8 text-center">
-          <p className="text-muted-foreground">Speaker not found.</p>
+          <p className="text-muted-foreground">Special guest not found.</p>
           <Button variant="link" onClick={() => navigate("/")}>Go Home</Button>
         </div>
       </div>

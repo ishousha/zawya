@@ -50,7 +50,7 @@ export default function SpeakerSelector({ selectedIds, onChange }: SpeakerSelect
     <div>
       <div className="flex items-center gap-2 mb-3">
         <Mic className="h-4 w-4 text-primary" />
-        <h3 className="text-sm font-semibold text-foreground">Featured Speakers</h3>
+        <h3 className="text-sm font-semibold text-foreground">Featured Special Guests</h3>
       </div>
 
       <Popover open={open} onOpenChange={setOpen}>
@@ -63,17 +63,17 @@ export default function SpeakerSelector({ selectedIds, onChange }: SpeakerSelect
           >
             <span className="text-sm text-muted-foreground">
               {selectedIds.length === 0
-                ? "Select speakers…"
-                : `${selectedIds.length} speaker${selectedIds.length > 1 ? "s" : ""} selected`}
+                ? "Select special guests…"
+                : `${selectedIds.length} special guest${selectedIds.length > 1 ? "s" : ""} selected`}
             </span>
             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
           <Command>
-            <CommandInput placeholder="Search speakers…" />
+            <CommandInput placeholder="Search special guests…" />
             <CommandList>
-              <CommandEmpty>No speakers found.</CommandEmpty>
+              <CommandEmpty>No special guests found.</CommandEmpty>
               <CommandGroup>
                 {speakers.map((s) => (
                   <CommandItem
@@ -114,7 +114,7 @@ export default function SpeakerSelector({ selectedIds, onChange }: SpeakerSelect
       )}
 
       <p className="text-xs text-muted-foreground mt-1">
-        Select one or more guest speakers for this event
+        Select one or more special guests for this event
       </p>
     </div>
   );
