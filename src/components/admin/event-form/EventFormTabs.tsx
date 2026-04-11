@@ -104,6 +104,7 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
       notify_attendees: false,
       etiquette_notes: (event as any).etiquette_notes ?? "",
       location_hint: (event as any).location_hint ?? "",
+      age_group: (event as any).age_group ?? "All Ages",
     };
   });
 
@@ -236,6 +237,7 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
         mureeds_only: form.mureeds_only === true,
         etiquette_notes: form.etiquette_notes || null,
         location_hint: form.location_hint || null,
+        age_group: form.age_group || "All Ages",
       };
 
       let eventId = event?.id;
