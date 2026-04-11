@@ -393,7 +393,7 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
         </Tabs>
       </CardContent>
 
-      <div className="px-6 pb-4 pt-2 border-t bg-card shrink-0">
+      <div className="sticky bottom-0 px-6 pb-4 pt-2 border-t bg-card shrink-0 z-10">
         <Button
           className="w-full h-12"
           onClick={() => {
