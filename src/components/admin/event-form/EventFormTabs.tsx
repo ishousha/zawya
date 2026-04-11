@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+import { useBlocker } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -140,6 +141,14 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
     window.addEventListener("beforeunload", handler);
     return () => window.removeEventListener("beforeunload", handler);
   }, [isDirty]);
+
+  // Client-side route navigation blocker
+  const blocker = useBlocker(isDirty);
+  useEffect(() => {
+    if (blocker.state === "blocked") {
+      setShowCloseConfirm(true);
+    }
+  }, [blocker.state]);
 
   useEffect(() => {
     if (!isNewEvent) return;
