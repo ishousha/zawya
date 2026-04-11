@@ -175,7 +175,11 @@ export default function UserManagement() {
           rejected: "user-rejected",
           suspended: "user-suspended",
         };
-        const templateName = templateMap[role];
+        // If reinstating from suspended → approved, use the reinstated template
+        let templateName = templateMap[role];
+        if (role === "approved" && previousRole === "suspended") {
+          templateName = "user-reinstated";
+        }
         if (templateName) {
           supabase.functions.invoke("send-transactional-email", {
             body: { templateName, recipientEmail: email, idempotencyKey: `${templateName}-${userId}-${Date.now()}`, templateData: { memberName: name || undefined } },

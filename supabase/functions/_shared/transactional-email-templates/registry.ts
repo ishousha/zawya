@@ -36,4 +36,5 @@ export const TEMPLATES: Record<string, TemplateEntry> = {
   'event-reminder': eventReminder,
   'event-broadcast': eventBroadcast,
   'contact-organizer': contactOrganizer,
+  'user-reinstated': userReinstated,
 }
