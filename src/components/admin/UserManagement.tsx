@@ -20,7 +20,7 @@ import {
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Search, Download, Mail, Pencil, ChevronDown } from "lucide-react";
+import { Search, Download, Mail, Pencil, ChevronDown, ArrowUpDown } from "lucide-react";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
@@ -62,6 +62,7 @@ export default function UserManagement() {
   const [roleFilter, setRoleFilter] = useState<string>("all");
   const [eventFilter, setEventFilter] = useState<string>("all");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [sortOrder, setSortOrder] = useState<"newest" | "oldest">("newest");
 
   const { data: profiles, isLoading: loadingProfiles } = useQuery({
     queryKey: ["admin-profiles"],
@@ -279,14 +280,23 @@ export default function UserManagement() {
 
   const filteredProfiles = useMemo(() => {
     if (!profiles) return [];
-    return profiles.filter((p) => {
+    const filtered = profiles.filter((p) => {
       const q = debouncedSearch.toLowerCase();
       const matchesSearch = !q || (p.name || "").toLowerCase().includes(q) || (p.email || "").toLowerCase().includes(q) || (p.whatsapp_number || "").includes(q) || ((p.family_id && familyMap[p.family_id]) || "").toLowerCase().includes(q);
       const matchesRole = roleFilter === "all" || p.role === roleFilter;
       const matchesEvent = eventFilter === "all" || (userRsvpMap[p.id]?.some((e) => e.event_id === eventFilter));
       return matchesSearch && matchesRole && matchesEvent;
     });
-  }, [profiles, debouncedSearch, roleFilter, familyMap, eventFilter, userRsvpMap]);
+    return filtered.sort((a, b) => {
+      // Pending always floats to top
+      if (a.role === "pending" && b.role !== "pending") return -1;
+      if (a.role !== "pending" && b.role === "pending") return 1;
+      // Then sort by date
+      const dateA = new Date(a.created_at).getTime();
+      const dateB = new Date(b.created_at).getTime();
+      return sortOrder === "newest" ? dateB - dateA : dateA - dateB;
+    });
+  }, [profiles, debouncedSearch, roleFilter, familyMap, eventFilter, userRsvpMap, sortOrder]);
 
   const toggleSelect = useCallback((id: string) => {
     setSelectedIds((prev) => {
@@ -401,6 +411,16 @@ export default function UserManagement() {
                 {eventOptions.map((e) => (<SelectItem key={e.id} value={e.id}>{e.title}</SelectItem>))}
               </SelectContent>
             </Select>
+            <Select value={sortOrder} onValueChange={(v) => setSortOrder(v as "newest" | "oldest")}>
+              <SelectTrigger className="w-full md:w-[150px] h-9">
+                <ArrowUpDown className="h-3.5 w-3.5 mr-1.5 shrink-0" />
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="newest">Newest first</SelectItem>
+                <SelectItem value="oldest">Oldest first</SelectItem>
+              </SelectContent>
+            </Select>
             <Button size="sm" variant="outline" className="h-9 gap-1.5 text-xs shrink-0" onClick={() => {
               const rows = filteredProfiles.map((p) => ({ Name: p.name || "", Email: p.email || "", Phone: p.phone || "", Role: p.role === "approved" ? "Member" : p.role, Family: (p.family_id && familyMap[p.family_id]) || "", Joined: format(new Date(p.created_at), "yyyy-MM-dd") }));
               downloadCsv(rows, zawyaFilename("Users")); toast.success(`Exported ${rows.length} users`);
@@ -471,7 +491,8 @@ export default function UserManagement() {
                       {(p.role as string) === "rejected" && <Badge variant="destructive" className="text-[10px] px-1.5 py-0">Rejected</Badge>}
                       {(p as any).is_mureed && <Badge className="text-[10px] px-1.5 py-0 bg-emerald-600 text-white border-emerald-600">Mureed</Badge>}
                     </p>
-                    <p className="truncate text-xs text-muted-foreground">{p.email}</p>
+                    <p className="text-xs text-muted-foreground">{p.email}</p>
+                    <p className="text-[11px] text-muted-foreground/70">Joined {format(new Date(p.created_at), "MMM d, yyyy")}</p>
                     {p.whatsapp_number && <p className="text-xs text-muted-foreground">📱 {p.whatsapp_number}</p>}
                     {p.family_id && familyMap[p.family_id] && <p className="text-xs text-muted-foreground">🏠 {familyMap[p.family_id]}</p>}
                     {p.family_name && !p.family_id && <p className="text-xs text-muted-foreground">Family: {p.family_name}</p>}
