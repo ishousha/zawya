@@ -1,0 +1,1 @@
+ALTER TABLE public.events ADD COLUMN scheduled_publish_at timestamptz DEFAULT NULL;

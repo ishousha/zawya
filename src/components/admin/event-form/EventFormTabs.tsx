@@ -110,6 +110,9 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
       location_hint: (event as any).location_hint ?? "",
       age_group: (event as any).age_group ?? "All Ages",
       published: (event as any).published ?? false,
+      scheduled_publish_at: (event as any).scheduled_publish_at
+        ? format(new Date((event as any).scheduled_publish_at), "yyyy-MM-dd'T'HH:mm")
+        : "",
     };
   });
 
@@ -261,6 +264,9 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
         location_hint: form.location_hint || null,
         age_group: form.age_group || "All Ages",
         published: shouldPublish,
+        scheduled_publish_at: !shouldPublish && form.scheduled_publish_at
+          ? new Date(form.scheduled_publish_at).toISOString()
+          : null,
       };
 
       let eventId = event?.id;

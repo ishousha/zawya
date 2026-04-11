@@ -39,6 +39,7 @@ export interface EventFormState {
   location_hint: string;
   age_group: string;
   published: boolean;
+  scheduled_publish_at: string;
 }
 
 export interface SignUpItemState {
@@ -77,6 +78,7 @@ export const defaultEventForm: EventFormState = {
   location_hint: "",
   age_group: "All Ages",
   published: false,
+  scheduled_publish_at: "",
 };
 
 // Keep EventType as a legacy re-export alias — no longer used

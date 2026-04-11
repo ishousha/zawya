@@ -17,3 +17,5 @@ project_id = "ikzaalswkajtaxejyskw"
     verify_jwt = true
   [functions.send-guest-list-reminder]
     verify_jwt = true
+  [functions.auto-publish-events]
+    verify_jwt = true
