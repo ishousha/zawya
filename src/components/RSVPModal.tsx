@@ -167,13 +167,15 @@ export default function RSVPModal({ event, open, onOpenChange }: RSVPModalProps)
     }));
   };
 
-  const isItemFull = (item: { id: number | string; quantity_limit: number }) => {
+  const isItemAtTarget = (item: { id: number | string; quantity_limit: number }) => {
     const itemId = Number(item.id);
     if (item.quantity_limit === 0) return false;
     const claimed = claimedPerItem[itemId] || 0;
-    const mine = selections[itemId]?.selected ? 1 : 0;
-    return claimed + mine >= item.quantity_limit && !selections[itemId]?.selected;
+    return claimed >= item.quantity_limit;
   };
+
+  // Special "Other / Surprise Dish" virtual item ID
+  const OTHER_ITEM_ID = -1;
 
   const buildAttendingDependents = () => {
     const entries: { type: string; id: string; name: string; age?: number | null; dependent_type?: string }[] = [];
@@ -224,13 +226,21 @@ export default function RSVPModal({ event, open, onOpenChange }: RSVPModalProps)
     }
 
 
+    // Filter out the virtual "Other" item (id = -1) from DB selections
+    const otherDish = selections[OTHER_ITEM_ID]?.selected ? (selections[OTHER_ITEM_ID]?.description || "Surprise Dish") : null;
+
     const selArray = Object.entries(selections)
-      .filter(([, val]) => val.selected)
+      .filter(([id, val]) => val.selected && Number(id) !== OTHER_ITEM_ID)
       .map(([id, val]) => ({
         sign_up_item_id: Number(id),
         quantity: 1,
         description: val.description || null,
       }));
+
+    // Combine potluckDish and "Other" item description into specific_food_item
+    const foodItem = potluckChoice === "bringing"
+      ? [potluckDish.trim(), otherDish].filter(Boolean).join(", ") || null
+      : null;
 
     const attendingDeps = buildAttendingDependents();
 
@@ -240,7 +250,7 @@ export default function RSVPModal({ event, open, onOpenChange }: RSVPModalProps)
           rsvpId: myRSVP.id,
           guests_count: guestsCount,
           attending_dependents: attendingDeps,
-          specific_food_item: potluckChoice === "bringing" ? potluckDish.trim() || null : null,
+          specific_food_item: foodItem,
           selections: selArray,
         });
         toast.success("RSVP updated successfully!");
@@ -248,7 +258,7 @@ export default function RSVPModal({ event, open, onOpenChange }: RSVPModalProps)
         const result = await createRSVP.mutateAsync({
           guests_count: guestsCount,
           attending_dependents: attendingDeps,
-          specific_food_item: potluckChoice === "bringing" ? potluckDish.trim() || null : null,
+          specific_food_item: foodItem,
           selections: selArray,
         });
         if (result.status === "waitlisted") {
@@ -336,7 +346,6 @@ export default function RSVPModal({ event, open, onOpenChange }: RSVPModalProps)
                 Our gatherings are made beautiful by everyone's contributions. Please select an item to share if you can!
               </p>
 
-              {/* Sign-up categories — shown by default unless opted out */}
               {potluckChoice !== "none" && showSignUpItems && (
                 <div className="animate-fade-in space-y-2">
                   {signUpItems!.map((item) => {
@@ -344,34 +353,41 @@ export default function RSVPModal({ event, open, onOpenChange }: RSVPModalProps)
                     const sel = selections[itemId];
                     const isSelected = sel?.selected ?? false;
                     const claimed = claimedPerItem[itemId] || 0;
-                    const full = isItemFull(item);
+                    const atTarget = isItemAtTarget(item);
 
                     return (
                       <div key={item.id}>
                         <label
                           className={`flex items-center gap-3 rounded-lg border p-3 cursor-pointer transition-colors ${
-                            full
-                              ? "border-border bg-muted/50 opacity-60 cursor-not-allowed"
-                              : isSelected
+                            isSelected
                               ? "border-primary bg-primary/5"
                               : "border-border bg-card hover:bg-muted/30"
                           }`}
                         >
                           <Checkbox
                             checked={isSelected}
-                            onCheckedChange={() => !full && toggleItem(itemId)}
-                            disabled={full}
+                            onCheckedChange={() => toggleItem(itemId)}
                           />
                           <div className="flex-1 min-w-0">
-                            <span className="text-sm font-medium text-foreground">{item.item_name}</span>
+                            <span className="text-sm font-medium text-foreground">
+                              {item.item_name}
+                              {atTarget && (
+                                <span className="ml-1.5 text-xs font-normal text-muted-foreground">(Target Reached)</span>
+                              )}
+                            </span>
                             <p className="text-xs text-muted-foreground">
                               {item.quantity_limit === 0
                                 ? "No limit"
                                 : `${claimed + (isSelected ? 1 : 0)}/${item.quantity_limit} claimed`}
-                              {full && " — Full"}
                             </p>
                           </div>
                         </label>
+
+                        {isSelected && atTarget && (
+                          <p className="ml-8 mt-1 text-xs text-muted-foreground italic">
+                            We already have enough items in this category, but extra contributions are always welcome!
+                          </p>
+                        )}
 
                         {isSelected && (
                           <div className="animate-fade-in ml-8 mt-2">
@@ -386,6 +402,37 @@ export default function RSVPModal({ event, open, onOpenChange }: RSVPModalProps)
                       </div>
                     );
                   })}
+
+                  {/* Other / Surprise Dish option */}
+                  <div>
+                    <label
+                      className={`flex items-center gap-3 rounded-lg border p-3 cursor-pointer transition-colors ${
+                        selections[OTHER_ITEM_ID]?.selected
+                          ? "border-primary bg-primary/5"
+                          : "border-border bg-card hover:bg-muted/30"
+                      }`}
+                    >
+                      <Checkbox
+                        checked={selections[OTHER_ITEM_ID]?.selected ?? false}
+                        onCheckedChange={() => toggleItem(OTHER_ITEM_ID)}
+                      />
+                      <div className="flex-1 min-w-0">
+                        <span className="text-sm font-medium text-foreground">Other / Surprise Dish</span>
+                        <p className="text-xs text-muted-foreground">Doesn't fit the categories above? Bring anything!</p>
+                      </div>
+                    </label>
+
+                    {selections[OTHER_ITEM_ID]?.selected && (
+                      <div className="animate-fade-in ml-8 mt-2">
+                        <Input
+                          placeholder="What are you bringing?"
+                          value={selections[OTHER_ITEM_ID]?.description || ""}
+                          onChange={(e) => updateItemDescription(OTHER_ITEM_ID, e.target.value)}
+                          className="text-sm"
+                        />
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
 
@@ -447,34 +494,41 @@ export default function RSVPModal({ event, open, onOpenChange }: RSVPModalProps)
                   const sel = selections[itemId];
                   const isSelected = sel?.selected ?? false;
                   const claimed = claimedPerItem[itemId] || 0;
-                  const full = isItemFull(item);
+                  const atTarget = isItemAtTarget(item);
 
                   return (
                     <div key={item.id}>
                       <label
                         className={`flex items-center gap-3 rounded-lg border p-3 cursor-pointer transition-colors ${
-                          full
-                            ? "border-border bg-muted/50 opacity-60 cursor-not-allowed"
-                            : isSelected
+                          isSelected
                             ? "border-primary bg-primary/5"
                             : "border-border bg-card hover:bg-muted/30"
                         }`}
                       >
                         <Checkbox
                           checked={isSelected}
-                          onCheckedChange={() => !full && toggleItem(itemId)}
-                          disabled={full}
+                          onCheckedChange={() => toggleItem(itemId)}
                         />
                         <div className="flex-1 min-w-0">
-                          <span className="text-sm font-medium text-foreground">{item.item_name}</span>
+                          <span className="text-sm font-medium text-foreground">
+                            {item.item_name}
+                            {atTarget && (
+                              <span className="ml-1.5 text-xs font-normal text-muted-foreground">(Target Reached)</span>
+                            )}
+                          </span>
                           <p className="text-xs text-muted-foreground">
                             {item.quantity_limit === 0
                               ? "No limit"
                               : `${claimed + (isSelected ? 1 : 0)}/${item.quantity_limit} claimed`}
-                            {full && " — Full"}
                           </p>
                         </div>
                       </label>
+
+                      {isSelected && atTarget && (
+                        <p className="ml-8 mt-1 text-xs text-muted-foreground italic">
+                          We already have enough items in this category, but extra contributions are always welcome!
+                        </p>
+                      )}
 
                       {isSelected && (
                         <div className="animate-fade-in ml-8 mt-2">
