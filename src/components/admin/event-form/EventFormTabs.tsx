@@ -364,7 +364,7 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
           <X className="h-5 w-5" />
         </Button>
       </CardHeader>
-      <CardContent className="overflow-y-auto flex-1 min-h-0">
+      <CardContent className="overflow-y-auto overflow-x-hidden flex-1 min-h-0">
         <Tabs defaultValue="design" className="w-full">
           <TabsList className="grid w-full grid-cols-3 bg-muted">
             <TabsTrigger value="design" className="gap-1.5 text-xs">
