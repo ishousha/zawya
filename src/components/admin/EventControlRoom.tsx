@@ -227,14 +227,6 @@ export default function EventControlRoom() {
     onSettled: () => {},
   });
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <Loader2 className="h-6 w-6 animate-spin text-primary" />
-      </div>
-    );
-  }
-
   const [statusFilter, setStatusFilter] = useState<"all" | "published" | "scheduled" | "draft">("all");
 
   const activeEvents = useMemo(() => {
@@ -261,6 +253,14 @@ export default function EventControlRoom() {
       draft: nonCancelled.filter(e => !(e as any).published && !(e as any).scheduled_publish_at).length,
     };
   }, [events]);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   const showList = !creating && !editing && !monitoringEventId && !duplicateForm;
 
