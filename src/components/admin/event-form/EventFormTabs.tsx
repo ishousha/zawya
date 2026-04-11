@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, X, Palette, PackagePlus, Settings, Eye } from "lucide-react";
+import { Loader2, X, Palette, PackagePlus, Settings, Eye, Save, Send } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import DesignTab from "./DesignTab";
@@ -106,6 +106,7 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
       etiquette_notes: (event as any).etiquette_notes ?? "",
       location_hint: (event as any).location_hint ?? "",
       age_group: (event as any).age_group ?? "All Ages",
+      published: (event as any).published ?? false,
     };
   });
 
@@ -209,7 +210,8 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
   }, [existingSpeakers, initialForm]);
 
   const mutation = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (publishOverride?: boolean) => {
+      const shouldPublish = publishOverride ?? form.published;
       if (!form.title.trim()) throw new Error("Event title is required");
       if (!form.date_time) throw new Error("Start date and time is required");
       if (!form.event_type_id) throw new Error("Event type is required");
@@ -240,6 +242,7 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
         etiquette_notes: form.etiquette_notes || null,
         location_hint: form.location_hint || null,
         age_group: form.age_group || "All Ages",
+        published: shouldPublish,
       };
 
       let eventId = event?.id;
@@ -342,13 +345,14 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
 
       return eventId;
     },
-    onSuccess: () => {
+    onSuccess: (_data, publishOverride) => {
       clearDraft();
       queryClient.invalidateQueries({ queryKey: ["admin-events"] });
       queryClient.invalidateQueries({ queryKey: ["events"] });
       queryClient.invalidateQueries({ queryKey: ["sign-up-items"] });
       queryClient.invalidateQueries({ queryKey: ["event-speakers"] });
-      toast.success(event && !initialForm ? "Event updated" : "Event created");
+      const verb = publishOverride ? "published" : "saved as draft";
+      toast.success(event && !initialForm ? `Event ${verb}` : `Event ${verb}`);
       onClose();
     },
     onError: (err) => {
@@ -411,18 +415,35 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
               Preview
             </Button>
             <Button
-              className="flex-1 h-12"
+              variant="outline"
+              className="flex-1 h-12 gap-1.5"
               onClick={() => {
                 if (form.end_date_time && form.end_date_time <= form.date_time) {
                   toast.error("End time must be after start time");
                   return;
                 }
-                mutation.mutate();
+                mutation.mutate(false);
               }}
               disabled={mutation.isPending || !form.title || !form.date_time}
             >
-              {mutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {isNewEvent ? "Create Event" : "Update Event"}
+              {mutation.isPending && <Loader2 className="mr-1 h-4 w-4 animate-spin" />}
+              <Save className="h-4 w-4" />
+              Save Draft
+            </Button>
+            <Button
+              className="flex-1 h-12 gap-1.5"
+              onClick={() => {
+                if (form.end_date_time && form.end_date_time <= form.date_time) {
+                  toast.error("End time must be after start time");
+                  return;
+                }
+                mutation.mutate(true);
+              }}
+              disabled={mutation.isPending || !form.title || !form.date_time}
+            >
+              {mutation.isPending && <Loader2 className="mr-1 h-4 w-4 animate-spin" />}
+              <Send className="h-4 w-4" />
+              Publish
             </Button>
           </div>
       </div>

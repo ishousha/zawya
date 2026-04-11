@@ -38,6 +38,7 @@ export interface EventFormState {
   etiquette_notes: string;
   location_hint: string;
   age_group: string;
+  published: boolean;
 }
 
 export interface SignUpItemState {
@@ -75,6 +76,7 @@ export const defaultEventForm: EventFormState = {
   etiquette_notes: "",
   location_hint: "",
   age_group: "All Ages",
+  published: false,
 };
 
 // Keep EventType as a legacy re-export alias — no longer used
