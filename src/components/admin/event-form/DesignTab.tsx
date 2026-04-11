@@ -20,8 +20,48 @@ interface DesignTabProps {
 }
 
 export default function DesignTab({ form, setForm }: DesignTabProps) {
+  const [bookingZoom, setBookingZoom] = useState(false);
+
   const update = <K extends keyof EventFormState>(key: K, value: EventFormState[K]) =>
     setForm((prev) => ({ ...prev, [key]: value }));
+
+  const handleGenerateZoom = async () => {
+    if (!form.title || !form.date_time) {
+      toast.error("Please fill in the event title and start time first.");
+      return;
+    }
+    setBookingZoom(true);
+    try {
+      const startIso = new Date(form.date_time).toISOString();
+      const res = await fetch("https://n8n.seqwelpartners.com/webhook/create-zoom-meeting", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: form.title, start_time: startIso }),
+      });
+      if (!res.ok) throw new Error("Webhook returned " + res.status);
+      const data = await res.json();
+      const joinUrl = data.join_url ?? data.joinUrl ?? "";
+      const meetingId = data.id ?? data.meeting_id ?? "";
+      const password = data.password ?? "";
+      setForm((prev) => {
+        const details = [
+          meetingId && `Meeting ID: ${meetingId}`,
+          password && `Password: ${password}`,
+        ].filter(Boolean).join("\n");
+        const sep = prev.description ? "\n\n" : "";
+        return {
+          ...prev,
+          online_link: joinUrl,
+          description: details ? prev.description + sep + details : prev.description,
+        };
+      });
+      toast.success("Zoom meeting booked successfully!");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to generate Zoom link");
+    } finally {
+      setBookingZoom(false);
+    }
+  };
 
   const { data: eventTypes } = useEventTypes();
   const selectedType = eventTypes?.find((t) => t.id === form.event_type_id);
