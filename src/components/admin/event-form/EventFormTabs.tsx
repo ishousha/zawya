@@ -355,7 +355,7 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
   // isNewEvent is declared at top of component
 
   return (
-    <Card className="max-h-[calc(100vh-12rem)] flex flex-col">
+    <Card className="max-h-[calc(100vh-12rem)] flex flex-col overflow-x-hidden max-w-full">
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <CardTitle className="text-lg font-heading">
           {isNewEvent ? "New Event" : "Edit Event"}
@@ -364,7 +364,7 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
           <X className="h-5 w-5" />
         </Button>
       </CardHeader>
-      <CardContent className="overflow-y-auto flex-1 min-h-0">
+      <CardContent className="overflow-y-auto overflow-x-hidden flex-1 min-h-0">
         <Tabs defaultValue="design" className="w-full">
           <TabsList className="grid w-full grid-cols-3 bg-muted">
             <TabsTrigger value="design" className="gap-1.5 text-xs">
@@ -381,19 +381,19 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="design">
+          <TabsContent value="design" className="overflow-x-hidden">
             <DesignTab form={form} setForm={setForm} />
           </TabsContent>
-          <TabsContent value="items">
+          <TabsContent value="items" className="overflow-x-hidden">
             <ItemsTab items={signUpItems} onChange={setSignUpItems} />
           </TabsContent>
-          <TabsContent value="settings">
+          <TabsContent value="settings" className="overflow-x-hidden">
             <SettingsTab form={form} setForm={setForm} isEditing={!isNewEvent} />
           </TabsContent>
         </Tabs>
       </CardContent>
 
-      <div className="px-6 pb-4 pt-2 border-t bg-card shrink-0">
+      <div className="sticky bottom-0 px-6 pb-4 pt-2 border-t bg-card shrink-0 z-10">
         <Button
           className="w-full h-12"
           onClick={() => {
