@@ -170,10 +170,17 @@ export default function UserManagement() {
       await supabase.from("user_roles").delete().eq("user_id", userId).neq("role", role);
       notifyUserApproval(userId, role);
       if (email) {
-        const templateName = role === "approved" ? "user-approved" : "user-rejected";
-        supabase.functions.invoke("send-transactional-email", {
-          body: { templateName, recipientEmail: email, idempotencyKey: `${templateName}-${userId}-${Date.now()}`, templateData: { memberName: name || undefined } },
-        }).catch((err) => console.warn("Failed to send role change email:", err));
+        const templateMap: Record<string, string> = {
+          approved: "user-approved",
+          rejected: "user-rejected",
+          suspended: "user-suspended",
+        };
+        const templateName = templateMap[role];
+        if (templateName) {
+          supabase.functions.invoke("send-transactional-email", {
+            body: { templateName, recipientEmail: email, idempotencyKey: `${templateName}-${userId}-${Date.now()}`, templateData: { memberName: name || undefined } },
+          }).catch((err) => console.warn("Failed to send role change email:", err));
+        }
       }
       if (user) {
         logActivity(user.id, role === "suspended" ? "suspend_user" : "role_change", { id: userId, name, email } as Profile, { previous_role: previousRole, new_role: role });
