@@ -122,6 +122,7 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
   const initialFormRef = useRef(JSON.stringify(form));
   const initialItemsRef = useRef(JSON.stringify(signUpItems));
   const [showCloseConfirm, setShowCloseConfirm] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
 
   const isDirty = JSON.stringify(form) !== initialFormRef.current ||
     JSON.stringify(signUpItems) !== initialItemsRef.current;
