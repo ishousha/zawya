@@ -203,7 +203,7 @@ export default function AdminDashboard() {
         <Tabs value={activeTab} onValueChange={(v) => { setSlideDir(null); setSlideKey((k) => k + 1); setActiveTab(v as AdminTab); }} className="w-full">
           <TabsList
             ref={tabsListRef}
-            className="flex w-full justify-start overflow-x-auto bg-muted scrollbar-hide pb-0.5"
+            className="sticky top-[49px] z-20 flex w-full justify-start overflow-x-auto bg-background scrollbar-hide pb-0.5 border-b border-border/50 shadow-sm"
           >
             <TabsTrigger value="users" className={tabTriggerBase}>
               <Users className="h-4 w-4" />
