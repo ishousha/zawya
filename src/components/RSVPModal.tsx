@@ -226,13 +226,21 @@ export default function RSVPModal({ event, open, onOpenChange }: RSVPModalProps)
     }
 
 
+    // Filter out the virtual "Other" item (id = -1) from DB selections
+    const otherDish = selections[OTHER_ITEM_ID]?.selected ? (selections[OTHER_ITEM_ID]?.description || "Surprise Dish") : null;
+
     const selArray = Object.entries(selections)
-      .filter(([, val]) => val.selected)
+      .filter(([id, val]) => val.selected && Number(id) !== OTHER_ITEM_ID)
       .map(([id, val]) => ({
         sign_up_item_id: Number(id),
         quantity: 1,
         description: val.description || null,
       }));
+
+    // Combine potluckDish and "Other" item description into specific_food_item
+    const foodItem = potluckChoice === "bringing"
+      ? [potluckDish.trim(), otherDish].filter(Boolean).join(", ") || null
+      : null;
 
     const attendingDeps = buildAttendingDependents();
 
