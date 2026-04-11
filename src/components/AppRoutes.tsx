@@ -10,6 +10,7 @@ import LoginPage from "@/pages/Login";
 import AppHeader from "@/components/AppHeader";
 import BottomNav from "@/components/BottomNav";
 import OfflineBanner from "@/components/OfflineBanner";
+import { ClearInstallDismissButton } from "@/components/InstallAppBanner";
 
 // Lazy-loaded pages
 const Rejected = lazy(() => import("@/pages/Rejected"));
@@ -177,6 +178,7 @@ function StableLayout({ profile }: { profile: any }) {
   return (
     <>
       <OfflineBanner />
+      <ClearInstallDismissButton />
       <AppHeader />
 
       <Suspense fallback={<LazyFallback />}>
