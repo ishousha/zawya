@@ -595,6 +595,18 @@ export default function UserManagement() {
               </CardContent>
             </Card>
           ))}
+          {filteredProfiles.length > visibleCount && (
+            <div className="flex justify-center pt-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setVisibleCount((prev) => prev + 50)}
+                className="gap-1.5"
+              >
+                Load more ({filteredProfiles.length - visibleCount} remaining)
+              </Button>
+            </div>
+          )}
         </div>
       </div>
 

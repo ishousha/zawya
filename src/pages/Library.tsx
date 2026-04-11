@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Loader2, FileText, Download, BookOpen, Search, Tag, Video, Headphones, Link as LinkIcon, ExternalLink, Calendar } from "lucide-react";
 import { format } from "date-fns";
 import EventCard from "@/components/EventCard";
+import ResourceCardSkeleton from "@/components/library/ResourceCardSkeleton";
 import type { Database } from "@/integrations/supabase/types";
 
 type Event = Database["public"]["Tables"]["events"]["Row"];
