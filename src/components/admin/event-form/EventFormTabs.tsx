@@ -386,7 +386,7 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
       if (isFirstPublish) {
         toast.success("Event is now live! Notifications have been sent to all members.");
       } else if (publishOverride) {
-        toast.success("Event updated (already published)");
+        toast.success("Event republished — no duplicate notifications sent.");
       } else {
         toast.success("Event saved as draft");
       }

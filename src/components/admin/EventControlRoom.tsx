@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Loader2, Plus, Edit2, X, Users, ChevronDown, Copy, Trash2, Ban, RotateCcw, Download, Check, Printer, UserPlus, Mail } from "lucide-react";
+import { Loader2, Plus, Edit2, X, Users, ChevronDown, Copy, Trash2, Ban, RotateCcw, Download, Check, Printer, UserPlus, Mail, EyeOff } from "lucide-react";
 import { downloadCsv, zawyaFilename } from "@/lib/csv-export";
 import { toast } from "sonner";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
@@ -227,6 +227,22 @@ export default function EventControlRoom() {
     onSettled: () => {},
   });
 
+  const unpublishMutation = useMutation({
+    mutationFn: async (event: EventRow) => {
+      const { error } = await supabase
+        .from("events")
+        .update({ published: false, scheduled_publish_at: null } as any)
+        .eq("id", event.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-events"] });
+      queryClient.invalidateQueries({ queryKey: ["events"] });
+      toast.success("Event unpublished — hidden from members. Edit and republish when ready.");
+    },
+    onError: (err) => toast.error(getErrorMessage(err, "Failed to unpublish event")),
+  });
+
   const [statusFilter, setStatusFilter] = useState<"all" | "published" | "scheduled" | "draft">("all");
 
   const activeEvents = useMemo(() => {
@@ -353,6 +369,17 @@ export default function EventControlRoom() {
                       <Button size="sm" variant="ghost" className="h-9 gap-1.5 text-xs" onClick={() => setEditing(event)}>
                         <Edit2 className="h-3.5 w-3.5" /> Edit
                       </Button>
+                      {(event as any).published && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-9 gap-1.5 text-xs text-amber-600 hover:text-amber-700"
+                          onClick={() => unpublishMutation.mutate(event)}
+                          disabled={unpublishMutation.isPending}
+                        >
+                          <EyeOff className="h-3.5 w-3.5" /> Unpublish
+                        </Button>
+                      )}
                       <Button size="sm" variant="ghost" className="h-9 gap-1.5 text-xs" onClick={() => handleDuplicate(event)}>
                         <Copy className="h-3.5 w-3.5" /> Copy
                       </Button>
