@@ -359,7 +359,7 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
   // isNewEvent is declared at top of component
 
   return (
-    <Card className="max-h-[calc(100vh-20rem)] sm:max-h-[calc(100vh-12rem)] flex flex-col overflow-hidden max-w-full [&_*]:outline [&_*]:outline-1 [&_*]:outline-red-500">
+    <Card className="max-h-[calc(100vh-20rem)] sm:max-h-[calc(100vh-12rem)] flex flex-col overflow-hidden max-w-full [&_*]:box-border [&_input]:max-w-full [&_input]:w-full [&_textarea]:max-w-full [&_textarea]:w-full [&_select]:max-w-full [&_select]:w-full" style={{ touchAction: 'pan-y' }}>
       <CardHeader className="flex flex-row items-center justify-between pb-2 shrink-0">
         <CardTitle className="text-lg font-heading">
           {isNewEvent ? "New Event" : "Edit Event"}
@@ -368,7 +368,7 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
           <X className="h-5 w-5" />
         </Button>
       </CardHeader>
-      <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-6">
+      <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-6" style={{ touchAction: 'pan-y' }}>
         <Tabs defaultValue="design" className="w-full">
           <TabsList className="grid w-full grid-cols-3 bg-muted sticky top-0 z-10">
             <TabsTrigger value="design" className="gap-1.5 text-xs">
