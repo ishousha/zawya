@@ -7,6 +7,16 @@ interface BeforeInstallPromptEvent extends Event {
   userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
 }
 
+const DISMISS_KEY = "pwa-banner-dismissed-at";
+const DISMISS_DAYS = 7;
+
+function wasDismissedRecently(): boolean {
+  const raw = localStorage.getItem(DISMISS_KEY);
+  if (!raw) return false;
+  const dismissedAt = Number(raw);
+  return Date.now() - dismissedAt < DISMISS_DAYS * 24 * 60 * 60 * 1000;
+}
+
 export default function InstallAppBanner() {
   const [deferredPrompt, setDeferredPrompt] =
     useState<BeforeInstallPromptEvent | null>(null);
@@ -14,30 +24,28 @@ export default function InstallAppBanner() {
   const [dismissed, setDismissed] = useState(false);
 
   const isStandalone =
-    window.matchMedia("(display-mode: standalone)").matches ||
-    (navigator as any).standalone === true;
+    typeof window !== "undefined" &&
+    (window.matchMedia("(display-mode: standalone)").matches ||
+      (navigator as any).standalone === true);
 
   useEffect(() => {
-    if (isStandalone) return;
-
-    // Check if previously dismissed this session
-    if (sessionStorage.getItem("pwa-banner-dismissed")) {
+    if (isStandalone || wasDismissedRecently()) {
       setDismissed(true);
       return;
     }
 
-    // Android / Desktop
+    // Android / Desktop — intercept native mini-infobar
     const handler = (e: Event) => {
       e.preventDefault();
       setDeferredPrompt(e as BeforeInstallPromptEvent);
     };
     window.addEventListener("beforeinstallprompt", handler);
 
-    // iOS detection
-    const isIOS =
-      /iPad|iPhone|iPod/.test(navigator.userAgent) &&
-      !(window as any).MSStream;
-    const isSafari = /Safari/.test(navigator.userAgent) && !/CriOS|FxiOS|OPiOS|EdgiOS/.test(navigator.userAgent);
+    // iOS Safari detection (not in standalone, not a Chrome/Firefox wrapper)
+    const ua = navigator.userAgent;
+    const isIOS = /iPad|iPhone|iPod/.test(ua) && !(window as any).MSStream;
+    const isSafari =
+      /Safari/.test(ua) && !/CriOS|FxiOS|OPiOS|EdgiOS/.test(ua);
     if (isIOS && isSafari) {
       setShowIOSPrompt(true);
     }
@@ -54,25 +62,27 @@ export default function InstallAppBanner() {
     const { outcome } = await deferredPrompt.userChoice;
     if (outcome === "accepted") {
       setDeferredPrompt(null);
+      setDismissed(true);
     }
   };
 
   const handleDismiss = () => {
     setDismissed(true);
-    sessionStorage.setItem("pwa-banner-dismissed", "1");
+    localStorage.setItem(DISMISS_KEY, String(Date.now()));
   };
 
   return (
-    <div className="relative mx-4 mt-4 rounded-xl border border-primary/20 bg-card p-4 shadow-sm">
+    <div className="relative mx-4 mt-4 rounded-xl border border-primary/20 bg-card p-4 shadow-sm animate-fade-in">
       <button
         onClick={handleDismiss}
         className="absolute right-3 top-3 rounded-full p-1 text-muted-foreground hover:bg-muted"
-        aria-label="Dismiss"
+        aria-label="Dismiss install banner"
       >
         <X className="h-4 w-4" />
       </button>
 
       {deferredPrompt ? (
+        /* ── Android / Desktop ── */
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
             <Download className="h-5 w-5 text-primary" />
@@ -90,6 +100,7 @@ export default function InstallAppBanner() {
           </Button>
         </div>
       ) : showIOSPrompt ? (
+        /* ── iOS Safari ── */
         <div className="pr-6">
           <div className="mb-2 flex items-center gap-2">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
@@ -100,10 +111,13 @@ export default function InstallAppBanner() {
             </p>
           </div>
           <div className="flex items-start gap-2 rounded-lg bg-muted/50 p-3">
+            {/* iOS share icon representation */}
             <Share className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
             <p className="text-xs leading-relaxed text-muted-foreground">
               Tap the{" "}
-              <span className="font-semibold text-foreground">Share</span>{" "}
+              <span className="inline-flex items-center gap-0.5 font-semibold text-foreground">
+                <Share className="inline h-3.5 w-3.5" /> Share
+              </span>{" "}
               button at the bottom of your screen, then select{" "}
               <span className="font-semibold text-foreground">
                 Add to Home Screen
