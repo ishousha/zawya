@@ -355,7 +355,7 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
   // isNewEvent is declared at top of component
 
   return (
-    <Card className="max-h-[calc(100vh-16rem)] sm:max-h-[calc(100vh-12rem)] flex flex-col overflow-hidden max-w-full">
+    <Card className="max-h-[calc(100vh-20rem)] sm:max-h-[calc(100vh-12rem)] flex flex-col overflow-hidden max-w-full">
       <CardHeader className="flex flex-row items-center justify-between pb-2 shrink-0">
         <CardTitle className="text-lg font-heading">
           {isNewEvent ? "New Event" : "Edit Event"}
