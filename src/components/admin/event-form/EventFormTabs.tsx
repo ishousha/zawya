@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, X, Palette, PackagePlus, Settings, Eye } from "lucide-react";
+import { Loader2, X, Palette, PackagePlus, Settings, Eye, Save, Send } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import DesignTab from "./DesignTab";
@@ -413,18 +413,38 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
               Preview
             </Button>
             <Button
-              className="flex-1 h-12"
+              variant="outline"
+              className="flex-1 h-12 gap-1.5"
               onClick={() => {
                 if (form.end_date_time && form.end_date_time <= form.date_time) {
                   toast.error("End time must be after start time");
                   return;
                 }
-                mutation.mutate();
+                setForm((prev) => ({ ...prev, published: false }));
+                // Use setTimeout to let state update before mutating
+                setTimeout(() => mutation.mutate(), 0);
               }}
               disabled={mutation.isPending || !form.title || !form.date_time}
             >
-              {mutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {isNewEvent ? "Create Event" : "Update Event"}
+              {mutation.isPending && !form.published && <Loader2 className="mr-1 h-4 w-4 animate-spin" />}
+              <Save className="h-4 w-4" />
+              Save Draft
+            </Button>
+            <Button
+              className="flex-1 h-12 gap-1.5"
+              onClick={() => {
+                if (form.end_date_time && form.end_date_time <= form.date_time) {
+                  toast.error("End time must be after start time");
+                  return;
+                }
+                setForm((prev) => ({ ...prev, published: true }));
+                setTimeout(() => mutation.mutate(), 0);
+              }}
+              disabled={mutation.isPending || !form.title || !form.date_time}
+            >
+              {mutation.isPending && form.published && <Loader2 className="mr-1 h-4 w-4 animate-spin" />}
+              <Send className="h-4 w-4" />
+              Publish
             </Button>
           </div>
       </div>
