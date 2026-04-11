@@ -343,6 +343,7 @@ export type Database = {
           mureeds_only: boolean
           online_link: string | null
           payment_instructions: string | null
+          published: boolean
           status: Database["public"]["Enums"]["event_status"]
           ticket_fee: number | null
           title: string
@@ -373,6 +374,7 @@ export type Database = {
           mureeds_only?: boolean
           online_link?: string | null
           payment_instructions?: string | null
+          published?: boolean
           status?: Database["public"]["Enums"]["event_status"]
           ticket_fee?: number | null
           title: string
@@ -403,6 +405,7 @@ export type Database = {
           mureeds_only?: boolean
           online_link?: string | null
           payment_instructions?: string | null
+          published?: boolean
           status?: Database["public"]["Enums"]["event_status"]
           ticket_fee?: number | null
           title?: string
