@@ -176,6 +176,11 @@ function EventCardInner({ event, onShowTicket, isPast = false }: EventCardProps)
               💰 Fee: ${Number(event.ticket_fee).toFixed(0)}
             </span>
           )}
+          {!isCancelled && (event as any).age_group && (event as any).age_group !== "All Ages" && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-[hsl(250,60%,95%)] px-2.5 py-0.5 text-xs font-medium text-[hsl(250,40%,35%)]">
+              👥 {(event as any).age_group}
+            </span>
+          )}
           {checkedInCount > 0 && isAttending && (
             <span className="inline-flex items-center gap-1 text-xs text-primary font-medium">
               <CheckCircle2 className="h-3 w-3" />

@@ -1,0 +1,1 @@
+ALTER TABLE public.events ADD COLUMN age_group text NOT NULL DEFAULT 'All Ages';

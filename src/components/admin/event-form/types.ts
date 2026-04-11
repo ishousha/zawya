@@ -2,6 +2,14 @@ export function generateCheckinPin(): string {
   return String(Math.floor(1000 + Math.random() * 9000));
 }
 
+export const AGE_GROUP_OPTIONS = [
+  "All Ages",
+  "Kids (Under 12)",
+  "Youth (13-18)",
+  "Young Adults (18-30)",
+  "Adults (18+)",
+] as const;
+
 export interface EventFormState {
   title: string;
   description: string;
@@ -29,6 +37,7 @@ export interface EventFormState {
   notify_attendees: boolean;
   etiquette_notes: string;
   location_hint: string;
+  age_group: string;
 }
 
 export interface SignUpItemState {
@@ -65,6 +74,7 @@ export const defaultEventForm: EventFormState = {
   notify_attendees: false,
   etiquette_notes: "",
   location_hint: "",
+  age_group: "All Ages",
 };
 
 // Keep EventType as a legacy re-export alias — no longer used

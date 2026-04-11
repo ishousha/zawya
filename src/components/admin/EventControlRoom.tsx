@@ -148,6 +148,7 @@ export default function EventControlRoom() {
       notify_attendees: false,
       etiquette_notes: (event as any).etiquette_notes ?? "",
       location_hint: (event as any).location_hint ?? "",
+      age_group: (event as any).age_group ?? "All Ages",
     };
 
     const copiedItems: SignUpItem[] = (items ?? []).map((item, i) => ({
