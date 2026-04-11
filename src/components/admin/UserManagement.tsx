@@ -339,10 +339,6 @@ export default function UserManagement() {
 
   const [bulkDeleteConfirmOpen, setBulkDeleteConfirmOpen] = useState(false);
 
-  if (loadingProfiles || loadingGuests) {
-    return <div className="flex items-center justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>;
-  }
-
   const stats = useMemo(() => {
     if (!profiles) return { total: 0, approved: 0, pending: 0, suspended: 0, guests: 0 };
     return {
