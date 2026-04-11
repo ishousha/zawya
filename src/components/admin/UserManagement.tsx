@@ -71,7 +71,7 @@ export default function UserManagement() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("profiles")
-        .select("id, name, email, phone, role, family_id, family_name, whatsapp_number, is_mureed, avatar_url, created_at, notification_preferences")
+        .select("id, name, email, phone, role, family_id, family_name, whatsapp_number, is_mureed, avatar_url, created_at, notification_preferences, alternate_cell_number, date_of_birth, gender, onboarding_completed, terms_accepted, updated_at")
         .order("created_at", { ascending: false })
         .limit(200);
       if (error) throw error;
