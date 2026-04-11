@@ -149,7 +149,7 @@ export default function EditUserModal({ profile, open, onOpenChange }: EditUserM
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="pending">Pending</SelectItem>
-                <SelectItem value="approved">Approved</SelectItem>
+                <SelectItem value="approved">Member</SelectItem>
                 <SelectItem value="rejected">Rejected</SelectItem>
                 <SelectItem value="guest">Guest</SelectItem>
                 <SelectItem value="moderator">Moderator</SelectItem>
