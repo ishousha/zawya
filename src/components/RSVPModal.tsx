@@ -329,6 +329,9 @@ export default function RSVPModal({ event, open, onOpenChange }: RSVPModalProps)
           {isPotluck && (
             <div className="space-y-3">
               <Label className="block text-sm font-medium">Potluck Contribution</Label>
+
+              <CurrentMenuPreview grouped={groupedMenu} />
+
               <p className="text-xs italic text-muted-foreground leading-relaxed">
                 Our gatherings are made beautiful by everyone's contributions. Please select an item to share if you can!
               </p>
