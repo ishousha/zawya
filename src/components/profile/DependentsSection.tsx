@@ -28,7 +28,7 @@ const AGE_GROUP_LABELS: Record<string, string> = {
 
 export function useDependents() {
   const { user, profile } = useAuth();
-  const familyId = (profile as any)?.family_id as string | null;
+  const familyId = profile?.family_id as string | null;
   return useQuery({
     queryKey: ["dependents", user?.id, familyId],
     enabled: !!user,
@@ -59,20 +59,20 @@ export default function DependentsSection() {
   const [firstName, setFirstName] = useState("");
   const [depType, setDepType] = useState<"child" | "elder">("child");
   const [gender, setGender] = useState("");
-  const [ageGroup, setAgeGroup] = useState("");
+  const [ageGroup, setAgeGroup] = useState<string | undefined>(undefined);
 
   const resetForm = () => {
     setAdding(false);
     setFirstName("");
     setDepType("child");
     setGender("");
-    setAgeGroup("");
+    setAgeGroup(undefined);
   };
 
   const addDependent = useMutation({
     mutationFn: async () => {
       if (!user) throw new Error("Not authenticated");
-      const familyId = (profile as any)?.family_id as string | null;
+      const familyId = profile?.family_id as string | null;
       const { error } = await supabase.from("dependents").insert({
         parent_id: user.id,
         first_name: firstName.trim(),
@@ -80,7 +80,7 @@ export default function DependentsSection() {
         family_id: familyId,
         gender: gender || null,
         age_group: ageGroup || null,
-      } as any);
+      });
       if (error) throw error;
     },
     onSuccess: () => {
@@ -123,9 +123,9 @@ export default function DependentsSection() {
       ) : dependents && dependents.length > 0 ? (
         <div className="space-y-2">
           {dependents.map((dep) => {
-            const type = (dep as any).type || "child";
-            const depGender = (dep as any).gender as string | null;
-            const depAgeGroup = (dep as any).age_group as string | null;
+            const type = dep.type || "child";
+            const depGender = dep.gender;
+            const depAgeGroup = dep.age_group;
             return (
               <div key={dep.id} className="flex items-center justify-between rounded-lg border border-border p-3">
                 <div className="flex items-center gap-2">
@@ -198,7 +198,7 @@ export default function DependentsSection() {
           </div>
           <div className="space-y-2">
             <Label className="text-sm font-medium">Age Group</Label>
-            <Select value={ageGroup} onValueChange={setAgeGroup}>
+            <Select value={ageGroup} onValueChange={(v) => setAgeGroup(v)}>
               <SelectTrigger>
                 <SelectValue placeholder="Select age group" />
               </SelectTrigger>
