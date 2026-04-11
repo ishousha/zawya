@@ -355,8 +355,8 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
   // isNewEvent is declared at top of component
 
   return (
-    <Card className="max-h-[calc(100vh-12rem)] flex flex-col overflow-x-hidden max-w-full">
-      <CardHeader className="flex flex-row items-center justify-between pb-2">
+    <Card className="max-h-[calc(100vh-16rem)] sm:max-h-[calc(100vh-12rem)] flex flex-col overflow-hidden max-w-full">
+      <CardHeader className="flex flex-row items-center justify-between pb-2 shrink-0">
         <CardTitle className="text-lg font-heading">
           {isNewEvent ? "New Event" : "Edit Event"}
         </CardTitle>
@@ -364,7 +364,7 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
           <X className="h-5 w-5" />
         </Button>
       </CardHeader>
-      <CardContent className="overflow-y-auto overflow-x-hidden flex-1 min-h-0 pb-0">
+      <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-6">
         <Tabs defaultValue="design" className="w-full">
           <TabsList className="grid w-full grid-cols-3 bg-muted sticky top-0 z-10">
             <TabsTrigger value="design" className="gap-1.5 text-xs">
@@ -391,8 +391,9 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
             <SettingsTab form={form} setForm={setForm} isEditing={!isNewEvent} />
           </TabsContent>
         </Tabs>
+      </div>
 
-        <div className="sticky bottom-0 -mx-6 px-6 pb-4 pt-2 border-t bg-card z-10">
+      <div className="px-6 pb-4 pt-2 border-t bg-card shrink-0 z-10">
           <Button
             className="w-full h-12"
             onClick={() => {
