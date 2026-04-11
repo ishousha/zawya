@@ -63,6 +63,7 @@ export default function UserManagement() {
   const [eventFilter, setEventFilter] = useState<string>("all");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [sortOrder, setSortOrder] = useState<"newest" | "oldest">("newest");
+  const [dateFilter, setDateFilter] = useState<string>("all");
 
   const { data: profiles, isLoading: loadingProfiles } = useQuery({
     queryKey: ["admin-profiles"],
@@ -280,23 +281,36 @@ export default function UserManagement() {
 
   const filteredProfiles = useMemo(() => {
     if (!profiles) return [];
+    const now = new Date();
     const filtered = profiles.filter((p) => {
       const q = debouncedSearch.toLowerCase();
       const matchesSearch = !q || (p.name || "").toLowerCase().includes(q) || (p.email || "").toLowerCase().includes(q) || (p.whatsapp_number || "").includes(q) || ((p.family_id && familyMap[p.family_id]) || "").toLowerCase().includes(q);
       const matchesRole = roleFilter === "all" || p.role === roleFilter;
       const matchesEvent = eventFilter === "all" || (userRsvpMap[p.id]?.some((e) => e.event_id === eventFilter));
-      return matchesSearch && matchesRole && matchesEvent;
+      // Date range filter
+      let matchesDate = true;
+      if (dateFilter !== "all") {
+        const joinedAt = new Date(p.created_at);
+        const diffDays = (now.getTime() - joinedAt.getTime()) / (1000 * 60 * 60 * 24);
+        if (dateFilter === "7d") matchesDate = diffDays <= 7;
+        else if (dateFilter === "30d") matchesDate = diffDays <= 30;
+        else if (dateFilter === "90d") matchesDate = diffDays <= 90;
+        else if (dateFilter === "this-month") {
+          matchesDate = joinedAt.getMonth() === now.getMonth() && joinedAt.getFullYear() === now.getFullYear();
+        } else if (dateFilter === "this-year") {
+          matchesDate = joinedAt.getFullYear() === now.getFullYear();
+        }
+      }
+      return matchesSearch && matchesRole && matchesEvent && matchesDate;
     });
     return filtered.sort((a, b) => {
-      // Pending always floats to top
       if (a.role === "pending" && b.role !== "pending") return -1;
       if (a.role !== "pending" && b.role === "pending") return 1;
-      // Then sort by date
       const dateA = new Date(a.created_at).getTime();
       const dateB = new Date(b.created_at).getTime();
       return sortOrder === "newest" ? dateB - dateA : dateA - dateB;
     });
-  }, [profiles, debouncedSearch, roleFilter, familyMap, eventFilter, userRsvpMap, sortOrder]);
+  }, [profiles, debouncedSearch, roleFilter, familyMap, eventFilter, userRsvpMap, sortOrder, dateFilter]);
 
   const toggleSelect = useCallback((id: string) => {
     setSelectedIds((prev) => {
