@@ -338,6 +338,7 @@ export type Database = {
           id: string
           is_hybrid: boolean
           location: string | null
+          location_hint: string | null
           mureeds_only: boolean
           online_link: string | null
           payment_instructions: string | null
@@ -366,6 +367,7 @@ export type Database = {
           id?: string
           is_hybrid?: boolean
           location?: string | null
+          location_hint?: string | null
           mureeds_only?: boolean
           online_link?: string | null
           payment_instructions?: string | null
@@ -394,6 +396,7 @@ export type Database = {
           id?: string
           is_hybrid?: boolean
           location?: string | null
+          location_hint?: string | null
           mureeds_only?: boolean
           online_link?: string | null
           payment_instructions?: string | null
