@@ -409,7 +409,7 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
             {isNewEvent ? "Create Event" : "Update Event"}
           </Button>
         </div>
-      </CardContent>
+      </div>
 
       <AlertDialog open={showCloseConfirm} onOpenChange={cancelClose}>
         <AlertDialogContent>
