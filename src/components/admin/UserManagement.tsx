@@ -341,7 +341,7 @@ export default function UserManagement() {
                     <Select value={newRole} onValueChange={(v) => setNewRole(v as "approved" | "guest")}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="approved">Approved (full member)</SelectItem>
+                        <SelectItem value="approved">Member (full access)</SelectItem>
                         <SelectItem value="guest">Guest (event-specific)</SelectItem>
                       </SelectContent>
                     </Select>
@@ -369,7 +369,7 @@ export default function UserManagement() {
               <Button size="sm" variant={roleFilter === "pending" ? "default" : "outline"} className={`h-7 text-xs gap-1 whitespace-nowrap flex-shrink-0 ${roleFilter !== "pending" && pendingCount > 0 ? "border-amber-400 text-amber-700 dark:text-amber-400" : ""}`} onClick={() => setRoleFilter("pending")}>
                 Pending {pendingCount > 0 && <span className="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-amber-500 px-1 text-[10px] font-bold text-white animate-pulse">{pendingCount}</span>}
               </Button>
-              <Button size="sm" variant={roleFilter === "approved" ? "default" : "outline"} className="h-7 text-xs whitespace-nowrap flex-shrink-0" onClick={() => setRoleFilter("approved")}>Approved ({approvedCount})</Button>
+              <Button size="sm" variant={roleFilter === "approved" ? "default" : "outline"} className="h-7 text-xs whitespace-nowrap flex-shrink-0" onClick={() => setRoleFilter("approved")}>Members ({approvedCount})</Button>
               <Button size="sm" variant={roleFilter === "rejected" ? "default" : "outline"} className="h-7 text-xs whitespace-nowrap flex-shrink-0" onClick={() => setRoleFilter("rejected")}>Rejected ({rejectedCount})</Button>
               <Button size="sm" variant={roleFilter === "suspended" ? "default" : "outline"} className="h-7 text-xs whitespace-nowrap flex-shrink-0" onClick={() => setRoleFilter("suspended")}>Suspended ({suspendedCount})</Button>
             </div>
@@ -391,7 +391,7 @@ export default function UserManagement() {
               </SelectContent>
             </Select>
             <Button size="sm" variant="outline" className="h-9 gap-1.5 text-xs shrink-0" onClick={() => {
-              const rows = filteredProfiles.map((p) => ({ Name: p.name || "", Email: p.email || "", Phone: p.phone || "", Role: p.role, Family: (p.family_id && familyMap[p.family_id]) || "", Joined: format(new Date(p.created_at), "yyyy-MM-dd") }));
+              const rows = filteredProfiles.map((p) => ({ Name: p.name || "", Email: p.email || "", Phone: p.phone || "", Role: p.role === "approved" ? "Member" : p.role, Family: (p.family_id && familyMap[p.family_id]) || "", Joined: format(new Date(p.created_at), "yyyy-MM-dd") }));
               downloadCsv(rows, zawyaFilename("Users")); toast.success(`Exported ${rows.length} users`);
             }}>
               <Download className="h-3.5 w-3.5" /> Export
@@ -452,7 +452,7 @@ export default function UserManagement() {
                     <p className="font-medium text-card-foreground flex flex-wrap items-center gap-1.5">
                       <span className="truncate">{p.name || "Unnamed"}</span>
                       {p.role === "pending" && <Badge className="text-[10px] px-2 py-0.5 bg-amber-500 text-white border-amber-500 animate-pulse font-semibold">⏳ Awaiting Approval</Badge>}
-                      {p.role === "approved" && <Badge variant="secondary" className="text-[10px] px-1.5 py-0 bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">Approved</Badge>}
+                      {p.role === "approved" && <Badge variant="secondary" className="text-[10px] px-1.5 py-0 bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">Member</Badge>}
                       {p.role === "guest" && <Badge variant="secondary" className="text-[10px] px-1.5 py-0">Guest</Badge>}
                       {p.role === "admin" && <Badge className="text-[10px] px-1.5 py-0">Admin</Badge>}
                       {p.role === "moderator" && <Badge variant="secondary" className="text-[10px] px-1.5 py-0 border-primary/30 text-primary">Mod</Badge>}
@@ -464,7 +464,7 @@ export default function UserManagement() {
                     {p.whatsapp_number && <p className="text-xs text-muted-foreground">📱 {p.whatsapp_number}</p>}
                     {p.family_id && familyMap[p.family_id] && <p className="text-xs text-muted-foreground">🏠 {familyMap[p.family_id]}</p>}
                     {p.family_name && !p.family_id && <p className="text-xs text-muted-foreground">Family: {p.family_name}</p>}
-                    {rolesMap[p.id] && <p className="text-xs text-muted-foreground">Roles: {rolesMap[p.id].join(", ")}</p>}
+                    {rolesMap[p.id] && <p className="text-xs text-muted-foreground">Roles: {rolesMap[p.id].map(r => r === "approved" ? "Member" : r).join(", ")}</p>}
                     {userRsvpMap[p.id] && userRsvpMap[p.id].length > 0 && (
                       <div className="mt-1 flex flex-wrap gap-1">
                         {userRsvpMap[p.id].map((e) => (<Badge key={e.event_id} variant="outline" className="text-[10px] px-1.5 py-0">{e.title}</Badge>))}
@@ -505,7 +505,7 @@ export default function UserManagement() {
                     <SelectTrigger className="w-[120px] h-9"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="pending">Pending</SelectItem>
-                      <SelectItem value="approved">Approved</SelectItem>
+                      <SelectItem value="approved">Member</SelectItem>
                       <SelectItem value="rejected">Rejected</SelectItem>
                       <SelectItem value="guest">Guest</SelectItem>
                       <SelectItem value="moderator">Moderator</SelectItem>
