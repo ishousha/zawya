@@ -458,7 +458,7 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
             >
               {mutation.isPending && <Loader2 className="mr-1 h-4 w-4 animate-spin" />}
               <Send className="h-4 w-4" />
-              Publish
+              {wasAlreadyPublished.current ? "Update" : "Publish & Notify"}
             </Button>
           </div>
       </div>
