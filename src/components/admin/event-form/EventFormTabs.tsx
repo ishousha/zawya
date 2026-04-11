@@ -355,8 +355,8 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
   // isNewEvent is declared at top of component
 
   return (
-    <Card className="max-h-[calc(100vh-12rem)] flex flex-col overflow-x-hidden max-w-full">
-      <CardHeader className="flex flex-row items-center justify-between pb-2">
+    <Card className="max-h-[calc(100vh-20rem)] sm:max-h-[calc(100vh-12rem)] flex flex-col overflow-hidden max-w-full">
+      <CardHeader className="flex flex-row items-center justify-between pb-2 shrink-0">
         <CardTitle className="text-lg font-heading">
           {isNewEvent ? "New Event" : "Edit Event"}
         </CardTitle>
@@ -364,9 +364,9 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
           <X className="h-5 w-5" />
         </Button>
       </CardHeader>
-      <CardContent className="overflow-y-auto overflow-x-hidden flex-1 min-h-0">
+      <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-6">
         <Tabs defaultValue="design" className="w-full">
-          <TabsList className="grid w-full grid-cols-3 bg-muted">
+          <TabsList className="grid w-full grid-cols-3 bg-muted sticky top-0 z-10">
             <TabsTrigger value="design" className="gap-1.5 text-xs">
               <Palette className="h-4 w-4" />
               Details
@@ -391,23 +391,23 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
             <SettingsTab form={form} setForm={setForm} isEditing={!isNewEvent} />
           </TabsContent>
         </Tabs>
-      </CardContent>
+      </div>
 
-      <div className="sticky bottom-0 px-6 pb-4 pt-2 border-t bg-card shrink-0 z-10">
-        <Button
-          className="w-full h-12"
-          onClick={() => {
-            if (form.end_date_time && form.end_date_time <= form.date_time) {
-              toast.error("End time must be after start time");
-              return;
-            }
-            mutation.mutate();
-          }}
-          disabled={mutation.isPending || !form.title || !form.date_time}
-        >
-          {mutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          {isNewEvent ? "Create Event" : "Update Event"}
-        </Button>
+      <div className="px-6 pb-4 pt-2 border-t bg-card shrink-0 z-10">
+          <Button
+            className="w-full h-12"
+            onClick={() => {
+              if (form.end_date_time && form.end_date_time <= form.date_time) {
+                toast.error("End time must be after start time");
+                return;
+              }
+              mutation.mutate();
+            }}
+            disabled={mutation.isPending || !form.title || !form.date_time}
+          >
+            {mutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {isNewEvent ? "Create Event" : "Update Event"}
+          </Button>
       </div>
 
       <AlertDialog open={showCloseConfirm} onOpenChange={cancelClose}>
