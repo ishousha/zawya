@@ -361,6 +361,11 @@ export default function EventControlRoom() {
                           <Badge variant="outline" className="text-xs">Cap: {event.capacity}</Badge>
                         )}
                       </div>
+                      {(event as any).last_published_at && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Last published {format(new Date((event as any).last_published_at), "MMM d, yyyy 'at' h:mm a")}
+                        </p>
+                      )}
                     </div>
                     <div className="flex items-center gap-1 border-t border-border pt-2">
                       <Button size="sm" variant="ghost" className="h-9 gap-1.5 text-xs" onClick={() => setMonitoringEventId(event.id)}>
@@ -370,15 +375,36 @@ export default function EventControlRoom() {
                         <Edit2 className="h-3.5 w-3.5" /> Edit
                       </Button>
                       {(event as any).published && (
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="h-9 gap-1.5 text-xs text-amber-600 hover:text-amber-700"
-                          onClick={() => unpublishMutation.mutate(event)}
-                          disabled={unpublishMutation.isPending}
-                        >
-                          <EyeOff className="h-3.5 w-3.5" /> Unpublish
-                        </Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-9 gap-1.5 text-xs text-amber-600 hover:text-amber-700"
+                              disabled={unpublishMutation.isPending}
+                            >
+                              <EyeOff className="h-3.5 w-3.5" /> Unpublish
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Unpublish "{event.title}"?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                This will hide the event from all members immediately. You can edit it and republish later without sending duplicate notifications.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => unpublishMutation.mutate(event)}
+                                className="bg-amber-600 text-white hover:bg-amber-700"
+                              >
+                                <EyeOff className="mr-1.5 h-4 w-4" />
+                                Unpublish
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
                       )}
                       <Button size="sm" variant="ghost" className="h-9 gap-1.5 text-xs" onClick={() => handleDuplicate(event)}>
                         <Copy className="h-3.5 w-3.5" /> Copy
