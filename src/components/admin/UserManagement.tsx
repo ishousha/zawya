@@ -343,8 +343,37 @@ export default function UserManagement() {
     return <div className="flex items-center justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>;
   }
 
+  const stats = useMemo(() => {
+    if (!profiles) return { total: 0, approved: 0, pending: 0, suspended: 0, guests: 0 };
+    return {
+      total: profiles.length,
+      approved: profiles.filter((p) => p.role === "approved").length,
+      pending: profiles.filter((p) => p.role === "pending").length,
+      suspended: profiles.filter((p) => p.role === "suspended").length,
+      guests: profiles.filter((p) => p.role === "guest").length,
+    };
+  }, [profiles]);
+
   return (
     <div className="space-y-6 py-4">
+      {/* Summary Banner */}
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
+        {[
+          { label: "Total", value: stats.total, className: "text-foreground" },
+          { label: "Active", value: stats.approved, className: "text-primary" },
+          { label: "Pending", value: stats.pending, className: "text-amber-600 dark:text-amber-400" },
+          { label: "Guests", value: stats.guests, className: "text-muted-foreground" },
+          { label: "Suspended", value: stats.suspended, className: "text-destructive" },
+        ].map((s) => (
+          <Card key={s.label} className="border-border">
+            <CardContent className="flex flex-col items-center py-3 px-2">
+              <span className={`text-2xl font-bold font-heading ${s.className}`}>{s.value}</span>
+              <span className="text-[11px] text-muted-foreground">{s.label}</span>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
       <div>
         <div className="mb-3 flex items-center justify-between gap-2 flex-wrap">
           <h3 className="font-heading text-base font-semibold text-foreground flex items-center gap-2">
