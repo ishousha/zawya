@@ -1,10 +1,12 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Video, AlertCircle, Info, DollarSign } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Video, AlertCircle, Info, DollarSign, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 import CoverPhotoUpload from "./CoverPhotoUpload";
 import VenueSelector from "./VenueSelector";
 import SpeakerSelector from "./SpeakerSelector";
