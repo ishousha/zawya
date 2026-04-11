@@ -368,7 +368,7 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
           <X className="h-5 w-5" />
         </Button>
       </CardHeader>
-      <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-6">
+      <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-6" style={{ touchAction: 'pan-y' }}>
         <Tabs defaultValue="design" className="w-full">
           <TabsList className="grid w-full grid-cols-3 bg-muted sticky top-0 z-10">
             <TabsTrigger value="design" className="gap-1.5 text-xs">
