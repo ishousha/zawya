@@ -38,7 +38,7 @@ export default function CoverPhotoUpload({ value, onChange }: CoverPhotoUploadPr
       {/* Gallery Picker */}
       <div>
         <Label className="mb-2 block">Choose Cover Image</Label>
-        <div className="grid grid-cols-5 gap-2">
+        <div className="grid grid-cols-3 sm:grid-cols-5 gap-1.5">
           {stockImages.map((url) => {
             const isSelected = value === url;
             return (
