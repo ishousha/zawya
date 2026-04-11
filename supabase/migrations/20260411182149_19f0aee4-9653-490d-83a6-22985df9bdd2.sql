@@ -1,0 +1,1 @@
+ALTER TABLE public.events ADD COLUMN last_published_at timestamptz DEFAULT NULL;

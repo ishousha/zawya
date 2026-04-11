@@ -338,6 +338,7 @@ export type Database = {
           host_id: string | null
           id: string
           is_hybrid: boolean
+          last_published_at: string | null
           location: string | null
           location_hint: string | null
           mureeds_only: boolean
@@ -370,6 +371,7 @@ export type Database = {
           host_id?: string | null
           id?: string
           is_hybrid?: boolean
+          last_published_at?: string | null
           location?: string | null
           location_hint?: string | null
           mureeds_only?: boolean
@@ -402,6 +404,7 @@ export type Database = {
           host_id?: string | null
           id?: string
           is_hybrid?: boolean
+          last_published_at?: string | null
           location?: string | null
           location_hint?: string | null
           mureeds_only?: boolean
