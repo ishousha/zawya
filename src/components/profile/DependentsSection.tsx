@@ -28,7 +28,7 @@ const AGE_GROUP_LABELS: Record<string, string> = {
 
 export function useDependents() {
   const { user, profile } = useAuth();
-  const familyId = (profile as any)?.family_id as string | null;
+  const familyId = profile?.family_id as string | null;
   return useQuery({
     queryKey: ["dependents", user?.id, familyId],
     enabled: !!user,
@@ -72,7 +72,7 @@ export default function DependentsSection() {
   const addDependent = useMutation({
     mutationFn: async () => {
       if (!user) throw new Error("Not authenticated");
-      const familyId = (profile as any)?.family_id as string | null;
+      const familyId = profile?.family_id as string | null;
       const { error } = await supabase.from("dependents").insert({
         parent_id: user.id,
         first_name: firstName.trim(),
