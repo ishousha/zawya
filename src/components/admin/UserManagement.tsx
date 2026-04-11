@@ -20,7 +20,7 @@ import {
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Search, Download, Mail, Pencil, ChevronDown } from "lucide-react";
+import { Search, Download, Mail, Pencil, ChevronDown, ArrowUpDown } from "lucide-react";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
@@ -62,6 +62,7 @@ export default function UserManagement() {
   const [roleFilter, setRoleFilter] = useState<string>("all");
   const [eventFilter, setEventFilter] = useState<string>("all");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [sortOrder, setSortOrder] = useState<"newest" | "oldest">("newest");
 
   const { data: profiles, isLoading: loadingProfiles } = useQuery({
     queryKey: ["admin-profiles"],
@@ -279,14 +280,23 @@ export default function UserManagement() {
 
   const filteredProfiles = useMemo(() => {
     if (!profiles) return [];
-    return profiles.filter((p) => {
+    const filtered = profiles.filter((p) => {
       const q = debouncedSearch.toLowerCase();
       const matchesSearch = !q || (p.name || "").toLowerCase().includes(q) || (p.email || "").toLowerCase().includes(q) || (p.whatsapp_number || "").includes(q) || ((p.family_id && familyMap[p.family_id]) || "").toLowerCase().includes(q);
       const matchesRole = roleFilter === "all" || p.role === roleFilter;
       const matchesEvent = eventFilter === "all" || (userRsvpMap[p.id]?.some((e) => e.event_id === eventFilter));
       return matchesSearch && matchesRole && matchesEvent;
     });
-  }, [profiles, debouncedSearch, roleFilter, familyMap, eventFilter, userRsvpMap]);
+    return filtered.sort((a, b) => {
+      // Pending always floats to top
+      if (a.role === "pending" && b.role !== "pending") return -1;
+      if (a.role !== "pending" && b.role === "pending") return 1;
+      // Then sort by date
+      const dateA = new Date(a.created_at).getTime();
+      const dateB = new Date(b.created_at).getTime();
+      return sortOrder === "newest" ? dateB - dateA : dateA - dateB;
+    });
+  }, [profiles, debouncedSearch, roleFilter, familyMap, eventFilter, userRsvpMap, sortOrder]);
 
   const toggleSelect = useCallback((id: string) => {
     setSelectedIds((prev) => {
