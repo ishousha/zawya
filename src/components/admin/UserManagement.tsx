@@ -20,7 +20,7 @@ import {
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Search, Download, Mail, Pencil, ChevronDown, ArrowUpDown } from "lucide-react";
+import { Search, Download, Mail, Pencil, ChevronDown, ArrowUpDown, CalendarIcon } from "lucide-react";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
@@ -417,12 +417,26 @@ export default function UserManagement() {
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input placeholder="Search by name, email, phone, family…" value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9 h-9" />
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Select value={eventFilter} onValueChange={setEventFilter}>
               <SelectTrigger className="w-full md:w-[160px] h-9"><SelectValue placeholder="All events" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All events</SelectItem>
                 {eventOptions.map((e) => (<SelectItem key={e.id} value={e.id}>{e.title}</SelectItem>))}
+              </SelectContent>
+            </Select>
+            <Select value={dateFilter} onValueChange={setDateFilter}>
+              <SelectTrigger className="w-full md:w-[150px] h-9">
+                <CalendarIcon className="h-3.5 w-3.5 mr-1.5 shrink-0" />
+                <SelectValue placeholder="Join date" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All time</SelectItem>
+                <SelectItem value="7d">Last 7 days</SelectItem>
+                <SelectItem value="30d">Last 30 days</SelectItem>
+                <SelectItem value="90d">Last 90 days</SelectItem>
+                <SelectItem value="this-month">This month</SelectItem>
+                <SelectItem value="this-year">This year</SelectItem>
               </SelectContent>
             </Select>
             <Select value={sortOrder} onValueChange={(v) => setSortOrder(v as "newest" | "oldest")}>
