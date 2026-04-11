@@ -369,6 +369,17 @@ export default function EventControlRoom() {
                       <Button size="sm" variant="ghost" className="h-9 gap-1.5 text-xs" onClick={() => setEditing(event)}>
                         <Edit2 className="h-3.5 w-3.5" /> Edit
                       </Button>
+                      {(event as any).published && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-9 gap-1.5 text-xs text-amber-600 hover:text-amber-700"
+                          onClick={() => unpublishMutation.mutate(event)}
+                          disabled={unpublishMutation.isPending}
+                        >
+                          <EyeOff className="h-3.5 w-3.5" /> Unpublish
+                        </Button>
+                      )}
                       <Button size="sm" variant="ghost" className="h-9 gap-1.5 text-xs" onClick={() => handleDuplicate(event)}>
                         <Copy className="h-3.5 w-3.5" /> Copy
                       </Button>
