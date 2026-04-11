@@ -313,6 +313,14 @@ export default function UserManagement() {
     });
   }, [profiles, debouncedSearch, roleFilter, familyMap, eventFilter, userRsvpMap, sortOrder, dateFilter]);
 
+  // Reset visible count when filters change
+  const filterKey = `${debouncedSearch}-${roleFilter}-${eventFilter}-${dateFilter}-${sortOrder}`;
+  const [prevFilterKey, setPrevFilterKey] = useState(filterKey);
+  if (filterKey !== prevFilterKey) {
+    setPrevFilterKey(filterKey);
+    setVisibleCount(50);
+  }
+
   const toggleSelect = useCallback((id: string) => {
     setSelectedIds((prev) => {
       const next = new Set(prev);
