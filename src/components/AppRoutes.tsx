@@ -175,6 +175,7 @@ function StableLayout({ profile }: { profile: any }) {
 
   return (
     <>
+      <OfflineBanner />
       <AppHeader />
 
       <Suspense fallback={<LazyFallback />}>
