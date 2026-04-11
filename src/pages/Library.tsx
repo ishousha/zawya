@@ -218,8 +218,10 @@ export default function Library() {
             )}
 
             {isLoading ? (
-              <div className="flex justify-center py-12">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <div className="grid gap-3">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <ResourceCardSkeleton key={i} />
+                ))}
               </div>
             ) : !resources?.length ? (
               <div className="flex flex-col items-center justify-center py-16 text-center">
