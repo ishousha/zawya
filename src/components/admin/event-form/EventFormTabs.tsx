@@ -242,7 +242,7 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
         etiquette_notes: form.etiquette_notes || null,
         location_hint: form.location_hint || null,
         age_group: form.age_group || "All Ages",
-        published: form.published,
+        published: shouldPublish,
       };
 
       let eventId = event?.id;
