@@ -1,10 +1,12 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Video, AlertCircle, Info, DollarSign } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Video, AlertCircle, Info, DollarSign, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 import CoverPhotoUpload from "./CoverPhotoUpload";
 import VenueSelector from "./VenueSelector";
 import SpeakerSelector from "./SpeakerSelector";
@@ -18,8 +20,48 @@ interface DesignTabProps {
 }
 
 export default function DesignTab({ form, setForm }: DesignTabProps) {
+  const [bookingZoom, setBookingZoom] = useState(false);
+
   const update = <K extends keyof EventFormState>(key: K, value: EventFormState[K]) =>
     setForm((prev) => ({ ...prev, [key]: value }));
+
+  const handleGenerateZoom = async () => {
+    if (!form.title || !form.date_time) {
+      toast.error("Please fill in the event title and start time first.");
+      return;
+    }
+    setBookingZoom(true);
+    try {
+      const startIso = new Date(form.date_time).toISOString();
+      const res = await fetch("https://n8n.seqwelpartners.com/webhook/create-zoom-meeting", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: form.title, start_time: startIso }),
+      });
+      if (!res.ok) throw new Error("Webhook returned " + res.status);
+      const data = await res.json();
+      const joinUrl = data.join_url ?? data.joinUrl ?? "";
+      const meetingId = data.id ?? data.meeting_id ?? "";
+      const password = data.password ?? "";
+      setForm((prev) => {
+        const details = [
+          meetingId && `Meeting ID: ${meetingId}`,
+          password && `Password: ${password}`,
+        ].filter(Boolean).join("\n");
+        const sep = prev.description ? "\n\n" : "";
+        return {
+          ...prev,
+          online_link: joinUrl,
+          description: details ? prev.description + sep + details : prev.description,
+        };
+      });
+      toast.success("Zoom meeting booked successfully!");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to generate Zoom link");
+    } finally {
+      setBookingZoom(false);
+    }
+  };
 
   const { data: eventTypes } = useEventTypes();
   const selectedType = eventTypes?.find((t) => t.id === form.event_type_id);
@@ -281,19 +323,31 @@ export default function DesignTab({ form, setForm }: DesignTabProps) {
 
       {showVirtual && (
         <div>
-          <Label htmlFor="online_link" className="flex items-center gap-1.5">
-            <Video className="h-3.5 w-3.5 text-primary" />
-            Online Meeting Link
-          </Label>
+          <div className="flex items-center justify-between mb-1.5">
+            <Label htmlFor="online_link" className="flex items-center gap-1.5 mb-0">
+              <Video className="h-3.5 w-3.5 text-primary" />
+              Online Meeting Link
+            </Label>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              disabled={bookingZoom}
+              onClick={handleGenerateZoom}
+              className="gap-1.5"
+            >
+              {bookingZoom ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Video className="h-3.5 w-3.5" />}
+              {bookingZoom ? "Booking…" : "Generate Zoom Link"}
+            </Button>
+          </div>
           <Input
             id="online_link"
             value={form.online_link}
             onChange={(e) => update("online_link", e.target.value)}
             placeholder="https://zoom.us/... or meet.google.com/..."
-            className="mt-1.5"
           />
           <p className="text-xs text-muted-foreground mt-1">
-            Leave blank to trigger automatic link generation via webhook.
+            Use the button above to auto-generate a Zoom link, or paste one manually.
           </p>
         </div>
       )}
