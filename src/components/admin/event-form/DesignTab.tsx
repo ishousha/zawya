@@ -230,17 +230,32 @@ export default function DesignTab({ form, setForm }: DesignTabProps) {
 
       {/* Venue selector — conditional on type + hybrid */}
       {showPhysical && (
-        <VenueSelector
-          value={form.venue_id}
-          onChange={(venueId, name, address) =>
-            setForm((prev) => ({
-              ...prev,
-              venue_id: venueId,
-              location: name,
-              address: address,
-            }))
-          }
-        />
+        <>
+          <VenueSelector
+            value={form.venue_id}
+            onChange={(venueId, name, address) =>
+              setForm((prev) => ({
+                ...prev,
+                venue_id: venueId,
+                location: name,
+                address: address,
+              }))
+            }
+          />
+          <div>
+            <Label htmlFor="location_hint">General Area / Hint (e.g., Barsha 3)</Label>
+            <Input
+              id="location_hint"
+              value={form.location_hint}
+              onChange={(e) => update("location_hint", e.target.value)}
+              placeholder="e.g. Barsha 3, JLT Cluster D"
+              className="mt-1.5"
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              Shown to members before they RSVP. Exact address is revealed after RSVP.
+            </p>
+          </div>
+        </>
       )}
 
       {showVirtual && (
