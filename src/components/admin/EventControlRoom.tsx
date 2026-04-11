@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import AdminGuestApprovals from "./AdminGuestApprovals";
 import CheckinPoster from "./CheckinPoster";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -227,6 +227,33 @@ export default function EventControlRoom() {
     onSettled: () => {},
   });
 
+  const [statusFilter, setStatusFilter] = useState<"all" | "published" | "scheduled" | "draft">("all");
+
+  const activeEvents = useMemo(() => {
+    const nonCancelled = events?.filter(e => e.status !== "cancelled") ?? [];
+    switch (statusFilter) {
+      case "published":
+        return nonCancelled.filter(e => (e as any).published);
+      case "scheduled":
+        return nonCancelled.filter(e => !(e as any).published && (e as any).scheduled_publish_at);
+      case "draft":
+        return nonCancelled.filter(e => !(e as any).published && !(e as any).scheduled_publish_at);
+      default:
+        return nonCancelled;
+    }
+  }, [events, statusFilter]);
+  const cancelledEvents = events?.filter(e => e.status === "cancelled") ?? [];
+
+  const filterCounts = useMemo(() => {
+    const nonCancelled = events?.filter(e => e.status !== "cancelled") ?? [];
+    return {
+      all: nonCancelled.length,
+      published: nonCancelled.filter(e => (e as any).published).length,
+      scheduled: nonCancelled.filter(e => !(e as any).published && (e as any).scheduled_publish_at).length,
+      draft: nonCancelled.filter(e => !(e as any).published && !(e as any).scheduled_publish_at).length,
+    };
+  }, [events]);
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -234,9 +261,6 @@ export default function EventControlRoom() {
       </div>
     );
   }
-
-  const activeEvents = events?.filter(e => e.status !== "cancelled") ?? [];
-  const cancelledEvents = events?.filter(e => e.status === "cancelled") ?? [];
 
   const showList = !creating && !editing && !monitoringEventId && !duplicateForm;
 
@@ -275,6 +299,24 @@ export default function EventControlRoom() {
               </CollapsibleContent>
             </Collapsible>
           )}
+          {/* Status filter tabs */}
+          <div className="flex gap-1.5 overflow-x-auto pb-1">
+            {(["all", "published", "scheduled", "draft"] as const).map((f) => (
+              <button
+                key={f}
+                onClick={() => setStatusFilter(f)}
+                className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
+                  statusFilter === f
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-muted text-muted-foreground hover:bg-muted/80"
+                }`}
+              >
+                {f === "all" ? "All" : f.charAt(0).toUpperCase() + f.slice(1)}
+                <span className="ml-1 opacity-70">({filterCounts[f]})</span>
+              </button>
+            ))}
+          </div>
+
           <div className="space-y-2">
             {activeEvents.map((event) => (
               <Card key={event.id}>
