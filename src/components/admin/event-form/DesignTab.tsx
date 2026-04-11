@@ -219,7 +219,7 @@ export default function DesignTab({ form, setForm }: DesignTabProps) {
       )}
 
       {/* Start & End date/time */}
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
           <Label htmlFor="start">Start Date & Time</Label>
           <Input
