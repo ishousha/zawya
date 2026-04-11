@@ -128,19 +128,17 @@ export default function InstallAppBanner() {
   );
 }
 
-/** Dev-only button to reset the 7-day install banner dismissal timer */
+/** Button to reset the 7-day install banner dismissal timer — admin only */
 export function ClearInstallDismissButton() {
-  if (import.meta.env.PROD) return null;
-
   return (
     <button
       onClick={() => {
         localStorage.removeItem(DISMISS_KEY);
         window.location.reload();
       }}
-      className="fixed bottom-20 right-3 z-50 rounded-md bg-destructive px-3 py-1.5 text-xs font-medium text-destructive-foreground shadow-md hover:opacity-90"
+      className="w-full rounded-md border border-border bg-muted px-3 py-2 text-xs font-medium text-muted-foreground hover:bg-muted/80 transition-colors"
     >
-      🔧 Reset Install Banner
+      🔧 Reset Install Banner Dismissal
     </button>
   );
 }
