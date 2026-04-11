@@ -345,13 +345,14 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
 
       return eventId;
     },
-    onSuccess: () => {
+    onSuccess: (_data, publishOverride) => {
       clearDraft();
       queryClient.invalidateQueries({ queryKey: ["admin-events"] });
       queryClient.invalidateQueries({ queryKey: ["events"] });
       queryClient.invalidateQueries({ queryKey: ["sign-up-items"] });
       queryClient.invalidateQueries({ queryKey: ["event-speakers"] });
-      toast.success(event && !initialForm ? "Event updated" : "Event created");
+      const verb = publishOverride ? "published" : "saved as draft";
+      toast.success(event && !initialForm ? `Event ${verb}` : `Event ${verb}`);
       onClose();
     },
     onError: (err) => {
