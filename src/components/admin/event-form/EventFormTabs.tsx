@@ -71,6 +71,8 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
   const queryClient = useQueryClient();
 
   const isNewEvent = !event || !!initialForm;
+  // Track whether the event was already published before editing
+  const wasAlreadyPublished = useRef(!!(event && (event as any).published));
 
   const [form, setForm] = useState<EventFormState>(() => {
     if (initialForm) return initialForm;
