@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, X, Palette, PackagePlus, Settings } from "lucide-react";
+import { Loader2, X, Palette, PackagePlus, Settings, Eye } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import DesignTab from "./DesignTab";
