@@ -323,19 +323,31 @@ export default function DesignTab({ form, setForm }: DesignTabProps) {
 
       {showVirtual && (
         <div>
-          <Label htmlFor="online_link" className="flex items-center gap-1.5">
-            <Video className="h-3.5 w-3.5 text-primary" />
-            Online Meeting Link
-          </Label>
+          <div className="flex items-center justify-between mb-1.5">
+            <Label htmlFor="online_link" className="flex items-center gap-1.5 mb-0">
+              <Video className="h-3.5 w-3.5 text-primary" />
+              Online Meeting Link
+            </Label>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              disabled={bookingZoom}
+              onClick={handleGenerateZoom}
+              className="gap-1.5"
+            >
+              {bookingZoom ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Video className="h-3.5 w-3.5" />}
+              {bookingZoom ? "Booking…" : "Generate Zoom Link"}
+            </Button>
+          </div>
           <Input
             id="online_link"
             value={form.online_link}
             onChange={(e) => update("online_link", e.target.value)}
             placeholder="https://zoom.us/... or meet.google.com/..."
-            className="mt-1.5"
           />
           <p className="text-xs text-muted-foreground mt-1">
-            Leave blank to trigger automatic link generation via webhook.
+            Use the button above to auto-generate a Zoom link, or paste one manually.
           </p>
         </div>
       )}
