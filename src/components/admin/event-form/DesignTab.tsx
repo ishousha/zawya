@@ -21,6 +21,7 @@ interface DesignTabProps {
 
 export default function DesignTab({ form, setForm }: DesignTabProps) {
   const [bookingZoom, setBookingZoom] = useState(false);
+  const [zoomError, setZoomError] = useState<string | null>(null);
 
   const update = <K extends keyof EventFormState>(key: K, value: EventFormState[K]) =>
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -31,6 +32,7 @@ export default function DesignTab({ form, setForm }: DesignTabProps) {
       return;
     }
     setBookingZoom(true);
+    setZoomError(null);
     try {
       const startIso = new Date(form.date_time).toISOString();
       const res = await fetch("https://n8n.seqwelpartners.com/webhook/create-zoom-meeting", {
@@ -41,6 +43,7 @@ export default function DesignTab({ form, setForm }: DesignTabProps) {
       if (!res.ok) throw new Error("Webhook returned " + res.status);
       const data = await res.json();
       const joinUrl = data.join_url ?? data.joinUrl ?? "";
+      if (!joinUrl) throw new Error("No Zoom link returned — unexpected response format.");
       const meetingId = data.id ?? data.meeting_id ?? "";
       const password = data.password ?? "";
       setForm((prev) => {
@@ -57,7 +60,9 @@ export default function DesignTab({ form, setForm }: DesignTabProps) {
       });
       toast.success("Zoom meeting booked successfully!");
     } catch (err: any) {
-      toast.error(err.message || "Failed to generate Zoom link");
+      const msg = err.message || "Failed to generate Zoom link";
+      setZoomError(msg);
+      toast.error(msg);
     } finally {
       setBookingZoom(false);
     }
