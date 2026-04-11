@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+import { useBlocker } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -71,6 +72,8 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
   const queryClient = useQueryClient();
 
   const isNewEvent = !event || !!initialForm;
+  // Track whether the event was already published before editing
+  const wasAlreadyPublished = useRef(!!(event && (event as any).published));
 
   const [form, setForm] = useState<EventFormState>(() => {
     if (initialForm) return initialForm;
@@ -139,6 +142,14 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
     return () => window.removeEventListener("beforeunload", handler);
   }, [isDirty]);
 
+  // Client-side route navigation blocker
+  const blocker = useBlocker(isDirty);
+  useEffect(() => {
+    if (blocker.state === "blocked") {
+      setShowCloseConfirm(true);
+    }
+  }, [blocker.state]);
+
   useEffect(() => {
     if (!isNewEvent) return;
     saveDraft(form, signUpItems);
@@ -155,13 +166,20 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
 
   const confirmClose = useCallback(() => {
     setShowCloseConfirm(false);
+    if (blocker.state === "blocked") {
+      blocker.proceed();
+      return;
+    }
     if (isNewEvent) clearDraft();
     onClose();
-  }, [isNewEvent, onClose]);
+  }, [isNewEvent, onClose, blocker]);
 
   const cancelClose = useCallback(() => {
     setShowCloseConfirm(false);
-  }, []);
+    if (blocker.state === "blocked") {
+      blocker.reset();
+    }
+  }, [blocker]);
 
   const { data: existingItems } = useQuery({
     queryKey: ["sign-up-items", event?.id],
@@ -294,8 +312,10 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
 
         await Promise.all(parallelOps);
 
-        // Notifications (fire-and-forget — don't block the user)
-        if (isNewEvent && form.notify_members) {
+        // Notifications — only when transitioning from draft → published
+        const isFirstPublish = shouldPublish && !wasAlreadyPublished.current;
+
+        if (isFirstPublish) {
           (async () => {
             try {
               const { data: approvedUsers } = await supabase
@@ -303,12 +323,16 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
                 .select("user_id")
                 .eq("role", "approved");
               if (approvedUsers && approvedUsers.length > 0) {
+                const eventUrl = `${window.location.origin}/events/${eventId}`;
+                const dateStr = form.date_time
+                  ? format(new Date(form.date_time), "EEEE, MMMM d 'at' h:mm a")
+                  : "";
                 const notifRows = approvedUsers.map((u) => ({
                   user_id: u.user_id,
                   title: "New Event: " + form.title,
-                  message: `A new event "${form.title}" has been posted. Check it out and RSVP!`,
+                  message: `${form.title} — ${dateStr}. Tap to view and RSVP!`,
                   type: "event",
-                  metadata: { action: "new_event", event_id: eventId },
+                  metadata: { action: "new_event", event_id: eventId, event_url: eventUrl },
                 }));
                 await supabase.from("notifications").insert(notifRows);
               }
@@ -318,7 +342,8 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
           })();
         }
 
-        if (!isNewEvent && form.notify_attendees) {
+        // Notify existing attendees on update (only if already published and admin opts in)
+        if (!isNewEvent && !isFirstPublish && shouldPublish && form.notify_attendees) {
           (async () => {
             try {
               const { data: rsvpUsers } = await supabase
@@ -351,8 +376,14 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
       queryClient.invalidateQueries({ queryKey: ["events"] });
       queryClient.invalidateQueries({ queryKey: ["sign-up-items"] });
       queryClient.invalidateQueries({ queryKey: ["event-speakers"] });
-      const verb = publishOverride ? "published" : "saved as draft";
-      toast.success(event && !initialForm ? `Event ${verb}` : `Event ${verb}`);
+      const isFirstPublish = publishOverride && !wasAlreadyPublished.current;
+      if (isFirstPublish) {
+        toast.success("Event is now live! Notifications have been sent to all members.");
+      } else if (publishOverride) {
+        toast.success("Event updated (already published)");
+      } else {
+        toast.success("Event saved as draft");
+      }
       onClose();
     },
     onError: (err) => {
@@ -443,7 +474,7 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
             >
               {mutation.isPending && <Loader2 className="mr-1 h-4 w-4 animate-spin" />}
               <Send className="h-4 w-4" />
-              Publish
+              {wasAlreadyPublished.current ? "Update" : "Publish & Notify"}
             </Button>
           </div>
       </div>
@@ -453,9 +484,9 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
       <AlertDialog open={showCloseConfirm} onOpenChange={cancelClose}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Discard unsaved changes?</AlertDialogTitle>
+            <AlertDialogTitle>Unsaved changes</AlertDialogTitle>
             <AlertDialogDescription>
-              You have unsaved event data. Closing now will lose your changes.
+              You have unsaved event details. Save as draft before leaving?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
