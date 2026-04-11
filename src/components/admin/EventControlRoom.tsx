@@ -286,6 +286,11 @@ export default function EventControlRoom() {
                       </p>
                       <div className="mt-2 flex flex-wrap gap-1.5">
                         <Badge variant="secondary" className="text-xs capitalize">{getTypeName(event.event_type_id)}</Badge>
+                        {(event as any).published ? (
+                          <Badge className="text-xs bg-primary/20 text-primary hover:bg-primary/20">Published</Badge>
+                        ) : (
+                          <Badge variant="outline" className="text-xs border-amber-400 text-amber-600 bg-amber-50">Draft</Badge>
+                        )}
                         <Badge variant="default" className="text-xs capitalize">
                           {event.status}
                         </Badge>

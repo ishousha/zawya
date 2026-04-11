@@ -182,9 +182,27 @@ export default function SettingsTab({ form, setForm, isEditing }: SettingsTabPro
           </SelectContent>
         </Select>
         <p className="text-xs text-muted-foreground mt-1">
-          Set to 'Cancelled' to hide from member feeds
+          Lifecycle status of the event
         </p>
       </div>
+
+      {/* Publish Toggle */}
+      {isEditing && (
+        <div className="flex items-center justify-between rounded-lg border border-border p-3">
+          <div>
+            <p className="text-sm font-medium text-foreground">Published</p>
+            <p className="text-xs text-muted-foreground">
+              {form.published
+                ? "Visible to members. Toggle off to hide as draft."
+                : "Currently a draft. Only admins can see it."}
+            </p>
+          </div>
+          <Switch
+            checked={form.published}
+            onCheckedChange={(v) => update("published", v)}
+          />
+        </div>
+      )}
 
       {/* Etiquette / Adab Notes */}
       <div>
