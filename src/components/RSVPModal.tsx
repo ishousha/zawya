@@ -24,6 +24,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import GuestRequestsSection from "@/components/rsvp/GuestRequestsSection";
 import AttendeeChecklist from "@/components/rsvp/AttendeeChecklist";
+import CurrentMenuPreview from "@/components/rsvp/CurrentMenuPreview";
+import { useGroupedPotluckMenu } from "@/hooks/useGroupedPotluckMenu";
 import type { Database } from "@/integrations/supabase/types";
 
 type Event = Database["public"]["Tables"]["events"]["Row"];
@@ -50,6 +52,7 @@ export default function RSVPModal({ event, open, onOpenChange }: RSVPModalProps)
   const { createRSVP, updateRSVP, cancelRSVP } = useRSVPConcurrency(event.id);
   const { data: allRsvps } = useEventRSVPs(event.id);
   const { isDuplicate } = useDuplicateFoodCheck(allRsvps, user?.id);
+  const groupedMenu = useGroupedPotluckMenu(event.id);
   const isEditing = !!myRSVP;
 
   const [selectedMemberIds, setSelectedMemberIds] = useState<Set<string>>(new Set());
@@ -326,6 +329,9 @@ export default function RSVPModal({ event, open, onOpenChange }: RSVPModalProps)
           {isPotluck && (
             <div className="space-y-3">
               <Label className="block text-sm font-medium">Potluck Contribution</Label>
+
+              <CurrentMenuPreview grouped={groupedMenu} />
+
               <p className="text-xs italic text-muted-foreground leading-relaxed">
                 Our gatherings are made beautiful by everyone's contributions. Please select an item to share if you can!
               </p>
