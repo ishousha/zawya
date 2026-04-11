@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { LogOut, User, CalendarIcon, Loader2, ScrollText, Camera } from "lucide-react";
+import { LogOut, User, CalendarIcon, Loader2, ScrollText, Camera, Download, Share } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -68,7 +68,38 @@ export default function ProfilePage() {
   const [dob, setDob] = useState<Date | undefined>(undefined);
   const [saving, setSaving] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [installPrompt, setInstallPrompt] = useState<any>(null);
   const avatarInputRef = useRef<HTMLInputElement>(null);
+
+  const isStandalone =
+    typeof window !== "undefined" &&
+    (window.matchMedia("(display-mode: standalone)").matches ||
+      (navigator as any).standalone === true);
+
+  const isIOSSafari = (() => {
+    if (typeof navigator === "undefined") return false;
+    const ua = navigator.userAgent;
+    const isIOS = /iPad|iPhone|iPod/.test(ua) && !(window as any).MSStream;
+    const isSafari = /Safari/.test(ua) && !/CriOS|FxiOS|OPiOS|EdgiOS/.test(ua);
+    return isIOS && isSafari;
+  })();
+
+  useEffect(() => {
+    if (isStandalone) return;
+    const handler = (e: Event) => {
+      e.preventDefault();
+      setInstallPrompt(e);
+    };
+    window.addEventListener("beforeinstallprompt", handler);
+    return () => window.removeEventListener("beforeinstallprompt", handler);
+  }, [isStandalone]);
+
+  const handleInstallApp = async () => {
+    if (!installPrompt) return;
+    await installPrompt.prompt();
+    const { outcome } = await installPrompt.userChoice;
+    if (outcome === "accepted") setInstallPrompt(null);
+  };
 
   // Populate form when profile loads
   useEffect(() => {
@@ -351,6 +382,42 @@ export default function ProfilePage() {
         <LinkedAccounts />
 
         <NotificationPreferences />
+
+        {!isStandalone && (installPrompt || isIOSSafari) && (
+          <div className="rounded-lg border border-border bg-card p-4 space-y-2">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                <Download className="h-5 w-5 text-primary" />
+              </div>
+              <div className="flex-1">
+                <p className="font-heading text-sm font-semibold text-card-foreground">Install Zawya</p>
+                <p className="text-xs text-muted-foreground">
+                  {isIOSSafari
+                    ? "Add to your home screen for quick access"
+                    : "Get the full app experience"}
+                </p>
+              </div>
+            </div>
+            {installPrompt ? (
+              <Button className="w-full gap-2" onClick={handleInstallApp}>
+                <Download className="h-4 w-4" />
+                Install App
+              </Button>
+            ) : (
+              <div className="flex items-start gap-2 rounded-lg bg-muted/50 p-3">
+                <Share className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
+                <p className="text-xs leading-relaxed text-muted-foreground">
+                  Tap{" "}
+                  <span className="inline-flex items-center gap-0.5 font-semibold text-foreground">
+                    <Share className="inline h-3.5 w-3.5" /> Share
+                  </span>{" "}
+                  then select{" "}
+                  <span className="font-semibold text-foreground">Add to Home Screen</span>.
+                </p>
+              </div>
+            )}
+          </div>
+        )}
 
         <Button
           variant="outline"
