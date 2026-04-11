@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, X, Palette, PackagePlus, Settings } from "lucide-react";
+import { Loader2, X, Palette, PackagePlus, Settings, Eye } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import DesignTab from "./DesignTab";
@@ -12,6 +12,7 @@ import ItemsTab from "./ItemsTab";
 import type { SignUpItem } from "./ItemsTab";
 import SettingsTab from "./SettingsTab";
 import { EventFormState, defaultEventForm, generateCheckinPin } from "./types";
+import EventPreviewDialog from "./EventPreviewDialog";
 import type { EventType } from "./types";
 import type { Database } from "@/integrations/supabase/types";
 import {
@@ -121,6 +122,7 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
   const initialFormRef = useRef(JSON.stringify(form));
   const initialItemsRef = useRef(JSON.stringify(signUpItems));
   const [showCloseConfirm, setShowCloseConfirm] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
 
   const isDirty = JSON.stringify(form) !== initialFormRef.current ||
     JSON.stringify(signUpItems) !== initialItemsRef.current;
@@ -397,22 +399,35 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
         </Tabs>
       </div>
 
-      <div className="px-6 pb-4 pt-2 border-t bg-card shrink-0 z-10">
-          <Button
-            className="w-full h-12"
-            onClick={() => {
-              if (form.end_date_time && form.end_date_time <= form.date_time) {
-                toast.error("End time must be after start time");
-                return;
-              }
-              mutation.mutate();
-            }}
-            disabled={mutation.isPending || !form.title || !form.date_time}
-          >
-            {mutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {isNewEvent ? "Create Event" : "Update Event"}
-          </Button>
+      <div className="px-6 pb-4 pt-2 border-t bg-card shrink-0 z-10 space-y-2">
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              className="h-12 gap-1.5"
+              onClick={() => setShowPreview(true)}
+              disabled={!form.title}
+            >
+              <Eye className="h-4 w-4" />
+              Preview
+            </Button>
+            <Button
+              className="flex-1 h-12"
+              onClick={() => {
+                if (form.end_date_time && form.end_date_time <= form.date_time) {
+                  toast.error("End time must be after start time");
+                  return;
+                }
+                mutation.mutate();
+              }}
+              disabled={mutation.isPending || !form.title || !form.date_time}
+            >
+              {mutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {isNewEvent ? "Create Event" : "Update Event"}
+            </Button>
+          </div>
       </div>
+
+      <EventPreviewDialog open={showPreview} onOpenChange={setShowPreview} form={form} />
 
       <AlertDialog open={showCloseConfirm} onOpenChange={cancelClose}>
         <AlertDialogContent>
