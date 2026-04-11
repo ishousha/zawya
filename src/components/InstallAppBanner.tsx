@@ -82,7 +82,6 @@ export default function InstallAppBanner() {
       </button>
 
       {deferredPrompt ? (
-        /* ── Android / Desktop ── */
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
             <Download className="h-5 w-5 text-primary" />
@@ -100,7 +99,6 @@ export default function InstallAppBanner() {
           </Button>
         </div>
       ) : showIOSPrompt ? (
-        /* ── iOS Safari ── */
         <div className="pr-6">
           <div className="mb-2 flex items-center gap-2">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
@@ -111,7 +109,6 @@ export default function InstallAppBanner() {
             </p>
           </div>
           <div className="flex items-start gap-2 rounded-lg bg-muted/50 p-3">
-            {/* iOS share icon representation */}
             <Share className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
             <p className="text-xs leading-relaxed text-muted-foreground">
               Tap the{" "}
@@ -128,5 +125,22 @@ export default function InstallAppBanner() {
         </div>
       ) : null}
     </div>
+  );
+}
+
+/** Dev-only button to reset the 7-day install banner dismissal timer */
+export function ClearInstallDismissButton() {
+  if (import.meta.env.PROD) return null;
+
+  return (
+    <button
+      onClick={() => {
+        localStorage.removeItem(DISMISS_KEY);
+        window.location.reload();
+      }}
+      className="fixed bottom-20 right-3 z-50 rounded-md bg-destructive px-3 py-1.5 text-xs font-medium text-destructive-foreground shadow-md hover:opacity-90"
+    >
+      🔧 Reset Install Banner
+    </button>
   );
 }
