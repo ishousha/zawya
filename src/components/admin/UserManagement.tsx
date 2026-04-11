@@ -64,6 +64,7 @@ export default function UserManagement() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [sortOrder, setSortOrder] = useState<"newest" | "oldest">("newest");
   const [dateFilter, setDateFilter] = useState<string>("all");
+  const [visibleCount, setVisibleCount] = useState(50);
 
   const { data: profiles, isLoading: loadingProfiles } = useQuery({
     queryKey: ["admin-profiles"],
@@ -312,6 +313,14 @@ export default function UserManagement() {
     });
   }, [profiles, debouncedSearch, roleFilter, familyMap, eventFilter, userRsvpMap, sortOrder, dateFilter]);
 
+  // Reset visible count when filters change
+  const filterKey = `${debouncedSearch}-${roleFilter}-${eventFilter}-${dateFilter}-${sortOrder}`;
+  const [prevFilterKey, setPrevFilterKey] = useState(filterKey);
+  if (filterKey !== prevFilterKey) {
+    setPrevFilterKey(filterKey);
+    setVisibleCount(50);
+  }
+
   const toggleSelect = useCallback((id: string) => {
     setSelectedIds((prev) => {
       const next = new Set(prev);
@@ -495,7 +504,7 @@ export default function UserManagement() {
         </div>
 
         <div className="space-y-2">
-          {filteredProfiles.map((p) => (
+          {filteredProfiles.slice(0, visibleCount).map((p) => (
             <Card key={p.id} className={p.role === "pending" ? "border-accent" : ""}>
               <CardContent className="flex flex-col p-4 sm:flex-row sm:items-center sm:justify-between">
                 <div className="min-w-0 flex-1 flex gap-3">
@@ -594,6 +603,18 @@ export default function UserManagement() {
               </CardContent>
             </Card>
           ))}
+          {filteredProfiles.length > visibleCount && (
+            <div className="flex justify-center pt-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setVisibleCount((prev) => prev + 50)}
+                className="gap-1.5"
+              >
+                Load more ({filteredProfiles.length - visibleCount} remaining)
+              </Button>
+            </div>
+          )}
         </div>
       </div>
 
