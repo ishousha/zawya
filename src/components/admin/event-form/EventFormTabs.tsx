@@ -364,9 +364,9 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
           <X className="h-5 w-5" />
         </Button>
       </CardHeader>
-      <CardContent className="overflow-y-auto overflow-x-hidden flex-1 min-h-0">
+      <CardContent className="overflow-y-auto overflow-x-hidden flex-1 min-h-0 pb-0">
         <Tabs defaultValue="design" className="w-full">
-          <TabsList className="grid w-full grid-cols-3 bg-muted">
+          <TabsList className="grid w-full grid-cols-3 bg-muted sticky top-0 z-10">
             <TabsTrigger value="design" className="gap-1.5 text-xs">
               <Palette className="h-4 w-4" />
               Details
@@ -391,24 +391,24 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
             <SettingsTab form={form} setForm={setForm} isEditing={!isNewEvent} />
           </TabsContent>
         </Tabs>
-      </CardContent>
 
-      <div className="sticky bottom-0 px-6 pb-4 pt-2 border-t bg-card shrink-0 z-10">
-        <Button
-          className="w-full h-12"
-          onClick={() => {
-            if (form.end_date_time && form.end_date_time <= form.date_time) {
-              toast.error("End time must be after start time");
-              return;
-            }
-            mutation.mutate();
-          }}
-          disabled={mutation.isPending || !form.title || !form.date_time}
-        >
-          {mutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          {isNewEvent ? "Create Event" : "Update Event"}
-        </Button>
-      </div>
+        <div className="sticky bottom-0 -mx-6 px-6 pb-4 pt-2 border-t bg-card z-10">
+          <Button
+            className="w-full h-12"
+            onClick={() => {
+              if (form.end_date_time && form.end_date_time <= form.date_time) {
+                toast.error("End time must be after start time");
+                return;
+              }
+              mutation.mutate();
+            }}
+            disabled={mutation.isPending || !form.title || !form.date_time}
+          >
+            {mutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {isNewEvent ? "Create Event" : "Update Event"}
+          </Button>
+        </div>
+      </CardContent>
 
       <AlertDialog open={showCloseConfirm} onOpenChange={cancelClose}>
         <AlertDialogContent>
