@@ -106,6 +106,7 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
       etiquette_notes: (event as any).etiquette_notes ?? "",
       location_hint: (event as any).location_hint ?? "",
       age_group: (event as any).age_group ?? "All Ages",
+      published: (event as any).published ?? false,
     };
   });
 
