@@ -250,7 +250,7 @@ export default function RSVPModal({ event, open, onOpenChange }: RSVPModalProps)
           rsvpId: myRSVP.id,
           guests_count: guestsCount,
           attending_dependents: attendingDeps,
-          specific_food_item: potluckChoice === "bringing" ? potluckDish.trim() || null : null,
+          specific_food_item: foodItem,
           selections: selArray,
         });
         toast.success("RSVP updated successfully!");
@@ -258,7 +258,7 @@ export default function RSVPModal({ event, open, onOpenChange }: RSVPModalProps)
         const result = await createRSVP.mutateAsync({
           guests_count: guestsCount,
           attending_dependents: attendingDeps,
-          specific_food_item: potluckChoice === "bringing" ? potluckDish.trim() || null : null,
+          specific_food_item: foodItem,
           selections: selArray,
         });
         if (result.status === "waitlisted") {
