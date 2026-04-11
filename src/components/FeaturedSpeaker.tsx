@@ -28,7 +28,7 @@ export default function FeaturedSpeakers({ eventId }: FeaturedSpeakersProps) {
   return (
     <div className="rounded-xl border border-border bg-card p-5 mt-4">
       <p className="text-xs font-semibold uppercase tracking-wider text-primary mb-4">
-        {speakers.length === 1 ? "Featured Speaker" : "Featured Speakers"}
+        {speakers.length === 1 ? "Featured Special Guest" : "Featured Special Guests"}
       </p>
       <div className={speakers.length === 1 ? "" : "space-y-5"}>
         {speakers.map((es: any) => {

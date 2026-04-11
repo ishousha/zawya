@@ -224,7 +224,7 @@ export default function AdminDashboard() {
             </TabsTrigger>
             <TabsTrigger value="speakers" className={tabTriggerBase}>
               <Mic className="h-4 w-4" />
-              Speakers
+              Special Guests
             </TabsTrigger>
             <TabsTrigger value="resources" className={tabTriggerBase}>
               <BookOpen className="h-4 w-4" />

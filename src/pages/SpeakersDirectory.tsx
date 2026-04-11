@@ -70,10 +70,10 @@ export default function SpeakersDirectory() {
             <ArrowLeft className="h-4 w-4" /> Back
           </Button>
           <h1 className="font-heading text-2xl font-bold text-foreground">
-            Speakers & Sheikhs
+            Special Guests
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Guest speakers and scholars in our community
+            Special guests and scholars in our community
           </p>
         </div>
       </header>
@@ -159,7 +159,7 @@ export default function SpeakersDirectory() {
           </div>
         ) : (
           <p className="text-sm text-muted-foreground text-center py-12">
-            No speakers added yet.
+            No special guests added yet.
           </p>
         )}
       </main>
