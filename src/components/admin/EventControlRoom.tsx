@@ -147,6 +147,7 @@ export default function EventControlRoom() {
       notify_members: false,
       notify_attendees: false,
       etiquette_notes: (event as any).etiquette_notes ?? "",
+      location_hint: (event as any).location_hint ?? "",
     };
 
     const copiedItems: SignUpItem[] = (items ?? []).map((item, i) => ({

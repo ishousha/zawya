@@ -103,6 +103,7 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
       notify_members: false,
       notify_attendees: false,
       etiquette_notes: (event as any).etiquette_notes ?? "",
+      location_hint: (event as any).location_hint ?? "",
     };
   });
 
@@ -234,6 +235,7 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
         host_id: form.host_id || null,
         mureeds_only: form.mureeds_only === true,
         etiquette_notes: form.etiquette_notes || null,
+        location_hint: form.location_hint || null,
       };
 
       let eventId = event?.id;

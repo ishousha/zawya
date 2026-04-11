@@ -1,0 +1,1 @@
+ALTER TABLE public.events ADD COLUMN location_hint text DEFAULT NULL;

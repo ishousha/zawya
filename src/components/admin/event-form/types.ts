@@ -28,6 +28,7 @@ export interface EventFormState {
   notify_members: boolean;
   notify_attendees: boolean;
   etiquette_notes: string;
+  location_hint: string;
 }
 
 export interface SignUpItemState {
@@ -63,6 +64,7 @@ export const defaultEventForm: EventFormState = {
   notify_members: false,
   notify_attendees: false,
   etiquette_notes: "",
+  location_hint: "",
 };
 
 // Keep EventType as a legacy re-export alias — no longer used

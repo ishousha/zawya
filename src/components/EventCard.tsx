@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo, memo } from "react";
 import { format } from "date-fns";
-import { MapPin, Video, Users, Calendar, Clock, CheckCircle2, Ticket, Edit, Building2, ExternalLink, Ban, BookOpen, Mountain, Handshake, ClockIcon, ScanLine } from "lucide-react";
+import { MapPin, Video, Users, Calendar, Clock, CheckCircle2, Ticket, Edit, Building2, ExternalLink, Ban, BookOpen, Mountain, Handshake, ClockIcon, ScanLine, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useMyRSVP, useEventRSVPs } from "@/hooks/useRSVP";
@@ -313,10 +313,16 @@ function EventCardInner({ event, onShowTicket, isPast = false }: EventCardProps)
         )}
 
         {/* Not attending: show general location hint */}
-        {!isCancelled && !isAttending && requiresLocation && event.location && (
-          <p className="mt-1.5 text-sm text-muted-foreground italic">
-            📍 Location revealed after RSVP
-          </p>
+        {!isCancelled && !isAttending && requiresLocation && (event.location || (event as any).location_hint) && (
+          <div className="mt-2 flex items-start gap-1.5 text-sm text-muted-foreground">
+            <Lock className="h-3.5 w-3.5 mt-0.5 shrink-0 text-muted-foreground" />
+            <span>
+              {(event as any).location_hint
+                ? <>{(event as any).location_hint} <span className="italic text-xs">(Exact address revealed after RSVP)</span></>
+                : <span className="italic">Location revealed after RSVP</span>
+              }
+            </span>
+          </div>
         )}
 
         {/* Action buttons */}
