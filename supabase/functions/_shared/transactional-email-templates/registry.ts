@@ -27,6 +27,7 @@ export const TEMPLATES: Record<string, TemplateEntry> = {
   'event-reactivated': eventReactivated,
   'user-approved': userApproved,
   'user-rejected': userRejected,
+  'user-suspended': userSuspended,
   'family-member-left': familyMemberLeft,
   'guest-approved': guestApproved,
   'guest-list-reminder': guestListReminder,
