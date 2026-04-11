@@ -421,13 +421,11 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
                   toast.error("End time must be after start time");
                   return;
                 }
-                setForm((prev) => ({ ...prev, published: false }));
-                // Use setTimeout to let state update before mutating
-                setTimeout(() => mutation.mutate(), 0);
+                mutation.mutate(false);
               }}
               disabled={mutation.isPending || !form.title || !form.date_time}
             >
-              {mutation.isPending && !form.published && <Loader2 className="mr-1 h-4 w-4 animate-spin" />}
+              {mutation.isPending && <Loader2 className="mr-1 h-4 w-4 animate-spin" />}
               <Save className="h-4 w-4" />
               Save Draft
             </Button>
@@ -438,12 +436,11 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
                   toast.error("End time must be after start time");
                   return;
                 }
-                setForm((prev) => ({ ...prev, published: true }));
-                setTimeout(() => mutation.mutate(), 0);
+                mutation.mutate(true);
               }}
               disabled={mutation.isPending || !form.title || !form.date_time}
             >
-              {mutation.isPending && form.published && <Loader2 className="mr-1 h-4 w-4 animate-spin" />}
+              {mutation.isPending && <Loader2 className="mr-1 h-4 w-4 animate-spin" />}
               <Send className="h-4 w-4" />
               Publish
             </Button>
