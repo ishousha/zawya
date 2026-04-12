@@ -420,26 +420,24 @@ export default function DesignTab({ form, setForm, isEditing }: DesignTabProps) 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
         {/* Row 1, Col 1 */}
         <div>
-          <Label htmlFor="start" className="text-sm font-medium">Start Date & Time</Label>
-          <Input
-            id="start"
-            type="datetime-local"
-            value={form.date_time}
-            onChange={(e) => handleStartChange(e.target.value)}
-            className="mt-1.5 h-10"
-          />
+          <Label className="text-sm font-medium">Start Date & Time</Label>
+          <div className="mt-1.5">
+            <DateTimePicker
+              value={form.date_time}
+              onChange={(val) => handleStartChange(val)}
+            />
+          </div>
         </div>
         {/* Row 1, Col 2 */}
         <div>
-          <Label htmlFor="end" className="text-sm font-medium">End Date & Time</Label>
-          <Input
-            id="end"
-            type="datetime-local"
-            value={form.end_date_time}
-            onChange={(e) => handleEndChange(e.target.value)}
-            min={form.date_time || undefined}
-            className={`mt-1.5 h-10 ${endBeforeStart ? "border-destructive focus-visible:ring-destructive" : ""}`}
-          />
+          <Label className="text-sm font-medium">End Date & Time</Label>
+          <div className="mt-1.5">
+            <DateTimePicker
+              value={form.end_date_time}
+              onChange={(val) => handleEndChange(val)}
+              error={!!endBeforeStart}
+            />
+          </div>
           {endBeforeStart && (
             <p className="flex items-center gap-1 text-xs text-destructive mt-1">
               <AlertCircle className="h-3 w-3" />
