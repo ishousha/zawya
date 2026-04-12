@@ -65,7 +65,7 @@ function EventCardInner({ event, onShowTicket, isPast = false }: EventCardProps)
   const linkActivatesAt = eventTime - 15 * 60 * 1000;
   const isLinkActive = now.getTime() >= linkActivatesAt;
   const isAdminOrMod = profile?.role === "admin" || profile?.role === "moderator";
-  const canSeeJoinButton = isAdminOrMod || (isAttending && !isWaitlisted);
+  
 
   // Self check-in: active within 2 hours of event start
   const checkinActivatesAt = eventTime - 2 * 60 * 60 * 1000;
@@ -298,14 +298,29 @@ function EventCardInner({ event, onShowTicket, isPast = false }: EventCardProps)
             </a>
           </p>
         )}
-        {/* Zoom Lockbox — time-gated virtual join with password reveal */}
-        {!isCancelled && onlineLink && canSeeJoinButton && (
-          <div className="mt-3 rounded-lg border border-border bg-muted/30 p-3 space-y-2">
-            {isLinkActive ? (
-              <>
-                {(event as any).zoom_password && (
-                  <p className="text-sm font-medium text-foreground">
-                    🔑 Zoom Password: <span className="font-bold">{(event as any).zoom_password}</span>
+        {/* Zoom Lockbox — 3-state virtual meeting section */}
+        {!isCancelled && onlineLink && (() => {
+          const hasRsvp = isAttending && !isWaitlisted;
+          const isAdminAccess = isAdminOrMod;
+
+          // State 1: Not RSVP'd (and not admin)
+          if (!hasRsvp && !isAdminAccess) {
+            return (
+              <div className="mt-3 rounded-lg border border-border bg-muted/20 p-3">
+                <p className="text-sm text-muted-foreground text-center">
+                  🔒 RSVP to unlock the virtual meeting link.
+                </p>
+              </div>
+            );
+          }
+
+          // State 3: RSVP'd + within 15 min (or admin)
+          if (isLinkActive) {
+            return (
+              <div className="mt-3 rounded-lg border border-primary/30 bg-primary/5 p-3 space-y-2">
+                {event.zoom_password && (
+                  <p className="text-sm font-medium text-foreground text-center">
+                    🔑 Passcode: <span className="font-bold tracking-wide">{event.zoom_password}</span>
                   </p>
                 )}
                 <Button
@@ -317,23 +332,22 @@ function EventCardInner({ event, onShowTicket, isPast = false }: EventCardProps)
                   <Video className="h-4 w-4" />
                   Join Virtual Event
                 </Button>
-              </>
-            ) : (
-              <>
-                <p className="text-sm text-muted-foreground text-center">
-                  🔒 Meeting link and password will unlock 15 minutes before the event.
-                </p>
-                <Button size="sm" variant="outline" disabled className="w-full gap-1.5">
-                  <Lock className="h-4 w-4" />
-                  Join Virtual Event
-                </Button>
-                <p className="text-xs text-muted-foreground text-center">
-                  ⏳ Unlocks in <span className="font-medium text-foreground">{countdownText}</span>
-                </p>
-              </>
-            )}
-          </div>
-        )}
+              </div>
+            );
+          }
+
+          // State 2: RSVP'd but > 15 min before start
+          return (
+            <div className="mt-3 rounded-lg border border-border bg-muted/20 p-3 space-y-1.5">
+              <p className="text-sm text-muted-foreground text-center">
+                🗓️ You're going! The virtual meeting link will unlock 15 minutes before the event starts.
+              </p>
+              <p className="text-xs text-muted-foreground text-center">
+                ⏳ Unlocks in <span className="font-medium text-foreground">{countdownText}</span>
+              </p>
+            </div>
+          );
+        })()}
 
         {/* Not attending: show general location hint */}
         {!isCancelled && !isAttending && requiresLocation && (event.location || (event as any).location_hint) && (
