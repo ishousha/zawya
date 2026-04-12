@@ -55,6 +55,10 @@ function EventCardInner({ event, onShowTicket, isPast = false }: EventCardProps)
   const checkedInCount = useMemo(() => allRsvps?.filter((r) => r.checked_in && r.status === "attending").length ?? 0, [allRsvps]);
   const isFull = !!event.capacity && confirmedCount >= event.capacity;
 
+  // Modality flags
+  const isPhysical = !!event.location;
+  const isVirtual = !!event.online_link;
+
   // Time-gate: refresh every second for countdown
   const onlineLink = event.online_link;
   const eventTime = new Date(event.date_time).getTime();
