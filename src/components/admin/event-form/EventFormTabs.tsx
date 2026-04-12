@@ -112,6 +112,8 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
       scheduled_publish_at: (event as any).scheduled_publish_at
         ? format(new Date((event as any).scheduled_publish_at), "yyyy-MM-dd'T'HH:mm")
         : "",
+      enable_virtual: !!(event.online_link),
+      zoom_password: (event as any).zoom_password ?? "",
     };
   });
 

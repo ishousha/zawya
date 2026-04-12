@@ -81,6 +81,8 @@ export const defaultEventForm: EventFormState = {
   age_group: "All Ages",
   published: false,
   scheduled_publish_at: "",
+  enable_virtual: false,
+  zoom_password: "",
 };
 
 // Keep EventType as a legacy re-export alias — no longer used

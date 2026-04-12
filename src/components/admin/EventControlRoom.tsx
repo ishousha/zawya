@@ -151,6 +151,8 @@ export default function EventControlRoom() {
       age_group: (event as any).age_group ?? "All Ages",
       published: false,
       scheduled_publish_at: "",
+      enable_virtual: !!(event.online_link),
+      zoom_password: (event as any).zoom_password ?? "",
     };
 
     const copiedItems: SignUpItem[] = (items ?? []).map((item, i) => ({
