@@ -56,11 +56,9 @@ function EventCardInner({ event, onShowTicket, isPast = false }: EventCardProps)
   const isFull = !!event.capacity && confirmedCount >= event.capacity;
 
   // Modality flags
-  const isPhysical = !!event.location;
-  const isVirtual = !!event.online_link;
-
-  // Time-gate: refresh every second for countdown
-  const onlineLink = event.online_link;
+  const isPhysical = !!event.location && !event.location.match(/^https?:\/\//i);
+  const onlineLink = event.online_link || event.virtual_link || event.zoom_link || null;
+  const isVirtual = !!onlineLink || event.is_hybrid || !(eventType?.requires_location ?? true);
   const eventTime = new Date(event.date_time).getTime();
 
   // Live Now detection
