@@ -32,8 +32,7 @@ function buildGoogleCalendarUrl(event: Event): string {
 
   const details: string[] = [];
   if (event.description) details.push(event.description);
-  if (event.virtual_link) details.push(`Join online: ${event.virtual_link}`);
-  else if (event.zoom_link) details.push(`Zoom: ${event.zoom_link}`);
+  // Virtual links intentionally omitted — gated behind RSVP + 15-min rule on EventCard
   if (details.length) params.set("details", details.join("\n\n"));
 
   return `https://calendar.google.com/calendar/render?${params.toString()}`;
@@ -48,8 +47,6 @@ function buildIcsContent(event: Event): string {
   const location = [event.location, event.address].filter(Boolean).join(", ");
   const description: string[] = [];
   if (event.description) description.push(event.description);
-  if (event.virtual_link) description.push(`Join online: ${event.virtual_link}`);
-  else if (event.zoom_link) description.push(`Zoom: ${event.zoom_link}`);
 
   const escapeIcs = (s: string) => s.replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,").replace(/\n/g, "\\n");
 
