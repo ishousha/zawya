@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -17,9 +17,10 @@ import { useEventTypes } from "@/hooks/useEventTypes";
 interface DesignTabProps {
   form: EventFormState;
   setForm: React.Dispatch<React.SetStateAction<EventFormState>>;
+  isEditing?: boolean;
 }
 
-export default function DesignTab({ form, setForm }: DesignTabProps) {
+export default function DesignTab({ form, setForm, isEditing }: DesignTabProps) {
   const [bookingZoom, setBookingZoom] = useState(false);
   const [zoomError, setZoomError] = useState<string | null>(null);
 
@@ -91,23 +92,21 @@ export default function DesignTab({ form, setForm }: DesignTabProps) {
   const { data: eventTypes } = useEventTypes();
   const selectedType = eventTypes?.find((t) => t.id === form.event_type_id);
 
-  // Smart defaults based on event type properties
+  // Smart defaults based on event type selection
+  const prevEventTypeId = useRef(form.event_type_id);
   useEffect(() => {
     if (!selectedType) return;
+    // Only auto-toggle when the event type actually changes (not on initial mount for edits)
+    if (prevEventTypeId.current === form.event_type_id && isEditing) return;
+    prevEventTypeId.current = form.event_type_id;
+
     setForm((prev) => {
       const next = { ...prev };
-
-      if (!selectedType.allows_potluck) {
-        next.has_potluck = false;
-      }
-      if (selectedType.name.toLowerCase().includes("gathering")) {
-        next.has_potluck = true;
-        next.ticket_fee = "0";
-      }
-
+      next.enable_virtual = selectedType.is_virtual;
+      next.has_potluck = selectedType.allows_potluck;
       return next;
     });
-  }, [form.event_type_id, selectedType, setForm]);
+  }, [form.event_type_id, selectedType, setForm, isEditing]);
 
   const endBeforeStart =
     form.date_time && form.end_date_time && form.end_date_time <= form.date_time;
