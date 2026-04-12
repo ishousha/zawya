@@ -90,6 +90,11 @@ export default function DesignTab({ form, setForm, isEditing }: DesignTabProps) 
   // Auto-calc end when start or duration changes
   const applyDuration = useCallback((start: string, dur: string) => {
     if (!start || dur === "Custom") return;
+    if (dur === "All Day") {
+      const { start: s, end: e } = allDayRange(start);
+      setForm((prev) => ({ ...prev, date_time: s, end_date_time: e }));
+      return;
+    }
     const opt = DURATION_OPTIONS.find((o) => o.label === dur);
     if (!opt || opt.minutes < 0) return;
     const newEnd = addMinutesToDatetime(start, opt.minutes);
@@ -97,8 +102,13 @@ export default function DesignTab({ form, setForm, isEditing }: DesignTabProps) 
   }, [setForm]);
 
   const handleStartChange = (val: string) => {
-    setForm((prev) => ({ ...prev, date_time: val }));
-    applyDuration(val, duration);
+    if (duration === "All Day") {
+      const { start: s, end: e } = allDayRange(val);
+      setForm((prev) => ({ ...prev, date_time: s, end_date_time: e }));
+    } else {
+      setForm((prev) => ({ ...prev, date_time: val }));
+      applyDuration(val, duration);
+    }
   };
 
   const handleDurationChange = (val: string) => {
