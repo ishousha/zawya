@@ -93,17 +93,34 @@ export default function DesignTab({ form, setForm, isEditing }: DesignTabProps) 
   const selectedType = eventTypes?.find((t) => t.id === form.event_type_id);
 
   // Smart defaults based on event type selection
+  // Smart defaults based on event type selection
   const prevEventTypeId = useRef(form.event_type_id);
+  const hasMountedRef = useRef(false);
   useEffect(() => {
     if (!selectedType) return;
-    // Only auto-toggle when the event type actually changes (not on initial mount for edits)
-    if (prevEventTypeId.current === form.event_type_id && isEditing) return;
+
+    const isInitialMount = !hasMountedRef.current;
+    hasMountedRef.current = true;
+
+    // On initial mount when editing, skip ONLY if the form already
+    // reflects the event-type defaults (i.e. DB-stored overrides exist).
+    // enable_virtual is not persisted, so we always need to derive it
+    // from the event type on first load.
+    const typeActuallyChanged = prevEventTypeId.current !== form.event_type_id;
+    if (!typeActuallyChanged && !isInitialMount && isEditing) return;
     prevEventTypeId.current = form.event_type_id;
 
     setForm((prev) => {
       const next = { ...prev };
-      next.enable_virtual = selectedType.is_virtual;
-      next.has_potluck = selectedType.allows_potluck;
+      if (isInitialMount && isEditing) {
+        // On first load in edit mode, only set enable_virtual from type
+        // if the DB didn't provide a link (i.e. the user hasn't overridden)
+        next.enable_virtual = prev.enable_virtual || selectedType.is_virtual;
+        // has_potluck is persisted in DB, so keep the saved value on first load
+      } else {
+        next.enable_virtual = selectedType.is_virtual;
+        next.has_potluck = selectedType.allows_potluck;
+      }
       return next;
     });
   }, [form.event_type_id, selectedType, setForm, isEditing]);
