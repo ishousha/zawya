@@ -73,6 +73,10 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
   const isNewEvent = !event || !!initialForm;
   // Track whether the event was already published before editing
   const wasAlreadyPublished = useRef(!!(event && (event as any).published));
+  // Track original start time for Zoom auto-sync
+  const originalDateTime = useRef(
+    event?.date_time ? format(new Date(event.date_time), "yyyy-MM-dd'T'HH:mm") : ""
+  );
 
   const [form, setForm] = useState<EventFormState>(() => {
     if (initialForm) return initialForm;
@@ -373,6 +377,32 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
       queryClient.invalidateQueries({ queryKey: ["events"] });
       queryClient.invalidateQueries({ queryKey: ["sign-up-items"] });
       queryClient.invalidateQueries({ queryKey: ["event-speakers"] });
+
+      // Auto-sync Zoom meeting time if start_time changed + virtual + zoom link
+      const timeChanged = originalDateTime.current && form.date_time !== originalDateTime.current;
+      const hasZoomLink = form.enable_virtual && /zoom\.us/i.test(form.online_link);
+      const meetingIdMatch = form.online_link.match(/\/j\/(\d+)/);
+
+      if (timeChanged && hasZoomLink && meetingIdMatch) {
+        const meetingId = meetingIdMatch[1];
+        const startIso = new Date(form.date_time).toISOString();
+        fetch("https://n8n.seqwelpartners.com/webhook/create-zoom-meeting", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ title: form.title, start_time: startIso, meeting_id: meetingId }),
+        })
+          .then((res) => {
+            if (res.ok) {
+              toast.success("Zoom meeting time auto-synced!");
+            } else {
+              toast.error("Event saved, but Zoom sync failed. Use the manual Update button.");
+            }
+          })
+          .catch(() => {
+            toast.error("Event saved, but Zoom sync failed. Use the manual Update button.");
+          });
+      }
+
       const isFirstPublish = publishOverride && !wasAlreadyPublished.current;
       if (isFirstPublish) {
         toast.success("Event is now live! Notifications have been sent to all members.");
