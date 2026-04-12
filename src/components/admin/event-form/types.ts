@@ -40,6 +40,8 @@ export interface EventFormState {
   age_group: string;
   published: boolean;
   scheduled_publish_at: string;
+  enable_virtual: boolean;
+  zoom_password: string;
 }
 
 export interface SignUpItemState {
