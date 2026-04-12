@@ -450,7 +450,7 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
           </TabsList>
 
           <TabsContent value="design" className="overflow-x-hidden">
-            <DesignTab form={form} setForm={setForm} />
+            <DesignTab form={form} setForm={setForm} isEditing={!isNewEvent} />
           </TabsContent>
           <TabsContent value="items" className="overflow-x-hidden">
             <ItemsTab items={signUpItems} onChange={setSignUpItems} />
