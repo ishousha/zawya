@@ -97,17 +97,16 @@ export default function DesignTab({ form, setForm, isEditing }: DesignTabProps) 
   useEffect(() => {
     if (!selectedType) return;
     // Only auto-toggle when the event type actually changes (not on initial mount for edits)
-    if (prevEventTypeId.current === form.event_type_id && event) return;
+    if (prevEventTypeId.current === form.event_type_id && isEditing) return;
     prevEventTypeId.current = form.event_type_id;
 
     setForm((prev) => {
       const next = { ...prev };
-      // Apply smart defaults from event type config
       next.enable_virtual = selectedType.is_virtual;
       next.has_potluck = selectedType.allows_potluck;
       return next;
     });
-  }, [form.event_type_id, selectedType, setForm, event]);
+  }, [form.event_type_id, selectedType, setForm, isEditing]);
 
   const endBeforeStart =
     form.date_time && form.end_date_time && form.end_date_time <= form.date_time;
