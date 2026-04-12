@@ -421,11 +421,19 @@ export default function DesignTab({ form, setForm, isEditing }: DesignTabProps) 
             />
           </div>
 
-          {form.zoom_password && (
-            <p className="text-xs text-muted-foreground bg-muted/50 rounded-md p-2 flex items-center gap-1.5">
-              🔑 Zoom Password: <span className="font-medium text-foreground">{form.zoom_password}</span>
+          <div>
+            <Label htmlFor="zoom_password">Meeting Passcode (Optional)</Label>
+            <Input
+              id="zoom_password"
+              value={form.zoom_password}
+              onChange={(e) => update("zoom_password", e.target.value)}
+              placeholder="e.g. 123456"
+              className="mt-1.5"
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              Auto-filled by Zoom booking, or enter manually for any platform.
             </p>
-          )}
+          </div>
         </>
       )}
     </div>

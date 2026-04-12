@@ -5,6 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { UserCheck, X } from "lucide-react";
+import { useDebounce } from "@/hooks/useDebounce";
 
 interface HostSelectorProps {
   hostId: string | null;
@@ -14,14 +15,19 @@ interface HostSelectorProps {
 export default function HostSelector({ hostId, onChange }: HostSelectorProps) {
   const [search, setSearch] = useState("");
   const [open, setOpen] = useState(false);
+  const debouncedSearch = useDebounce(search, 300);
 
-  const { data: profiles } = useQuery({
-    queryKey: ["approved-profiles-for-host"],
+  const { data: searchResults, isLoading } = useQuery({
+    queryKey: ["host-search", debouncedSearch],
+    enabled: debouncedSearch.trim().length >= 2,
     queryFn: async () => {
+      const q = `%${debouncedSearch.trim()}%`;
       const { data, error } = await supabase
         .from("profiles")
         .select("id, name, email, family_name")
-        .order("name");
+        .or(`name.ilike.${q},email.ilike.${q},family_name.ilike.${q}`)
+        .order("name")
+        .limit(10);
       if (error) throw error;
       return data;
     },
@@ -41,17 +47,6 @@ export default function HostSelector({ hostId, onChange }: HostSelectorProps) {
     },
   });
 
-  const filtered = useMemo(() => {
-    if (!profiles || !search.trim()) return profiles ?? [];
-    const q = search.toLowerCase();
-    return profiles.filter(
-      (p) =>
-        p.name?.toLowerCase().includes(q) ||
-        p.email?.toLowerCase().includes(q) ||
-        p.family_name?.toLowerCase().includes(q)
-    );
-  }, [profiles, search]);
-
   if (hostId && selectedProfile) {
     return (
       <div>
@@ -59,7 +54,12 @@ export default function HostSelector({ hostId, onChange }: HostSelectorProps) {
         <div className="flex items-center gap-2 rounded-lg border border-primary/30 bg-primary/5 px-3 py-2.5">
           <UserCheck className="h-4 w-4 text-primary shrink-0" />
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-foreground truncate">{selectedProfile.name}</p>
+            <p className="text-sm font-medium text-foreground truncate">
+              {selectedProfile.name || selectedProfile.email}
+            </p>
+            {selectedProfile.email && selectedProfile.name && (
+              <p className="text-xs text-muted-foreground truncate">{selectedProfile.email}</p>
+            )}
             {selectedProfile.family_name && (
               <p className="text-xs text-muted-foreground">{selectedProfile.family_name}</p>
             )}
@@ -82,7 +82,7 @@ export default function HostSelector({ hostId, onChange }: HostSelectorProps) {
     <div>
       <Label className="block text-sm font-medium mb-1.5">Event Host</Label>
       <Input
-        placeholder="Search by name or email..."
+        placeholder="Search by name or email (min 2 chars)..."
         value={search}
         onChange={(e) => {
           setSearch(e.target.value);
@@ -91,12 +91,14 @@ export default function HostSelector({ hostId, onChange }: HostSelectorProps) {
         onFocus={() => setOpen(true)}
         className="text-sm"
       />
-      {open && search.trim() && (
+      {open && debouncedSearch.trim().length >= 2 && (
         <div className="mt-1 max-h-40 overflow-y-auto rounded-md border border-border bg-popover shadow-md">
-          {filtered.length === 0 ? (
+          {isLoading ? (
+            <p className="px-3 py-2 text-sm text-muted-foreground">Searching…</p>
+          ) : !searchResults?.length ? (
             <p className="px-3 py-2 text-sm text-muted-foreground">No users found</p>
           ) : (
-            filtered.slice(0, 8).map((p) => (
+            searchResults.map((p) => (
               <button
                 key={p.id}
                 type="button"
@@ -108,6 +110,9 @@ export default function HostSelector({ hostId, onChange }: HostSelectorProps) {
                 }}
               >
                 <span className="font-medium text-foreground">{p.name || p.email}</span>
+                {p.email && p.name && (
+                  <span className="text-muted-foreground ml-1 text-xs">({p.email})</span>
+                )}
                 {p.family_name && (
                   <span className="text-muted-foreground ml-1">— {p.family_name}</span>
                 )}
