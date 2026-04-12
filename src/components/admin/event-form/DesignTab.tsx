@@ -1,17 +1,46 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Video, AlertCircle, Info, DollarSign, Loader2 } from "lucide-react";
+import { Video, AlertCircle, Info, DollarSign, Loader2, Clock } from "lucide-react";
 import { toast } from "sonner";
 import CoverPhotoUpload from "./CoverPhotoUpload";
 import VenueSelector from "./VenueSelector";
 import SpeakerSelector from "./SpeakerSelector";
 import type { EventFormState } from "./types";
 import { AGE_GROUP_OPTIONS } from "./types";
+
+const DURATION_OPTIONS = [
+  { label: "30 minutes", minutes: 30 },
+  { label: "1 hour", minutes: 60 },
+  { label: "1.5 hours", minutes: 90 },
+  { label: "2 hours", minutes: 120 },
+  { label: "3 hours", minutes: 180 },
+  { label: "All Day", minutes: 1440 },
+  { label: "Custom", minutes: -1 },
+] as const;
+
+function minutesBetween(start: string, end: string): number {
+  if (!start || !end) return -1;
+  return (new Date(end).getTime() - new Date(start).getTime()) / 60000;
+}
+
+function addMinutesToDatetime(dt: string, mins: number): string {
+  const d = new Date(dt);
+  d.setMinutes(d.getMinutes() + mins);
+  // Format as datetime-local value
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function detectDuration(start: string, end: string): string {
+  const mins = minutesBetween(start, end);
+  const match = DURATION_OPTIONS.find((o) => o.minutes === mins);
+  return match ? match.label : "Custom";
+}
 import { useEventTypes } from "@/hooks/useEventTypes";
 
 interface DesignTabProps {
@@ -23,9 +52,52 @@ interface DesignTabProps {
 export default function DesignTab({ form, setForm, isEditing }: DesignTabProps) {
   const [bookingZoom, setBookingZoom] = useState(false);
   const [zoomError, setZoomError] = useState<string | null>(null);
+  const [duration, setDuration] = useState<string>(() => {
+    if (isEditing && form.date_time && form.end_date_time) {
+      return detectDuration(form.date_time, form.end_date_time);
+    }
+    return "1 hour";
+  });
+  const suppressDurationSync = useRef(false);
 
   const update = <K extends keyof EventFormState>(key: K, value: EventFormState[K]) =>
     setForm((prev) => ({ ...prev, [key]: value }));
+
+  // Auto-calc end when start or duration changes
+  const applyDuration = useCallback((start: string, dur: string) => {
+    if (!start || dur === "Custom") return;
+    const opt = DURATION_OPTIONS.find((o) => o.label === dur);
+    if (!opt || opt.minutes < 0) return;
+    const newEnd = addMinutesToDatetime(start, opt.minutes);
+    setForm((prev) => ({ ...prev, end_date_time: newEnd }));
+  }, [setForm]);
+
+  const handleStartChange = (val: string) => {
+    setForm((prev) => ({ ...prev, date_time: val }));
+    applyDuration(val, duration);
+  };
+
+  const handleDurationChange = (val: string) => {
+    setDuration(val);
+    applyDuration(form.date_time, val);
+  };
+
+  const handleEndChange = (val: string) => {
+    // Validate: end must be after start
+    if (form.date_time && val && val <= form.date_time) {
+      toast.error("End time must be after start time. Auto-correcting to 1 hour after start.");
+      const corrected = addMinutesToDatetime(form.date_time, 60);
+      setForm((prev) => ({ ...prev, end_date_time: corrected }));
+      setDuration("1 hour");
+      return;
+    }
+    setForm((prev) => ({ ...prev, end_date_time: val }));
+    // Detect if it matches a preset
+    if (form.date_time && val) {
+      suppressDurationSync.current = true;
+      setDuration(detectDuration(form.date_time, val));
+    }
+  };
 
   // Detect if current link is a Zoom URL and extract meeting ID
   const isZoomUpdate = /zoom\.us/i.test(form.online_link);
@@ -309,17 +381,37 @@ export default function DesignTab({ form, setForm, isEditing }: DesignTabProps) 
         </div>
       )}
 
-      {/* Start & End date/time */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <div>
-          <Label htmlFor="start">Start Date & Time</Label>
-          <Input
-            id="start"
-            type="datetime-local"
-            value={form.date_time}
-            onChange={(e) => update("date_time", e.target.value)}
-            className="mt-1.5"
-          />
+      {/* Start, Duration & End date/time */}
+      <div className="space-y-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <Label htmlFor="start">Start Date & Time</Label>
+            <Input
+              id="start"
+              type="datetime-local"
+              value={form.date_time}
+              onChange={(e) => handleStartChange(e.target.value)}
+              className="mt-1.5"
+            />
+          </div>
+          <div>
+            <Label htmlFor="duration" className="flex items-center gap-1.5">
+              <Clock className="h-3.5 w-3.5 text-primary" />
+              Duration
+            </Label>
+            <Select value={duration} onValueChange={handleDurationChange}>
+              <SelectTrigger className="mt-1.5" id="duration">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {DURATION_OPTIONS.map((opt) => (
+                  <SelectItem key={opt.label} value={opt.label}>
+                    {opt.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
         <div>
           <Label htmlFor="end">End Date & Time</Label>
@@ -327,10 +419,15 @@ export default function DesignTab({ form, setForm, isEditing }: DesignTabProps) 
             id="end"
             type="datetime-local"
             value={form.end_date_time}
-            onChange={(e) => update("end_date_time", e.target.value)}
+            onChange={(e) => handleEndChange(e.target.value)}
             min={form.date_time || undefined}
             className={`mt-1.5 ${endBeforeStart ? "border-destructive focus-visible:ring-destructive" : ""}`}
           />
+          {duration === "Custom" && (
+            <p className="text-xs text-muted-foreground mt-1">
+              Custom duration — end time set manually
+            </p>
+          )}
           {endBeforeStart && (
             <p className="flex items-center gap-1 text-xs text-destructive mt-1">
               <AlertCircle className="h-3 w-3" />
