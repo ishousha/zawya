@@ -209,18 +209,30 @@ export default function DesignTab({ form, setForm }: DesignTabProps) {
             RSVP will require members to select dependents for this event type.
           </p>
         )}
-        {showVirtual && !showPhysical && (
-          <p className="flex items-start gap-1.5 text-xs text-muted-foreground bg-muted/50 rounded-md p-2.5">
-            <Info className="h-3.5 w-3.5 mt-0.5 shrink-0 text-primary" />
-            This event type is online-only. Potluck sign-ups are disabled.
-          </p>
-        )}
         {showVirtual && showPhysical && (
           <p className="flex items-start gap-1.5 text-xs text-muted-foreground bg-muted/50 rounded-md p-2.5">
             <Info className="h-3.5 w-3.5 mt-0.5 shrink-0 text-primary" />
             This is a hybrid event — both a physical venue and virtual link are shown.
           </p>
         )}
+      </div>
+
+      {/* Virtual / Zoom toggle */}
+      <div className="flex items-center gap-3 rounded-md border border-border px-3 py-2.5 bg-muted/30">
+        <Switch
+          id="enable_virtual"
+          checked={form.enable_virtual}
+          onCheckedChange={(v) => {
+            update("enable_virtual", v);
+            if (!v) {
+              setForm((prev) => ({ ...prev, online_link: "", zoom_password: "" }));
+            }
+          }}
+        />
+        <Label htmlFor="enable_virtual" className="text-sm cursor-pointer mb-0 flex items-center gap-1.5">
+          <Video className="h-3.5 w-3.5 text-primary" />
+          Enable Virtual / Zoom Meeting
+        </Label>
       </div>
 
       {/* Potluck toggle — hidden when type doesn't allow it */}
