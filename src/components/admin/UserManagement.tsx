@@ -533,82 +533,76 @@ export default function UserManagement() {
         </div>
 
         <div className="space-y-2">
-          {filteredProfiles.slice(0, visibleCount).map((p) => (
-            <Card key={p.id} className={p.role === "pending" ? "border-accent" : ""}>
-              <CardContent className="p-4">
-                {/* Main layout: stacks on mobile, row on desktop */}
-                <div className="flex flex-col gap-3 md:flex-row md:items-center">
-                  {/* Left: Checkbox + Avatar */}
-                  <div className="flex items-center gap-3 shrink-0">
-                    <Checkbox
-                      checked={selectedIds.has(p.id)}
-                      onCheckedChange={() => toggleSelect(p.id)}
-                      className="h-4 w-4 shrink-0"
-                    />
-                    <UserAvatar name={p.name} avatarUrl={(p as any).avatar_url} className="h-10 w-10 shrink-0" />
-                    {/* Show name + badge inline on mobile only */}
-                    <div className="flex flex-wrap items-center gap-1.5 md:hidden min-w-0">
-                      <span className="font-medium text-card-foreground truncate">{p.name || "Unnamed"}</span>
-                      {p.role === "pending" && <Badge className="text-[10px] px-2 py-0.5 bg-amber-100 text-amber-700 border-amber-300 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-700 font-semibold">Pending</Badge>}
-                      {p.role === "approved" && <Badge variant="secondary" className="text-[10px] px-1.5 py-0 bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">Member</Badge>}
-                      {p.role === "guest" && <Badge variant="secondary" className="text-[10px] px-1.5 py-0">Guest</Badge>}
-                      {p.role === "admin" && <Badge className="text-[10px] px-1.5 py-0">Admin</Badge>}
-                      {p.role === "moderator" && <Badge variant="secondary" className="text-[10px] px-1.5 py-0 border-primary/30 text-primary">Mod</Badge>}
-                      {p.role === "suspended" && <Badge variant="destructive" className="text-[10px] px-1.5 py-0">Suspended</Badge>}
-                      {(p.role as string) === "rejected" && <Badge variant="destructive" className="text-[10px] px-1.5 py-0">Rejected</Badge>}
-                      {(p as any).is_mureed && <Badge className="text-[10px] px-1.5 py-0 bg-emerald-600 text-white border-emerald-600">Mureed</Badge>}
-                    </div>
-                  </div>
+          {filteredProfiles.slice(0, visibleCount).map((p) => {
+            const statusBadge = (() => {
+              if (p.role === "pending") return <Badge className="text-[10px] px-2 py-0.5 bg-amber-100 text-amber-700 border-amber-300 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-700 font-semibold">Pending</Badge>;
+              if (p.role === "approved") return <Badge variant="secondary" className="text-[10px] px-1.5 py-0 bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">Member</Badge>;
+              if (p.role === "guest") return <Badge variant="secondary" className="text-[10px] px-1.5 py-0">Guest</Badge>;
+              if (p.role === "admin") return <Badge className="text-[10px] px-1.5 py-0">Admin</Badge>;
+              if (p.role === "moderator") return <Badge variant="secondary" className="text-[10px] px-1.5 py-0 border-primary/30 text-primary">Mod</Badge>;
+              if (p.role === "suspended") return <Badge variant="destructive" className="text-[10px] px-1.5 py-0">Suspended</Badge>;
+              if ((p.role as string) === "rejected") return <Badge variant="destructive" className="text-[10px] px-1.5 py-0">Rejected</Badge>;
+              return null;
+            })();
 
-                  {/* Middle: User details (grows to fill space) */}
-                  <div className="min-w-0 flex-1 space-y-0.5">
-                    {/* Row 1: Name + Status Pill (desktop) */}
-                    <div className="hidden md:flex flex-wrap items-center gap-1.5">
-                      <span className="font-semibold text-sm text-card-foreground truncate">{p.name || "Unnamed"}</span>
-                      {p.role === "pending" && <Badge className="text-[10px] px-2 py-0.5 bg-amber-100 text-amber-700 border-amber-300 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-700 font-semibold">Pending</Badge>}
-                      {p.role === "approved" && <Badge variant="secondary" className="text-[10px] px-1.5 py-0 bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">Member</Badge>}
-                      {p.role === "guest" && <Badge variant="secondary" className="text-[10px] px-1.5 py-0">Guest</Badge>}
-                      {p.role === "admin" && <Badge className="text-[10px] px-1.5 py-0">Admin</Badge>}
-                      {p.role === "moderator" && <Badge variant="secondary" className="text-[10px] px-1.5 py-0 border-primary/30 text-primary">Mod</Badge>}
-                      {p.role === "suspended" && <Badge variant="destructive" className="text-[10px] px-1.5 py-0">Suspended</Badge>}
-                      {(p.role as string) === "rejected" && <Badge variant="destructive" className="text-[10px] px-1.5 py-0">Rejected</Badge>}
-                      {(p as any).is_mureed && <Badge className="text-[10px] px-1.5 py-0 bg-emerald-600 text-white border-emerald-600">Mureed</Badge>}
-                    </div>
-                    {/* Row 2: Email */}
-                    <p className="text-xs text-muted-foreground truncate">{p.email}</p>
-                    {/* Row 3: Phone */}
-                    {p.whatsapp_number && (
-                      <p className="text-xs text-muted-foreground flex items-center gap-1.5">
-                        <span>📱</span> <span>{p.whatsapp_number}</span>
-                      </p>
-                    )}
-                    {/* Row 4: Family + Joined */}
-                    <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11px] text-muted-foreground/80">
-                      {p.family_id && familyMap[p.family_id] && <span>🏠 {familyMap[p.family_id]}</span>}
-                      {p.family_name && !p.family_id && <span>Family: {p.family_name}</span>}
-                      <span>Joined {format(new Date(p.created_at), "MMM d, yyyy")}</span>
-                    </div>
-                    {rolesMap[p.id] && <p className="text-[11px] text-muted-foreground/70">Roles: {rolesMap[p.id].map(r => r === "approved" ? "Member" : r).join(", ")}</p>}
-                    {userRsvpMap[p.id] && userRsvpMap[p.id].length > 0 && (
-                      <div className="mt-1 flex flex-wrap gap-1">
-                        {userRsvpMap[p.id].map((e) => (<Badge key={e.event_id} variant="outline" className="text-[10px] px-1.5 py-0">{e.title}</Badge>))}
+            const familyLabel = (p.family_id && familyMap[p.family_id]) ? familyMap[p.family_id] : (p.family_name && !p.family_id ? p.family_name : null);
+            const joinedLabel = `Joined ${format(new Date(p.created_at), "MMM d, yyyy")}`;
+
+            return (
+              <Card key={p.id} className={p.role === "pending" ? "border-accent" : ""}>
+                <CardContent className="p-4">
+                  <div className="flex flex-col md:flex-row w-full justify-between items-start md:items-center gap-4">
+                    {/* Left: Checkbox + Avatar + Details */}
+                    <div className="flex items-start gap-3 flex-1 min-w-0">
+                      <Checkbox
+                        checked={selectedIds.has(p.id)}
+                        onCheckedChange={() => toggleSelect(p.id)}
+                        className="h-4 w-4 shrink-0 mt-1"
+                      />
+                      <UserAvatar name={p.name} avatarUrl={(p as any).avatar_url} className="h-10 w-10 shrink-0" />
+
+                      {/* Details stack */}
+                      <div className="flex flex-col gap-0.5 min-w-0 flex-1">
+                        {/* Row 1: Name + Status Pill */}
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold text-sm text-card-foreground">{p.name || "Unnamed"}</span>
+                          {statusBadge}
+                          {(p as any).is_mureed && <Badge className="text-[10px] px-1.5 py-0 bg-emerald-600 text-white border-emerald-600">Mureed</Badge>}
+                        </div>
+                        {/* Row 2: Email (no truncation) */}
+                        <p className="text-xs text-muted-foreground break-all">{p.email}</p>
+                        {/* Row 3: Phone */}
+                        {p.whatsapp_number && (
+                          <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+                            <span>📱</span> <span>{p.whatsapp_number}</span>
+                          </p>
+                        )}
+                        {/* Row 4: Family + Joined (combined) */}
+                        <p className="text-[11px] text-muted-foreground/80">
+                          {familyLabel && <><span>{familyLabel}</span> <span className="mx-1">·</span></>}
+                          {joinedLabel}
+                        </p>
+                        {rolesMap[p.id] && <p className="text-[11px] text-muted-foreground/70">Roles: {rolesMap[p.id].map(r => r === "approved" ? "Member" : r).join(", ")}</p>}
+                        {userRsvpMap[p.id] && userRsvpMap[p.id].length > 0 && (
+                          <div className="mt-1 flex flex-wrap gap-1">
+                            {userRsvpMap[p.id].map((e) => (<Badge key={e.event_id} variant="outline" className="text-[10px] px-1.5 py-0">{e.title}</Badge>))}
+                          </div>
+                        )}
                       </div>
-                    )}
-                  </div>
+                    </div>
 
-                  {/* Right: Action buttons */}
-                  <div className="flex flex-wrap items-center gap-2 shrink-0 pt-1 md:pt-0">
-                    {p.role === "pending" && (
-                      <>
-                        <Button size="sm" className="h-9 gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white min-w-[90px]" onClick={() => updateRole.mutate({ userId: p.id, role: "approved" as AppRole, email: p.email, name: p.name, previousRole: p.role })} disabled={updateRole.isPending}>
-                          <CheckCircle className="h-4 w-4" /> Approve
-                        </Button>
-                        <Button size="sm" variant="destructive" className="h-9 gap-1.5 min-w-[80px]" onClick={() => updateRole.mutate({ userId: p.id, role: "rejected" as AppRole, email: p.email, name: p.name, previousRole: p.role })} disabled={updateRole.isPending}>
-                          <XCircle className="h-4 w-4" /> Reject
-                        </Button>
-                      </>
-                    )}
-                    <div className="flex items-center gap-1">
+                    {/* Right: Action buttons */}
+                    <div className="flex flex-wrap items-center gap-2 justify-end shrink-0">
+                      {p.role === "pending" && (
+                        <>
+                          <Button size="sm" className="h-7 gap-1 text-xs px-3 bg-emerald-600 hover:bg-emerald-700 text-white" onClick={() => updateRole.mutate({ userId: p.id, role: "approved" as AppRole, email: p.email, name: p.name, previousRole: p.role })} disabled={updateRole.isPending}>
+                            <CheckCircle className="h-3.5 w-3.5" /> Approve
+                          </Button>
+                          <Button size="sm" variant="destructive" className="h-7 gap-1 text-xs px-3" onClick={() => updateRole.mutate({ userId: p.id, role: "rejected" as AppRole, email: p.email, name: p.name, previousRole: p.role })} disabled={updateRole.isPending}>
+                            <XCircle className="h-3.5 w-3.5" /> Reject
+                          </Button>
+                        </>
+                      )}
                       <AdminRsvpAction userId={p.id} userName={p.name} existingRsvps={userRsvpMap[p.id] ?? []} />
                       {(p.role === "approved" || p.role === "admin" || p.role === "moderator") && (
                         <div className="flex items-center gap-1" title="Toggle Mureed status">
@@ -624,24 +618,27 @@ export default function UserManagement() {
                           />
                         </div>
                       )}
-                      <Button variant="ghost" size="icon" className="h-9 w-9" title="Edit user" onClick={() => { setEditProfile(p); setEditOpen(true); }}>
-                        <Pencil className="h-4 w-4" />
+                      <Button variant="ghost" size="icon" className="h-8 w-8" title="Edit user" onClick={() => { setEditProfile(p); setEditOpen(true); }}>
+                        <Pencil className="h-3.5 w-3.5" />
                       </Button>
-                      <Select value={p.role} onValueChange={(val) => updateRole.mutate({ userId: p.id, role: val as AppRole, email: p.email, name: p.name, previousRole: p.role })}>
-                        <SelectTrigger className="w-[110px] h-9 text-xs"><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="pending">Pending</SelectItem>
-                          <SelectItem value="approved">Member</SelectItem>
-                          <SelectItem value="rejected">Rejected</SelectItem>
-                          <SelectItem value="guest">Guest</SelectItem>
-                          <SelectItem value="moderator">Moderator</SelectItem>
-                          <SelectItem value="admin">Admin</SelectItem>
-                          <SelectItem value="suspended">Suspended</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      {/* Status dropdown hidden for pending users — Approve/Reject handles it */}
+                      {p.role !== "pending" && (
+                        <Select value={p.role} onValueChange={(val) => updateRole.mutate({ userId: p.id, role: val as AppRole, email: p.email, name: p.name, previousRole: p.role })}>
+                          <SelectTrigger className="w-[100px] h-7 text-xs"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="pending">Pending</SelectItem>
+                            <SelectItem value="approved">Member</SelectItem>
+                            <SelectItem value="rejected">Rejected</SelectItem>
+                            <SelectItem value="guest">Guest</SelectItem>
+                            <SelectItem value="moderator">Moderator</SelectItem>
+                            <SelectItem value="admin">Admin</SelectItem>
+                            <SelectItem value="suspended">Suspended</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      )}
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-9 w-9 text-destructive hover:bg-destructive/10"><Trash2 className="h-4 w-4" /></Button>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-destructive/10"><Trash2 className="h-3.5 w-3.5" /></Button>
                         </AlertDialogTrigger>
                         <AlertDialogContent>
                           <AlertDialogHeader>
@@ -658,10 +655,10 @@ export default function UserManagement() {
                       </AlertDialog>
                     </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                </CardContent>
+              </Card>
+            );
+          })}
           {filteredProfiles.length > visibleCount && (
             <div className="flex justify-center pt-2">
               <Button
