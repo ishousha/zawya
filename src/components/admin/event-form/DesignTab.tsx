@@ -5,7 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Video, AlertCircle, Info, DollarSign, Loader2, Clock } from "lucide-react";
+import { Video, AlertCircle, Info, DollarSign, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import CoverPhotoUpload from "./CoverPhotoUpload";
 import VenueSelector from "./VenueSelector";
