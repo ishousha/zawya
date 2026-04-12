@@ -31,6 +31,7 @@ export default function SpeakerBadge({ eventId, prefetchedSpeakers }: SpeakerBad
 
   return (
     <div className="mt-2 flex flex-wrap items-center gap-2">
+      <span className="text-xs font-medium text-muted-foreground">Featuring:</span>
       {speakers.map((es: any) => {
         const speaker = es.speakers;
         if (!speaker) return null;

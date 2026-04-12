@@ -272,32 +272,6 @@ function EventCardInner({ event, onShowTicket, isPast = false }: EventCardProps)
             {event.location}
           </p>
         )}
-        {!isCancelled && isAttending && event.virtual_link && (
-          <p className="mt-1 text-sm">
-            🔗{" "}
-            <a
-              href={event.virtual_link}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-primary underline underline-offset-2"
-            >
-              Join Online
-            </a>
-          </p>
-        )}
-        {!isCancelled && isAttending && !event.virtual_link && event.zoom_link && (
-          <p className="mt-1 text-sm">
-            🔗{" "}
-            <a
-              href={event.zoom_link}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-primary underline underline-offset-2"
-            >
-              Join Zoom
-            </a>
-          </p>
-        )}
         {/* Zoom Lockbox — 3-state virtual meeting section */}
         {!isCancelled && onlineLink && (() => {
           const hasRsvp = isAttending && !isWaitlisted;
@@ -320,7 +294,7 @@ function EventCardInner({ event, onShowTicket, isPast = false }: EventCardProps)
               <div className="mt-3 rounded-lg border border-primary/30 bg-primary/5 p-3 space-y-2">
                 {event.zoom_password && (
                   <p className="text-sm font-medium text-foreground text-center">
-                    🔑 Passcode: <span className="font-bold tracking-wide">{event.zoom_password}</span>
+                    🔑 Zoom Passcode: <span className="font-bold tracking-wide">{event.zoom_password}</span>
                   </p>
                 )}
                 <Button
