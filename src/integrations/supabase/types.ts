@@ -354,6 +354,7 @@ export type Database = {
           virtual_link: string | null
           waitlist_capacity: number
           zoom_link: string | null
+          zoom_password: string | null
         }
         Insert: {
           address?: string | null
@@ -387,6 +388,7 @@ export type Database = {
           virtual_link?: string | null
           waitlist_capacity?: number
           zoom_link?: string | null
+          zoom_password?: string | null
         }
         Update: {
           address?: string | null
@@ -420,6 +422,7 @@ export type Database = {
           virtual_link?: string | null
           waitlist_capacity?: number
           zoom_link?: string | null
+          zoom_password?: string | null
         }
         Relationships: [
           {
