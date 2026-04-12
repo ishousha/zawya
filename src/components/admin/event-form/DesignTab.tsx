@@ -65,15 +65,13 @@ export default function DesignTab({ form, setForm }: DesignTabProps) {
         const meetingId = data.id ?? data.meeting_id ?? "";
         const password = data.password ?? "";
         setForm((prev) => {
-          const details = [
-            meetingId && `Meeting ID: ${meetingId}`,
-            password && `Password: ${password}`,
-          ].filter(Boolean).join("\n");
-          const sep = prev.description ? "\n\n" : "";
+          const meetingNote = meetingId ? `Meeting ID: ${meetingId}` : "";
+          const sep = meetingNote && prev.description ? "\n\n" : "";
           return {
             ...prev,
             online_link: joinUrl,
-            description: details ? prev.description + sep + details : prev.description,
+            zoom_password: password,
+            description: meetingNote ? prev.description + sep + meetingNote : prev.description,
           };
         });
         toast.success("Zoom meeting booked successfully!");
@@ -95,10 +93,6 @@ export default function DesignTab({ form, setForm }: DesignTabProps) {
     if (!selectedType) return;
     setForm((prev) => {
       const next = { ...prev };
-      const stIsVirtual = selectedType.is_virtual ?? false;
-
-      // Set is_hybrid based on both flags
-      next.is_hybrid = selectedType.requires_location && stIsVirtual;
 
       if (!selectedType.allows_potluck) {
         next.has_potluck = false;
@@ -106,11 +100,6 @@ export default function DesignTab({ form, setForm }: DesignTabProps) {
       if (selectedType.name.toLowerCase().includes("gathering")) {
         next.has_potluck = true;
         next.ticket_fee = "0";
-      }
-
-      // Clear virtual fields when switching to a non-virtual type
-      if (!stIsVirtual) {
-        next.online_link = "";
       }
 
       return next;
@@ -122,11 +111,10 @@ export default function DesignTab({ form, setForm }: DesignTabProps) {
 
   // Derive visibility from event type flags
   const requiresLocation = selectedType?.requires_location ?? true;
-  const isVirtual = selectedType?.is_virtual ?? false;
   const allowsPotluck = selectedType?.allows_potluck ?? true;
 
   const showPhysical = requiresLocation;
-  const showVirtual = isVirtual;
+  const showVirtual = form.enable_virtual;
 
   // Potluck toggle visibility
   const hidePotluckToggle = !allowsPotluck;
