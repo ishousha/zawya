@@ -52,9 +52,52 @@ interface DesignTabProps {
 export default function DesignTab({ form, setForm, isEditing }: DesignTabProps) {
   const [bookingZoom, setBookingZoom] = useState(false);
   const [zoomError, setZoomError] = useState<string | null>(null);
+  const [duration, setDuration] = useState<string>(() => {
+    if (isEditing && form.date_time && form.end_date_time) {
+      return detectDuration(form.date_time, form.end_date_time);
+    }
+    return "1 hour";
+  });
+  const suppressDurationSync = useRef(false);
 
   const update = <K extends keyof EventFormState>(key: K, value: EventFormState[K]) =>
     setForm((prev) => ({ ...prev, [key]: value }));
+
+  // Auto-calc end when start or duration changes
+  const applyDuration = useCallback((start: string, dur: string) => {
+    if (!start || dur === "Custom") return;
+    const opt = DURATION_OPTIONS.find((o) => o.label === dur);
+    if (!opt || opt.minutes < 0) return;
+    const newEnd = addMinutesToDatetime(start, opt.minutes);
+    setForm((prev) => ({ ...prev, end_date_time: newEnd }));
+  }, [setForm]);
+
+  const handleStartChange = (val: string) => {
+    setForm((prev) => ({ ...prev, date_time: val }));
+    applyDuration(val, duration);
+  };
+
+  const handleDurationChange = (val: string) => {
+    setDuration(val);
+    applyDuration(form.date_time, val);
+  };
+
+  const handleEndChange = (val: string) => {
+    // Validate: end must be after start
+    if (form.date_time && val && val <= form.date_time) {
+      toast.error("End time must be after start time. Auto-correcting to 1 hour after start.");
+      const corrected = addMinutesToDatetime(form.date_time, 60);
+      setForm((prev) => ({ ...prev, end_date_time: corrected }));
+      setDuration("1 hour");
+      return;
+    }
+    setForm((prev) => ({ ...prev, end_date_time: val }));
+    // Detect if it matches a preset
+    if (form.date_time && val) {
+      suppressDurationSync.current = true;
+      setDuration(detectDuration(form.date_time, val));
+    }
+  };
 
   // Detect if current link is a Zoom URL and extract meeting ID
   const isZoomUpdate = /zoom\.us/i.test(form.online_link);
