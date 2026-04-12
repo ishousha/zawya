@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Video, AlertCircle, Info, DollarSign, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import CoverPhotoUpload from "./CoverPhotoUpload";
+import DateTimePicker from "./DateTimePicker";
 import VenueSelector from "./VenueSelector";
 import SpeakerSelector from "./SpeakerSelector";
 import type { EventFormState } from "./types";
