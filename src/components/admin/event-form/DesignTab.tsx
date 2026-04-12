@@ -26,6 +26,13 @@ export default function DesignTab({ form, setForm }: DesignTabProps) {
   const update = <K extends keyof EventFormState>(key: K, value: EventFormState[K]) =>
     setForm((prev) => ({ ...prev, [key]: value }));
 
+  // Detect if current link is a Zoom URL and extract meeting ID
+  const isZoomUpdate = /zoom\.us/i.test(form.online_link);
+  const extractZoomMeetingId = (url: string): string | null => {
+    const match = url.match(/\/j\/(\d+)/);
+    return match ? match[1] : null;
+  };
+
   const handleGenerateZoom = async () => {
     if (!form.title || !form.date_time) {
       toast.error("Please fill in the event title and start time first.");
@@ -35,32 +42,44 @@ export default function DesignTab({ form, setForm }: DesignTabProps) {
     setZoomError(null);
     try {
       const startIso = new Date(form.date_time).toISOString();
+      const payload: Record<string, unknown> = { title: form.title, start_time: startIso };
+
+      if (isZoomUpdate) {
+        const mid = extractZoomMeetingId(form.online_link);
+        if (mid) payload.meeting_id = mid;
+      }
+
       const res = await fetch("https://n8n.seqwelpartners.com/webhook/create-zoom-meeting", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: form.title, start_time: startIso }),
+        body: JSON.stringify(payload),
       });
       if (!res.ok) throw new Error("Webhook returned " + res.status);
       const data = await res.json();
-      const joinUrl = data.join_url ?? data.joinUrl ?? "";
-      if (!joinUrl) throw new Error("No Zoom link returned — unexpected response format.");
-      const meetingId = data.id ?? data.meeting_id ?? "";
-      const password = data.password ?? "";
-      setForm((prev) => {
-        const details = [
-          meetingId && `Meeting ID: ${meetingId}`,
-          password && `Password: ${password}`,
-        ].filter(Boolean).join("\n");
-        const sep = prev.description ? "\n\n" : "";
-        return {
-          ...prev,
-          online_link: joinUrl,
-          description: details ? prev.description + sep + details : prev.description,
-        };
-      });
-      toast.success("Zoom meeting booked successfully!");
+
+      if (isZoomUpdate) {
+        toast.success("Zoom meeting time updated successfully!");
+      } else {
+        const joinUrl = data.join_url ?? data.joinUrl ?? "";
+        if (!joinUrl) throw new Error("No Zoom link returned — unexpected response format.");
+        const meetingId = data.id ?? data.meeting_id ?? "";
+        const password = data.password ?? "";
+        setForm((prev) => {
+          const details = [
+            meetingId && `Meeting ID: ${meetingId}`,
+            password && `Password: ${password}`,
+          ].filter(Boolean).join("\n");
+          const sep = prev.description ? "\n\n" : "";
+          return {
+            ...prev,
+            online_link: joinUrl,
+            description: details ? prev.description + sep + details : prev.description,
+          };
+        });
+        toast.success("Zoom meeting booked successfully!");
+      }
     } catch (err: any) {
-      const msg = err.message || "Failed to generate Zoom link";
+      const msg = err.message || "Failed to process Zoom request";
       setZoomError(msg);
       toast.error(msg);
     } finally {
