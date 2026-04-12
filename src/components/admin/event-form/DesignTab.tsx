@@ -91,23 +91,22 @@ export default function DesignTab({ form, setForm }: DesignTabProps) {
   const { data: eventTypes } = useEventTypes();
   const selectedType = eventTypes?.find((t) => t.id === form.event_type_id);
 
-  // Smart defaults based on event type properties
+  // Smart defaults based on event type selection
+  const prevEventTypeId = useRef(form.event_type_id);
   useEffect(() => {
     if (!selectedType) return;
+    // Only auto-toggle when the event type actually changes (not on initial mount for edits)
+    if (prevEventTypeId.current === form.event_type_id && event) return;
+    prevEventTypeId.current = form.event_type_id;
+
     setForm((prev) => {
       const next = { ...prev };
-
-      if (!selectedType.allows_potluck) {
-        next.has_potluck = false;
-      }
-      if (selectedType.name.toLowerCase().includes("gathering")) {
-        next.has_potluck = true;
-        next.ticket_fee = "0";
-      }
-
+      // Apply smart defaults from event type config
+      next.enable_virtual = selectedType.is_virtual;
+      next.has_potluck = selectedType.allows_potluck;
       return next;
     });
-  }, [form.event_type_id, selectedType, setForm]);
+  }, [form.event_type_id, selectedType, setForm, event]);
 
   const endBeforeStart =
     form.date_time && form.end_date_time && form.end_date_time <= form.date_time;
