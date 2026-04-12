@@ -39,7 +39,7 @@ export default function HomeFeed() {
         .limit(10);
 
       if (error) throw error;
-      return data;
+      return data as unknown as Event[];
     },
   });
 

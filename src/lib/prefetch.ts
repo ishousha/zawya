@@ -20,7 +20,7 @@ export function prefetchHome(queryClient: QueryClient) {
         .order("date_time", { ascending: true })
         .limit(10);
       if (error) throw error;
-      return data;
+      return data as unknown as import("@/integrations/supabase/types").Database["public"]["Tables"]["events"]["Row"][];
     },
   });
 }
