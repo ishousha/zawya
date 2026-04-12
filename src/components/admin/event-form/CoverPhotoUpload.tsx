@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect } from "react";
-import { Camera, Check, ImageOff } from "lucide-react";
+import { Camera, Check, ImageOff, Upload, Loader2 } from "lucide-react";
 import { Label } from "@/components/ui/label";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 const stockImages = [
   "https://ikzaalswkajtaxejyskw.supabase.co/storage/v1/object/public/event-covers/Event_Cover_27r1gi27r1gi27r1.webp",
@@ -24,10 +26,11 @@ interface CoverPhotoUploadProps {
 
 export default function CoverPhotoUpload({ value, onChange }: CoverPhotoUploadProps) {
   const [isGalleryExpanded, setIsGalleryExpanded] = useState(!value);
+  const [isUploading, setIsUploading] = useState(false);
   const galleryRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [galleryHeight, setGalleryHeight] = useState<number | undefined>(undefined);
 
-  // Measure gallery content height for smooth animation
   useEffect(() => {
     if (galleryRef.current) {
       setGalleryHeight(galleryRef.current.scrollHeight);
@@ -41,9 +44,62 @@ export default function CoverPhotoUpload({ value, onChange }: CoverPhotoUploadPr
     }
   };
 
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please select an image file");
+      return;
+    }
+
+    // Validate file size (5MB max)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Image must be under 5MB");
+      return;
+    }
+
+    setIsUploading(true);
+    try {
+      const ext = file.name.split(".").pop() || "webp";
+      const fileName = `custom_${Date.now()}_${Math.random().toString(36).slice(2, 8)}.${ext}`;
+
+      const { error } = await supabase.storage
+        .from("event-covers")
+        .upload(fileName, file, { contentType: file.type, upsert: false });
+
+      if (error) throw error;
+
+      const { data: urlData } = supabase.storage
+        .from("event-covers")
+        .getPublicUrl(fileName);
+
+      onChange(urlData.publicUrl);
+      setIsGalleryExpanded(false);
+      toast.success("Cover image uploaded!");
+    } catch (err: any) {
+      console.error("Upload error:", err);
+      toast.error("Failed to upload image");
+    } finally {
+      setIsUploading(false);
+      // Reset input so same file can be re-selected
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
   return (
     <div className="space-y-2">
       <Label className="block">Cover Image</Label>
+
+      {/* Hidden file input */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={handleFileUpload}
+      />
 
       {/* Preview with Change Cover overlay */}
       {value ? (
@@ -89,6 +145,23 @@ export default function CoverPhotoUpload({ value, onChange }: CoverPhotoUploadPr
         }}
       >
         <div ref={galleryRef} className="flex overflow-x-auto gap-3 pt-1 pb-2 scrollbar-thin">
+          {/* Upload button */}
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={isUploading}
+            className="relative flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 border-dashed border-border hover:border-primary/50 flex flex-col items-center justify-center gap-1 transition-all duration-150 disabled:opacity-50"
+          >
+            {isUploading ? (
+              <Loader2 className="h-4 w-4 text-primary animate-spin" />
+            ) : (
+              <>
+                <Upload className="h-4 w-4 text-muted-foreground" />
+                <span className="text-[10px] font-medium text-muted-foreground">Upload</span>
+              </>
+            )}
+          </button>
+
           {/* No Cover option */}
           <button
             type="button"
