@@ -1,17 +1,46 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Video, AlertCircle, Info, DollarSign, Loader2 } from "lucide-react";
+import { Video, AlertCircle, Info, DollarSign, Loader2, Clock } from "lucide-react";
 import { toast } from "sonner";
 import CoverPhotoUpload from "./CoverPhotoUpload";
 import VenueSelector from "./VenueSelector";
 import SpeakerSelector from "./SpeakerSelector";
 import type { EventFormState } from "./types";
 import { AGE_GROUP_OPTIONS } from "./types";
+
+const DURATION_OPTIONS = [
+  { label: "30 minutes", minutes: 30 },
+  { label: "1 hour", minutes: 60 },
+  { label: "1.5 hours", minutes: 90 },
+  { label: "2 hours", minutes: 120 },
+  { label: "3 hours", minutes: 180 },
+  { label: "All Day", minutes: 1440 },
+  { label: "Custom", minutes: -1 },
+] as const;
+
+function minutesBetween(start: string, end: string): number {
+  if (!start || !end) return -1;
+  return (new Date(end).getTime() - new Date(start).getTime()) / 60000;
+}
+
+function addMinutesToDatetime(dt: string, mins: number): string {
+  const d = new Date(dt);
+  d.setMinutes(d.getMinutes() + mins);
+  // Format as datetime-local value
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function detectDuration(start: string, end: string): string {
+  const mins = minutesBetween(start, end);
+  const match = DURATION_OPTIONS.find((o) => o.minutes === mins);
+  return match ? match.label : "Custom";
+}
 import { useEventTypes } from "@/hooks/useEventTypes";
 
 interface DesignTabProps {
