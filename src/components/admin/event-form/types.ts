@@ -40,6 +40,8 @@ export interface EventFormState {
   age_group: string;
   published: boolean;
   scheduled_publish_at: string;
+  enable_virtual: boolean;
+  zoom_password: string;
 }
 
 export interface SignUpItemState {
@@ -79,6 +81,8 @@ export const defaultEventForm: EventFormState = {
   age_group: "All Ages",
   published: false,
   scheduled_publish_at: "",
+  enable_virtual: false,
+  zoom_password: "",
 };
 
 // Keep EventType as a legacy re-export alias — no longer used

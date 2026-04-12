@@ -65,15 +65,13 @@ export default function DesignTab({ form, setForm }: DesignTabProps) {
         const meetingId = data.id ?? data.meeting_id ?? "";
         const password = data.password ?? "";
         setForm((prev) => {
-          const details = [
-            meetingId && `Meeting ID: ${meetingId}`,
-            password && `Password: ${password}`,
-          ].filter(Boolean).join("\n");
-          const sep = prev.description ? "\n\n" : "";
+          const meetingNote = meetingId ? `Meeting ID: ${meetingId}` : "";
+          const sep = meetingNote && prev.description ? "\n\n" : "";
           return {
             ...prev,
             online_link: joinUrl,
-            description: details ? prev.description + sep + details : prev.description,
+            zoom_password: password,
+            description: meetingNote ? prev.description + sep + meetingNote : prev.description,
           };
         });
         toast.success("Zoom meeting booked successfully!");
@@ -95,10 +93,6 @@ export default function DesignTab({ form, setForm }: DesignTabProps) {
     if (!selectedType) return;
     setForm((prev) => {
       const next = { ...prev };
-      const stIsVirtual = selectedType.is_virtual ?? false;
-
-      // Set is_hybrid based on both flags
-      next.is_hybrid = selectedType.requires_location && stIsVirtual;
 
       if (!selectedType.allows_potluck) {
         next.has_potluck = false;
@@ -106,11 +100,6 @@ export default function DesignTab({ form, setForm }: DesignTabProps) {
       if (selectedType.name.toLowerCase().includes("gathering")) {
         next.has_potluck = true;
         next.ticket_fee = "0";
-      }
-
-      // Clear virtual fields when switching to a non-virtual type
-      if (!stIsVirtual) {
-        next.online_link = "";
       }
 
       return next;
@@ -122,11 +111,10 @@ export default function DesignTab({ form, setForm }: DesignTabProps) {
 
   // Derive visibility from event type flags
   const requiresLocation = selectedType?.requires_location ?? true;
-  const isVirtual = selectedType?.is_virtual ?? false;
   const allowsPotluck = selectedType?.allows_potluck ?? true;
 
   const showPhysical = requiresLocation;
-  const showVirtual = isVirtual;
+  const showVirtual = form.enable_virtual;
 
   // Potluck toggle visibility
   const hidePotluckToggle = !allowsPotluck;
@@ -221,18 +209,30 @@ export default function DesignTab({ form, setForm }: DesignTabProps) {
             RSVP will require members to select dependents for this event type.
           </p>
         )}
-        {showVirtual && !showPhysical && (
-          <p className="flex items-start gap-1.5 text-xs text-muted-foreground bg-muted/50 rounded-md p-2.5">
-            <Info className="h-3.5 w-3.5 mt-0.5 shrink-0 text-primary" />
-            This event type is online-only. Potluck sign-ups are disabled.
-          </p>
-        )}
         {showVirtual && showPhysical && (
           <p className="flex items-start gap-1.5 text-xs text-muted-foreground bg-muted/50 rounded-md p-2.5">
             <Info className="h-3.5 w-3.5 mt-0.5 shrink-0 text-primary" />
             This is a hybrid event — both a physical venue and virtual link are shown.
           </p>
         )}
+      </div>
+
+      {/* Virtual / Zoom toggle */}
+      <div className="flex items-center gap-3 rounded-md border border-border px-3 py-2.5 bg-muted/30">
+        <Switch
+          id="enable_virtual"
+          checked={form.enable_virtual}
+          onCheckedChange={(v) => {
+            update("enable_virtual", v);
+            if (!v) {
+              setForm((prev) => ({ ...prev, online_link: "", zoom_password: "" }));
+            }
+          }}
+        />
+        <Label htmlFor="enable_virtual" className="text-sm cursor-pointer mb-0 flex items-center gap-1.5">
+          <Video className="h-3.5 w-3.5 text-primary" />
+          Enable Virtual / Zoom Meeting
+        </Label>
       </div>
 
       {/* Potluck toggle — hidden when type doesn't allow it */}
@@ -401,6 +401,12 @@ export default function DesignTab({ form, setForm }: DesignTabProps) {
               className="mt-1.5"
             />
           </div>
+
+          {form.zoom_password && (
+            <p className="text-xs text-muted-foreground bg-muted/50 rounded-md p-2 flex items-center gap-1.5">
+              🔑 Zoom Password: <span className="font-medium text-foreground">{form.zoom_password}</span>
+            </p>
+          )}
         </>
       )}
     </div>

@@ -112,6 +112,8 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
       scheduled_publish_at: (event as any).scheduled_publish_at
         ? format(new Date((event as any).scheduled_publish_at), "yyyy-MM-dd'T'HH:mm")
         : "",
+      enable_virtual: !!(event.online_link),
+      zoom_password: (event as any).zoom_password ?? "",
     };
   });
 
@@ -235,11 +237,12 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
         cover_photo_url: form.cover_photo_url,
         capacity: form.capacity ? parseInt(form.capacity) : null,
         waitlist_capacity: parseInt(form.waitlist_capacity) || 0,
-        is_hybrid: form.is_hybrid,
+        is_hybrid: form.enable_virtual && !!(form.location || form.venue_id),
         has_potluck: form.has_potluck,
         ticket_fee: parseFloat(form.ticket_fee) || 0,
         payment_instructions: form.payment_instructions || null,
         online_link: form.online_link || null,
+        zoom_password: form.zoom_password || null,
         checkin_pin: form.checkin_pin || null,
         status: form.status,
         host_id: form.host_id || null,

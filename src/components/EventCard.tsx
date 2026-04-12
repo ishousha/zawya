@@ -139,6 +139,12 @@ function EventCardInner({ event, onShowTicket, isPast = false }: EventCardProps)
             <TypeIcon className="h-3 w-3" />
             {typeLabel}
           </span>
+          {event.online_link && !isCancelled && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-[hsl(var(--primary)/0.15)] px-2.5 py-0.5 text-xs font-medium text-primary">
+              <Video className="h-3 w-3" />
+              {requiresLocation ? "Hybrid" : "Virtual"}
+            </span>
+          )}
           {(event as any).mureeds_only && (
             <span className="inline-flex items-center gap-1 rounded-full bg-primary/20 px-2.5 py-0.5 text-xs font-medium text-primary">
               🔒 Private
@@ -292,27 +298,39 @@ function EventCardInner({ event, onShowTicket, isPast = false }: EventCardProps)
             </a>
           </p>
         )}
-        {/* Time-gated virtual join button for events with online_link */}
+        {/* Zoom Lockbox — time-gated virtual join with password reveal */}
         {!isCancelled && onlineLink && canSeeJoinButton && (
-          <div className="mt-2 space-y-1">
-            <Button
-              size="sm"
-              variant={isLinkActive ? "default" : "outline"}
-              disabled={!isLinkActive}
-              className={`w-full gap-1.5 ${isLinkActive ? "animate-pulse-once" : ""}`}
-              onClick={() => {
-                if (isLinkActive && onlineLink) {
-                  window.open(onlineLink, "_blank", "noopener,noreferrer");
-                }
-              }}
-            >
-              <Video className="h-4 w-4" />
-              Join Virtual Event
-            </Button>
-            {!isLinkActive && (
-              <p className="text-xs text-muted-foreground text-center">
-                ⏳ Activates in <span className="font-medium text-foreground">{countdownText}</span>
-              </p>
+          <div className="mt-3 rounded-lg border border-border bg-muted/30 p-3 space-y-2">
+            {isLinkActive ? (
+              <>
+                {(event as any).zoom_password && (
+                  <p className="text-sm font-medium text-foreground">
+                    🔑 Zoom Password: <span className="font-bold">{(event as any).zoom_password}</span>
+                  </p>
+                )}
+                <Button
+                  size="sm"
+                  variant="default"
+                  className="w-full gap-1.5"
+                  onClick={() => window.open(onlineLink, "_blank", "noopener,noreferrer")}
+                >
+                  <Video className="h-4 w-4" />
+                  Join Virtual Event
+                </Button>
+              </>
+            ) : (
+              <>
+                <p className="text-sm text-muted-foreground text-center">
+                  🔒 Meeting link and password will unlock 15 minutes before the event.
+                </p>
+                <Button size="sm" variant="outline" disabled className="w-full gap-1.5">
+                  <Lock className="h-4 w-4" />
+                  Join Virtual Event
+                </Button>
+                <p className="text-xs text-muted-foreground text-center">
+                  ⏳ Unlocks in <span className="font-medium text-foreground">{countdownText}</span>
+                </p>
+              </>
             )}
           </div>
         )}
