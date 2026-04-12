@@ -17,9 +17,10 @@ import { useEventTypes } from "@/hooks/useEventTypes";
 interface DesignTabProps {
   form: EventFormState;
   setForm: React.Dispatch<React.SetStateAction<EventFormState>>;
+  isEditing?: boolean;
 }
 
-export default function DesignTab({ form, setForm }: DesignTabProps) {
+export default function DesignTab({ form, setForm, isEditing }: DesignTabProps) {
   const [bookingZoom, setBookingZoom] = useState(false);
   const [zoomError, setZoomError] = useState<string | null>(null);
 
