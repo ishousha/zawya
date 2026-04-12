@@ -73,6 +73,10 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
   const isNewEvent = !event || !!initialForm;
   // Track whether the event was already published before editing
   const wasAlreadyPublished = useRef(!!(event && (event as any).published));
+  // Track original start time for Zoom auto-sync
+  const originalDateTime = useRef(
+    event?.date_time ? format(new Date(event.date_time), "yyyy-MM-dd'T'HH:mm") : ""
+  );
 
   const [form, setForm] = useState<EventFormState>(() => {
     if (initialForm) return initialForm;
