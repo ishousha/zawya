@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Camera, Check } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
+import { Camera, Check, ImageOff } from "lucide-react";
 import { Label } from "@/components/ui/label";
 
 const stockImages = [
@@ -24,10 +24,21 @@ interface CoverPhotoUploadProps {
 
 export default function CoverPhotoUpload({ value, onChange }: CoverPhotoUploadProps) {
   const [isGalleryExpanded, setIsGalleryExpanded] = useState(!value);
+  const galleryRef = useRef<HTMLDivElement>(null);
+  const [galleryHeight, setGalleryHeight] = useState<number | undefined>(undefined);
 
-  const handleSelect = (url: string) => {
+  // Measure gallery content height for smooth animation
+  useEffect(() => {
+    if (galleryRef.current) {
+      setGalleryHeight(galleryRef.current.scrollHeight);
+    }
+  }, [isGalleryExpanded]);
+
+  const handleSelect = (url: string | null) => {
     onChange(url);
-    setIsGalleryExpanded(false);
+    if (url) {
+      setIsGalleryExpanded(false);
+    }
   };
 
   return (
@@ -35,7 +46,7 @@ export default function CoverPhotoUpload({ value, onChange }: CoverPhotoUploadPr
       <Label className="block">Cover Image</Label>
 
       {/* Preview with Change Cover overlay */}
-      {value && (
+      {value ? (
         <button
           type="button"
           onClick={() => setIsGalleryExpanded((v) => !v)}
@@ -52,16 +63,46 @@ export default function CoverPhotoUpload({ value, onChange }: CoverPhotoUploadPr
               Change Cover
             </span>
           </div>
-          {/* Always-visible hint on mobile */}
           <div className="absolute bottom-2 right-2 bg-black/50 rounded-full p-1.5 group-hover:hidden">
             <Camera className="h-3.5 w-3.5 text-white" />
           </div>
         </button>
+      ) : (
+        !isGalleryExpanded && (
+          <button
+            type="button"
+            onClick={() => setIsGalleryExpanded(true)}
+            className="w-full h-32 rounded-lg border-2 border-dashed border-border flex flex-col items-center justify-center gap-1.5 text-muted-foreground hover:border-primary/50 hover:text-primary transition-colors"
+          >
+            <Camera className="h-5 w-5" />
+            <span className="text-sm font-medium">Add Cover Image</span>
+          </button>
+        )
       )}
 
-      {/* Expandable thumbnail carousel */}
-      {isGalleryExpanded && (
-        <div className="flex overflow-x-auto gap-3 mt-1 pb-2 scrollbar-thin">
+      {/* Animated expandable thumbnail carousel */}
+      <div
+        className="overflow-hidden transition-all duration-300 ease-out"
+        style={{
+          maxHeight: isGalleryExpanded ? (galleryHeight ?? 200) : 0,
+          opacity: isGalleryExpanded ? 1 : 0,
+        }}
+      >
+        <div ref={galleryRef} className="flex overflow-x-auto gap-3 pt-1 pb-2 scrollbar-thin">
+          {/* No Cover option */}
+          <button
+            type="button"
+            onClick={() => handleSelect(null)}
+            className={`relative flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 transition-all duration-150 flex flex-col items-center justify-center gap-1 ${
+              value === null
+                ? "border-primary ring-2 ring-primary/40 scale-105 bg-primary/5"
+                : "border-border hover:border-primary/50 bg-muted/50"
+            }`}
+          >
+            <ImageOff className="h-4 w-4 text-muted-foreground" />
+            <span className="text-[10px] font-medium text-muted-foreground">No Cover</span>
+          </button>
+
           {stockImages.map((url) => {
             const isSelected = value === url;
             return (
@@ -92,7 +133,7 @@ export default function CoverPhotoUpload({ value, onChange }: CoverPhotoUploadPr
             );
           })}
         </div>
-      )}
+      </div>
     </div>
   );
 }
