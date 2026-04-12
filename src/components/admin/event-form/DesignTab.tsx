@@ -358,18 +358,21 @@ export default function DesignTab({ form, setForm }: DesignTabProps) {
             <div className="flex items-center justify-between">
               <Label className="flex items-center gap-1.5 mb-0 text-sm">
                 <Video className="h-4 w-4 text-primary" />
-                One-Click Zoom Booking
+                {isZoomUpdate ? "Zoom Meeting Linked" : "One-Click Zoom Booking"}
               </Label>
               <Button
                 type="button"
                 size="sm"
-                variant={zoomError ? "destructive" : "outline"}
+                variant={zoomError ? "destructive" : isZoomUpdate ? "secondary" : "outline"}
                 disabled={bookingZoom}
                 onClick={handleGenerateZoom}
                 className="gap-1.5"
               >
                 {bookingZoom ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Video className="h-3.5 w-3.5" />}
-                {bookingZoom ? "Booking…" : zoomError ? "Retry" : "Generate Zoom Link"}
+                {bookingZoom
+                  ? isZoomUpdate ? "Updating…" : "Booking…"
+                  : zoomError ? "Retry"
+                  : isZoomUpdate ? "Update Zoom Time" : "Generate Zoom Link"}
               </Button>
             </div>
             {zoomError && (
@@ -379,7 +382,9 @@ export default function DesignTab({ form, setForm }: DesignTabProps) {
               </p>
             )}
             <p className="text-xs text-muted-foreground">
-              Generates a Zoom meeting and fills in the link + meeting details automatically.
+              {isZoomUpdate
+                ? "Updates the meeting start time on Zoom to match this event."
+                : "Generates a Zoom meeting and fills in the link + meeting details automatically."}
             </p>
           </div>
 
