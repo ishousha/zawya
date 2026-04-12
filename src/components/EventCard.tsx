@@ -90,10 +90,10 @@ function EventCardInner({ event, onShowTicket, isPast = false }: EventCardProps)
   })();
 
   useEffect(() => {
-    if (!onlineLink || isLinkActive) return;
+    if (!isVirtual || isLinkActive) return;
     const interval = setInterval(() => setNow(new Date()), 1_000);
     return () => clearInterval(interval);
-  }, [onlineLink, isLinkActive]);
+  }, [isVirtual, isLinkActive]);
 
   // Calculate waitlist position for the current user
   const waitlistPosition = useMemo(() => {
