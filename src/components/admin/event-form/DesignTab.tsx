@@ -19,9 +19,18 @@ const DURATION_OPTIONS = [
   { label: "1.5 hours", minutes: 90 },
   { label: "2 hours", minutes: 120 },
   { label: "3 hours", minutes: 180 },
-  { label: "All Day", minutes: 1440 },
+  { label: "All Day", minutes: -2 },
+  { label: "2 Days", minutes: 2880 },
+  { label: "3 Days", minutes: 4320 },
+  { label: "1 Week", minutes: 10080 },
   { label: "Custom", minutes: -1 },
 ] as const;
+
+const FMT = (n: number) => String(n).padStart(2, "0");
+
+function formatDatetimeLocal(d: Date): string {
+  return `${d.getFullYear()}-${FMT(d.getMonth() + 1)}-${FMT(d.getDate())}T${FMT(d.getHours())}:${FMT(d.getMinutes())}`;
+}
 
 function minutesBetween(start: string, end: string): number {
   if (!start || !end) return -1;
@@ -31,14 +40,29 @@ function minutesBetween(start: string, end: string): number {
 function addMinutesToDatetime(dt: string, mins: number): string {
   const d = new Date(dt);
   d.setMinutes(d.getMinutes() + mins);
-  // Format as datetime-local value
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  return formatDatetimeLocal(d);
+}
+
+/** For "All Day": set start to 00:00 and end to 23:59 of the same day */
+function allDayRange(dt: string): { start: string; end: string } {
+  const d = new Date(dt);
+  const dayStart = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0);
+  const dayEnd = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59);
+  return { start: formatDatetimeLocal(dayStart), end: formatDatetimeLocal(dayEnd) };
+}
+
+function isAllDay(start: string, end: string): boolean {
+  if (!start || !end) return false;
+  const s = new Date(start);
+  const e = new Date(end);
+  return s.getHours() === 0 && s.getMinutes() === 0 && e.getHours() === 23 && e.getMinutes() === 59
+    && s.getFullYear() === e.getFullYear() && s.getMonth() === e.getMonth() && s.getDate() === e.getDate();
 }
 
 function detectDuration(start: string, end: string): string {
+  if (isAllDay(start, end)) return "All Day";
   const mins = minutesBetween(start, end);
-  const match = DURATION_OPTIONS.find((o) => o.minutes === mins);
+  const match = DURATION_OPTIONS.find((o) => o.minutes > 0 && o.minutes === mins);
   return match ? match.label : "Custom";
 }
 import { useEventTypes } from "@/hooks/useEventTypes";
