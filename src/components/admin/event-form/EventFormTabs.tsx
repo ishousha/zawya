@@ -286,12 +286,15 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
           }
         })());
 
-        // Speakers
+        // Speakers — sanitize to raw UUID strings in case objects leak in
         parallelOps.push((async () => {
           const { error: deleteSpeakersError } = await supabase.from("event_speakers").delete().eq("event_id", eventId!);
           if (deleteSpeakersError) throw deleteSpeakersError;
-          if (form.speaker_ids.length > 0) {
-            const speakerRows = form.speaker_ids.map((sid, i) => ({
+          const cleanSpeakerIds = form.speaker_ids
+            .map((sid: any) => (typeof sid === "string" ? sid : sid?.id ?? sid?.speaker_id))
+            .filter(Boolean) as string[];
+          if (cleanSpeakerIds.length > 0) {
+            const speakerRows = cleanSpeakerIds.map((sid, i) => ({
               event_id: eventId,
               speaker_id: sid,
               display_order: i,
