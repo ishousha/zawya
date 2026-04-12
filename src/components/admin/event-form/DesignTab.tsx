@@ -401,6 +401,12 @@ export default function DesignTab({ form, setForm }: DesignTabProps) {
               className="mt-1.5"
             />
           </div>
+
+          {form.zoom_password && (
+            <p className="text-xs text-muted-foreground bg-muted/50 rounded-md p-2 flex items-center gap-1.5">
+              🔑 Zoom Password: <span className="font-medium text-foreground">{form.zoom_password}</span>
+            </p>
+          )}
         </>
       )}
     </div>

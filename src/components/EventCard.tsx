@@ -139,6 +139,12 @@ function EventCardInner({ event, onShowTicket, isPast = false }: EventCardProps)
             <TypeIcon className="h-3 w-3" />
             {typeLabel}
           </span>
+          {event.online_link && !isCancelled && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-[hsl(var(--primary)/0.15)] px-2.5 py-0.5 text-xs font-medium text-primary">
+              <Video className="h-3 w-3" />
+              {requiresLocation ? "Hybrid" : "Virtual"}
+            </span>
+          )}
           {(event as any).mureeds_only && (
             <span className="inline-flex items-center gap-1 rounded-full bg-primary/20 px-2.5 py-0.5 text-xs font-medium text-primary">
               🔒 Private
