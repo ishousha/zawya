@@ -55,11 +55,14 @@ export default function DesignTab({ form, setForm }: DesignTabProps) {
         body: JSON.stringify(payload),
       });
       if (!res.ok) throw new Error("Webhook returned " + res.status);
-      const data = await res.json();
 
       if (isZoomUpdate) {
-        toast.success("Zoom meeting time updated successfully!");
+        // Update response may be minimal (e.g. {"status":"updated"}) — no need to parse join_url
+        try { await res.json(); } catch { /* ignore empty body */ }
+        toast.success("Zoom meeting time updated!");
+        setZoomError(null);
       } else {
+        const data = await res.json();
         const joinUrl = data.join_url ?? data.joinUrl ?? "";
         if (!joinUrl) throw new Error("No Zoom link returned — unexpected response format.");
         const meetingId = data.id ?? data.meeting_id ?? "";
