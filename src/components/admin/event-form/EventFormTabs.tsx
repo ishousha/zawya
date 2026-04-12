@@ -237,7 +237,7 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
         cover_photo_url: form.cover_photo_url,
         capacity: form.capacity ? parseInt(form.capacity) : null,
         waitlist_capacity: parseInt(form.waitlist_capacity) || 0,
-        is_hybrid: form.is_hybrid,
+        is_hybrid: form.enable_virtual && !!(form.location || form.venue_id),
         has_potluck: form.has_potluck,
         ticket_fee: parseFloat(form.ticket_fee) || 0,
         payment_instructions: form.payment_instructions || null,
