@@ -396,7 +396,7 @@ function EventCardInner({ event, onShowTicket, isPast = false }: EventCardProps)
                   </Button>
                 )}
               </div>
-              {isCheckedIn && (
+              {isPhysical && isCheckedIn && (
                 <Button
                   size="sm"
                   variant="default"
@@ -407,7 +407,7 @@ function EventCardInner({ event, onShowTicket, isPast = false }: EventCardProps)
                   ✓ Checked In
                 </Button>
               )}
-              {canSelfCheckin && (
+              {isPhysical && canSelfCheckin && (
                 <Button
                   size="sm"
                   variant={isCheckinActive ? "default" : "outline"}
