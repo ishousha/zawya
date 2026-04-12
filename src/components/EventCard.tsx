@@ -172,7 +172,7 @@ function EventCardInner({ event, onShowTicket, isPast = false }: EventCardProps)
           {!isCancelled && isAttending && !isWaitlisted && (
             <span className="inline-flex items-center gap-1 rounded-full bg-accent px-2.5 py-0.5 text-xs font-medium text-accent-foreground">
               <CheckCircle2 className="h-3 w-3" />
-              {isCheckedIn ? "Checked In" : "Attending"}
+              {isPhysical && isCheckedIn ? "Checked In" : "Attending"}
             </span>
           )}
           {!isCancelled && isAttending && isWaitlisted && (
@@ -191,7 +191,7 @@ function EventCardInner({ event, onShowTicket, isPast = false }: EventCardProps)
               👥 {(event as any).age_group}
             </span>
           )}
-          {checkedInCount > 0 && isAttending && (
+          {isPhysical && checkedInCount > 0 && isAttending && (
             <span className="inline-flex items-center gap-1 text-xs text-primary font-medium">
               <CheckCircle2 className="h-3 w-3" />
               {checkedInCount} arrived
