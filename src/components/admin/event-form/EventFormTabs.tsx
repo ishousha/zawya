@@ -243,6 +243,7 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
         payment_instructions: form.payment_instructions || null,
         online_link: form.online_link || null,
         zoom_password: form.zoom_password || null,
+        checkin_pin: form.checkin_pin || null,
         status: form.status,
         host_id: form.host_id || null,
         mureeds_only: form.mureeds_only === true,
