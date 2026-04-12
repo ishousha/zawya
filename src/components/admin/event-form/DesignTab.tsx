@@ -415,57 +415,55 @@ export default function DesignTab({ form, setForm, isEditing }: DesignTabProps) 
         </div>
       )}
 
-      {/* Start, Duration & End date/time */}
-      <div className="space-y-3">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div>
-            <Label htmlFor="start">Start Date & Time</Label>
-            <Input
-              id="start"
-              type="datetime-local"
-              value={form.date_time}
-              onChange={(e) => handleStartChange(e.target.value)}
-              className="mt-1.5"
-            />
-          </div>
-          <div>
-            <Label htmlFor="duration" className="flex items-center gap-1.5">
-              <Clock className="h-3.5 w-3.5 text-primary" />
-              Duration
-            </Label>
-            <Select value={duration} onValueChange={handleDurationChange}>
-              <SelectTrigger className="mt-1.5" id="duration">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {DURATION_OPTIONS.map((opt) => (
-                  <SelectItem key={opt.label} value={opt.label}>
-                    {opt.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
+      {/* Start, End & Duration — strict 2-col grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
+        {/* Row 1, Col 1 */}
         <div>
-          <Label htmlFor="end">End Date & Time</Label>
+          <Label htmlFor="start" className="text-sm font-medium">Start Date & Time</Label>
+          <Input
+            id="start"
+            type="datetime-local"
+            value={form.date_time}
+            onChange={(e) => handleStartChange(e.target.value)}
+            className="mt-1.5 h-10"
+          />
+        </div>
+        {/* Row 1, Col 2 */}
+        <div>
+          <Label htmlFor="end" className="text-sm font-medium">End Date & Time</Label>
           <Input
             id="end"
             type="datetime-local"
             value={form.end_date_time}
             onChange={(e) => handleEndChange(e.target.value)}
             min={form.date_time || undefined}
-            className={`mt-1.5 ${endBeforeStart ? "border-destructive focus-visible:ring-destructive" : ""}`}
+            className={`mt-1.5 h-10 ${endBeforeStart ? "border-destructive focus-visible:ring-destructive" : ""}`}
           />
-          {duration === "Custom" && (
-            <p className="text-xs text-muted-foreground mt-1">
-              Custom duration — end time set manually
-            </p>
-          )}
           {endBeforeStart && (
             <p className="flex items-center gap-1 text-xs text-destructive mt-1">
               <AlertCircle className="h-3 w-3" />
               End must be after start
+            </p>
+          )}
+        </div>
+        {/* Row 2, Col 1 */}
+        <div>
+          <Label htmlFor="duration" className="text-sm font-medium">Duration</Label>
+          <Select value={duration} onValueChange={handleDurationChange}>
+            <SelectTrigger className="mt-1.5 h-10 w-full" id="duration">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {DURATION_OPTIONS.map((opt) => (
+                <SelectItem key={opt.label} value={opt.label}>
+                  {opt.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {duration === "Custom" && (
+            <p className="text-xs text-muted-foreground mt-1">
+              Custom duration — end time set manually
             </p>
           )}
         </div>
