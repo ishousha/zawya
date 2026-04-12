@@ -65,7 +65,7 @@ function EventCardInner({ event, onShowTicket, isPast = false }: EventCardProps)
   const linkActivatesAt = eventTime - 15 * 60 * 1000;
   const isLinkActive = now.getTime() >= linkActivatesAt;
   const isAdminOrMod = profile?.role === "admin" || profile?.role === "moderator";
-  const canSeeJoinButton = isAdminOrMod || (isAttending && !isWaitlisted);
+  
 
   // Self check-in: active within 2 hours of event start
   const checkinActivatesAt = eventTime - 2 * 60 * 60 * 1000;
