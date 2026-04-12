@@ -103,50 +103,56 @@ export default function DateTimePicker({
   };
 
   return (
-    <div className={cn("flex gap-2", className)}>
+    <div className={cn("flex flex-row gap-2 w-full", className)}>
       {/* Date popover */}
-      <Popover>
-        <PopoverTrigger asChild>
-          <Button
-            type="button"
-            variant="outline"
-            className={cn(
-              "h-10 flex-1 justify-start text-left font-normal",
-              !dateObj && "text-muted-foreground",
-              error && "border-destructive focus-visible:ring-destructive"
-            )}
-          >
-            <CalendarIcon className="mr-2 h-4 w-4" />
-            {dateObj ? format(dateObj, "EEE, MMM d, yyyy") : "Pick a date"}
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-auto p-0" align="start">
-          <Calendar
-            mode="single"
-            selected={dateObj}
-            onSelect={handleDateSelect}
-            initialFocus
-            className="p-3 pointer-events-auto"
-          />
-        </PopoverContent>
-      </Popover>
+      <div className="flex-[3] min-w-0">
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button
+              type="button"
+              variant="outline"
+              className={cn(
+                "h-10 w-full justify-start text-left font-normal truncate",
+                !dateObj && "text-muted-foreground",
+                error && "border-destructive focus-visible:ring-destructive"
+              )}
+            >
+              <CalendarIcon className="mr-2 h-4 w-4 shrink-0" />
+              <span className="truncate">
+                {dateObj ? format(dateObj, "EEE, MMM d, yyyy") : "Pick a date"}
+              </span>
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="start">
+            <Calendar
+              mode="single"
+              selected={dateObj}
+              onSelect={handleDateSelect}
+              initialFocus
+              className="p-3 pointer-events-auto"
+            />
+          </PopoverContent>
+        </Popover>
+      </div>
 
       {/* Time select */}
-      <Select value={currentTime} onValueChange={handleTimeChange}>
-        <SelectTrigger className={cn(
-          "h-10 w-[120px] shrink-0",
-          error && "border-destructive focus-visible:ring-destructive"
-        )}>
-          <SelectValue placeholder="Time" />
-        </SelectTrigger>
-        <SelectContent className="max-h-[280px]">
-          {TIME_OPTIONS.map((opt) => (
-            <SelectItem key={opt.value} value={opt.value}>
-              {opt.label}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+      <div className="flex-[2] min-w-0">
+        <Select value={currentTime} onValueChange={handleTimeChange}>
+          <SelectTrigger className={cn(
+            "h-10 w-full",
+            error && "border-destructive focus-visible:ring-destructive"
+          )}>
+            <SelectValue placeholder="Time" />
+          </SelectTrigger>
+          <SelectContent className="max-h-[280px]">
+            {TIME_OPTIONS.map((opt) => (
+              <SelectItem key={opt.value} value={opt.value}>
+                {opt.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
     </div>
   );
 }

@@ -417,27 +417,23 @@ export default function DesignTab({ form, setForm, isEditing }: DesignTabProps) 
       )}
 
       {/* Start, End & Duration — strict 2-col grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
-        {/* Row 1, Col 1 */}
-        <div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
+        {/* Row 1, Col 1 — Start */}
+        <div className="flex flex-col gap-1.5 w-full">
           <Label className="text-sm font-medium">Start Date & Time</Label>
-          <div className="mt-1.5">
-            <DateTimePicker
-              value={form.date_time}
-              onChange={(val) => handleStartChange(val)}
-            />
-          </div>
+          <DateTimePicker
+            value={form.date_time}
+            onChange={(val) => handleStartChange(val)}
+          />
         </div>
-        {/* Row 1, Col 2 */}
-        <div>
+        {/* Row 1, Col 2 — End */}
+        <div className="flex flex-col gap-1.5 w-full">
           <Label className="text-sm font-medium">End Date & Time</Label>
-          <div className="mt-1.5">
-            <DateTimePicker
-              value={form.end_date_time}
-              onChange={(val) => handleEndChange(val)}
-              error={!!endBeforeStart}
-            />
-          </div>
+          <DateTimePicker
+            value={form.end_date_time}
+            onChange={(val) => handleEndChange(val)}
+            error={!!endBeforeStart}
+          />
           {endBeforeStart && (
             <p className="flex items-center gap-1 text-xs text-destructive mt-1">
               <AlertCircle className="h-3 w-3" />
@@ -445,11 +441,11 @@ export default function DesignTab({ form, setForm, isEditing }: DesignTabProps) 
             </p>
           )}
         </div>
-        {/* Row 2, Col 1 */}
-        <div>
+        {/* Row 2, Col 1 — Duration */}
+        <div className="flex flex-col gap-1.5 w-full col-span-1 md:col-start-1">
           <Label htmlFor="duration" className="text-sm font-medium">Duration</Label>
           <Select value={duration} onValueChange={handleDurationChange}>
-            <SelectTrigger className="mt-1.5 h-10 w-full" id="duration">
+            <SelectTrigger className="h-10 w-full" id="duration">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
