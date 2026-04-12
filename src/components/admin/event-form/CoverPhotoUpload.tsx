@@ -1,4 +1,5 @@
-import { Check } from "lucide-react";
+import { useState } from "react";
+import { Camera, Check } from "lucide-react";
 import { Label } from "@/components/ui/label";
 
 const stockImages = [
@@ -22,31 +23,53 @@ interface CoverPhotoUploadProps {
 }
 
 export default function CoverPhotoUpload({ value, onChange }: CoverPhotoUploadProps) {
+  const [isGalleryExpanded, setIsGalleryExpanded] = useState(!value);
+
+  const handleSelect = (url: string) => {
+    onChange(url);
+    setIsGalleryExpanded(false);
+  };
+
   return (
-    <div className="space-y-3">
-      {/* Live Preview */}
+    <div className="space-y-2">
+      <Label className="block">Cover Image</Label>
+
+      {/* Preview with Change Cover overlay */}
       {value && (
-        <div className="rounded-xl overflow-hidden border border-border">
+        <button
+          type="button"
+          onClick={() => setIsGalleryExpanded((v) => !v)}
+          className="relative w-full rounded-lg overflow-hidden border border-border group focus:outline-none focus:ring-2 focus:ring-primary/40"
+        >
           <img
             src={value}
             alt="Selected cover"
-            className="w-full h-48 object-cover"
+            className="w-full h-32 object-cover"
           />
-        </div>
+          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
+            <span className="flex items-center gap-1.5 text-sm font-medium text-white opacity-0 group-hover:opacity-100 transition-opacity bg-black/50 rounded-full px-3 py-1.5">
+              <Camera className="h-3.5 w-3.5" />
+              Change Cover
+            </span>
+          </div>
+          {/* Always-visible hint on mobile */}
+          <div className="absolute bottom-2 right-2 bg-black/50 rounded-full p-1.5 group-hover:hidden">
+            <Camera className="h-3.5 w-3.5 text-white" />
+          </div>
+        </button>
       )}
 
-      {/* Gallery Picker */}
-      <div>
-        <Label className="mb-2 block">Choose Cover Image</Label>
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-1.5">
+      {/* Expandable thumbnail carousel */}
+      {isGalleryExpanded && (
+        <div className="flex overflow-x-auto gap-3 mt-1 pb-2 scrollbar-thin">
           {stockImages.map((url) => {
             const isSelected = value === url;
             return (
               <button
                 key={url}
                 type="button"
-                onClick={() => onChange(url)}
-                className={`relative aspect-square rounded-lg overflow-hidden border-2 transition-all duration-150 ${
+                onClick={() => handleSelect(url)}
+                className={`relative flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 transition-all duration-150 ${
                   isSelected
                     ? "border-primary ring-2 ring-primary/40 scale-105"
                     : "border-border hover:border-primary/50"
@@ -54,14 +77,14 @@ export default function CoverPhotoUpload({ value, onChange }: CoverPhotoUploadPr
               >
                 <img
                   src={url}
-                  alt="Stock cover option"
+                  alt="Cover option"
                   loading="lazy"
                   className="w-full h-full object-cover"
                 />
                 {isSelected && (
                   <div className="absolute inset-0 bg-primary/20 flex items-center justify-center">
-                    <div className="bg-primary text-primary-foreground rounded-full p-1">
-                      <Check className="h-3.5 w-3.5" />
+                    <div className="bg-primary text-primary-foreground rounded-full p-0.5">
+                      <Check className="h-3 w-3" />
                     </div>
                   </div>
                 )}
@@ -69,7 +92,7 @@ export default function CoverPhotoUpload({ value, onChange }: CoverPhotoUploadPr
             );
           })}
         </div>
-      </div>
+      )}
     </div>
   );
 }
