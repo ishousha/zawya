@@ -275,7 +275,7 @@ function EventCardInner({ event, onShowTicket, isPast = false }: EventCardProps)
           </p>
         )}
         {/* Zoom Lockbox — 3-state virtual meeting section */}
-        {!isCancelled && onlineLink && (() => {
+        {!isCancelled && isVirtual && (() => {
           const hasRsvp = isAttending && !isWaitlisted;
           const isAdminAccess = isAdminOrMod;
           const hasAccess = hasRsvp || isAdminAccess;
@@ -291,8 +291,8 @@ function EventCardInner({ event, onShowTicket, isPast = false }: EventCardProps)
             );
           }
 
-          // State 3: Has access + within 15 min (or live)
-          if (hasAccess && isLinkActive) {
+          // State 3: Has access + within 15 min (or live) + link exists
+          if (hasAccess && isLinkActive && onlineLink) {
             return (
               <div className="mt-3 rounded-lg border border-primary/30 bg-primary/5 p-3 space-y-2">
                 {event.zoom_password && (
@@ -313,7 +313,7 @@ function EventCardInner({ event, onShowTicket, isPast = false }: EventCardProps)
             );
           }
 
-          // State 2: Has access but > 15 min before start
+          // State 2: Has access but > 15 min before start OR no link yet
           return (
             <div className="mt-3 rounded-lg border border-border bg-muted/20 p-3 space-y-1.5">
               <p className="text-sm text-muted-foreground text-center">
