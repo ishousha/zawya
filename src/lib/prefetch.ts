@@ -14,13 +14,13 @@ export function prefetchHome(queryClient: QueryClient) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("events")
-        .select("*")
+        .select("id, title, date_time, end_date_time, location, address, status, cover_photo_url, event_type_id, capacity, has_potluck, virtual_link, zoom_link, online_link, is_hybrid, host_id, description, venue_id, ticket_fee, mureeds_only, age_group, location_hint, etiquette_notes, payment_instructions, waitlist_capacity, published, scheduled_publish_at, last_published_at, created_at, updated_at")
         .in("status", ["active", "full", "cancelled"])
         .or(`end_date_time.gte.${now},and(end_date_time.is.null,date_time.gte.${fallbackCutoff})`)
         .order("date_time", { ascending: true })
         .limit(10);
       if (error) throw error;
-      return data;
+      return data as unknown as import("@/integrations/supabase/types").Database["public"]["Tables"]["events"]["Row"][];
     },
   });
 }
