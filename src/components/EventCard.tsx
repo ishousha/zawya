@@ -276,9 +276,10 @@ function EventCardInner({ event, onShowTicket, isPast = false }: EventCardProps)
         {!isCancelled && onlineLink && (() => {
           const hasRsvp = isAttending && !isWaitlisted;
           const isAdminAccess = isAdminOrMod;
+          const hasAccess = hasRsvp || isAdminAccess;
 
-          // State 1: Not RSVP'd (and not admin)
-          if (!hasRsvp && !isAdminAccess) {
+          // State 1: Not RSVP'd (and not admin) — STRICTLY hide everything
+          if (!hasAccess) {
             return (
               <div className="mt-3 rounded-lg border border-border bg-muted/20 p-3">
                 <p className="text-sm text-muted-foreground text-center">
@@ -288,8 +289,8 @@ function EventCardInner({ event, onShowTicket, isPast = false }: EventCardProps)
             );
           }
 
-          // State 3: RSVP'd + within 15 min (or admin)
-          if (isLinkActive) {
+          // State 3: Has access + within 15 min (or live)
+          if (hasAccess && isLinkActive) {
             return (
               <div className="mt-3 rounded-lg border border-primary/30 bg-primary/5 p-3 space-y-2">
                 {event.zoom_password && (
@@ -310,15 +311,17 @@ function EventCardInner({ event, onShowTicket, isPast = false }: EventCardProps)
             );
           }
 
-          // State 2: RSVP'd but > 15 min before start
+          // State 2: Has access but > 15 min before start
           return (
             <div className="mt-3 rounded-lg border border-border bg-muted/20 p-3 space-y-1.5">
               <p className="text-sm text-muted-foreground text-center">
                 🗓️ You're going! The virtual meeting link will unlock 15 minutes before the event starts.
               </p>
-              <p className="text-xs text-muted-foreground text-center">
-                ⏳ Unlocks in <span className="font-medium text-foreground">{countdownText}</span>
-              </p>
+              {countdownText && (
+                <p className="text-xs text-muted-foreground text-center">
+                  ⏳ Unlocks in <span className="font-medium text-foreground">{countdownText}</span>
+                </p>
+              )}
             </div>
           );
         })()}

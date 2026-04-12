@@ -5,10 +5,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Users, Clock, KeyRound, RefreshCw, UtensilsCrossed, Lock, DollarSign, BellRing, ScrollText, CalendarClock } from "lucide-react";
+import { Users, Clock, KeyRound, RefreshCw, UtensilsCrossed, Lock, DollarSign, BellRing, ScrollText, CalendarClock, Info } from "lucide-react";
 import type { EventFormState } from "./types";
 import { generateCheckinPin } from "./types";
 import HostSelector from "./HostSelector";
+import { useEventTypes } from "@/hooks/useEventTypes";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 
 interface SettingsTabProps {
@@ -19,6 +21,10 @@ interface SettingsTabProps {
 export default function SettingsTab({ form, setForm, isEditing }: SettingsTabProps & { isEditing?: boolean }) {
   const update = <K extends keyof EventFormState>(key: K, value: EventFormState[K]) =>
     setForm((prev) => ({ ...prev, [key]: value }));
+
+  const { data: eventTypes } = useEventTypes();
+  const selectedType = eventTypes?.find((t) => t.id === form.event_type_id);
+  const isPurelyVirtual = selectedType ? !selectedType.requires_location : false;
 
   return (
     <div className="space-y-6 py-4">
@@ -109,30 +115,51 @@ export default function SettingsTab({ form, setForm, isEditing }: SettingsTabPro
       />
 
       {/* Potluck Toggle */}
-      <div>
+      <div className={isPurelyVirtual ? "opacity-50" : ""}>
         <div className="flex items-center gap-2 mb-3">
           <UtensilsCrossed className="h-4 w-4 text-primary" />
           <h3 className="text-sm font-semibold text-foreground">Potluck</h3>
+          {isPurelyVirtual && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Info className="h-3.5 w-3.5 text-muted-foreground" />
+                </TooltipTrigger>
+                <TooltipContent>Not applicable for virtual events.</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
         </div>
         <div className="flex items-center justify-between rounded-lg border border-border p-3">
           <div>
             <p className="text-sm font-medium text-foreground">Is this a Potluck?</p>
             <p className="text-xs text-muted-foreground">
-              Members can share what dish they're bringing
+              {isPurelyVirtual ? "Not applicable for virtual events." : "Members can share what dish they're bringing"}
             </p>
           </div>
           <Switch
-            checked={form.has_potluck}
+            checked={isPurelyVirtual ? false : form.has_potluck}
             onCheckedChange={(v) => update("has_potluck", v)}
+            disabled={isPurelyVirtual}
           />
         </div>
       </div>
 
       {/* Check-in PIN */}
-      <div>
+      <div className={isPurelyVirtual ? "opacity-50" : ""}>
         <div className="flex items-center gap-2 mb-3">
           <KeyRound className="h-4 w-4 text-primary" />
           <h3 className="text-sm font-semibold text-foreground">Self Check-in PIN</h3>
+          {isPurelyVirtual && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Info className="h-3.5 w-3.5 text-muted-foreground" />
+                </TooltipTrigger>
+                <TooltipContent>Not applicable for virtual events.</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
         </div>
         <div className="flex gap-2">
           <Input
@@ -148,6 +175,7 @@ export default function SettingsTab({ form, setForm, isEditing }: SettingsTabPro
             }}
             placeholder="4-digit PIN"
             className="font-mono text-lg tracking-[0.3em] max-w-32"
+            disabled={isPurelyVirtual}
           />
           <Button
             type="button"
@@ -155,12 +183,13 @@ export default function SettingsTab({ form, setForm, isEditing }: SettingsTabPro
             variant="outline"
             onClick={() => update("checkin_pin", generateCheckinPin())}
             title="Generate new PIN"
+            disabled={isPurelyVirtual}
           >
             <RefreshCw className="h-4 w-4" />
           </Button>
         </div>
         <p className="text-xs text-muted-foreground mt-1">
-          Members enter this PIN at the door to self check-in
+          {isPurelyVirtual ? "Not applicable for virtual events." : "Members enter this PIN at the door to self check-in"}
         </p>
       </div>
 
