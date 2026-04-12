@@ -461,11 +461,11 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
         </Tabs>
       </div>
 
-      <div className="px-6 pb-4 pt-2 border-t bg-card shrink-0 z-10 space-y-2">
-          <div className="flex gap-2">
+      <div className="px-4 pb-4 pt-2 border-t bg-card shrink-0 z-10 max-w-full overflow-hidden">
+          <div className="flex flex-col-reverse md:flex-row items-center justify-end gap-3 w-full">
             <Button
               variant="outline"
-              className="h-12 gap-1.5"
+              className="w-full md:w-auto h-12 gap-1.5"
               onClick={() => setShowPreview(true)}
               disabled={!form.title}
             >
@@ -474,7 +474,7 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
             </Button>
             <Button
               variant="outline"
-              className="flex-1 h-12 gap-1.5"
+              className="w-full md:w-auto h-12 gap-1.5"
               onClick={() => {
                 if (form.end_date_time && form.end_date_time <= form.date_time) {
                   toast.error("End time must be after start time");
@@ -489,7 +489,7 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
               Save Draft
             </Button>
             <Button
-              className="flex-1 h-12 gap-1.5"
+              className="w-full md:w-auto h-12 gap-1.5"
               onClick={() => {
                 if (form.end_date_time && form.end_date_time <= form.date_time) {
                   toast.error("End time must be after start time");
