@@ -1,6 +1,6 @@
 import { format } from "date-fns";
 import { Calendar, Clock, MapPin, Building2, Video, Users, Lock, Ban } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogOverlay, DialogPortal } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import LazyImage from "@/components/LazyImage";
@@ -25,7 +25,7 @@ export default function EventPreviewDialog({ open, onOpenChange, form }: EventPr
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md p-0 gap-0 overflow-hidden z-[90]">
+      <DialogContent className="max-w-md p-0 gap-0 overflow-hidden">
         <DialogHeader className="px-4 pt-4 pb-2">
           <DialogTitle className="text-sm font-medium text-muted-foreground">
             Event Preview
