@@ -7,6 +7,11 @@ import { Users, CalendarPlus, ScanLine, Home, ScrollText, Settings, BarChart3, B
 import { usePendingUsersCount } from "@/hooks/usePendingUsersCount";
 import { Loader2 } from "lucide-react";
 
+const TabFallback = <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>;
+function LazyTab({ children }: { children: ReactNode }) {
+  return <Suspense fallback={TabFallback}>{children}</Suspense>;
+}
+
 const UserManagement = lazy(() => import("@/components/admin/UserManagement"));
 const EventControlRoom = lazy(() => import("@/components/admin/EventControlRoom"));
 const AdminDoorScanner = lazy(() => import("@/components/admin/AdminDoorScanner"));
