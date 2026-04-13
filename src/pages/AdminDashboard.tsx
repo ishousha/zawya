@@ -1,6 +1,6 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { Navigate } from "react-router-dom";
-import { useRef, useEffect, useCallback, useState, lazy, Suspense } from "react";
+import { useRef, useEffect, useCallback, useState, lazy, Suspense, type ReactNode } from "react";
 import { useSwipeable } from "react-swipeable";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Users, CalendarPlus, ScanLine, Home, ScrollText, Settings, BarChart3, BookOpen, Mic } from "lucide-react";
