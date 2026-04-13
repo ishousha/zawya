@@ -73,7 +73,9 @@ export default function LinkedAccounts() {
       </p>
 
       <div className="space-y-2">
-        {identities.map((identity) => {
+        {identities
+          .filter((identity) => identity.provider !== "apple")
+          .map((identity) => {
           const meta = PROVIDER_META[identity.provider] ?? { label: identity.provider, icon: Link2 };
           const Icon = meta.icon;
           return (
