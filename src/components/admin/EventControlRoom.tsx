@@ -87,13 +87,17 @@ export default function EventControlRoom() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("events")
-        .select("*")
+        .select("*, rsvps(id, status)")
         .order("date_time", { ascending: true })
         .limit(50);
       if (error) throw error;
       return data;
     },
   });
+
+  const getRsvpCount = (event: any) => {
+    return event.rsvps?.filter((r: any) => r.status === "attending").length ?? 0;
+  };
 
   const { data: allGuestRequests } = useQuery({
     queryKey: ["all-pending-guest-requests"],
