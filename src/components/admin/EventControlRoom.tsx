@@ -363,11 +363,20 @@ export default function EventControlRoom() {
                         <Badge variant="default" className="text-xs capitalize">
                           {event.status}
                         </Badge>
-                        {event.capacity && (
-                          <Badge variant="outline" className="text-xs">
-                            RSVPs: {/* count filled by query */}— / {event.capacity}
-                          </Badge>
-                        )}
+                        {event.capacity && (() => {
+                          const count = getRsvpCount(event);
+                          const full = count >= event.capacity;
+                          return (
+                            <>
+                              <Badge variant="outline" className={`text-xs ${full ? "border-destructive text-destructive" : ""}`}>
+                                {count} / {event.capacity}
+                              </Badge>
+                              {full && (
+                                <Badge variant="destructive" className="text-xs">Full</Badge>
+                              )}
+                            </>
+                          );
+                        })()}
                       </div>
                       {(event as any).last_published_at && (
                         <p className="text-xs text-muted-foreground mt-1">
