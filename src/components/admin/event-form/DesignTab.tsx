@@ -290,7 +290,7 @@ export default function DesignTab({ form, setForm, isEditing }: DesignTabProps) 
             <SelectTrigger className="mt-1.5">
               <SelectValue placeholder="Select type..." />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="z-[90]">
               {eventTypes?.map((t) => (
                 <SelectItem key={t.id} value={t.id}>
                   {t.name}
@@ -310,7 +310,7 @@ export default function DesignTab({ form, setForm, isEditing }: DesignTabProps) 
             <SelectTrigger className="mt-1.5">
               <SelectValue placeholder="Select age group..." />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="z-[90]">
               {AGE_GROUP_OPTIONS.map((opt) => (
                 <SelectItem key={opt} value={opt}>
                   {opt}
@@ -446,7 +446,7 @@ export default function DesignTab({ form, setForm, isEditing }: DesignTabProps) 
             <SelectTrigger className="h-10 w-full" id="duration">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="z-[90]">
               {DURATION_OPTIONS.map((opt) => (
                 <SelectItem key={opt.label} value={opt.label}>
                   {opt.label}

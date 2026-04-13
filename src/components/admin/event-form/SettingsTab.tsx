@@ -205,7 +205,7 @@ export default function SettingsTab({ form, setForm, isEditing }: SettingsTabPro
           <SelectTrigger>
             <SelectValue />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent className="z-[90]">
             <SelectItem value="active">Active</SelectItem>
             <SelectItem value="cancelled">Cancelled</SelectItem>
           </SelectContent>
