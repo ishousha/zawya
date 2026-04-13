@@ -194,7 +194,8 @@ export default function EventTypeManagement() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-8">
+      <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold text-foreground">Event Types</h2>
         <Button size="sm" onClick={openAdd} className="gap-1.5">

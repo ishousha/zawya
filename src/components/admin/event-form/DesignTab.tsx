@@ -467,12 +467,13 @@ export default function DesignTab({ form, setForm, isEditing }: DesignTabProps) 
         <>
           <VenueSelector
             value={form.venue_id}
-            onChange={(venueId, name, address) =>
+            onChange={(venueId, name, address, areaHint) =>
               setForm((prev) => ({
                 ...prev,
                 venue_id: venueId,
                 location: name,
                 address: address,
+                location_hint: areaHint || prev.location_hint,
               }))
             }
           />

@@ -15,11 +15,12 @@ interface Venue {
   id: string;
   name: string;
   address: string | null;
+  area_hint: string | null;
 }
 
 interface VenueSelectorProps {
   value: string | null;
-  onChange: (venueId: string | null, name: string, address: string) => void;
+  onChange: (venueId: string | null, name: string, address: string, areaHint: string) => void;
 }
 
 export default function VenueSelector({ value, onChange }: VenueSelectorProps) {
