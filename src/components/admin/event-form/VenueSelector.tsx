@@ -68,7 +68,7 @@ export default function VenueSelector({ value, onChange }: VenueSelectorProps) {
     },
     onSuccess: (venue) => {
       queryClient.invalidateQueries({ queryKey: ["venues"] });
-      onChange(venue.id, venue.name, venue.address ?? "");
+      onChange(venue.id, venue.name, venue.address ?? "", (venue as any).area_hint ?? "");
       closeDialog();
       toast.success(editingVenue ? "Venue updated" : `Venue "${venue.name}" created`);
     },
@@ -83,7 +83,7 @@ export default function VenueSelector({ value, onChange }: VenueSelectorProps) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["venues"] });
       if (deleteVenue && value === deleteVenue.id) {
-        onChange(null, "", "");
+        onChange(null, "", "", "");
       }
       setDeleteVenue(null);
       toast.success("Venue deleted");
