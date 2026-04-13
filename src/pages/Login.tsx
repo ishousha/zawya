@@ -279,14 +279,16 @@ export default function LoginPage() {
 
         <p className="mt-8 pb-4 text-center text-xs text-muted-foreground opacity-50">
           Build: {(() => {
-            const d = new Date((globalThis as any).__APP_BUILD_TIME__ ?? "");
-            if (isNaN(d.getTime())) return "dev";
-            const yy = String(d.getFullYear()).slice(2);
-            const mm = String(d.getMonth() + 1).padStart(2, "0");
-            const dd = String(d.getDate()).padStart(2, "0");
-            const hh = String(d.getHours()).padStart(2, "0");
-            const mi = String(d.getMinutes()).padStart(2, "0");
-            return `${yy}.${mm}.${dd}.${hh}${mi}`;
+            try {
+              const d = new Date(__APP_BUILD_TIME__);
+              if (isNaN(d.getTime())) return "dev";
+              const yy = String(d.getFullYear()).slice(2);
+              const mm = String(d.getMonth() + 1).padStart(2, "0");
+              const dd = String(d.getDate()).padStart(2, "0");
+              const hh = String(d.getHours()).padStart(2, "0");
+              const mi = String(d.getMinutes()).padStart(2, "0");
+              return `${yy}.${mm}.${dd}.${hh}${mi}`;
+            } catch { return "dev"; }
           })()}
         </p>
       </div>
