@@ -4,9 +4,13 @@ import path from "path";
 import { componentTagger } from "lovable-tagger";
 import { VitePWA } from "vite-plugin-pwa";
 
-export default defineConfig(({ mode }) => ({
+export default defineConfig(({ mode }) => {
+  // Stamp is evaluated fresh each time the config is loaded (i.e. each build)
+  const buildStamp = new Date().toISOString();
+
+  return {
   define: {
-    __APP_BUILD_TIME__: JSON.stringify(new Date().toISOString()),
+    __APP_BUILD_TIME__: JSON.stringify(buildStamp),
   },
   server: {
     host: "::",
@@ -88,4 +92,5 @@ export default defineConfig(({ mode }) => ({
     },
     dedupe: ["react", "react-dom", "react/jsx-runtime", "react/jsx-dev-runtime", "@tanstack/react-query", "@tanstack/query-core", "scheduler"],
   },
-}));
+};
+});
