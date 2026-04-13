@@ -397,6 +397,13 @@ export default function EventTypeManagement() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      </div>
+
+      <Suspense fallback={<p className="text-sm text-muted-foreground">Loading venues…</p>}>
+        <VenueManagement />
+      </Suspense>
     </div>
   );
 }
+
+const VenueManagement = lazy(() => import("@/components/admin/VenueManagement"));
