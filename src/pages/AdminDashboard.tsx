@@ -8,8 +8,12 @@ import { usePendingUsersCount } from "@/hooks/usePendingUsersCount";
 import { Loader2 } from "lucide-react";
 
 const TabFallback = <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>;
-function LazyTab({ children }: { children: ReactNode }) {
-  return <Suspense fallback={TabFallback}>{children}</Suspense>;
+function LazyTab({ children, active }: { children: ReactNode; active: boolean }) {
+  return (
+    <div className={active ? "" : "hidden"}>
+      <Suspense fallback={TabFallback}>{children}</Suspense>
+    </div>
+  );
 }
 
 const UserManagement = lazy(() => import("@/components/admin/UserManagement"));
