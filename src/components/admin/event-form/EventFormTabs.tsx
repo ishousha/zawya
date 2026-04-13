@@ -423,87 +423,103 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
   // isNewEvent is declared at top of component
 
   return (
-    <Card className="max-h-[calc(100vh-20rem)] sm:max-h-[calc(100vh-12rem)] flex flex-col overflow-hidden max-w-full [&_*]:box-border [&_input]:max-w-full [&_input]:w-full [&_textarea]:max-w-full [&_textarea]:w-full [&_select]:max-w-full [&_select]:w-full" style={{ touchAction: 'pan-y' }}>
-      <CardHeader className="flex flex-row items-center justify-between pb-2 shrink-0">
-        <CardTitle className="text-lg font-heading">
-          {isNewEvent ? "New Event" : "Edit Event"}
-        </CardTitle>
-        <Button size="icon" variant="ghost" className="h-10 w-10" onClick={handleClose}>
-          <X className="h-5 w-5" />
-        </Button>
-      </CardHeader>
-      <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-6" style={{ touchAction: 'pan-y' }}>
-        <Tabs defaultValue="design" className="w-full">
-          <TabsList className="grid w-full grid-cols-3 bg-muted sticky top-0 z-10">
-            <TabsTrigger value="design" className="gap-1.5 text-xs">
-              <Palette className="h-4 w-4" />
-              Details
-            </TabsTrigger>
-            <TabsTrigger value="items" className="gap-1.5 text-xs">
-              <PackagePlus className="h-4 w-4" />
-              Items
-            </TabsTrigger>
-            <TabsTrigger value="settings" className="gap-1.5 text-xs">
-              <Settings className="h-4 w-4" />
-              Settings
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="design" className="overflow-x-hidden">
-            <DesignTab form={form} setForm={setForm} isEditing={!isNewEvent} />
-          </TabsContent>
-          <TabsContent value="items" className="overflow-x-hidden">
-            <ItemsTab items={signUpItems} onChange={setSignUpItems} />
-          </TabsContent>
-          <TabsContent value="settings" className="overflow-x-hidden">
-            <SettingsTab form={form} setForm={setForm} isEditing={!isNewEvent} />
-          </TabsContent>
-        </Tabs>
-      </div>
-
-      <div className="px-4 pb-4 pt-2 border-t bg-card shrink-0 z-10 max-w-full overflow-hidden">
-          <div className="flex flex-col-reverse md:flex-row items-center justify-end gap-3 w-full">
-            <Button
-              variant="outline"
-              className="w-full md:w-auto h-12 gap-1.5"
-              onClick={() => setShowPreview(true)}
-              disabled={!form.title}
-            >
-              <Eye className="h-4 w-4" />
-              Preview
-            </Button>
-            <Button
-              variant="outline"
-              className="w-full md:w-auto h-12 gap-1.5"
-              onClick={() => {
-                if (form.end_date_time && form.end_date_time <= form.date_time) {
-                  toast.error("End time must be after start time");
-                  return;
-                }
-                mutation.mutate(false);
-              }}
-              disabled={mutation.isPending || !form.title || !form.date_time}
-            >
-              {mutation.isPending && <Loader2 className="mr-1 h-4 w-4 animate-spin" />}
-              <Save className="h-4 w-4" />
-              Save Draft
-            </Button>
-            <Button
-              className="w-full md:w-auto h-12 gap-1.5"
-              onClick={() => {
-                if (form.end_date_time && form.end_date_time <= form.date_time) {
-                  toast.error("End time must be after start time");
-                  return;
-                }
-                mutation.mutate(true);
-              }}
-              disabled={mutation.isPending || !form.title || !form.date_time}
-            >
-              {mutation.isPending && <Loader2 className="mr-1 h-4 w-4 animate-spin" />}
-              <Send className="h-4 w-4" />
-              {wasAlreadyPublished.current ? "Update" : "Publish & Notify"}
-            </Button>
+    <>
+      {/* Full-screen overlay on mobile, card on desktop */}
+      <div className="fixed inset-0 z-50 bg-black/60 md:flex md:items-center md:justify-center" onClick={handleClose}>
+        <div
+          className="h-[100dvh] w-full flex flex-col bg-background md:h-auto md:max-h-[calc(100vh-6rem)] md:max-w-2xl md:rounded-lg md:border md:shadow-lg md:mx-4 [&_*]:box-border [&_input]:max-w-full [&_input]:w-full [&_textarea]:max-w-full [&_textarea]:w-full [&_select]:max-w-full [&_select]:w-full"
+          onClick={(e) => e.stopPropagation()}
+          style={{ touchAction: 'pan-y' }}
+        >
+          {/* Fixed header */}
+          <div className="flex items-center justify-between px-4 py-3 border-b bg-background shrink-0 z-10">
+            <h2 className="text-lg font-heading font-semibold truncate">
+              {isNewEvent ? "New Event" : "Edit Event"}
+            </h2>
+            <div className="flex items-center gap-1">
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-9 w-9"
+                onClick={() => setShowPreview(true)}
+                disabled={!form.title}
+                title="Preview"
+              >
+                <Eye className="h-4 w-4" />
+              </Button>
+              <Button size="icon" variant="ghost" className="h-9 w-9" onClick={handleClose}>
+                <X className="h-5 w-5" />
+              </Button>
+            </div>
           </div>
+
+          {/* Scrollable form content */}
+          <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-4 pb-4" style={{ touchAction: 'pan-y' }}>
+            <Tabs defaultValue="design" className="w-full">
+              <TabsList className="grid w-full grid-cols-3 bg-muted sticky top-0 z-10 mt-2">
+                <TabsTrigger value="design" className="gap-1.5 text-xs">
+                  <Palette className="h-4 w-4" />
+                  Details
+                </TabsTrigger>
+                <TabsTrigger value="items" className="gap-1.5 text-xs">
+                  <PackagePlus className="h-4 w-4" />
+                  Items
+                </TabsTrigger>
+                <TabsTrigger value="settings" className="gap-1.5 text-xs">
+                  <Settings className="h-4 w-4" />
+                  Settings
+                </TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="design" className="overflow-x-hidden">
+                <DesignTab form={form} setForm={setForm} isEditing={!isNewEvent} />
+              </TabsContent>
+              <TabsContent value="items" className="overflow-x-hidden">
+                <ItemsTab items={signUpItems} onChange={setSignUpItems} />
+              </TabsContent>
+              <TabsContent value="settings" className="overflow-x-hidden">
+                <SettingsTab form={form} setForm={setForm} isEditing={!isNewEvent} />
+              </TabsContent>
+            </Tabs>
+          </div>
+
+          {/* Compact sticky action bar */}
+          <div className="border-t bg-background shrink-0 z-10 px-3 py-2 md:px-4 md:py-3 max-w-full overflow-hidden">
+            <div className="flex flex-row items-center gap-2 w-full">
+              <Button
+                variant="outline"
+                className="flex-1 h-10 gap-1.5 text-sm"
+                onClick={() => {
+                  if (form.end_date_time && form.end_date_time <= form.date_time) {
+                    toast.error("End time must be after start time");
+                    return;
+                  }
+                  mutation.mutate(false);
+                }}
+                disabled={mutation.isPending || !form.title || !form.date_time}
+              >
+                {mutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+                <Save className="h-4 w-4 hidden sm:inline-block" />
+                Save Draft
+              </Button>
+              <Button
+                className="flex-1 h-10 gap-1.5 text-sm"
+                onClick={() => {
+                  if (form.end_date_time && form.end_date_time <= form.date_time) {
+                    toast.error("End time must be after start time");
+                    return;
+                  }
+                  mutation.mutate(true);
+                }}
+                disabled={mutation.isPending || !form.title || !form.date_time}
+              >
+                {mutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+                <Send className="h-4 w-4 hidden sm:inline-block" />
+                {wasAlreadyPublished.current ? "Update" : "Publish"}
+              </Button>
+            </div>
+          </div>
+        </div>
       </div>
 
       <EventPreviewDialog open={showPreview} onOpenChange={setShowPreview} form={form} />
@@ -524,6 +540,6 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </Card>
+    </>
   );
 }
