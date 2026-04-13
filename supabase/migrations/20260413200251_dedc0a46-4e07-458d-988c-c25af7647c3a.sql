@@ -1,0 +1,1 @@
+ALTER TABLE public.venues ADD COLUMN area_hint text;

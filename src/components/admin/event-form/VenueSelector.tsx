@@ -15,11 +15,12 @@ interface Venue {
   id: string;
   name: string;
   address: string | null;
+  area_hint: string | null;
 }
 
 interface VenueSelectorProps {
   value: string | null;
-  onChange: (venueId: string | null, name: string, address: string) => void;
+  onChange: (venueId: string | null, name: string, address: string, areaHint: string) => void;
 }
 
 export default function VenueSelector({ value, onChange }: VenueSelectorProps) {
@@ -29,6 +30,7 @@ export default function VenueSelector({ value, onChange }: VenueSelectorProps) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingVenue, setEditingVenue] = useState<Venue | null>(null);
   const [formName, setFormName] = useState("");
+  const [formAreaHint, setFormAreaHint] = useState("");
   const [formAddress, setFormAddress] = useState("");
   const [deleteVenue, setDeleteVenue] = useState<Venue | null>(null);
 
@@ -49,7 +51,7 @@ export default function VenueSelector({ value, onChange }: VenueSelectorProps) {
       if (editingVenue) {
         const { data, error } = await supabase
           .from("venues")
-          .update({ name: formName, address: formAddress || null })
+          .update({ name: formName, address: formAddress || null, area_hint: formAreaHint || null } as any)
           .eq("id", editingVenue.id)
           .select()
           .single();
@@ -58,7 +60,7 @@ export default function VenueSelector({ value, onChange }: VenueSelectorProps) {
       } else {
         const { data, error } = await supabase
           .from("venues")
-          .insert({ name: formName, address: formAddress || null })
+          .insert({ name: formName, address: formAddress || null, area_hint: formAreaHint || null } as any)
           .select()
           .single();
         if (error) throw error;
@@ -67,7 +69,7 @@ export default function VenueSelector({ value, onChange }: VenueSelectorProps) {
     },
     onSuccess: (venue) => {
       queryClient.invalidateQueries({ queryKey: ["venues"] });
-      onChange(venue.id, venue.name, venue.address ?? "");
+      onChange(venue.id, venue.name, venue.address ?? "", (venue as any).area_hint ?? "");
       closeDialog();
       toast.success(editingVenue ? "Venue updated" : `Venue "${venue.name}" created`);
     },
@@ -82,7 +84,7 @@ export default function VenueSelector({ value, onChange }: VenueSelectorProps) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["venues"] });
       if (deleteVenue && value === deleteVenue.id) {
-        onChange(null, "", "");
+        onChange(null, "", "", "");
       }
       setDeleteVenue(null);
       toast.success("Venue deleted");
@@ -93,6 +95,7 @@ export default function VenueSelector({ value, onChange }: VenueSelectorProps) {
   const openAdd = () => {
     setEditingVenue(null);
     setFormName("");
+    setFormAreaHint("");
     setFormAddress("");
     setOpen(false);
     setDialogOpen(true);
@@ -102,6 +105,7 @@ export default function VenueSelector({ value, onChange }: VenueSelectorProps) {
     e.stopPropagation();
     setEditingVenue(venue);
     setFormName(venue.name);
+    setFormAreaHint(venue.area_hint ?? "");
     setFormAddress(venue.address ?? "");
     setOpen(false);
     setDialogOpen(true);
@@ -117,6 +121,7 @@ export default function VenueSelector({ value, onChange }: VenueSelectorProps) {
     setDialogOpen(false);
     setEditingVenue(null);
     setFormName("");
+    setFormAreaHint("");
     setFormAddress("");
   };
 
@@ -168,7 +173,7 @@ export default function VenueSelector({ value, onChange }: VenueSelectorProps) {
                     value === venue.id && "bg-accent"
                   )}
                   onClick={() => {
-                    onChange(venue.id, venue.name, venue.address ?? "");
+                    onChange(venue.id, venue.name, venue.address ?? "", (venue as any).area_hint ?? "");
                     setOpen(false);
                     setSearch("");
                   }}
@@ -210,7 +215,7 @@ export default function VenueSelector({ value, onChange }: VenueSelectorProps) {
             <button
               className="w-full border-t px-3 py-2 text-sm text-muted-foreground hover:bg-accent transition-colors text-left"
               onClick={() => {
-                onChange(null, "", "");
+                onChange(null, "", "", "");
                 setOpen(false);
               }}
             >
@@ -246,7 +251,18 @@ export default function VenueSelector({ value, onChange }: VenueSelectorProps) {
               />
             </div>
             <div>
-              <Label htmlFor="venue-address">Address / Maps Link</Label>
+              <Label htmlFor="venue-hint">Area Hint</Label>
+              <Input
+                id="venue-hint"
+                value={formAreaHint}
+                onChange={(e) => setFormAreaHint(e.target.value)}
+                placeholder="e.g. Barsha 3, JLT Cluster D"
+                className="mt-1.5"
+              />
+              <p className="text-xs text-muted-foreground mt-1">Shown before RSVP.</p>
+            </div>
+            <div>
+              <Label htmlFor="venue-address">Full Address / Maps Link</Label>
               <Input
                 id="venue-address"
                 value={formAddress}

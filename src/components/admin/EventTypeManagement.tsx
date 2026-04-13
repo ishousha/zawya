@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, lazy, Suspense } from "react";
 import { useEventTypes, type EventType } from "@/hooks/useEventTypes";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
@@ -194,7 +194,8 @@ export default function EventTypeManagement() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-8">
+      <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold text-foreground">Event Types</h2>
         <Button size="sm" onClick={openAdd} className="gap-1.5">
@@ -396,6 +397,13 @@ export default function EventTypeManagement() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      </div>
+
+      <Suspense fallback={<p className="text-sm text-muted-foreground">Loading venues…</p>}>
+        <VenueManagement />
+      </Suspense>
     </div>
   );
 }
+
+const VenueManagement = lazy(() => import("@/components/admin/VenueManagement"));

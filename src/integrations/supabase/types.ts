@@ -935,18 +935,21 @@ export type Database = {
       venues: {
         Row: {
           address: string | null
+          area_hint: string | null
           created_at: string | null
           id: string
           name: string
         }
         Insert: {
           address?: string | null
+          area_hint?: string | null
           created_at?: string | null
           id?: string
           name: string
         }
         Update: {
           address?: string | null
+          area_hint?: string | null
           created_at?: string | null
           id?: string
           name?: string
