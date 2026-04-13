@@ -30,6 +30,7 @@ export default function VenueSelector({ value, onChange }: VenueSelectorProps) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingVenue, setEditingVenue] = useState<Venue | null>(null);
   const [formName, setFormName] = useState("");
+  const [formAreaHint, setFormAreaHint] = useState("");
   const [formAddress, setFormAddress] = useState("");
   const [deleteVenue, setDeleteVenue] = useState<Venue | null>(null);
 
