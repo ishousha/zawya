@@ -104,7 +104,8 @@ export default function EventTypeManagement() {
             requires_location: form.requires_location,
             is_virtual: form.is_virtual,
             allows_potluck: form.allows_potluck,
-          })
+            default_age_group: form.default_age_group,
+          } as any)
           .eq("id", editingId);
         if (error) throw error;
         toast.success("Event type updated");
@@ -115,7 +116,8 @@ export default function EventTypeManagement() {
           requires_location: form.requires_location,
           is_virtual: form.is_virtual,
           allows_potluck: form.allows_potluck,
-        });
+          default_age_group: form.default_age_group,
+        } as any);
         if (error) throw error;
         toast.success("Event type created");
       }
