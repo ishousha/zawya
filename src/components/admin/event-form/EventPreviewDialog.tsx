@@ -1,6 +1,6 @@
 import { format } from "date-fns";
 import { Calendar, Clock, MapPin, Building2, Video, Users, Lock, Ban } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogOverlay, DialogPortal } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import LazyImage from "@/components/LazyImage";
