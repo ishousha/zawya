@@ -43,6 +43,7 @@ interface FormState {
   requires_location: boolean;
   is_virtual: boolean;
   allows_potluck: boolean;
+  default_age_group: string;
 }
 
 const defaultForm: FormState = {
@@ -51,6 +52,7 @@ const defaultForm: FormState = {
   requires_location: true,
   is_virtual: false,
   allows_potluck: true,
+  default_age_group: "All Ages",
 };
 
 const ICON_OPTIONS = EVENT_TYPE_ICON_NAMES;
