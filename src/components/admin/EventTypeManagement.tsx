@@ -216,6 +216,7 @@ export default function EventTypeManagement() {
               <TableHead>Location</TableHead>
               <TableHead>Virtual</TableHead>
               <TableHead>Potluck</TableHead>
+              <TableHead>Age Group</TableHead>
               <TableHead className="w-20" />
             </TableRow>
           </TableHeader>
@@ -244,14 +245,17 @@ export default function EventTypeManagement() {
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    <Badge variant={(et as any).is_virtual ? "default" : "secondary"}>
-                      {(et as any).is_virtual ? "Yes" : "No"}
+                    <Badge variant={et.is_virtual ? "default" : "secondary"}>
+                      {et.is_virtual ? "Yes" : "No"}
                     </Badge>
                   </TableCell>
                   <TableCell>
                     <Badge variant={et.allows_potluck ? "default" : "secondary"}>
                       {et.allows_potluck ? "Yes" : "No"}
                     </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <span className="text-sm text-muted-foreground">{(et as any).default_age_group ?? "All Ages"}</span>
                   </TableCell>
                   <TableCell>
                     <div className="flex gap-1">
@@ -343,6 +347,21 @@ export default function EventTypeManagement() {
                 id="et-potluck"
                 checked={form.allows_potluck}
                 onCheckedChange={(v) => setForm((f) => ({ ...f, allows_potluck: v }))}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Default Age Group</Label>
+              <select
+                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                value={form.default_age_group}
+                onChange={(e) => setForm((f) => ({ ...f, default_age_group: e.target.value }))}
+              >
+                {["All Ages", "Kids (Under 12)", "Youth (13-18)", "Young Adults (18-30)", "Adults (18+)"].map((ag) => (
+                  <option key={ag} value={ag}>{ag}</option>
+                ))}
+              </select>
+            </div>
               />
             </div>
           </div>
