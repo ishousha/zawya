@@ -3,7 +3,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Plus, Trash2, ChevronUp, ChevronDown, PackagePlus } from "lucide-react";
+import { Plus, Trash2, ArrowUp, ArrowDown, PackagePlus, GripVertical } from "lucide-react";
 
 export interface SignUpItem {
   id?: number; // existing DB id, undefined for new
@@ -98,25 +98,25 @@ export default function ItemsTab({ items, onChange }: ItemsTabProps) {
               key={`${item.id ?? "new"}-${index}`}
               className="flex items-center gap-2 rounded-lg border border-border bg-card p-3"
             >
-              {/* Reorder arrows */}
-              <div className="flex flex-col gap-0.5">
+              {/* Reorder buttons — large tap targets */}
+              <div className="flex flex-col gap-1 shrink-0">
                 <button
                   type="button"
                   onClick={() => moveItem(index, -1)}
                   disabled={index === 0}
-                  className="h-5 w-5 flex items-center justify-center rounded text-muted-foreground hover:text-foreground disabled:opacity-30 transition-colors"
+                  className="h-9 w-9 flex items-center justify-center rounded-md border border-border bg-muted text-muted-foreground hover:text-foreground hover:bg-accent disabled:opacity-30 disabled:hover:bg-muted transition-colors active:scale-95"
                   aria-label="Move up"
                 >
-                  <ChevronUp className="h-3.5 w-3.5" />
+                  <ArrowUp className="h-4 w-4" />
                 </button>
                 <button
                   type="button"
                   onClick={() => moveItem(index, 1)}
                   disabled={index === items.length - 1}
-                  className="h-5 w-5 flex items-center justify-center rounded text-muted-foreground hover:text-foreground disabled:opacity-30 transition-colors"
+                  className="h-9 w-9 flex items-center justify-center rounded-md border border-border bg-muted text-muted-foreground hover:text-foreground hover:bg-accent disabled:opacity-30 disabled:hover:bg-muted transition-colors active:scale-95"
                   aria-label="Move down"
                 >
-                  <ChevronDown className="h-3.5 w-3.5" />
+                  <ArrowDown className="h-4 w-4" />
                 </button>
               </div>
 
