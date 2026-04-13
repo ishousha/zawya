@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import confetti from "canvas-confetti";
 import { supabase } from "@/integrations/supabase/client";
@@ -16,12 +16,22 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
+import { GenderToggle } from "@/pages/CompleteProfile";
 
 type Step = "choose" | "family-name" | "invite-add";
+
+const AGE_GROUPS = [
+  { value: "infant_0_3", label: "Infant (0-3)" },
+  { value: "child_4_12", label: "Child (4-12)" },
+  { value: "youth_13_17", label: "Youth (13-17)" },
+  { value: "adult_18_plus", label: "Adult (18+)" },
+];
 
 interface PendingDependent {
   firstName: string;
   type: "child" | "elder";
+  gender: string;
+  ageGroup: string;
 }
 
 /** Decorative geometric pattern background */
@@ -99,6 +109,7 @@ export default function Onboarding() {
   const [saving, setSaving] = useState(false);
   const [createdFamilyId, setCreatedFamilyId] = useState<string | null>(null);
   const [animating, setAnimating] = useState(false);
+  const [skipping, setSkipping] = useState(false);
 
   // Invite state
   const [inviteLink, setInviteLink] = useState<string | null>(null);
@@ -108,9 +119,29 @@ export default function Onboarding() {
   const [dependents, setDependents] = useState<PendingDependent[]>([]);
   const [depName, setDepName] = useState("");
   const [depType, setDepType] = useState<"child" | "elder">("child");
+  const [depGender, setDepGender] = useState("");
+  const [depAgeGroup, setDepAgeGroup] = useState("");
   const [showDepForm, setShowDepForm] = useState(false);
 
   const progress = step === "choose" ? 33 : step === "family-name" ? 66 : 100;
+
+  // On mount / when profile loads, check if user already has a family
+  useEffect(() => {
+    if (!profile) return;
+    const existingFamilyId = (profile as any).family_id as string | null;
+    if (existingFamilyId) {
+      setCreatedFamilyId(existingFamilyId);
+      // Pre-fill family name from DB
+      supabase
+        .from("families")
+        .select("name")
+        .eq("id", existingFamilyId)
+        .maybeSingle()
+        .then(({ data }) => {
+          if (data?.name) setFamilyName(data.name);
+        });
+    }
+  }, [profile]);
 
   const goToStep = (next: Step) => {
     setAnimating(true);
@@ -118,59 +149,6 @@ export default function Onboarding() {
       setStep(next);
       setAnimating(false);
     }, 200);
-  };
-
-  const createAndLinkFamily = useCallback(async (name: string) => {
-    if (!user) {
-      return { familyId: null, error: new Error("Missing authenticated user") };
-    }
-
-    const familyId = crypto.randomUUID();
-
-    const { error: createError } = await supabase
-      .from("families")
-      .insert({ id: familyId, name });
-
-    if (createError) {
-      console.error("Failed to create family", createError);
-      return { familyId: null, error: createError };
-    }
-
-    const { error: linkError } = await supabase
-      .from("profiles")
-      .update({ family_id: familyId })
-      .eq("id", user.id);
-
-    if (linkError) {
-      console.error("Failed to link profile to family", linkError);
-      return { familyId: null, error: linkError };
-    }
-
-    return { familyId, error: null };
-  }, [user]);
-
-  // --- Step 1: Continue as individual ---
-  const handleIndividual = async () => {
-    setSaving(true);
-    const name = profile?.name || "My";
-    const label = `${name.split(/\s+/).pop() || "My"} Family`;
-
-    const { familyId, error } = await createAndLinkFamily(label);
-
-    if (error || !familyId) {
-      toast.error("Something went wrong. Please try again.");
-      setSaving(false);
-      return;
-    }
-
-    // Mark onboarding as completed
-    await supabase.from("profiles").update({ onboarding_completed: true } as any).eq("id", user!.id);
-
-    toast.success("You're all set!");
-    window.dispatchEvent(new Event("profile-updated"));
-    setSaving(false);
-    fireConfetti();
-    setTimeout(() => window.location.replace("/"), 1200);
   };
 
   const fireConfetti = useCallback(() => {
@@ -183,7 +161,114 @@ export default function Onboarding() {
     })();
   }, []);
 
-  // --- Step 2: Create family ---
+  /** Create or update the family, linking profile if needed. Returns familyId or null. */
+  const ensureFamily = useCallback(async (name: string): Promise<string | null> => {
+    if (!user) return null;
+    const existingFamilyId = (profile as any)?.family_id as string | null;
+
+    // Case 1: User already has a family — just update its name if changed
+    if (existingFamilyId) {
+      const { error } = await supabase
+        .from("families")
+        .update({ name })
+        .eq("id", existingFamilyId);
+      if (error) {
+        toast.error(`Failed to update family name: ${error.message}`);
+        return null;
+      }
+      return existingFamilyId;
+    }
+
+    // Case 2: No family yet — create one and link
+    const familyId = crypto.randomUUID();
+    const { error: createError } = await supabase
+      .from("families")
+      .insert({ id: familyId, name });
+
+    if (createError) {
+      toast.error(`Failed to create family: ${createError.message}`);
+      return null;
+    }
+
+    const { error: linkError } = await supabase
+      .from("profiles")
+      .update({ family_id: familyId })
+      .eq("id", user.id);
+
+    if (linkError) {
+      toast.error(`Failed to link profile to family: ${linkError.message}`);
+      return null;
+    }
+
+    // Refresh profile context so family_id is available
+    window.dispatchEvent(new Event("profile-updated"));
+    return familyId;
+  }, [user, profile]);
+
+  // --- Global Skip for Now ---
+  const handleSkip = async () => {
+    if (!user) return;
+    setSkipping(true);
+
+    // If user has no family yet, create an individual one
+    const existingFamilyId = (profile as any)?.family_id as string | null;
+    if (!existingFamilyId) {
+      const name = profile?.name || "My";
+      const label = `${name.split(/\s+/).pop() || "My"} Family`;
+      const familyId = await ensureFamily(label);
+      if (!familyId) {
+        setSkipping(false);
+        return;
+      }
+    }
+
+    const { error } = await supabase
+      .from("profiles")
+      .update({ onboarding_completed: true } as any)
+      .eq("id", user.id);
+
+    if (error) {
+      toast.error(`Failed to skip onboarding: ${error.message}`);
+      setSkipping(false);
+      return;
+    }
+
+    window.dispatchEvent(new Event("profile-updated"));
+    setSkipping(false);
+    setTimeout(() => window.location.replace("/"), 300);
+  };
+
+  // --- Step 1: Continue as individual ---
+  const handleIndividual = async () => {
+    setSaving(true);
+    const name = profile?.name || "My";
+    const label = `${name.split(/\s+/).pop() || "My"} Family`;
+
+    const familyId = await ensureFamily(label);
+    if (!familyId) {
+      setSaving(false);
+      return;
+    }
+
+    const { error } = await supabase
+      .from("profiles")
+      .update({ onboarding_completed: true } as any)
+      .eq("id", user!.id);
+
+    if (error) {
+      toast.error(`Failed to complete onboarding: ${error.message}`);
+      setSaving(false);
+      return;
+    }
+
+    toast.success("You're all set!");
+    window.dispatchEvent(new Event("profile-updated"));
+    setSaving(false);
+    fireConfetti();
+    setTimeout(() => window.location.replace("/"), 1200);
+  };
+
+  // --- Step 2: Create / update family ---
   const handleCreateFamily = async () => {
     if (!familyName.trim()) {
       toast.error("Please enter a family name.");
@@ -191,32 +276,30 @@ export default function Onboarding() {
     }
     setSaving(true);
 
-    const { familyId, error } = await createAndLinkFamily(familyName.trim());
-
-    if (error || !familyId) {
-      toast.error("Failed to create family group.");
+    const familyId = await ensureFamily(familyName.trim());
+    if (!familyId) {
       setSaving(false);
       return;
     }
 
     setCreatedFamilyId(familyId);
-    window.dispatchEvent(new Event("profile-updated"));
     setSaving(false);
     goToStep("invite-add");
   };
 
   // --- Step 3 helpers ---
   const handleCreateInvite = async () => {
-    if (!createdFamilyId || !user) return;
+    const fid = createdFamilyId || ((profile as any)?.family_id as string | null);
+    if (!fid || !user) return;
     setCreatingInvite(true);
     const { data, error } = await supabase
       .from("family_invites")
-      .insert({ family_id: createdFamilyId, created_by: user.id })
+      .insert({ family_id: fid, created_by: user.id })
       .select("token")
       .single();
     setCreatingInvite(false);
     if (error || !data) {
-      toast.error("Failed to create invite link.");
+      toast.error(`Failed to create invite: ${error?.message || "Unknown error"}`);
       return;
     }
     const url = `${window.location.origin}/join-family?token=${data.token}`;
@@ -234,9 +317,18 @@ export default function Onboarding() {
 
   const addDependent = () => {
     if (!depName.trim()) return;
-    setDependents((prev) => [...prev, { firstName: depName.trim(), type: depType }]);
+    if (!depAgeGroup) {
+      toast.error("Please select an age group.");
+      return;
+    }
+    setDependents((prev) => [
+      ...prev,
+      { firstName: depName.trim(), type: depType, gender: depGender, ageGroup: depAgeGroup },
+    ]);
     setDepName("");
     setDepType("child");
+    setDepGender("");
+    setDepAgeGroup("");
     setShowDepForm(false);
     toast.success("Dependent added.");
   };
@@ -248,18 +340,35 @@ export default function Onboarding() {
   // --- Finish ---
   const handleFinish = async () => {
     setSaving(true);
-    if (dependents.length > 0 && createdFamilyId) {
+    const fid = createdFamilyId || ((profile as any)?.family_id as string | null);
+
+    if (dependents.length > 0 && fid) {
       const rows = dependents.map((d) => ({
         parent_id: user!.id,
-        family_id: createdFamilyId,
+        family_id: fid,
         first_name: d.firstName,
         type: d.type,
+        gender: d.gender || null,
+        age_group: d.ageGroup || null,
       }));
-      await supabase.from("dependents").insert(rows as any);
+      const { error } = await supabase.from("dependents").insert(rows as any);
+      if (error) {
+        toast.error(`Failed to save dependents: ${error.message}`);
+        setSaving(false);
+        return;
+      }
     }
 
-    // Mark onboarding as completed
-    await supabase.from("profiles").update({ onboarding_completed: true } as any).eq("id", user!.id);
+    const { error } = await supabase
+      .from("profiles")
+      .update({ onboarding_completed: true } as any)
+      .eq("id", user!.id);
+
+    if (error) {
+      toast.error(`Failed to complete onboarding: ${error.message}`);
+      setSaving(false);
+      return;
+    }
 
     queryClient.invalidateQueries({ queryKey: ["dependents"] });
     queryClient.invalidateQueries({ queryKey: ["family-members"] });
@@ -274,7 +383,7 @@ export default function Onboarding() {
       <OnboardingPattern />
 
       <div className="relative z-10 w-full max-w-md space-y-6">
-        {/* Header with animated icon */}
+        {/* Header */}
         <div className="text-center animate-fade-in">
           <div className="mx-auto mb-4 relative">
             <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-primary/20 to-primary/5 shadow-lg shadow-primary/10">
@@ -300,7 +409,7 @@ export default function Onboarding() {
         {/* Progress bar */}
         <Progress value={progress} className="h-1.5 transition-all duration-500" />
 
-        {/* Step content with fade transition */}
+        {/* Step content */}
         <div
           className={`transition-all duration-200 ${
             animating ? "opacity-0 translate-y-2" : "opacity-100 translate-y-0"
@@ -363,7 +472,6 @@ export default function Onboarding() {
           {step === "family-name" && (
             <div className="space-y-5 animate-fade-in">
               <div className="rounded-xl border border-border bg-card p-6 space-y-4 shadow-sm">
-                {/* Decorative family icon */}
                 <div className="flex justify-center">
                   <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/15 to-primary/5">
                     <Users className="h-8 w-8 text-primary" />
@@ -399,7 +507,7 @@ export default function Onboarding() {
                     disabled={saving || !familyName.trim()}
                   >
                     {saving && <Loader2 className="mr-1 h-4 w-4 animate-spin" />}
-                    Create Family
+                    {createdFamilyId ? "Update & Continue" : "Create Family"}
                     <ArrowRight className="h-4 w-4" />
                   </Button>
                 </div>
@@ -489,7 +597,7 @@ export default function Onboarding() {
                   <div className="space-y-1.5">
                     {dependents.map((dep, idx) => (
                       <div key={idx} className="flex items-center justify-between rounded-lg border border-border p-2.5 animate-fade-in">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                           {dep.type === "elder" ? (
                             <UserRound className="h-4 w-4 text-muted-foreground" />
                           ) : (
@@ -499,6 +607,16 @@ export default function Onboarding() {
                           <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
                             {dep.type === "elder" ? "Elder/Adult" : "Child"}
                           </Badge>
+                          {dep.gender && (
+                            <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                              {dep.gender === "male" ? "♂" : "♀"}
+                            </Badge>
+                          )}
+                          {dep.ageGroup && (
+                            <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                              {AGE_GROUPS.find((a) => a.value === dep.ageGroup)?.label || dep.ageGroup}
+                            </Badge>
+                          )}
                         </div>
                         <Button
                           size="icon"
@@ -514,27 +632,52 @@ export default function Onboarding() {
                 )}
 
                 {showDepForm ? (
-                  <div className="space-y-2 rounded-lg border border-border bg-muted/30 p-3 animate-fade-in">
-                    <Select value={depType} onValueChange={(v) => setDepType(v as "child" | "elder")}>
-                      <SelectTrigger className="h-9">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="child">Child</SelectItem>
-                        <SelectItem value="elder">Elder/Adult</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <Input
-                      placeholder="First name"
-                      value={depName}
-                      onChange={(e) => setDepName(e.target.value)}
-                      autoFocus
-                    />
+                  <div className="space-y-3 rounded-lg border border-border bg-muted/30 p-3 animate-fade-in">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-medium">Type <span className="text-destructive">*</span></Label>
+                      <Select value={depType} onValueChange={(v) => setDepType(v as "child" | "elder")}>
+                        <SelectTrigger className="h-9">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="child">Child</SelectItem>
+                          <SelectItem value="elder">Elder/Adult</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-medium">First Name <span className="text-destructive">*</span></Label>
+                      <Input
+                        placeholder="First name"
+                        value={depName}
+                        onChange={(e) => setDepName(e.target.value)}
+                        autoFocus
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-medium">Gender</Label>
+                      <GenderToggle value={depGender} onChange={setDepGender} />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-medium">Age Group <span className="text-destructive">*</span></Label>
+                      <Select value={depAgeGroup} onValueChange={setDepAgeGroup}>
+                        <SelectTrigger className="h-9">
+                          <SelectValue placeholder="Select age group" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {AGE_GROUPS.map((ag) => (
+                            <SelectItem key={ag.value} value={ag.value}>
+                              {ag.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
                     <div className="flex gap-2">
-                      <Button size="sm" onClick={addDependent} disabled={!depName.trim()}>
+                      <Button size="sm" onClick={addDependent} disabled={!depName.trim() || !depAgeGroup}>
                         Save
                       </Button>
-                      <Button size="sm" variant="outline" onClick={() => { setShowDepForm(false); setDepName(""); }}>
+                      <Button size="sm" variant="outline" onClick={() => { setShowDepForm(false); setDepName(""); setDepGender(""); setDepAgeGroup(""); }}>
                         Cancel
                       </Button>
                     </div>
@@ -556,11 +699,10 @@ export default function Onboarding() {
                 <Button
                   variant="outline"
                   className="gap-1.5"
-                  onClick={handleFinish}
-                  disabled={saving}
+                  onClick={() => goToStep("family-name")}
                 >
-                  <SkipForward className="h-4 w-4" />
-                  Skip for now
+                  <ArrowLeft className="h-4 w-4" />
+                  Back
                 </Button>
                 <Button
                   className="flex-1 gap-1.5"
@@ -575,6 +717,16 @@ export default function Onboarding() {
             </div>
           )}
         </div>
+
+        {/* Global Skip for Now */}
+        <button
+          onClick={handleSkip}
+          disabled={skipping}
+          className="mx-auto flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
+        >
+          {skipping ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <SkipForward className="h-3.5 w-3.5" />}
+          Skip for now
+        </button>
 
         <button
           onClick={signOut}
