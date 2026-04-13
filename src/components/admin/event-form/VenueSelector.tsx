@@ -169,7 +169,7 @@ export default function VenueSelector({ value, onChange }: VenueSelectorProps) {
                     value === venue.id && "bg-accent"
                   )}
                   onClick={() => {
-                    onChange(venue.id, venue.name, venue.address ?? "");
+                    onChange(venue.id, venue.name, venue.address ?? "", (venue as any).area_hint ?? "");
                     setOpen(false);
                     setSearch("");
                   }}
@@ -211,7 +211,7 @@ export default function VenueSelector({ value, onChange }: VenueSelectorProps) {
             <button
               className="w-full border-t px-3 py-2 text-sm text-muted-foreground hover:bg-accent transition-colors text-left"
               onClick={() => {
-                onChange(null, "", "");
+                onChange(null, "", "", "");
                 setOpen(false);
               }}
             >
