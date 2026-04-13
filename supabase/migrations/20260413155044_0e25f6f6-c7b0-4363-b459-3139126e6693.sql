@@ -1,0 +1,1 @@
+ALTER TABLE public.event_types ADD COLUMN default_age_group text NOT NULL DEFAULT 'All Ages';

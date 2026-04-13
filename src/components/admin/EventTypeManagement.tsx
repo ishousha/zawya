@@ -43,6 +43,7 @@ interface FormState {
   requires_location: boolean;
   is_virtual: boolean;
   allows_potluck: boolean;
+  default_age_group: string;
 }
 
 const defaultForm: FormState = {
@@ -51,6 +52,7 @@ const defaultForm: FormState = {
   requires_location: true,
   is_virtual: false,
   allows_potluck: true,
+  default_age_group: "All Ages",
 };
 
 const ICON_OPTIONS = EVENT_TYPE_ICON_NAMES;
@@ -79,8 +81,9 @@ export default function EventTypeManagement() {
       name: et.name,
       icon: et.icon,
       requires_location: et.requires_location,
-      is_virtual: (et as any).is_virtual ?? false,
+      is_virtual: et.is_virtual,
       allows_potluck: et.allows_potluck,
+      default_age_group: (et as any).default_age_group ?? "All Ages",
     });
     setOpen(true);
   }
@@ -101,7 +104,8 @@ export default function EventTypeManagement() {
             requires_location: form.requires_location,
             is_virtual: form.is_virtual,
             allows_potluck: form.allows_potluck,
-          })
+            default_age_group: form.default_age_group,
+          } as any)
           .eq("id", editingId);
         if (error) throw error;
         toast.success("Event type updated");
@@ -112,7 +116,8 @@ export default function EventTypeManagement() {
           requires_location: form.requires_location,
           is_virtual: form.is_virtual,
           allows_potluck: form.allows_potluck,
-        });
+          default_age_group: form.default_age_group,
+        } as any);
         if (error) throw error;
         toast.success("Event type created");
       }
@@ -211,6 +216,7 @@ export default function EventTypeManagement() {
               <TableHead>Location</TableHead>
               <TableHead>Virtual</TableHead>
               <TableHead>Potluck</TableHead>
+              <TableHead>Age Group</TableHead>
               <TableHead className="w-20" />
             </TableRow>
           </TableHeader>
@@ -239,14 +245,17 @@ export default function EventTypeManagement() {
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    <Badge variant={(et as any).is_virtual ? "default" : "secondary"}>
-                      {(et as any).is_virtual ? "Yes" : "No"}
+                    <Badge variant={et.is_virtual ? "default" : "secondary"}>
+                      {et.is_virtual ? "Yes" : "No"}
                     </Badge>
                   </TableCell>
                   <TableCell>
                     <Badge variant={et.allows_potluck ? "default" : "secondary"}>
                       {et.allows_potluck ? "Yes" : "No"}
                     </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <span className="text-sm text-muted-foreground">{(et as any).default_age_group ?? "All Ages"}</span>
                   </TableCell>
                   <TableCell>
                     <div className="flex gap-1">
@@ -339,6 +348,19 @@ export default function EventTypeManagement() {
                 checked={form.allows_potluck}
                 onCheckedChange={(v) => setForm((f) => ({ ...f, allows_potluck: v }))}
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Default Age Group</Label>
+              <select
+                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                value={form.default_age_group}
+                onChange={(e) => setForm((f) => ({ ...f, default_age_group: e.target.value }))}
+              >
+                {["All Ages", "Kids (Under 12)", "Youth (13-18)", "Young Adults (18-30)", "Adults (18+)"].map((ag) => (
+                  <option key={ag} value={ag}>{ag}</option>
+                ))}
+              </select>
             </div>
           </div>
 

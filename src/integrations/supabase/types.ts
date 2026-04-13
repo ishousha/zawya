@@ -292,6 +292,7 @@ export type Database = {
         Row: {
           allows_potluck: boolean
           created_at: string
+          default_age_group: string
           display_order: number
           icon: string
           id: string
@@ -302,6 +303,7 @@ export type Database = {
         Insert: {
           allows_potluck?: boolean
           created_at?: string
+          default_age_group?: string
           display_order?: number
           icon?: string
           id?: string
@@ -312,6 +314,7 @@ export type Database = {
         Update: {
           allows_potluck?: boolean
           created_at?: string
+          default_age_group?: string
           display_order?: number
           icon?: string
           id?: string

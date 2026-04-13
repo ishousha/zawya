@@ -220,13 +220,11 @@ export default function DesignTab({ form, setForm, isEditing }: DesignTabProps) 
     setForm((prev) => {
       const next = { ...prev };
       if (isInitialMount && isEditing) {
-        // On first load in edit mode, only set enable_virtual from type
-        // if the DB didn't provide a link (i.e. the user hasn't overridden)
         next.enable_virtual = prev.enable_virtual || selectedType.is_virtual;
-        // has_potluck is persisted in DB, so keep the saved value on first load
       } else {
         next.enable_virtual = selectedType.is_virtual;
         next.has_potluck = selectedType.allows_potluck;
+        next.age_group = (selectedType as any).default_age_group ?? "All Ages";
       }
       return next;
     });
