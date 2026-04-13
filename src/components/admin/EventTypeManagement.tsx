@@ -81,8 +81,9 @@ export default function EventTypeManagement() {
       name: et.name,
       icon: et.icon,
       requires_location: et.requires_location,
-      is_virtual: (et as any).is_virtual ?? false,
+      is_virtual: et.is_virtual,
       allows_potluck: et.allows_potluck,
+      default_age_group: (et as any).default_age_group ?? "All Ages",
     });
     setOpen(true);
   }
