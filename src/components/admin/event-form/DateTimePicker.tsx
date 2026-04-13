@@ -123,7 +123,7 @@ export default function DateTimePicker({
               </span>
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" align="start">
+          <PopoverContent className="w-auto p-0 z-[90]" align="start">
             <Calendar
               mode="single"
               selected={dateObj}
@@ -144,7 +144,7 @@ export default function DateTimePicker({
           )}>
             <SelectValue placeholder="Time" />
           </SelectTrigger>
-          <SelectContent className="max-h-[280px]">
+          <SelectContent className="max-h-[280px] z-[90]">
             {TIME_OPTIONS.map((opt) => (
               <SelectItem key={opt.value} value={opt.value}>
                 {opt.label}
