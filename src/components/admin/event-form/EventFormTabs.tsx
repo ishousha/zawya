@@ -427,7 +427,7 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
       {/* Full-screen overlay on mobile, card on desktop */}
       <div
         className="fixed inset-0 z-[80] bg-background md:flex md:items-center md:justify-center md:bg-black/60"
-        onClick={handleClose}
+        onClick={(e) => { if (e.target === e.currentTarget) handleClose(); }}
       >
         <div
           className="relative h-[100dvh] w-full flex flex-col bg-background md:h-auto md:max-h-[calc(100vh-6rem)] md:max-w-2xl md:rounded-lg md:border md:shadow-lg md:mx-4 [&_*]:box-border [&_input]:max-w-full [&_input]:w-full [&_textarea]:max-w-full [&_textarea]:w-full [&_select]:max-w-full [&_select]:w-full"
