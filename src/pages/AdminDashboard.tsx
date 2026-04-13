@@ -2,19 +2,12 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Navigate } from "react-router-dom";
 import { useRef, useEffect, useCallback, useState, lazy, Suspense, type ReactNode } from "react";
 import { useSwipeable } from "react-swipeable";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Users, CalendarPlus, ScanLine, Home, ScrollText, Settings, BarChart3, BookOpen, Mic } from "lucide-react";
 import { usePendingUsersCount } from "@/hooks/usePendingUsersCount";
 import { Loader2 } from "lucide-react";
 
 const TabFallback = <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>;
-function LazyTab({ children, active }: { children: ReactNode; active: boolean }) {
-  return (
-    <div className={active ? "" : "hidden"}>
-      <Suspense fallback={TabFallback}>{children}</Suspense>
-    </div>
-  );
-}
 
 const UserManagement = lazy(() => import("@/components/admin/UserManagement"));
 const EventControlRoom = lazy(() => import("@/components/admin/EventControlRoom"));
@@ -39,11 +32,7 @@ const SWIPE_BLOCKED_TAGS = new Set(["INPUT", "TEXTAREA", "SELECT", "BUTTON"]);
 /** Check if the swipe originated from a form element or horizontally-scrollable child */
 function shouldBlockSwipe(target: EventTarget | null): boolean {
   let el = target as HTMLElement | null;
-
-  // Block if the touch started on a form element
   if (el && SWIPE_BLOCKED_TAGS.has(el.tagName)) return true;
-
-  // Block if inside a scrollable container
   while (el) {
     const style = window.getComputedStyle(el);
     const isScrollable =
@@ -56,6 +45,18 @@ function shouldBlockSwipe(target: EventTarget | null): boolean {
   return false;
 }
 
+/** Keeps tab content mounted once visited, hidden with CSS when inactive */
+function KeepAliveTab({ id, active, children }: { id: string; active: boolean; children: ReactNode }) {
+  const [visited, setVisited] = useState(active);
+  useEffect(() => { if (active) setVisited(true); }, [active]);
+  if (!visited) return null;
+  return (
+    <div className={active ? "mt-2" : "hidden"} role="tabpanel" data-tab={id}>
+      <Suspense fallback={TabFallback}>{children}</Suspense>
+    </div>
+  );
+}
+
 export default function AdminDashboard() {
   const { profile } = useAuth();
   const { data: pendingCount } = usePendingUsersCount();
@@ -64,7 +65,6 @@ export default function AdminDashboard() {
   const isAdmin = profile?.role === "admin";
   const isModerator = (profile?.role as string) === "moderator";
 
-  // Controlled tab state + slide direction
   const [activeTab, setActiveTab] = useState<AdminTab>("users");
   const [modTab, setModTab] = useState<ModeratorTab>("events");
   const [slideDir, setSlideDir] = useState<"left" | "right" | null>(null);
@@ -84,7 +84,6 @@ export default function AdminDashboard() {
     setter(tabs[next] as never);
   }, []);
 
-  /** Scroll the tab bar so the active tab is centered */
   const centerActiveTab = useCallback((container: HTMLDivElement | null) => {
     if (!container) return;
     const active = container.querySelector('[data-state="active"]') as HTMLElement;
@@ -94,13 +93,11 @@ export default function AdminDashboard() {
     container.scrollTo({ left: Math.max(0, scrollLeft), behavior: "smooth" });
   }, []);
 
-  // Center active tab whenever it changes
   useEffect(() => {
     const timer = setTimeout(() => centerActiveTab(tabsListRef.current), 60);
     return () => clearTimeout(timer);
   }, [activeTab, modTab, centerActiveTab]);
 
-  // Admin swipe handler
   const adminSwipeHandlers = useSwipeable({
     onSwipedLeft: (e) => {
       if (shouldBlockSwipe(e.event.target)) return;
@@ -110,13 +107,9 @@ export default function AdminDashboard() {
       if (shouldBlockSwipe(e.event.target)) return;
       changeTab(ADMIN_TABS, activeTab, setActiveTab, "right");
     },
-    trackTouch: true,
-    trackMouse: false,
-    delta: 50,
-    preventScrollOnSwipe: false,
+    trackTouch: true, trackMouse: false, delta: 50, preventScrollOnSwipe: false,
   });
 
-  // Moderator swipe handler
   const modSwipeHandlers = useSwipeable({
     onSwipedLeft: (e) => {
       if (shouldBlockSwipe(e.event.target)) return;
@@ -126,10 +119,7 @@ export default function AdminDashboard() {
       if (shouldBlockSwipe(e.event.target)) return;
       changeTab(MODERATOR_TABS, modTab, setModTab, "right");
     },
-    trackTouch: true,
-    trackMouse: false,
-    delta: 50,
-    preventScrollOnSwipe: false,
+    trackTouch: true, trackMouse: false, delta: 50, preventScrollOnSwipe: false,
   });
 
   if (!isAdmin && !isModerator) {
@@ -148,40 +138,27 @@ export default function AdminDashboard() {
   const scannerTrigger =
     "flex-shrink-0 gap-1.5 px-3 py-1.5 text-xs sm:text-sm rounded-md font-semibold transition-colors bg-primary/10 text-primary border border-primary/30 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm data-[state=active]:border-transparent";
 
-  // Moderators: Events, Guest Requests, Scanner
+  // Moderators
   if (isModerator) {
     return (
       <div className="min-h-screen bg-background pb-24">
         <header className="border-b border-border bg-card px-4 pb-4 pt-6">
-          <h1 className="font-heading text-2xl font-bold text-foreground">
-            Moderator Dashboard
-          </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Manage events, guests & check-ins
-          </p>
+          <h1 className="font-heading text-2xl font-bold text-foreground">Moderator Dashboard</h1>
+          <p className="mt-1 text-sm text-muted-foreground">Manage events, guests & check-ins</p>
         </header>
 
         <main className="mx-auto max-w-2xl px-4 py-4">
           <Tabs value={modTab} onValueChange={(v) => { setSlideDir(null); setSlideKey((k) => k + 1); setModTab(v as ModeratorTab); }} className="w-full">
             <TabsList ref={tabsListRef} className="grid w-full grid-cols-3 bg-muted">
-              <TabsTrigger value="events" className="gap-1.5 text-xs sm:text-sm">
-                <CalendarPlus className="h-4 w-4" />
-                Events
-              </TabsTrigger>
-              <TabsTrigger value="guests" className="gap-1.5 text-xs sm:text-sm">
-                <Users className="h-4 w-4" />
-                Guests
-              </TabsTrigger>
-              <TabsTrigger value="scanner" className="gap-1.5 text-xs sm:text-sm">
-                <ScanLine className="h-4 w-4" />
-                Check-in
-              </TabsTrigger>
+              <TabsTrigger value="events" className="gap-1.5 text-xs sm:text-sm"><CalendarPlus className="h-4 w-4" /> Events</TabsTrigger>
+              <TabsTrigger value="guests" className="gap-1.5 text-xs sm:text-sm"><Users className="h-4 w-4" /> Guests</TabsTrigger>
+              <TabsTrigger value="scanner" className="gap-1.5 text-xs sm:text-sm"><ScanLine className="h-4 w-4" /> Check-in</TabsTrigger>
             </TabsList>
 
             <div {...modSwipeHandlers} data-swipe-root className={`touch-pan-y overflow-hidden ${slideDir === "left" ? "animate-slide-in-right" : slideDir === "right" ? "animate-slide-in-left" : "animate-fade-in-fast"}`} key={slideKey}>
-                <TabsContent value="events"><LazyTab><EventControlRoom /></LazyTab></TabsContent>
-                <TabsContent value="guests"><LazyTab><AllGuestApprovals /></LazyTab></TabsContent>
-                <TabsContent value="scanner"><LazyTab><AdminDoorScanner /></LazyTab></TabsContent>
+              <KeepAliveTab id="events" active={modTab === "events"}><EventControlRoom /></KeepAliveTab>
+              <KeepAliveTab id="guests" active={modTab === "guests"}><AllGuestApprovals /></KeepAliveTab>
+              <KeepAliveTab id="scanner" active={modTab === "scanner"}><AdminDoorScanner /></KeepAliveTab>
             </div>
           </Tabs>
         </main>
@@ -192,12 +169,8 @@ export default function AdminDashboard() {
   return (
     <div className="min-h-screen bg-background pb-24">
       <header className="border-b border-border bg-card px-4 pb-4 pt-6">
-        <h1 className="font-heading text-2xl font-bold text-foreground">
-          Admin Dashboard
-        </h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Manage your community
-        </p>
+        <h1 className="font-heading text-2xl font-bold text-foreground">Admin Dashboard</h1>
+        <p className="mt-1 text-sm text-muted-foreground">Manage your community</p>
       </header>
 
       <main className="mx-auto max-w-2xl px-4 py-4">
@@ -206,55 +179,27 @@ export default function AdminDashboard() {
             ref={tabsListRef}
             className="sticky top-[49px] z-20 flex w-full justify-start overflow-x-auto bg-background scrollbar-hide pb-0.5 border-b border-border/50 shadow-sm"
           >
-            <TabsTrigger value="users" className={tabTriggerBase}>
-              <Users className="h-4 w-4" />
-              Users
-              {pendingBadge}
-            </TabsTrigger>
-            <TabsTrigger value="families" className={tabTriggerBase}>
-              <Home className="h-4 w-4" />
-              Families
-            </TabsTrigger>
-            <TabsTrigger value="events" className={tabTriggerBase}>
-              <CalendarPlus className="h-4 w-4" />
-              Events
-            </TabsTrigger>
-            <TabsTrigger value="scanner" className={scannerTrigger}>
-              <ScanLine className="h-4 w-4" />
-              Check-in
-            </TabsTrigger>
-            <TabsTrigger value="speakers" className={tabTriggerBase}>
-              <Mic className="h-4 w-4" />
-              Special Guests
-            </TabsTrigger>
-            <TabsTrigger value="resources" className={tabTriggerBase}>
-              <BookOpen className="h-4 w-4" />
-              Resources
-            </TabsTrigger>
-            <TabsTrigger value="analytics" className={tabTriggerBase}>
-              <BarChart3 className="h-4 w-4" />
-              Analytics
-            </TabsTrigger>
-            <TabsTrigger value="settings" className={tabTriggerBase}>
-              <Settings className="h-4 w-4" />
-              Settings
-            </TabsTrigger>
-            <TabsTrigger value="activity" className={tabTriggerBase}>
-              <ScrollText className="h-4 w-4" />
-              Log
-            </TabsTrigger>
+            <TabsTrigger value="users" className={tabTriggerBase}><Users className="h-4 w-4" /> Users{pendingBadge}</TabsTrigger>
+            <TabsTrigger value="families" className={tabTriggerBase}><Home className="h-4 w-4" /> Families</TabsTrigger>
+            <TabsTrigger value="events" className={tabTriggerBase}><CalendarPlus className="h-4 w-4" /> Events</TabsTrigger>
+            <TabsTrigger value="scanner" className={scannerTrigger}><ScanLine className="h-4 w-4" /> Check-in</TabsTrigger>
+            <TabsTrigger value="speakers" className={tabTriggerBase}><Mic className="h-4 w-4" /> Special Guests</TabsTrigger>
+            <TabsTrigger value="resources" className={tabTriggerBase}><BookOpen className="h-4 w-4" /> Resources</TabsTrigger>
+            <TabsTrigger value="analytics" className={tabTriggerBase}><BarChart3 className="h-4 w-4" /> Analytics</TabsTrigger>
+            <TabsTrigger value="settings" className={tabTriggerBase}><Settings className="h-4 w-4" /> Settings</TabsTrigger>
+            <TabsTrigger value="activity" className={tabTriggerBase}><ScrollText className="h-4 w-4" /> Log</TabsTrigger>
           </TabsList>
 
           <div {...adminSwipeHandlers} data-swipe-root className={`touch-pan-y overflow-hidden ${slideDir === "left" ? "animate-slide-in-right" : slideDir === "right" ? "animate-slide-in-left" : "animate-fade-in-fast"}`} key={slideKey}>
-              <TabsContent value="users"><LazyTab><UserManagement /></LazyTab></TabsContent>
-              <TabsContent value="families"><LazyTab><FamilyManagement /></LazyTab></TabsContent>
-              <TabsContent value="events"><LazyTab><EventControlRoom /></LazyTab></TabsContent>
-              <TabsContent value="scanner"><LazyTab><AdminDoorScanner /></LazyTab></TabsContent>
-              <TabsContent value="speakers"><LazyTab><SpeakerManagement /></LazyTab></TabsContent>
-              <TabsContent value="resources"><LazyTab><ResourceManagement /></LazyTab></TabsContent>
-              <TabsContent value="analytics"><LazyTab><AdminAnalytics /></LazyTab></TabsContent>
-              <TabsContent value="settings"><LazyTab><EventTypeManagement /></LazyTab></TabsContent>
-              <TabsContent value="activity"><LazyTab><AdminActivityLog /></LazyTab></TabsContent>
+            <KeepAliveTab id="users" active={activeTab === "users"}><UserManagement /></KeepAliveTab>
+            <KeepAliveTab id="families" active={activeTab === "families"}><FamilyManagement /></KeepAliveTab>
+            <KeepAliveTab id="events" active={activeTab === "events"}><EventControlRoom /></KeepAliveTab>
+            <KeepAliveTab id="scanner" active={activeTab === "scanner"}><AdminDoorScanner /></KeepAliveTab>
+            <KeepAliveTab id="speakers" active={activeTab === "speakers"}><SpeakerManagement /></KeepAliveTab>
+            <KeepAliveTab id="resources" active={activeTab === "resources"}><ResourceManagement /></KeepAliveTab>
+            <KeepAliveTab id="analytics" active={activeTab === "analytics"}><AdminAnalytics /></KeepAliveTab>
+            <KeepAliveTab id="settings" active={activeTab === "settings"}><EventTypeManagement /></KeepAliveTab>
+            <KeepAliveTab id="activity" active={activeTab === "activity"}><AdminActivityLog /></KeepAliveTab>
           </div>
         </Tabs>
       </main>
