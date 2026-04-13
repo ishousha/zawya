@@ -9,6 +9,7 @@ import { Users, Clock, KeyRound, RefreshCw, UtensilsCrossed, Lock, DollarSign, B
 import type { EventFormState } from "./types";
 import { generateCheckinPin } from "./types";
 import HostSelector from "./HostSelector";
+import DateTimePicker from "./DateTimePicker";
 import { useEventTypes } from "@/hooks/useEventTypes";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
@@ -239,12 +240,9 @@ export default function SettingsTab({ form, setForm, isEditing }: SettingsTabPro
             <CalendarClock className="h-4 w-4 text-primary" />
             <h3 className="text-sm font-semibold text-foreground">Scheduled Publish</h3>
           </div>
-          <Input
-            type="datetime-local"
+          <DateTimePicker
             value={form.scheduled_publish_at}
-            onChange={(e) => update("scheduled_publish_at", e.target.value)}
-            min={new Date().toISOString().slice(0, 16)}
-            className="mt-1.5"
+            onChange={(v) => update("scheduled_publish_at", v)}
           />
           <p className="text-xs text-muted-foreground mt-1">
             {form.scheduled_publish_at
