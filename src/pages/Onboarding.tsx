@@ -209,63 +209,65 @@ export default function Onboarding() {
   const handleSkip = async () => {
     if (!user) return;
     setSkipping(true);
+    try {
+      const existingFamilyId = (profile as any)?.family_id as string | null;
+      if (!existingFamilyId) {
+        const name = profile?.name || "My";
+        const label = `${name.split(/\s+/).pop() || "My"} Family`;
+        const familyId = await ensureFamily(label);
+        if (!familyId) return;
+      }
 
-    // If user has no family yet, create an individual one
-    const existingFamilyId = (profile as any)?.family_id as string | null;
-    if (!existingFamilyId) {
-      const name = profile?.name || "My";
-      const label = `${name.split(/\s+/).pop() || "My"} Family`;
-      const familyId = await ensureFamily(label);
-      if (!familyId) {
-        setSkipping(false);
+      const { error } = await supabase
+        .from("profiles")
+        .update({ onboarding_completed: true } as any)
+        .eq("id", user.id);
+
+      if (error) {
+        toast.error(`Failed to skip onboarding: ${error.message}`);
         return;
       }
-    }
 
-    const { error } = await supabase
-      .from("profiles")
-      .update({ onboarding_completed: true } as any)
-      .eq("id", user.id);
-
-    if (error) {
-      toast.error(`Failed to skip onboarding: ${error.message}`);
+      window.dispatchEvent(new Event("profile-updated"));
+      setTimeout(() => window.location.replace("/"), 300);
+    } catch (err: any) {
+      console.error("Skip failed:", err);
+      toast.error(err?.message || "Something went wrong. Please try again.");
+    } finally {
       setSkipping(false);
-      return;
     }
-
-    window.dispatchEvent(new Event("profile-updated"));
-    setSkipping(false);
-    setTimeout(() => window.location.replace("/"), 300);
   };
 
   // --- Step 1: Continue as individual ---
   const handleIndividual = async () => {
     setSaving(true);
-    const name = profile?.name || "My";
-    const label = `${name.split(/\s+/).pop() || "My"} Family`;
+    try {
+      const name = profile?.name || "My";
+      const label = `${name.split(/\s+/).pop() || "My"} Family`;
 
-    const familyId = await ensureFamily(label);
-    if (!familyId) {
+      const familyId = await ensureFamily(label);
+      if (!familyId) return;
+
+      const { error } = await supabase
+        .from("profiles")
+        .update({ onboarding_completed: true } as any)
+        .eq("id", user!.id);
+
+      if (error) {
+        toast.error(`Failed to complete onboarding: ${error.message}`);
+        return;
+      }
+
+      toast.success("You're all set!");
+      window.dispatchEvent(new Event("profile-updated"));
+      fireConfetti();
+      setTimeout(() => window.location.replace("/"), 1200);
+    } catch (err: any) {
+      console.error("Individual setup failed:", err);
+      toast.error(err?.message || "Something went wrong. Please try again.");
+    } finally {
       setSaving(false);
-      return;
     }
-
-    const { error } = await supabase
-      .from("profiles")
-      .update({ onboarding_completed: true } as any)
-      .eq("id", user!.id);
-
-    if (error) {
-      toast.error(`Failed to complete onboarding: ${error.message}`);
-      setSaving(false);
-      return;
-    }
-
-    toast.success("You're all set!");
-    window.dispatchEvent(new Event("profile-updated"));
-    setSaving(false);
-    fireConfetti();
-    setTimeout(() => window.location.replace("/"), 1200);
   };
 
   // --- Step 2: Create / update family ---
