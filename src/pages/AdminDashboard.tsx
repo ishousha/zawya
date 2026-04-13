@@ -175,17 +175,9 @@ export default function AdminDashboard() {
             </TabsList>
 
             <div {...modSwipeHandlers} data-swipe-root className={`touch-pan-y overflow-hidden ${slideDir === "left" ? "animate-slide-in-right" : slideDir === "right" ? "animate-slide-in-left" : "animate-fade-in-fast"}`} key={slideKey}>
-              <Suspense fallback={<div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>}>
-                <TabsContent value="events">
-                  <EventControlRoom />
-                </TabsContent>
-                <TabsContent value="guests">
-                  <AllGuestApprovals />
-                </TabsContent>
-                <TabsContent value="scanner">
-                  <AdminDoorScanner />
-                </TabsContent>
-              </Suspense>
+                <TabsContent value="events"><LazyTab><EventControlRoom /></LazyTab></TabsContent>
+                <TabsContent value="guests"><LazyTab><AllGuestApprovals /></LazyTab></TabsContent>
+                <TabsContent value="scanner"><LazyTab><AdminDoorScanner /></LazyTab></TabsContent>
             </div>
           </Tabs>
         </main>
