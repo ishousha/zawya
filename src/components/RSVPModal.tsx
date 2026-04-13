@@ -344,9 +344,9 @@ export default function RSVPModal({ event, open, onOpenChange }: RSVPModalProps)
                     const atTarget = isItemAtTarget(item);
 
                     return (
-                      <div key={item.id}>
+                      <div key={item.id} className="min-h-[3.5rem]">
                         <label
-                          className={`flex items-center gap-3 rounded-lg border p-3 cursor-pointer transition-colors ${
+                          className={`flex items-center gap-3 rounded-lg border p-3 cursor-pointer transition-colors min-h-[3rem] ${
                             isSelected
                               ? "border-primary bg-primary/5"
                               : "border-border bg-card hover:bg-muted/30"
@@ -378,12 +378,12 @@ export default function RSVPModal({ event, open, onOpenChange }: RSVPModalProps)
                         )}
 
                         {isSelected && (
-                          <div className="animate-fade-in ml-8 mt-2">
+                          <div className="ml-8 mt-2">
                             <Input
                               placeholder="What dish? (e.g., Mac & Cheese)"
                               value={sel?.description || ""}
                               onChange={(e) => updateItemDescription(itemId, e.target.value)}
-                              className="text-sm"
+                              className="text-sm h-10"
                             />
                           </div>
                         )}
