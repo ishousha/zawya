@@ -104,6 +104,43 @@ export default function CompleteProfile() {
       return;
     }
 
+    // Notify all admins about the new pending member
+    try {
+      const { data: admins } = await supabase
+        .from("user_roles")
+        .select("user_id")
+        .eq("role", "admin");
+
+      if (admins && admins.length > 0) {
+        const adminIds = admins.map((a) => a.user_id);
+        const { data: adminProfiles } = await supabase
+          .from("profiles")
+          .select("id, email")
+          .in("id", adminIds);
+
+        const memberEmail = user?.email || "";
+        const fullPhone = whatsappNum ? toE164(whatsappCC, whatsappNum) : "";
+
+        for (const admin of adminProfiles ?? []) {
+          if (!admin.email) continue;
+          supabase.functions.invoke("send-transactional-email", {
+            body: {
+              templateName: "new-member-pending",
+              recipientEmail: admin.email,
+              idempotencyKey: `new-member-pending-${user?.id}-${admin.id}`,
+              templateData: {
+                memberName: name.trim(),
+                memberEmail,
+                memberPhone: fullPhone,
+              },
+            },
+          }).catch((err) => console.warn("Failed to notify admin:", err));
+        }
+      }
+    } catch (err) {
+      console.warn("Failed to send admin notifications:", err);
+    }
+
     toast.success("Profile saved! Awaiting admin approval.");
     window.location.reload();
   };
