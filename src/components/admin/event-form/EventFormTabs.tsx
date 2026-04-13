@@ -487,7 +487,7 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
           </div>
 
           {/* Compact sticky action bar — fixed to bottom on mobile */}
-          <div className="w-full shrink-0 border-t bg-background px-3 py-2 pb-[calc(0.5rem+env(safe-area-inset-bottom)+3.5rem)] z-20 max-w-full overflow-hidden shadow-[0_-2px_8px_rgba(0,0,0,0.08)] md:px-4 md:py-3 md:pb-3">
+          <div className="w-full shrink-0 border-t bg-background px-3 py-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] z-20 max-w-full overflow-hidden shadow-[0_-2px_8px_rgba(0,0,0,0.08)] md:px-4 md:py-3 md:pb-3">
             <div className="flex flex-row items-center gap-2 w-full">
               <Button
                 variant="outline"
