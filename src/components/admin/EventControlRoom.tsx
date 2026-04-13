@@ -360,7 +360,9 @@ export default function EventControlRoom() {
                           {event.status}
                         </Badge>
                         {event.capacity && (
-                          <Badge variant="outline" className="text-xs">Cap: {event.capacity}</Badge>
+                          <Badge variant="outline" className="text-xs">
+                            RSVPs: {/* count filled by query */}— / {event.capacity}
+                          </Badge>
                         )}
                       </div>
                       {(event as any).last_published_at && (
