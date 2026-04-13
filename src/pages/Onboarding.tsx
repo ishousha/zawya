@@ -385,7 +385,6 @@ export default function Onboarding() {
       setSaving(false);
     }
   };
-  };
 
   return (
     <div className="relative flex min-h-screen items-center justify-center bg-background px-4 py-8">
