@@ -362,8 +362,6 @@ export default function EventTypeManagement() {
                 ))}
               </select>
             </div>
-              />
-            </div>
           </div>
 
           <DialogFooter>
