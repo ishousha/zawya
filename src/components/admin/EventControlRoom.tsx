@@ -577,11 +577,12 @@ export default function EventControlRoom() {
       {monitoringEventId && (() => {
         const monEvent = events?.find((e) => e.id === monitoringEventId);
         return (
-          <RSVPMonitor
+          <EventRsvpDetail
             eventId={monitoringEventId}
             eventTitle={monEvent?.title ?? "Event"}
             eventDate={monEvent?.date_time ?? ""}
             checkinPin={monEvent?.checkin_pin ?? ""}
+            hasPotluck={monEvent?.has_potluck ?? false}
             onClose={() => setMonitoringEventId(null)}
           />
         );
