@@ -425,14 +425,17 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
   return (
     <>
       {/* Full-screen overlay on mobile, card on desktop */}
-      <div className="fixed inset-0 z-50 bg-black/60 md:flex md:items-center md:justify-center" onClick={handleClose}>
+      <div
+        className="fixed inset-0 z-[80] bg-background md:flex md:items-center md:justify-center md:bg-black/60"
+        onClick={handleClose}
+      >
         <div
-          className="h-[100dvh] w-full flex flex-col bg-background md:h-auto md:max-h-[calc(100vh-6rem)] md:max-w-2xl md:rounded-lg md:border md:shadow-lg md:mx-4 [&_*]:box-border [&_input]:max-w-full [&_input]:w-full [&_textarea]:max-w-full [&_textarea]:w-full [&_select]:max-w-full [&_select]:w-full"
+          className="relative h-[100dvh] w-full flex flex-col bg-background md:h-auto md:max-h-[calc(100vh-6rem)] md:max-w-2xl md:rounded-lg md:border md:shadow-lg md:mx-4 [&_*]:box-border [&_input]:max-w-full [&_input]:w-full [&_textarea]:max-w-full [&_textarea]:w-full [&_select]:max-w-full [&_select]:w-full"
           onClick={(e) => e.stopPropagation()}
-          style={{ touchAction: 'pan-y', overscrollBehaviorX: 'none' }}
+          style={{ touchAction: 'pan-y', overscrollBehaviorX: 'none', overscrollBehaviorY: 'contain' }}
         >
           {/* Fixed header */}
-          <div className="flex items-center justify-between px-4 py-3 border-b bg-background shrink-0 z-10">
+          <div className="sticky top-0 flex items-center justify-between border-b bg-background px-4 py-3 shrink-0 z-20">
             <h2 className="text-lg font-heading font-semibold truncate">
               {isNewEvent ? "New Event" : "Edit Event"}
             </h2>
@@ -454,7 +457,7 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
           </div>
 
           {/* Scrollable form content */}
-          <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-4 pb-24 md:pb-4" style={{ touchAction: 'pan-y', overscrollBehaviorX: 'none' }}>
+          <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-4 pb-4" style={{ touchAction: 'pan-y', overscrollBehaviorX: 'none', overscrollBehaviorY: 'contain' }}>
             <Tabs defaultValue="design" className="w-full">
               <TabsList className="grid w-full grid-cols-3 bg-muted sticky top-0 z-10 mt-2">
                 <TabsTrigger value="design" className="gap-1.5 text-xs">
@@ -484,7 +487,7 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
           </div>
 
           {/* Compact sticky action bar — fixed to bottom on mobile */}
-          <div className="fixed bottom-0 left-0 w-full border-t bg-background z-50 px-3 py-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] md:static md:z-10 md:px-4 md:py-3 md:pb-3 max-w-full overflow-hidden shadow-[0_-2px_8px_rgba(0,0,0,0.08)]">
+          <div className="sticky bottom-0 left-0 w-full shrink-0 border-t bg-background px-3 py-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] z-20 max-w-full overflow-hidden shadow-[0_-2px_8px_rgba(0,0,0,0.08)] md:static md:px-4 md:py-3 md:pb-3">
             <div className="flex flex-row items-center gap-2 w-full">
               <Button
                 variant="outline"
