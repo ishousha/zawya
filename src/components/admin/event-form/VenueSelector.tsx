@@ -51,7 +51,7 @@ export default function VenueSelector({ value, onChange }: VenueSelectorProps) {
       if (editingVenue) {
         const { data, error } = await supabase
           .from("venues")
-          .update({ name: formName, address: formAddress || null })
+          .update({ name: formName, address: formAddress || null, area_hint: formAreaHint || null } as any)
           .eq("id", editingVenue.id)
           .select()
           .single();
@@ -60,7 +60,7 @@ export default function VenueSelector({ value, onChange }: VenueSelectorProps) {
       } else {
         const { data, error } = await supabase
           .from("venues")
-          .insert({ name: formName, address: formAddress || null })
+          .insert({ name: formName, address: formAddress || null, area_hint: formAreaHint || null } as any)
           .select()
           .single();
         if (error) throw error;
@@ -95,6 +95,7 @@ export default function VenueSelector({ value, onChange }: VenueSelectorProps) {
   const openAdd = () => {
     setEditingVenue(null);
     setFormName("");
+    setFormAreaHint("");
     setFormAddress("");
     setOpen(false);
     setDialogOpen(true);
@@ -104,6 +105,7 @@ export default function VenueSelector({ value, onChange }: VenueSelectorProps) {
     e.stopPropagation();
     setEditingVenue(venue);
     setFormName(venue.name);
+    setFormAreaHint(venue.area_hint ?? "");
     setFormAddress(venue.address ?? "");
     setOpen(false);
     setDialogOpen(true);
@@ -119,6 +121,7 @@ export default function VenueSelector({ value, onChange }: VenueSelectorProps) {
     setDialogOpen(false);
     setEditingVenue(null);
     setFormName("");
+    setFormAreaHint("");
     setFormAddress("");
   };
 
