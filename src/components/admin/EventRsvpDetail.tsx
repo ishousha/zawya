@@ -1,0 +1,410 @@
+import { useState, useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/components/ui/table";
+import { Loader2, X, Download, UserPlus, Mail, Printer, Users, UtensilsCrossed, CheckCircle2 } from "lucide-react";
+import { downloadCsv, zawyaFilename } from "@/lib/csv-export";
+import { toast } from "sonner";
+import HostDashboard from "@/components/HostDashboard";
+import AdminGuestApprovals from "./AdminGuestApprovals";
+import CheckinPoster from "./CheckinPoster";
+import WalkInRsvpModal from "./WalkInRsvpModal";
+
+interface Props {
+  eventId: string;
+  eventTitle: string;
+  eventDate: string;
+  checkinPin: string;
+  hasPotluck: boolean;
+  onClose: () => void;
+}
+
+export default function EventRsvpDetail({ eventId, eventTitle, eventDate, checkinPin, hasPotluck, onClose }: Props) {
+  const [showPoster, setShowPoster] = useState(false);
+  const [showWalkIn, setShowWalkIn] = useState(false);
+  const [sendingGuestList, setSendingGuestList] = useState(false);
+
+  // Fetch RSVPs + profiles
+  const { data: rsvps, isLoading } = useQuery({
+    queryKey: ["admin-rsvps", eventId],
+    queryFn: async () => {
+      const { data: rsvpData, error } = await supabase
+        .from("rsvps")
+        .select("*")
+        .eq("event_id", eventId);
+      if (error) throw error;
+      if (!rsvpData || rsvpData.length === 0) return [];
+
+      const userIds = [...new Set(rsvpData.map((r) => r.user_id))];
+      const { data: profilesData } = await supabase
+        .from("profiles")
+        .select("id, name, email, role, family_name")
+        .in("id", userIds);
+
+      const profileMap = new Map((profilesData ?? []).map((p) => [p.id, p]));
+      return rsvpData.map((r) => ({ ...r, profile: profileMap.get(r.user_id) ?? null }));
+    },
+  });
+
+  // Fetch sign-up items + selections for potluck
+  const { data: signUpData } = useQuery({
+    queryKey: ["admin-signup-items", eventId],
+    enabled: hasPotluck,
+    queryFn: async () => {
+      const { data: items, error: iErr } = await supabase
+        .from("event_sign_up_items")
+        .select("*")
+        .eq("event_id", eventId)
+        .order("order_index");
+      if (iErr) throw iErr;
+      if (!items || items.length === 0) return { items: [], selections: [] };
+
+      const rsvpIds = (rsvps ?? []).map((r) => r.id);
+      if (rsvpIds.length === 0) return { items, selections: [] };
+
+      const { data: selections, error: sErr } = await supabase
+        .from("rsvp_sign_up_selections")
+        .select("*")
+        .in("rsvp_id", rsvpIds);
+      if (sErr) throw sErr;
+
+      return { items, selections: selections ?? [] };
+    },
+  });
+
+  const attending = useMemo(() => (rsvps ?? []).filter((r) => r.status === "attending" && !r.is_waitlisted), [rsvps]);
+  const waitlisted = useMemo(() => (rsvps ?? []).filter((r) => r.status === "waitlisted" || r.is_waitlisted), [rsvps]);
+
+  // Build potluck table rows
+  const potluckRows = useMemo(() => {
+    if (!signUpData) return [];
+    const { items, selections } = signUpData;
+    const rsvpMap = new Map((rsvps ?? []).map((r) => [r.id, r]));
+
+    return items.map((item) => {
+      const itemSelections = selections.filter((s) => s.sign_up_item_id === item.id);
+      const totalClaimed = itemSelections.reduce((sum, s) => sum + (s.quantity ?? 1), 0);
+      const claimants = itemSelections.map((s) => {
+        const rsvp = rsvpMap.get(s.rsvp_id);
+        const name = (rsvp?.profile as any)?.name || "Unknown";
+        return { name, quantity: s.quantity ?? 1, description: s.description || "" };
+      });
+      return {
+        id: item.id,
+        itemName: item.item_name,
+        quantityLimit: item.quantity_limit,
+        totalClaimed,
+        claimants,
+      };
+    });
+  }, [signUpData, rsvps]);
+
+  // Also gather legacy potluck items (specific_food_item on rsvps)
+  const legacyPotluckItems = useMemo(() => {
+    return (rsvps ?? [])
+      .filter((r) => r.specific_food_item?.trim())
+      .map((r) => ({
+        dish: r.specific_food_item!,
+        name: (r.profile as any)?.name || "Unknown",
+      }));
+  }, [rsvps]);
+
+  const handleSendGuestList = async () => {
+    setSendingGuestList(true);
+    try {
+      const { error } = await supabase.functions.invoke("send-guest-list-reminder", {
+        body: { event_id: eventId },
+      });
+      if (error) throw error;
+      toast.success("Guest list sent to host, admins & moderators");
+    } catch {
+      toast.error("Failed to send guest list email");
+    } finally {
+      setSendingGuestList(false);
+    }
+  };
+
+  const handleExportCsv = () => {
+    if (!rsvps || rsvps.length === 0) return;
+
+    // Build a map of rsvp_id -> potluck items claimed
+    const rsvpPotluckMap = new Map<string, string[]>();
+    if (signUpData) {
+      for (const sel of signUpData.selections) {
+        const item = signUpData.items.find((i) => i.id === sel.sign_up_item_id);
+        const label = item ? `${item.item_name}${sel.description ? ` (${sel.description})` : ""} x${sel.quantity}` : "";
+        if (label) {
+          const existing = rsvpPotluckMap.get(sel.rsvp_id) ?? [];
+          existing.push(label);
+          rsvpPotluckMap.set(sel.rsvp_id, existing);
+        }
+      }
+    }
+
+    const rows = rsvps.map((r) => {
+      const deps: { name: string }[] = (r.attending_dependents as any[]) ?? [];
+      const potluckFromSignUp = rsvpPotluckMap.get(r.id)?.join("; ") ?? "";
+      const potluckLegacy = r.specific_food_item?.trim() ?? "";
+      const potluckCombined = [potluckFromSignUp, potluckLegacy].filter(Boolean).join("; ");
+
+      return {
+        "Member Name": (r.profile as any)?.name || "",
+        Email: (r.profile as any)?.email || "",
+        "Dependents/Guests": deps.map((d) => d.name).join("; "),
+        "Total Party Size": r.guests_count,
+        Status: r.is_waitlisted ? "Waitlisted" : r.status === "cancelled" ? "Cancelled" : "Attending",
+        "Checked In": r.checked_in ? "Yes" : "No",
+        "Potluck Items": potluckCombined,
+      };
+    });
+
+    downloadCsv(rows, zawyaFilename("GuestList", eventTitle));
+    toast.success(`Exported ${rows.length} RSVPs`);
+  };
+
+  if (showPoster) {
+    return (
+      <CheckinPoster
+        eventTitle={eventTitle}
+        eventDate={eventDate}
+        eventId={eventId}
+        checkinPin={checkinPin}
+        onClose={() => setShowPoster(false)}
+      />
+    );
+  }
+
+  const getDepsDisplay = (r: any) => {
+    const deps: { name: string; age?: number | null; type?: string; dependent_type?: string }[] = r.attending_dependents ?? [];
+    if (deps.length === 0) return <span className="text-muted-foreground">—</span>;
+    return (
+      <div className="space-y-0.5">
+        {deps.map((d, i) => (
+          <p key={i} className="text-xs">
+            {d.name}
+            {d.age != null && <span className="text-muted-foreground ml-1">({d.age})</span>}
+          </p>
+        ))}
+      </div>
+    );
+  };
+
+  return (
+    <>
+      <Card>
+        <CardHeader className="pb-2">
+          <div className="flex flex-col gap-3">
+            <div className="flex items-start justify-between">
+              <CardTitle className="text-lg">{eventTitle}</CardTitle>
+              <Button size="icon" variant="ghost" className="h-10 w-10 shrink-0" onClick={onClose}>
+                <X className="h-5 w-5" />
+              </Button>
+            </div>
+            <div className="flex flex-wrap items-center gap-1.5">
+              <Button size="sm" variant="default" className="h-8 gap-1.5 text-xs" onClick={() => setShowWalkIn(true)}>
+                <UserPlus className="h-3.5 w-3.5" /> Walk-In
+              </Button>
+              <Button size="sm" variant="outline" className="h-8 gap-1.5 text-xs" onClick={handleExportCsv} disabled={!rsvps || rsvps.length === 0}>
+                <Download className="h-3.5 w-3.5" /> Export CSV
+              </Button>
+              <Button size="sm" variant="outline" className="h-8 gap-1.5 text-xs" onClick={handleSendGuestList} disabled={sendingGuestList}>
+                {sendingGuestList ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Mail className="h-3.5 w-3.5" />}
+                Guest List
+              </Button>
+              {checkinPin && (
+                <Button size="sm" variant="outline" className="h-8 gap-1.5 text-xs" onClick={() => setShowPoster(true)}>
+                  <Printer className="h-3.5 w-3.5" /> Poster
+                </Button>
+              )}
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <div className="flex justify-center py-6"><Loader2 className="h-5 w-5 animate-spin text-primary" /></div>
+          ) : rsvps && rsvps.length > 0 ? (
+            <div className="space-y-4">
+              <HostDashboard eventId={eventId} />
+
+              <Tabs defaultValue="guests" className="w-full">
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="guests" className="gap-1.5 text-xs sm:text-sm">
+                    <Users className="h-4 w-4" /> Guest List
+                  </TabsTrigger>
+                  <TabsTrigger value="potluck" className="gap-1.5 text-xs sm:text-sm" disabled={!hasPotluck}>
+                    <UtensilsCrossed className="h-4 w-4" /> Potluck Sign-ups
+                  </TabsTrigger>
+                </TabsList>
+
+                {/* Guest List Tab */}
+                <TabsContent value="guests" className="space-y-4">
+                  {/* Attending */}
+                  <div>
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+                      Attending ({attending.length})
+                    </p>
+                    {attending.length > 0 ? (
+                      <div className="overflow-x-auto -mx-4 px-4">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead className="text-xs">Name</TableHead>
+                              <TableHead className="text-xs">Dependents</TableHead>
+                              <TableHead className="text-xs text-center">Party</TableHead>
+                              <TableHead className="text-xs text-center">Check-in</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {attending.map((r) => (
+                              <TableRow key={r.id}>
+                                <TableCell className="py-2">
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="text-sm font-medium">{(r.profile as any)?.name || "Unknown"}</span>
+                                    {(r.profile as any)?.role === "guest" && (
+                                      <Badge variant="secondary" className="text-[10px] px-1 py-0">Guest</Badge>
+                                    )}
+                                  </div>
+                                </TableCell>
+                                <TableCell className="py-2">{getDepsDisplay(r)}</TableCell>
+                                <TableCell className="py-2 text-center text-sm">{r.guests_count}</TableCell>
+                                <TableCell className="py-2 text-center">
+                                  {r.checked_in ? (
+                                    <CheckCircle2 className="h-4 w-4 text-emerald-600 mx-auto" />
+                                  ) : (
+                                    <span className="text-muted-foreground/40">○</span>
+                                  )}
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    ) : (
+                      <p className="text-xs text-muted-foreground italic">No confirmed attendees yet.</p>
+                    )}
+                  </div>
+
+                  {/* Waitlisted */}
+                  {waitlisted.length > 0 && (
+                    <div>
+                      <p className="text-xs font-semibold text-amber-600 uppercase tracking-wider mb-2">
+                        Waitlisted ({waitlisted.length})
+                      </p>
+                      <div className="overflow-x-auto -mx-4 px-4">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead className="text-xs">Name</TableHead>
+                              <TableHead className="text-xs">Dependents</TableHead>
+                              <TableHead className="text-xs text-center">Party</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {waitlisted.map((r) => (
+                              <TableRow key={r.id}>
+                                <TableCell className="py-2 text-sm font-medium">{(r.profile as any)?.name || "Unknown"}</TableCell>
+                                <TableCell className="py-2">{getDepsDisplay(r)}</TableCell>
+                                <TableCell className="py-2 text-center text-sm">{r.guests_count}</TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Guest Requests */}
+                  <div className="pt-2 border-t border-border">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Guest Requests</p>
+                    <AdminGuestApprovals eventId={eventId} />
+                  </div>
+
+                  <p className="text-xs text-muted-foreground text-center pt-2">
+                    Total: {attending.reduce((s, r) => s + r.guests_count, 0)} attending
+                    {waitlisted.length > 0 && ` · ${waitlisted.reduce((s, r) => s + r.guests_count, 0)} waitlisted`}
+                  </p>
+                </TabsContent>
+
+                {/* Potluck Tab */}
+                <TabsContent value="potluck" className="space-y-4">
+                  {potluckRows.length > 0 ? (
+                    <div className="overflow-x-auto -mx-4 px-4">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="text-xs">Item</TableHead>
+                            <TableHead className="text-xs text-center">Needed</TableHead>
+                            <TableHead className="text-xs text-center">Claimed</TableHead>
+                            <TableHead className="text-xs">Claimed By</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {potluckRows.map((row) => (
+                            <TableRow key={row.id}>
+                              <TableCell className="py-2 text-sm font-medium">{row.itemName}</TableCell>
+                              <TableCell className="py-2 text-center text-sm">
+                                {row.quantityLimit === 0 ? "∞" : row.quantityLimit}
+                              </TableCell>
+                              <TableCell className="py-2 text-center">
+                                <Badge variant={row.quantityLimit > 0 && row.totalClaimed >= row.quantityLimit ? "default" : "outline"} className="text-xs">
+                                  {row.totalClaimed}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="py-2">
+                                {row.claimants.length === 0 ? (
+                                  <span className="text-muted-foreground text-xs">—</span>
+                                ) : (
+                                  <div className="space-y-0.5">
+                                    {row.claimants.map((c, i) => (
+                                      <p key={i} className="text-xs">
+                                        {c.name}
+                                        {c.description && <span className="text-muted-foreground"> ({c.description})</span>}
+                                        {c.quantity > 1 && <span className="text-muted-foreground"> ×{c.quantity}</span>}
+                                      </p>
+                                    ))}
+                                  </div>
+                                )}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  ) : legacyPotluckItems.length > 0 ? (
+                    <div className="overflow-x-auto -mx-4 px-4">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="text-xs">Dish</TableHead>
+                            <TableHead className="text-xs">Brought By</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {legacyPotluckItems.map((item, i) => (
+                            <TableRow key={i}>
+                              <TableCell className="py-2 text-sm">{item.dish}</TableCell>
+                              <TableCell className="py-2 text-sm text-muted-foreground">{item.name}</TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground text-center py-4">No potluck sign-ups yet.</p>
+                  )}
+                </TabsContent>
+              </Tabs>
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground text-center py-4">No RSVPs yet.</p>
+          )}
+        </CardContent>
+      </Card>
+      <WalkInRsvpModal eventId={eventId} open={showWalkIn} onOpenChange={setShowWalkIn} />
+    </>
+  );
+}
