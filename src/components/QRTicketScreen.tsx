@@ -41,18 +41,63 @@ export default function QRTicketScreen({ event, rsvp, profileName, isOffline, on
     if (!ticketRef.current) return;
     setSaving(true);
     try {
-      const html2canvas = (await import("html2canvas")).default;
-      const canvas = await html2canvas(ticketRef.current, {
-        backgroundColor: null,
-        scale: 3,
-        useCORS: true,
+      const el = ticketRef.current;
+      const scale = 3;
+      const width = el.offsetWidth;
+      const height = el.offsetHeight;
+
+      // Serialize DOM to XML for SVG foreignObject
+      const clone = el.cloneNode(true) as HTMLElement;
+      // Inline computed styles for accurate rendering
+      const inlineStyles = (source: Element, target: Element) => {
+        const computed = window.getComputedStyle(source);
+        (target as HTMLElement).removeAttribute("class");
+        let css = "";
+        for (let i = 0; i < computed.length; i++) {
+          const prop = computed[i];
+          css += `${prop}:${computed.getPropertyValue(prop)};`;
+        }
+        (target as HTMLElement).style.cssText = css;
+        const sourceChildren = source.children;
+        const targetChildren = target.children;
+        for (let i = 0; i < sourceChildren.length; i++) {
+          inlineStyles(sourceChildren[i], targetChildren[i]);
+        }
+      };
+      inlineStyles(el, clone);
+
+      const xml = new XMLSerializer().serializeToString(clone);
+      const svgStr = `<svg xmlns="http://www.w3.org/2000/svg" width="${width * scale}" height="${height * scale}">
+        <foreignObject width="${width}" height="${height}" style="transform:scale(${scale});transform-origin:0 0">
+          <div xmlns="http://www.w3.org/1999/xhtml">${xml}</div>
+        </foreignObject>
+      </svg>`;
+
+      const img = new Image();
+      const blob = new Blob([svgStr], { type: "image/svg+xml;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+
+      await new Promise<void>((resolve, reject) => {
+        img.onload = () => {
+          const canvas = document.createElement("canvas");
+          canvas.width = width * scale;
+          canvas.height = height * scale;
+          const ctx = canvas.getContext("2d")!;
+          ctx.drawImage(img, 0, 0);
+          URL.revokeObjectURL(url);
+
+          const link = document.createElement("a");
+          link.download = `zawya-ticket-${event.title.replace(/\s+/g, "-").toLowerCase()}.png`;
+          link.href = canvas.toDataURL("image/png");
+          link.click();
+          resolve();
+        };
+        img.onerror = reject;
+        img.src = url;
       });
-      const link = document.createElement("a");
-      link.download = `zawya-ticket-${event.title.replace(/\s+/g, "-").toLowerCase()}.png`;
-      link.href = canvas.toDataURL("image/png");
-      link.click();
     } catch (e) {
       console.error("Failed to save ticket image", e);
+      toast.error("Could not save ticket image. Try taking a screenshot instead.");
     } finally {
       setSaving(false);
     }
