@@ -3,7 +3,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Plus, Trash2, ChevronUp, ChevronDown, PackagePlus } from "lucide-react";
+import { Plus, Trash2, ArrowUp, ArrowDown, PackagePlus, GripVertical } from "lucide-react";
 
 export interface SignUpItem {
   id?: number; // existing DB id, undefined for new
