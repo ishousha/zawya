@@ -37,18 +37,18 @@ export default function SettingsTab({ form, setForm, isEditing }: SettingsTabPro
 
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <Label htmlFor="capacity">Event Capacity</Label>
+            <Label htmlFor="capacity">Max Capacity (Optional)</Label>
             <Input
               id="capacity"
               type="number"
               min={1}
               value={form.capacity}
               onChange={(e) => update("capacity", e.target.value)}
-              placeholder="Max attendees"
+              placeholder="Unlimited"
               className="mt-1.5"
             />
             <p className="text-xs text-muted-foreground mt-1">
-              Maximum total attendees
+              Leave blank for unlimited
             </p>
           </div>
           <div>
@@ -206,12 +206,11 @@ export default function SettingsTab({ form, setForm, isEditing }: SettingsTabPro
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="active">Active</SelectItem>
-            <SelectItem value="full">Full</SelectItem>
             <SelectItem value="cancelled">Cancelled</SelectItem>
           </SelectContent>
         </Select>
         <p className="text-xs text-muted-foreground mt-1">
-          Lifecycle status of the event
+          'Full' status is set automatically when RSVPs reach max capacity
         </p>
       </div>
 

@@ -375,6 +375,16 @@ function EventCardInner({ event, onShowTicket, isPast = false }: EventCardProps)
                     </Button>
                   </>
                 ) : (
+                  isFull && event.waitlist_capacity <= 0 ? (
+                    <Button
+                      size="sm"
+                      className="w-full"
+                      variant="secondary"
+                      disabled
+                    >
+                      Event Full
+                    </Button>
+                  ) : (
                   <Button
                     size="sm"
                     onClick={() => setRsvpOpen(true)}
@@ -390,6 +400,7 @@ function EventCardInner({ event, onShowTicket, isPast = false }: EventCardProps)
                       "RSVP"
                     )}
                   </Button>
+                  )
                 )}
               </div>
               {isPhysical && isCheckedIn && (
