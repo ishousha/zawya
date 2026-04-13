@@ -309,15 +309,44 @@ export default function RSVPModal({ event, open, onOpenChange }: RSVPModalProps)
         <div className="space-y-5 py-2">
           {/* Virtual event link removed — shown only on EventCard after RSVP + 15-min gate */}
 
-          {/* Attendee checklist */}
-          <AttendeeChecklist
-            familyMembers={familyMembers ?? []}
-            selectedMemberIds={selectedMemberIds}
-            onToggleMember={toggleMember}
-            dependents={dependents ?? []}
-            selectedDependentIds={selectedDependentIds}
-            onToggleDependent={toggleDependent}
-          />
+          {/* Attendee checklist — filter dependents by event age group */}
+          {(() => {
+            const ageGroup = (event as any).age_group as string | undefined;
+            const isAdultsOnly = ageGroup === "Adults (18+)" || ageGroup === "Young Adults (18-30)";
+            const allDeps = dependents ?? [];
+
+            const filteredDeps = isAdultsOnly
+              ? allDeps.filter((dep) => {
+                  if ((dep as any).type === "child") return false;
+                  if (dep.date_of_birth) {
+                    const dob = new Date(dep.date_of_birth);
+                    const age = Math.floor((Date.now() - dob.getTime()) / (365.25 * 24 * 60 * 60 * 1000));
+                    if (age < 18) return false;
+                  }
+                  return true;
+                })
+              : allDeps;
+
+            const hiddenCount = allDeps.length - filteredDeps.length;
+
+            return (
+              <>
+                <AttendeeChecklist
+                  familyMembers={familyMembers ?? []}
+                  selectedMemberIds={selectedMemberIds}
+                  onToggleMember={toggleMember}
+                  dependents={filteredDeps}
+                  selectedDependentIds={selectedDependentIds}
+                  onToggleDependent={toggleDependent}
+                />
+                {hiddenCount > 0 && (
+                  <p className="text-xs text-muted-foreground mt-2 italic">
+                    Some family members are hidden due to event age restrictions.
+                  </p>
+                )}
+              </>
+            );
+          })()}
 
           <p className="text-xs text-muted-foreground">
             Total attending: <span className="font-semibold text-foreground">{guestsCount}</span>
