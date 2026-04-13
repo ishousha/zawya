@@ -12,6 +12,7 @@ import {
   Img,
   Link,
   Preview,
+  Section,
   Text,
 } from 'npm:@react-email/components@0.0.22'
 
@@ -20,6 +21,7 @@ interface SignupEmailProps {
   siteUrl: string
   recipient: string
   confirmationUrl: string
+  token?: string
 }
 
 const LOGO_URL = 'https://ikzaalswkajtaxejyskw.supabase.co/storage/v1/object/public/event-covers/email-logo.png'
@@ -29,6 +31,7 @@ export const SignupEmail = ({
   siteUrl,
   recipient,
   confirmationUrl,
+  token,
 }: SignupEmailProps) => (
   <Html lang="en" dir="ltr">
     <Head />
@@ -49,11 +52,23 @@ export const SignupEmail = ({
           <Link href={`mailto:${recipient}`} style={link}>
             {recipient}
           </Link>
-          ) by tapping below:
+          ) using one of the methods below:
         </Text>
+
+        {token && (
+          <Section style={otpSection}>
+            <Text style={otpLabel}>Your verification code:</Text>
+            <Text style={otpCode}>{token}</Text>
+            <Text style={otpHint}>Enter this code on the verification screen</Text>
+          </Section>
+        )}
+
+        <Text style={orDivider}>— or —</Text>
+
         <Button style={button} href={confirmationUrl}>
-          Confirm Email
+          Confirm via Link
         </Button>
+
         <Text style={footer}>
           If you didn't create an account, you can safely ignore this email.
         </Text>
@@ -91,3 +106,37 @@ const button = {
   fontWeight: 'bold' as const,
 }
 const footer = { fontSize: '12px', color: '#999999', margin: '30px 0 0' }
+const otpSection = {
+  backgroundColor: 'hsl(40, 33%, 96%)',
+  borderRadius: '12px',
+  padding: '20px',
+  textAlign: 'center' as const,
+  margin: '0 0 20px',
+}
+const otpLabel = {
+  fontSize: '13px',
+  color: 'hsl(150, 10%, 45%)',
+  margin: '0 0 8px',
+  textAlign: 'center' as const,
+}
+const otpCode = {
+  fontSize: '32px',
+  fontWeight: 'bold' as const,
+  letterSpacing: '6px',
+  color: 'hsl(150, 25%, 15%)',
+  margin: '0 0 8px',
+  textAlign: 'center' as const,
+  fontFamily: "'Courier New', monospace",
+}
+const otpHint = {
+  fontSize: '12px',
+  color: 'hsl(150, 10%, 55%)',
+  margin: '0',
+  textAlign: 'center' as const,
+}
+const orDivider = {
+  fontSize: '13px',
+  color: '#999999',
+  textAlign: 'center' as const,
+  margin: '0 0 20px',
+}
