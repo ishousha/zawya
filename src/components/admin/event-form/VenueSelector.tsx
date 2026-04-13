@@ -251,7 +251,18 @@ export default function VenueSelector({ value, onChange }: VenueSelectorProps) {
               />
             </div>
             <div>
-              <Label htmlFor="venue-address">Address / Maps Link</Label>
+              <Label htmlFor="venue-hint">Area Hint</Label>
+              <Input
+                id="venue-hint"
+                value={formAreaHint}
+                onChange={(e) => setFormAreaHint(e.target.value)}
+                placeholder="e.g. Barsha 3, JLT Cluster D"
+                className="mt-1.5"
+              />
+              <p className="text-xs text-muted-foreground mt-1">Shown before RSVP.</p>
+            </div>
+            <div>
+              <Label htmlFor="venue-address">Full Address / Maps Link</Label>
               <Input
                 id="venue-address"
                 value={formAddress}
