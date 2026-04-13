@@ -209,63 +209,65 @@ export default function Onboarding() {
   const handleSkip = async () => {
     if (!user) return;
     setSkipping(true);
+    try {
+      const existingFamilyId = (profile as any)?.family_id as string | null;
+      if (!existingFamilyId) {
+        const name = profile?.name || "My";
+        const label = `${name.split(/\s+/).pop() || "My"} Family`;
+        const familyId = await ensureFamily(label);
+        if (!familyId) return;
+      }
 
-    // If user has no family yet, create an individual one
-    const existingFamilyId = (profile as any)?.family_id as string | null;
-    if (!existingFamilyId) {
-      const name = profile?.name || "My";
-      const label = `${name.split(/\s+/).pop() || "My"} Family`;
-      const familyId = await ensureFamily(label);
-      if (!familyId) {
-        setSkipping(false);
+      const { error } = await supabase
+        .from("profiles")
+        .update({ onboarding_completed: true } as any)
+        .eq("id", user.id);
+
+      if (error) {
+        toast.error(`Failed to skip onboarding: ${error.message}`);
         return;
       }
-    }
 
-    const { error } = await supabase
-      .from("profiles")
-      .update({ onboarding_completed: true } as any)
-      .eq("id", user.id);
-
-    if (error) {
-      toast.error(`Failed to skip onboarding: ${error.message}`);
+      window.dispatchEvent(new Event("profile-updated"));
+      setTimeout(() => window.location.replace("/"), 300);
+    } catch (err: any) {
+      console.error("Skip failed:", err);
+      toast.error(err?.message || "Something went wrong. Please try again.");
+    } finally {
       setSkipping(false);
-      return;
     }
-
-    window.dispatchEvent(new Event("profile-updated"));
-    setSkipping(false);
-    setTimeout(() => window.location.replace("/"), 300);
   };
 
   // --- Step 1: Continue as individual ---
   const handleIndividual = async () => {
     setSaving(true);
-    const name = profile?.name || "My";
-    const label = `${name.split(/\s+/).pop() || "My"} Family`;
+    try {
+      const name = profile?.name || "My";
+      const label = `${name.split(/\s+/).pop() || "My"} Family`;
 
-    const familyId = await ensureFamily(label);
-    if (!familyId) {
+      const familyId = await ensureFamily(label);
+      if (!familyId) return;
+
+      const { error } = await supabase
+        .from("profiles")
+        .update({ onboarding_completed: true } as any)
+        .eq("id", user!.id);
+
+      if (error) {
+        toast.error(`Failed to complete onboarding: ${error.message}`);
+        return;
+      }
+
+      toast.success("You're all set!");
+      window.dispatchEvent(new Event("profile-updated"));
+      fireConfetti();
+      setTimeout(() => window.location.replace("/"), 1200);
+    } catch (err: any) {
+      console.error("Individual setup failed:", err);
+      toast.error(err?.message || "Something went wrong. Please try again.");
+    } finally {
       setSaving(false);
-      return;
     }
-
-    const { error } = await supabase
-      .from("profiles")
-      .update({ onboarding_completed: true } as any)
-      .eq("id", user!.id);
-
-    if (error) {
-      toast.error(`Failed to complete onboarding: ${error.message}`);
-      setSaving(false);
-      return;
-    }
-
-    toast.success("You're all set!");
-    window.dispatchEvent(new Event("profile-updated"));
-    setSaving(false);
-    fireConfetti();
-    setTimeout(() => window.location.replace("/"), 1200);
   };
 
   // --- Step 2: Create / update family ---
@@ -275,16 +277,18 @@ export default function Onboarding() {
       return;
     }
     setSaving(true);
+    try {
+      const familyId = await ensureFamily(familyName.trim());
+      if (!familyId) return;
 
-    const familyId = await ensureFamily(familyName.trim());
-    if (!familyId) {
+      setCreatedFamilyId(familyId);
+      goToStep("invite-add");
+    } catch (err: any) {
+      console.error("Create family failed:", err);
+      toast.error(err?.message || "Something went wrong. Please try again.");
+    } finally {
       setSaving(false);
-      return;
     }
-
-    setCreatedFamilyId(familyId);
-    setSaving(false);
-    goToStep("invite-add");
   };
 
   // --- Step 3 helpers ---
@@ -340,42 +344,46 @@ export default function Onboarding() {
   // --- Finish ---
   const handleFinish = async () => {
     setSaving(true);
-    const fid = createdFamilyId || ((profile as any)?.family_id as string | null);
+    try {
+      const fid = createdFamilyId || ((profile as any)?.family_id as string | null);
 
-    if (dependents.length > 0 && fid) {
-      const rows = dependents.map((d) => ({
-        parent_id: user!.id,
-        family_id: fid,
-        first_name: d.firstName,
-        type: d.type,
-        gender: d.gender || null,
-        age_group: d.ageGroup || null,
-      }));
-      const { error } = await supabase.from("dependents").insert(rows as any);
+      if (dependents.length > 0 && fid) {
+        const rows = dependents.map((d) => ({
+          parent_id: user!.id,
+          family_id: fid,
+          first_name: d.firstName,
+          type: d.type,
+          gender: d.gender || null,
+          age_group: d.ageGroup || null,
+        }));
+        const { error } = await supabase.from("dependents").insert(rows as any);
+        if (error) {
+          toast.error(`Failed to save dependents: ${error.message}`);
+          return;
+        }
+      }
+
+      const { error } = await supabase
+        .from("profiles")
+        .update({ onboarding_completed: true } as any)
+        .eq("id", user!.id);
+
       if (error) {
-        toast.error(`Failed to save dependents: ${error.message}`);
-        setSaving(false);
+        toast.error(`Failed to complete onboarding: ${error.message}`);
         return;
       }
-    }
 
-    const { error } = await supabase
-      .from("profiles")
-      .update({ onboarding_completed: true } as any)
-      .eq("id", user!.id);
-
-    if (error) {
-      toast.error(`Failed to complete onboarding: ${error.message}`);
+      queryClient.invalidateQueries({ queryKey: ["dependents"] });
+      queryClient.invalidateQueries({ queryKey: ["family-members"] });
+      toast.success("Welcome to Zawya!");
+      fireConfetti();
+      setTimeout(() => window.location.replace("/"), 1200);
+    } catch (err: any) {
+      console.error("Finish setup failed:", err);
+      toast.error(err?.message || "Something went wrong. Please try again.");
+    } finally {
       setSaving(false);
-      return;
     }
-
-    queryClient.invalidateQueries({ queryKey: ["dependents"] });
-    queryClient.invalidateQueries({ queryKey: ["family-members"] });
-    toast.success("Welcome to Zawya!");
-    setSaving(false);
-    fireConfetti();
-    setTimeout(() => window.location.replace("/"), 1200);
   };
 
   return (
