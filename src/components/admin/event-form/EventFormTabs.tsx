@@ -431,7 +431,7 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
         {/* Clickable backdrop — only visible on desktop behind the card */}
         <div className="hidden md:block fixed inset-0" onClick={handleClose} />
         <div
-          className="relative h-[100dvh] w-full flex flex-col bg-background md:h-auto md:max-h-[calc(100vh-6rem)] md:max-w-2xl md:rounded-lg md:border md:shadow-lg md:mx-4 md:z-10 [&_*]:box-border [&_input]:max-w-full [&_input]:w-full [&_textarea]:max-w-full [&_textarea]:w-full [&_select]:max-w-full [&_select]:w-full"
+          className="relative h-[100dvh] w-full flex flex-col bg-background md:h-[calc(100vh-6rem)] md:max-w-2xl md:rounded-lg md:border md:shadow-lg md:mx-4 md:z-10 [&_*]:box-border [&_input]:max-w-full [&_input]:w-full [&_textarea]:max-w-full [&_textarea]:w-full [&_select]:max-w-full [&_select]:w-full"
           style={{ touchAction: 'pan-y', overscrollBehaviorX: 'none', overscrollBehaviorY: 'contain' }}
         >
           {/* Fixed header — not sticky, just shrink-0 in flex column */}
