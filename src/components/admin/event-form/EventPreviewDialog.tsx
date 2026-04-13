@@ -25,7 +25,7 @@ export default function EventPreviewDialog({ open, onOpenChange, form }: EventPr
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md p-0 gap-0 overflow-hidden">
+      <DialogContent className="max-w-md p-0 gap-0 overflow-hidden z-[90]">
         <DialogHeader className="px-4 pt-4 pb-2">
           <DialogTitle className="text-sm font-medium text-muted-foreground">
             Event Preview
