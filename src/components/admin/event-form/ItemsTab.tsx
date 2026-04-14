@@ -57,7 +57,7 @@ export default function ItemsTab({ items, onChange }: ItemsTabProps) {
     <div className="space-y-4 py-4">
       {/* Add new item */}
       <div>
-        <Label className="text-sm font-medium mb-1.5 block">Add Sign-Up Item</Label>
+        <Label className="text-sm font-medium mb-1.5 block">Add Potluck Item</Label>
         <div className="flex gap-2">
           <Input
             value={newName}
