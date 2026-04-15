@@ -120,6 +120,8 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
         : "",
       enable_virtual: !!(event.online_link),
       zoom_password: (event as any).zoom_password ?? "",
+      recording_url: (event as any).recording_url ?? "",
+      recording_passcode: (event as any).recording_passcode ?? "",
     };
   });
 
@@ -261,6 +263,8 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
         scheduled_publish_at: !shouldPublish && form.scheduled_publish_at
           ? new Date(form.scheduled_publish_at).toISOString()
           : null,
+        recording_url: form.recording_url || null,
+        recording_passcode: form.recording_passcode || null,
       };
 
       let eventId = event?.id;

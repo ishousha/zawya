@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo, memo } from "react";
 import { format } from "date-fns";
-import { MapPin, Video, Users, Calendar, Clock, CheckCircle2, Ticket, Edit, Building2, ExternalLink, Ban, BookOpen, Mountain, Handshake, ClockIcon, ScanLine, Lock } from "lucide-react";
+import { MapPin, Video, Users, Calendar, Clock, CheckCircle2, Ticket, Edit, Building2, ExternalLink, Ban, BookOpen, Mountain, Handshake, ClockIcon, ScanLine, Lock, Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useMyRSVP, useEventRSVPs } from "@/hooks/useRSVP";
@@ -275,7 +275,7 @@ function EventCardInner({ event, onShowTicket, isPast = false }: EventCardProps)
           </p>
         )}
         {/* Zoom Lockbox — 3-state virtual meeting section */}
-        {!isCancelled && isVirtual && (() => {
+        {!isPast && !isCancelled && isVirtual && (() => {
           const hasRsvpd = isAttending && !isWaitlisted;
 
           // State 1: Not RSVP'd — show locked message only
@@ -327,7 +327,7 @@ function EventCardInner({ event, onShowTicket, isPast = false }: EventCardProps)
         })()}
 
         {/* Not attending: show general location hint */}
-        {!isCancelled && !isAttending && requiresLocation && (event.location || (event as any).location_hint) && (
+        {!isPast && !isCancelled && !isAttending && requiresLocation && (event.location || (event as any).location_hint) && (
           <div className="mt-2 flex items-start gap-1.5 text-sm text-muted-foreground">
             <Lock className="h-3.5 w-3.5 mt-0.5 shrink-0 text-muted-foreground" />
             <span>
@@ -342,10 +342,34 @@ function EventCardInner({ event, onShowTicket, isPast = false }: EventCardProps)
         {/* Action buttons */}
         <div className="mt-3 space-y-2">
           {isPast ? (
-            <Button size="sm" variant="outline" className="w-full gap-1.5" disabled>
-              <Calendar className="h-3.5 w-3.5" />
-              Past Event
-            </Button>
+            <>
+              {(event as any).recording_url ? (
+                <div className="space-y-1.5">
+                  <Button
+                    size="sm"
+                    className="w-full gap-1.5"
+                    onClick={() => window.open((event as any).recording_url, "_blank", "noopener,noreferrer")}
+                  >
+                    <Play className="h-3.5 w-3.5" />
+                    ▶ Watch Recording
+                  </Button>
+                  {(event as any).recording_passcode && (
+                    <p className="text-xs text-muted-foreground text-center">
+                      🔑 Passcode: <span className="font-medium text-foreground">{(event as any).recording_passcode}</span>
+                    </p>
+                  )}
+                </div>
+              ) : isVirtual ? (
+                <p className="text-sm text-muted-foreground text-center py-2 italic">
+                  Event Ended. Recording coming soon.
+                </p>
+              ) : (
+                <Button size="sm" variant="outline" className="w-full gap-1.5" disabled>
+                  <Calendar className="h-3.5 w-3.5" />
+                  Past Event
+                </Button>
+              )}
+            </>
           ) : isCancelled ? (
             <Button size="sm" variant="outline" disabled className="w-full gap-1.5 opacity-70">
               <Ban className="h-3.5 w-3.5" />

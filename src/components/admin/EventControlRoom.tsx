@@ -154,6 +154,8 @@ export default function EventControlRoom() {
       scheduled_publish_at: "",
       enable_virtual: !!(event.online_link),
       zoom_password: (event as any).zoom_password ?? "",
+      recording_url: "",
+      recording_passcode: "",
     };
 
     const copiedItems: SignUpItem[] = (items ?? []).map((item, i) => ({

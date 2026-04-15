@@ -5,7 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Users, Clock, KeyRound, RefreshCw, UtensilsCrossed, Lock, DollarSign, BellRing, ScrollText, CalendarClock, Info } from "lucide-react";
+import { Users, Clock, KeyRound, RefreshCw, UtensilsCrossed, Lock, DollarSign, BellRing, ScrollText, CalendarClock, Info, Film } from "lucide-react";
 import type { EventFormState } from "./types";
 import { generateCheckinPin } from "./types";
 import HostSelector from "./HostSelector";
@@ -309,6 +309,43 @@ export default function SettingsTab({ form, setForm, isEditing }: SettingsTabPro
           )}
         </div>
       </div>
+
+      {/* Post-Event Media */}
+      {isEditing && (
+        <div>
+          <div className="flex items-center gap-2 mb-3">
+            <Film className="h-4 w-4 text-primary" />
+            <h3 className="text-sm font-semibold text-foreground">Post-Event Media</h3>
+          </div>
+          <div className="space-y-3">
+            <div>
+              <Label htmlFor="recording_url">Recording Link (URL)</Label>
+              <Input
+                id="recording_url"
+                type="url"
+                value={form.recording_url}
+                onChange={(e) => update("recording_url", e.target.value)}
+                placeholder="https://zoom.us/rec/share/..."
+                className="mt-1.5"
+              />
+            </div>
+            <div>
+              <Label htmlFor="recording_passcode">Recording Passcode</Label>
+              <Input
+                id="recording_passcode"
+                type="text"
+                value={form.recording_passcode}
+                onChange={(e) => update("recording_passcode", e.target.value)}
+                placeholder="Optional passcode"
+                className="mt-1.5"
+              />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Add a Zoom recording link after the event ends. Members will see a "Watch Recording" button on the past event card.
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
