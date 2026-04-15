@@ -42,6 +42,8 @@ export interface EventFormState {
   scheduled_publish_at: string;
   enable_virtual: boolean;
   zoom_password: string;
+  recording_url: string;
+  recording_passcode: string;
 }
 
 export interface SignUpItemState {
@@ -83,6 +85,8 @@ export const defaultEventForm: EventFormState = {
   scheduled_publish_at: "",
   enable_virtual: false,
   zoom_password: "",
+  recording_url: "",
+  recording_passcode: "",
 };
 
 // Keep EventType as a legacy re-export alias — no longer used
