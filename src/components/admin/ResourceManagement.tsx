@@ -11,7 +11,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { Loader2, Upload, Trash2, FileText, Plus, X, Tag, Video, Headphones, Link as LinkIcon, Check, ChevronsUpDown } from "lucide-react";
+import { Loader2, Upload, Trash2, FileText, Plus, X, Tag, Video, Headphones, Link as LinkIcon, Check, ChevronsUpDown, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
