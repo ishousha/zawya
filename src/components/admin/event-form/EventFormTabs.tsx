@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2, X, Palette, PackagePlus, Settings, Eye, Save, Send } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { useNavigate } from "react-router-dom";
 import DesignTab from "./DesignTab";
 import ItemsTab from "./ItemsTab";
 import type { SignUpItem } from "./ItemsTab";
@@ -69,6 +70,7 @@ function getErrorMessage(error: unknown, fallback: string) {
 
 export default function EventFormTabs({ event, initialForm, initialItems, onClose }: EventFormTabsProps) {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   const isNewEvent = !event || !!initialForm;
   // Track whether the event was already published before editing
@@ -412,6 +414,8 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
         toast.success("Event saved as draft");
       }
       onClose();
+      // Redirect admin to home so they see the result immediately
+      navigate("/");
     },
     onError: (err) => {
       console.error("Event save error:", err);

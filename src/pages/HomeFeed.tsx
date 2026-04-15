@@ -6,6 +6,7 @@ import { useMyRSVP } from "@/hooks/useRSVP";
 import EventCard from "@/components/EventCard";
 import QRTicketScreen from "@/components/QRTicketScreen";
 import InstallAppBanner from "@/components/InstallAppBanner";
+import { AdminDashboardSummary, MemberDashboardSummary } from "@/components/HomeDashboard";
 import { Loader2 } from "lucide-react";
 import EventCardSkeleton from "@/components/EventCardSkeleton";
 import { cacheTicket, getCachedTicketByEvent, cleanExpiredTickets } from "@/lib/offline-ticket-cache";
@@ -152,6 +153,8 @@ export default function HomeFeed() {
       <InstallAppBanner />
 
       <main className="mx-auto max-w-lg px-4 py-6">
+        {isAdminOrMod ? <AdminDashboardSummary /> : <MemberDashboardSummary />}
+
         <h2 className="mb-4 font-heading text-lg font-semibold text-foreground">
           Upcoming Activities
         </h2>
