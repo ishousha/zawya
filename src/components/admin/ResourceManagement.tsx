@@ -11,7 +11,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { Loader2, Upload, Trash2, FileText, Plus, X, Tag, Video, Headphones, Link as LinkIcon, Check, ChevronsUpDown } from "lucide-react";
+import { Loader2, Upload, Trash2, FileText, Plus, X, Tag, Video, Headphones, Link as LinkIcon, Check, ChevronsUpDown, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -44,6 +44,7 @@ export default function ResourceManagement() {
   const [source, setSource] = useState<"upload" | "external">("upload");
   const [externalUrl, setExternalUrl] = useState("");
   const [resourceType, setResourceType] = useState<ResourceType>("pdf");
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   const { data: resources, isLoading } = useQuery({
     queryKey: ["admin-resources"],
@@ -147,8 +148,32 @@ export default function ResourceManagement() {
     onError: () => toast.error("Failed to delete resource"),
   });
 
+  const editMutation = useMutation({
+    mutationFn: async ({ id, updates }: { id: string; updates: { title: string; description: string | null; category: string; resource_type: string } }) => {
+      const { error } = await supabase.from("resources").update(updates).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-resources"] });
+      queryClient.invalidateQueries({ queryKey: ["resources"] });
+      toast.success("Resource updated");
+      resetForm();
+    },
+    onError: () => toast.error("Failed to update resource"),
+  });
+
+  function startEdit(res: any) {
+    setEditingId(res.id);
+    setTitle(res.title);
+    setDescription(res.description || "");
+    setCategory(res.category || "General");
+    setResourceType(res.resource_type || "pdf");
+    setShowForm(true);
+  }
+
   function resetForm() {
     setShowForm(false);
+    setEditingId(null);
     setTitle("");
     setDescription("");
     setCategory("General");
@@ -181,7 +206,9 @@ export default function ResourceManagement() {
         <Card>
           <CardContent className="pt-4 space-y-3">
             <div className="flex items-center justify-between">
-              <h3 className="font-heading text-base font-semibold text-foreground">Add Resource</h3>
+              <h3 className="font-heading text-base font-semibold text-foreground">
+                {editingId ? "Edit Resource" : "Add Resource"}
+              </h3>
               <Button size="icon" variant="ghost" onClick={resetForm}>
                 <X className="h-4 w-4" />
               </Button>
@@ -294,79 +321,97 @@ export default function ResourceManagement() {
               />
             </div>
 
-            {/* Source Toggle */}
-            <div>
-              <label className="text-sm font-medium text-foreground">Resource Source *</label>
-              <RadioGroup
-                value={source}
-                onValueChange={(v) => setSource(v as "upload" | "external")}
-                className="mt-1.5 flex gap-4"
-              >
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="upload" id="source-upload" />
-                  <Label htmlFor="source-upload" className="text-sm cursor-pointer">Upload File</Label>
+            {/* Source Toggle — hidden in edit mode (can't change the file) */}
+            {!editingId && (
+              <>
+                <div>
+                  <label className="text-sm font-medium text-foreground">Resource Source *</label>
+                  <RadioGroup
+                    value={source}
+                    onValueChange={(v) => setSource(v as "upload" | "external")}
+                    className="mt-1.5 flex gap-4"
+                  >
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="upload" id="source-upload" />
+                      <Label htmlFor="source-upload" className="text-sm cursor-pointer">Upload File</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="external" id="source-external" />
+                      <Label htmlFor="source-external" className="text-sm cursor-pointer">External Link</Label>
+                    </div>
+                  </RadioGroup>
                 </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="external" id="source-external" />
-                  <Label htmlFor="source-external" className="text-sm cursor-pointer">External Link</Label>
-                </div>
-              </RadioGroup>
-            </div>
 
-            {source === "upload" ? (
-              <div>
-                <label className="flex cursor-pointer items-center gap-2 rounded-md border border-dashed border-input p-4 hover:bg-muted/50 transition-colors">
-                  <Upload className="h-5 w-5 text-muted-foreground" />
-                  <span className="text-sm text-muted-foreground">
-                    {file ? file.name : "Choose a file..."}
-                  </span>
-                  <input
-                    type="file"
-                    accept=".pdf,.doc,.docx,.txt"
-                    className="hidden"
-                    onChange={(e) => {
-                      const picked = e.target.files?.[0] ?? null;
-                      if (picked) {
-                        if (picked.type.startsWith("video/") || picked.type.startsWith("audio/")) {
-                          toast.error("Audio and Video files cannot be uploaded directly. Please use the \"External Link\" option instead.");
-                          e.target.value = "";
-                          return;
-                        }
-                        if (picked.size > 10 * 1024 * 1024) {
-                          toast.error("File is too large. Maximum size is 10MB.");
-                          e.target.value = "";
-                          return;
-                        }
-                      }
-                      setFile(picked);
-                    }}
-                  />
-                </label>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Limit 10MB. PDFs and Documents only. For audio/video, use the External Link option.
-                </p>
-              </div>
-            ) : (
-              <div>
-                <Input
-                  value={externalUrl}
-                  onChange={(e) => setExternalUrl(e.target.value)}
-                  placeholder="Paste URL here (OneDrive, YouTube, etc.)"
-                  type="url"
-                />
-                <p className="text-xs text-muted-foreground mt-1">
-                  Paste a link to an externally hosted file or video
-                </p>
-              </div>
+                {source === "upload" ? (
+                  <div>
+                    <label className="flex cursor-pointer items-center gap-2 rounded-md border border-dashed border-input p-4 hover:bg-muted/50 transition-colors">
+                      <Upload className="h-5 w-5 text-muted-foreground" />
+                      <span className="text-sm text-muted-foreground">
+                        {file ? file.name : "Choose a file..."}
+                      </span>
+                      <input
+                        type="file"
+                        accept=".pdf,.doc,.docx,.txt"
+                        className="hidden"
+                        onChange={(e) => {
+                          const picked = e.target.files?.[0] ?? null;
+                          if (picked) {
+                            if (picked.type.startsWith("video/") || picked.type.startsWith("audio/")) {
+                              toast.error("Audio and Video files cannot be uploaded directly. Please use the \"External Link\" option instead.");
+                              e.target.value = "";
+                              return;
+                            }
+                            if (picked.size > 10 * 1024 * 1024) {
+                              toast.error("File is too large. Maximum size is 10MB.");
+                              e.target.value = "";
+                              return;
+                            }
+                          }
+                          setFile(picked);
+                        }}
+                      />
+                    </label>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Limit 10MB. PDFs and Documents only. For audio/video, use the External Link option.
+                    </p>
+                  </div>
+                ) : (
+                  <div>
+                    <Input
+                      value={externalUrl}
+                      onChange={(e) => setExternalUrl(e.target.value)}
+                      placeholder="Paste URL here (OneDrive, YouTube, etc.)"
+                      type="url"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Paste a link to an externally hosted file or video
+                    </p>
+                  </div>
+                )}
+              </>
             )}
 
             <Button
               className="w-full h-11"
-              onClick={() => uploadMutation.mutate()}
-              disabled={uploadMutation.isPending || !isFormValid}
+              onClick={() => {
+                if (editingId) {
+                  editMutation.mutate({
+                    id: editingId,
+                    updates: {
+                      title,
+                      description: description || null,
+                      category: category.trim(),
+                      resource_type: resourceType,
+                    },
+                  });
+                } else {
+                  uploadMutation.mutate();
+                }
+              }}
+              disabled={(editingId ? editMutation.isPending : uploadMutation.isPending) || (editingId ? !title.trim() : !isFormValid)}
             >
-              {uploadMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {source === "upload" ? "Upload Resource" : "Add External Resource"}
+              {(editingId ? editMutation.isPending : uploadMutation.isPending) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {editingId ? "Save Changes" : source === "upload" ? "Upload Resource" : "Add External Resource"}
             </Button>
           </CardContent>
         </Card>
@@ -409,15 +454,25 @@ export default function ResourceManagement() {
                       <span>{format(new Date(res.created_at), "MMM d, yyyy")}</span>
                     </div>
                   </div>
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    className="h-8 w-8 text-destructive hover:text-destructive"
-                    onClick={() => deleteMutation.mutate({ id: res.id, file_url: res.file_url })}
-                    disabled={deleteMutation.isPending}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+                  <div className="flex flex-col gap-1 flex-shrink-0">
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-8 w-8"
+                      onClick={() => startEdit(res)}
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-8 w-8 text-destructive hover:text-destructive"
+                      onClick={() => deleteMutation.mutate({ id: res.id, file_url: res.file_url })}
+                      disabled={deleteMutation.isPending}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
             );

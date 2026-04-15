@@ -74,19 +74,13 @@ export default function Library() {
         .limit(100);
       if (error) throw error;
 
-      const withUrls = await Promise.all(
-        (data as Resource[]).map(async (r) => {
-          if (isStoragePath(r.file_url)) {
-            const { data: signedData } = await supabase.storage
-              .from("resources")
-              .createSignedUrl(r.file_url, 3600);
-            return { ...r, signed_url: signedData?.signedUrl || "" };
-          }
-          // External URLs or legacy full URLs
-          return { ...r, signed_url: r.file_url };
-        })
-      );
-      return withUrls;
+      // Don't batch sign URLs here — generate on demand when user opens a resource
+      return (data as Resource[]).map((r) => {
+        if (isStoragePath(r.file_url)) {
+          return { ...r, signed_url: undefined };
+        }
+        return { ...r, signed_url: r.file_url };
+      });
     },
   });
 
@@ -131,10 +125,35 @@ export default function Library() {
     return cat.toLowerCase() + " resources";
   };
 
-  /** Handle clicking a resource: external links open in new tab, storage files open in modal */
-  const handleResourceClick = (res: Resource) => {
+  /** Handle clicking a resource: external links open in new tab, storage files generate signed URL then open */
+  const handleResourceClick = async (res: Resource) => {
     if (isExternalUrl(res.file_url)) {
       window.open(res.file_url, "_blank", "noopener,noreferrer");
+      return;
+    }
+
+    // For storage files, generate a fresh signed URL on click
+    if (isStoragePath(res.file_url)) {
+      const { data: signedData, error } = await supabase.storage
+        .from("resources")
+        .createSignedUrl(res.file_url, 3600);
+
+      if (error || !signedData?.signedUrl) {
+        // Fallback: try to download directly
+        const { data: dlData } = await supabase.storage
+          .from("resources")
+          .createSignedUrl(res.file_url, 3600, { download: true });
+        if (dlData?.signedUrl) {
+          window.open(dlData.signedUrl, "_blank", "noopener,noreferrer");
+        } else {
+          // Last resort: show error
+          const { toast } = await import("sonner");
+          toast.error("Unable to load this resource. Please try again.");
+        }
+        return;
+      }
+
+      setSelected({ ...res, signed_url: signedData.signedUrl });
     } else {
       setSelected(res);
     }
@@ -317,7 +336,7 @@ export default function Library() {
             </DialogTitle>
             <div className="flex items-center gap-2 flex-shrink-0">
               <Button size="sm" className="gap-1.5" asChild>
-                <a href={selected?.signed_url || selected?.file_url} download={selected?.file_name || "document.pdf"} target="_blank" rel="noopener noreferrer">
+                <a href={selected?.signed_url || "#"} download={selected?.file_name || "document.pdf"} target="_blank" rel="noopener noreferrer">
                   <Download className="h-4 w-4" />
                   Download
                 </a>
@@ -325,9 +344,9 @@ export default function Library() {
             </div>
           </DialogHeader>
           <div className="flex-1 min-h-0">
-            {selected && (
+            {selected?.signed_url && (
               <iframe
-                src={`${selected.signed_url || selected.file_url}#toolbar=1&navpanes=0`}
+                src={`${selected.signed_url}#toolbar=1&navpanes=0`}
                 className="h-full w-full border-0"
                 title={selected.title}
               />
