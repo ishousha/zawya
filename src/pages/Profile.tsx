@@ -159,6 +159,7 @@ export default function ProfilePage() {
       toast.error("Failed to update profile.");
     } else {
       toast.success("Profile updated successfully.");
+      navigate("/");
     }
   };
 
