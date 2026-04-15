@@ -348,6 +348,8 @@ export type Database = {
           online_link: string | null
           payment_instructions: string | null
           published: boolean
+          recording_passcode: string | null
+          recording_url: string | null
           scheduled_publish_at: string | null
           status: Database["public"]["Enums"]["event_status"]
           ticket_fee: number | null
@@ -382,6 +384,8 @@ export type Database = {
           online_link?: string | null
           payment_instructions?: string | null
           published?: boolean
+          recording_passcode?: string | null
+          recording_url?: string | null
           scheduled_publish_at?: string | null
           status?: Database["public"]["Enums"]["event_status"]
           ticket_fee?: number | null
@@ -416,6 +420,8 @@ export type Database = {
           online_link?: string | null
           payment_instructions?: string | null
           published?: boolean
+          recording_passcode?: string | null
+          recording_url?: string | null
           scheduled_publish_at?: string | null
           status?: Database["public"]["Enums"]["event_status"]
           ticket_fee?: number | null
