@@ -623,6 +623,16 @@ export default function EventControlRoom() {
           eventTitle={broadcastEvent.title}
         />
       )}
+
+      {recordingEvent && (
+        <RecordingModal
+          event={recordingEvent}
+          onClose={() => {
+            setRecordingEvent(null);
+            queryClient.invalidateQueries({ queryKey: ["admin-events"] });
+          }}
+        />
+      )}
     </div>
   );
 }
