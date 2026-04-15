@@ -257,17 +257,19 @@ export default function EventControlRoom() {
     onError: (err) => toast.error(getErrorMessage(err, "Failed to unpublish event")),
   });
 
-  const [statusFilter, setStatusFilter] = useState<"all" | "published" | "scheduled" | "draft">("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | "published" | "scheduled" | "draft" | "past">("all");
 
   const activeEvents = useMemo(() => {
     const nonCancelled = events?.filter(e => e.status !== "cancelled") ?? [];
     switch (statusFilter) {
       case "published":
-        return nonCancelled.filter(e => (e as any).published);
+        return nonCancelled.filter(e => (e as any).published && !isEventPast(e));
       case "scheduled":
-        return nonCancelled.filter(e => !(e as any).published && (e as any).scheduled_publish_at);
+        return nonCancelled.filter(e => !(e as any).published && (e as any).scheduled_publish_at && !isEventPast(e));
       case "draft":
-        return nonCancelled.filter(e => !(e as any).published && !(e as any).scheduled_publish_at);
+        return nonCancelled.filter(e => !(e as any).published && !(e as any).scheduled_publish_at && !isEventPast(e));
+      case "past":
+        return nonCancelled.filter(e => isEventPast(e));
       default:
         return nonCancelled;
     }
@@ -278,9 +280,10 @@ export default function EventControlRoom() {
     const nonCancelled = events?.filter(e => e.status !== "cancelled") ?? [];
     return {
       all: nonCancelled.length,
-      published: nonCancelled.filter(e => (e as any).published).length,
-      scheduled: nonCancelled.filter(e => !(e as any).published && (e as any).scheduled_publish_at).length,
-      draft: nonCancelled.filter(e => !(e as any).published && !(e as any).scheduled_publish_at).length,
+      published: nonCancelled.filter(e => (e as any).published && !isEventPast(e)).length,
+      scheduled: nonCancelled.filter(e => !(e as any).published && (e as any).scheduled_publish_at && !isEventPast(e)).length,
+      draft: nonCancelled.filter(e => !(e as any).published && !(e as any).scheduled_publish_at && !isEventPast(e)).length,
+      past: nonCancelled.filter(e => isEventPast(e)).length,
     };
   }, [events]);
 
