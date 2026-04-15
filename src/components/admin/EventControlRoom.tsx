@@ -334,7 +334,7 @@ export default function EventControlRoom() {
           )}
           {/* Status filter tabs */}
           <div className="flex gap-1.5 overflow-x-auto pb-1">
-            {(["all", "published", "scheduled", "draft"] as const).map((f) => (
+            {(["all", "published", "scheduled", "draft", "past"] as const).map((f) => (
               <button
                 key={f}
                 onClick={() => setStatusFilter(f)}
