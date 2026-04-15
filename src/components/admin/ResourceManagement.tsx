@@ -206,7 +206,9 @@ export default function ResourceManagement() {
         <Card>
           <CardContent className="pt-4 space-y-3">
             <div className="flex items-center justify-between">
-              <h3 className="font-heading text-base font-semibold text-foreground">Add Resource</h3>
+              <h3 className="font-heading text-base font-semibold text-foreground">
+                {editingId ? "Edit Resource" : "Add Resource"}
+              </h3>
               <Button size="icon" variant="ghost" onClick={resetForm}>
                 <X className="h-4 w-4" />
               </Button>
