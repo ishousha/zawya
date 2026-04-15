@@ -44,6 +44,7 @@ export default function ResourceManagement() {
   const [source, setSource] = useState<"upload" | "external">("upload");
   const [externalUrl, setExternalUrl] = useState("");
   const [resourceType, setResourceType] = useState<ResourceType>("pdf");
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   const { data: resources, isLoading } = useQuery({
     queryKey: ["admin-resources"],
