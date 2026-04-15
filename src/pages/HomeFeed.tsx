@@ -10,6 +10,7 @@ import { AdminDashboardSummary, MemberDashboardSummary } from "@/components/Home
 import { Loader2 } from "lucide-react";
 import EventCardSkeleton from "@/components/EventCardSkeleton";
 import { cacheTicket, getCachedTicketByEvent, cleanExpiredTickets } from "@/lib/offline-ticket-cache";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { Database } from "@/integrations/supabase/types";
 
 type Event = Database["public"]["Tables"]["events"]["Row"];
@@ -18,6 +19,7 @@ export default function HomeFeed() {
   const { profile, user } = useAuth();
   const queryClient = useQueryClient();
   const [ticketEvent, setTicketEvent] = useState<Event | null>(null);
+  const [tab, setTab] = useState<"upcoming" | "past">("upcoming");
   const handleShowTicket = useCallback((e: Event) => setTicketEvent(e), []);
 
   useEffect(() => {
@@ -25,20 +27,32 @@ export default function HomeFeed() {
   }, []);
 
   const { data: events, isLoading } = useQuery({
-    queryKey: ["events"],
+    queryKey: ["events", tab],
     staleTime: 60_000,
     queryFn: async () => {
       const now = new Date().toISOString();
-      const fallbackCutoff = new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString();
 
+      if (tab === "past") {
+        const fallbackCutoff = new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString();
+        const { data, error } = await supabase
+          .from("events")
+          .select("*")
+          .in("status", ["active", "full", "cancelled"])
+          .or(`end_date_time.lt.${now},and(end_date_time.is.null,date_time.lt.${fallbackCutoff})`)
+          .order("date_time", { ascending: false })
+          .limit(20);
+        if (error) throw error;
+        return data as unknown as Event[];
+      }
+
+      const fallbackCutoff = new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString();
       const { data, error } = await supabase
         .from("events")
-        .select("id, title, date_time, end_date_time, location, address, status, cover_photo_url, event_type_id, capacity, has_potluck, virtual_link, zoom_link, online_link, zoom_password, is_hybrid, host_id, description, venue_id, ticket_fee, mureeds_only, age_group, location_hint, etiquette_notes, payment_instructions, waitlist_capacity, published, scheduled_publish_at, last_published_at, created_at, updated_at")
+        .select("*")
         .in("status", ["active", "full", "cancelled"])
         .or(`end_date_time.gte.${now},and(end_date_time.is.null,date_time.gte.${fallbackCutoff})`)
         .order("date_time", { ascending: true })
         .limit(10);
-
       if (error) throw error;
       return data as unknown as Event[];
     },
@@ -54,7 +68,7 @@ export default function HomeFeed() {
 
   const eventIds = useMemo(() => visibleEvents?.map((e) => e.id) ?? [], [visibleEvents]);
 
-  // Batch-fetch all RSVPs for visible events, then seed per-card caches
+  // Batch-fetch all RSVPs for visible events
   useQuery({
     queryKey: ["batch-rsvps", eventIds],
     staleTime: 2 * 60 * 1000,
@@ -66,7 +80,6 @@ export default function HomeFeed() {
         .in("event_id", eventIds);
       if (error) throw error;
 
-      // Seed individual query caches so EventCard hooks hit cache
       const byEvent: Record<string, typeof data> = {};
       for (const rsvp of data) {
         if (!byEvent[rsvp.event_id]) byEvent[rsvp.event_id] = [];
@@ -97,7 +110,6 @@ export default function HomeFeed() {
         .order("display_order");
       if (error) throw error;
 
-      // Seed per-event speaker caches
       const byEvent: Record<string, typeof data> = {};
       for (const row of data) {
         if (!byEvent[row.event_id]) byEvent[row.event_id] = [];
@@ -128,7 +140,6 @@ export default function HomeFeed() {
         .neq("specific_food_item", "");
       if (error) throw error;
 
-      // Seed per-event potluck caches
       const byEvent: Record<string, string[]> = {};
       for (const row of data) {
         const item = row.specific_food_item?.trim();
@@ -155,9 +166,18 @@ export default function HomeFeed() {
       <main className="mx-auto max-w-lg px-4 py-6">
         {isAdminOrMod ? <AdminDashboardSummary /> : <MemberDashboardSummary />}
 
-        <h2 className="mb-4 font-heading text-lg font-semibold text-foreground">
-          Upcoming Activities
-        </h2>
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="font-heading text-lg font-semibold text-foreground">
+            {tab === "upcoming" ? "Upcoming Activities" : "Past Activities"}
+          </h2>
+        </div>
+
+        <Tabs value={tab} onValueChange={(v) => setTab(v as "upcoming" | "past")} className="mb-4">
+          <TabsList className="w-full">
+            <TabsTrigger value="upcoming" className="flex-1">Upcoming</TabsTrigger>
+            <TabsTrigger value="past" className="flex-1">Past Events</TabsTrigger>
+          </TabsList>
+        </Tabs>
 
         {isLoading ? (
           <div className="space-y-3">
@@ -172,12 +192,17 @@ export default function HomeFeed() {
                 key={event.id}
                 event={event}
                 onShowTicket={handleShowTicket}
+                isPast={tab === "past"}
               />
             ))}
           </div>
         ) : (
           <div className="rounded-lg border border-border bg-card p-8 text-center">
-            <p className="text-muted-foreground">No upcoming activities scheduled.</p>
+            <p className="text-muted-foreground">
+              {tab === "upcoming"
+                ? "No upcoming activities scheduled."
+                : "No past events found."}
+            </p>
           </div>
         )}
       </main>

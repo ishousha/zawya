@@ -275,7 +275,7 @@ function EventCardInner({ event, onShowTicket, isPast = false }: EventCardProps)
           </p>
         )}
         {/* Zoom Lockbox — 3-state virtual meeting section */}
-        {!isCancelled && isVirtual && (() => {
+        {!isPast && !isCancelled && isVirtual && (() => {
           const hasRsvpd = isAttending && !isWaitlisted;
 
           // State 1: Not RSVP'd — show locked message only
@@ -327,7 +327,7 @@ function EventCardInner({ event, onShowTicket, isPast = false }: EventCardProps)
         })()}
 
         {/* Not attending: show general location hint */}
-        {!isCancelled && !isAttending && requiresLocation && (event.location || (event as any).location_hint) && (
+        {!isPast && !isCancelled && !isAttending && requiresLocation && (event.location || (event as any).location_hint) && (
           <div className="mt-2 flex items-start gap-1.5 text-sm text-muted-foreground">
             <Lock className="h-3.5 w-3.5 mt-0.5 shrink-0 text-muted-foreground" />
             <span>
