@@ -402,7 +402,23 @@ export default function EventControlRoom() {
                       <Button size="sm" variant="ghost" className="h-9 gap-1.5 text-xs" onClick={() => setEditing(event)}>
                         <Edit2 className="h-3.5 w-3.5" /> Edit
                       </Button>
-                      {(event as any).published && (
+                      {/* Recording button */}
+                      {(() => {
+                        const hasRecording = !!(event as any).recording_url;
+                        return (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className={`h-9 gap-1.5 text-xs ${hasRecording ? "text-primary" : ""}`}
+                            onClick={() => setRecordingEvent(event)}
+                          >
+                            <Video className="h-3.5 w-3.5" />
+                            {hasRecording ? "Edit Recording" : "Add Recording"}
+                          </Button>
+                        );
+                      })()}
+                      {/* Hide unpublish for past events */}
+                      {(event as any).published && !isEventPast(event) && (
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
                             <Button
