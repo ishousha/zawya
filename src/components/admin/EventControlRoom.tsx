@@ -67,6 +67,12 @@ async function notifyRsvpMembers(eventId: string, eventTitle: string, eventDate:
   }
 }
 
+function isEventPast(event: EventRow): boolean {
+  const now = Date.now();
+  if (event.end_date_time) return new Date(event.end_date_time).getTime() < now;
+  return new Date(event.date_time).getTime() + 4 * 60 * 60 * 1000 < now;
+}
+
 export default function EventControlRoom() {
   const queryClient = useQueryClient();
   const [editing, setEditing] = useState<EventRow | null>(null);
@@ -74,6 +80,7 @@ export default function EventControlRoom() {
   const [monitoringEventId, setMonitoringEventId] = useState<string | null>(null);
   const [duplicateForm, setDuplicateForm] = useState<{ form: EventFormState; items: SignUpItem[] } | null>(null);
   const [broadcastEvent, setBroadcastEvent] = useState<{ id: string; title: string } | null>(null);
+  const [recordingEvent, setRecordingEvent] = useState<EventRow | null>(null);
 
   const { data: eventTypes } = useEventTypes();
   const getTypeName = (id: string) => eventTypes?.find((t) => t.id === id)?.name ?? "Event";
