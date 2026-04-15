@@ -5,8 +5,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Loader2, Plus, Edit2, X, Users, ChevronDown, Copy, Trash2, Ban, RotateCcw, Check, Mail, EyeOff } from "lucide-react";
+import { Loader2, Plus, Edit2, X, Users, ChevronDown, Copy, Trash2, Ban, RotateCcw, Check, Mail, EyeOff, Video } from "lucide-react";
 import { toast } from "sonner";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { format } from "date-fns";
@@ -65,6 +67,12 @@ async function notifyRsvpMembers(eventId: string, eventTitle: string, eventDate:
   }
 }
 
+function isEventPast(event: EventRow): boolean {
+  const now = Date.now();
+  if (event.end_date_time) return new Date(event.end_date_time).getTime() < now;
+  return new Date(event.date_time).getTime() + 4 * 60 * 60 * 1000 < now;
+}
+
 export default function EventControlRoom() {
   const queryClient = useQueryClient();
   const [editing, setEditing] = useState<EventRow | null>(null);
@@ -72,6 +80,7 @@ export default function EventControlRoom() {
   const [monitoringEventId, setMonitoringEventId] = useState<string | null>(null);
   const [duplicateForm, setDuplicateForm] = useState<{ form: EventFormState; items: SignUpItem[] } | null>(null);
   const [broadcastEvent, setBroadcastEvent] = useState<{ id: string; title: string } | null>(null);
+  const [recordingEvent, setRecordingEvent] = useState<EventRow | null>(null);
 
   const { data: eventTypes } = useEventTypes();
   const getTypeName = (id: string) => eventTypes?.find((t) => t.id === id)?.name ?? "Event";
@@ -248,17 +257,19 @@ export default function EventControlRoom() {
     onError: (err) => toast.error(getErrorMessage(err, "Failed to unpublish event")),
   });
 
-  const [statusFilter, setStatusFilter] = useState<"all" | "published" | "scheduled" | "draft">("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | "published" | "scheduled" | "draft" | "past">("all");
 
   const activeEvents = useMemo(() => {
     const nonCancelled = events?.filter(e => e.status !== "cancelled") ?? [];
     switch (statusFilter) {
       case "published":
-        return nonCancelled.filter(e => (e as any).published);
+        return nonCancelled.filter(e => (e as any).published && !isEventPast(e));
       case "scheduled":
-        return nonCancelled.filter(e => !(e as any).published && (e as any).scheduled_publish_at);
+        return nonCancelled.filter(e => !(e as any).published && (e as any).scheduled_publish_at && !isEventPast(e));
       case "draft":
-        return nonCancelled.filter(e => !(e as any).published && !(e as any).scheduled_publish_at);
+        return nonCancelled.filter(e => !(e as any).published && !(e as any).scheduled_publish_at && !isEventPast(e));
+      case "past":
+        return nonCancelled.filter(e => isEventPast(e));
       default:
         return nonCancelled;
     }
@@ -269,9 +280,10 @@ export default function EventControlRoom() {
     const nonCancelled = events?.filter(e => e.status !== "cancelled") ?? [];
     return {
       all: nonCancelled.length,
-      published: nonCancelled.filter(e => (e as any).published).length,
-      scheduled: nonCancelled.filter(e => !(e as any).published && (e as any).scheduled_publish_at).length,
-      draft: nonCancelled.filter(e => !(e as any).published && !(e as any).scheduled_publish_at).length,
+      published: nonCancelled.filter(e => (e as any).published && !isEventPast(e)).length,
+      scheduled: nonCancelled.filter(e => !(e as any).published && (e as any).scheduled_publish_at && !isEventPast(e)).length,
+      draft: nonCancelled.filter(e => !(e as any).published && !(e as any).scheduled_publish_at && !isEventPast(e)).length,
+      past: nonCancelled.filter(e => isEventPast(e)).length,
     };
   }, [events]);
 
@@ -322,7 +334,7 @@ export default function EventControlRoom() {
           )}
           {/* Status filter tabs */}
           <div className="flex gap-1.5 overflow-x-auto pb-1">
-            {(["all", "published", "scheduled", "draft"] as const).map((f) => (
+            {(["all", "published", "scheduled", "draft", "past"] as const).map((f) => (
               <button
                 key={f}
                 onClick={() => setStatusFilter(f)}
@@ -362,6 +374,12 @@ export default function EventControlRoom() {
                         <Badge variant="default" className="text-xs capitalize">
                           {event.status}
                         </Badge>
+                        {isEventPast(event) && (
+                          <Badge variant="outline" className="text-xs border-muted-foreground text-muted-foreground">Past</Badge>
+                        )}
+                        {(event as any).recording_url && (
+                          <Badge variant="outline" className="text-xs border-primary text-primary">🎥 Recording</Badge>
+                        )}
                         {event.capacity && (() => {
                           const count = getRsvpCount(event);
                           const full = count >= event.capacity;
@@ -390,7 +408,23 @@ export default function EventControlRoom() {
                       <Button size="sm" variant="ghost" className="h-9 gap-1.5 text-xs" onClick={() => setEditing(event)}>
                         <Edit2 className="h-3.5 w-3.5" /> Edit
                       </Button>
-                      {(event as any).published && (
+                      {/* Recording button */}
+                      {(() => {
+                        const hasRecording = !!(event as any).recording_url;
+                        return (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className={`h-9 gap-1.5 text-xs ${hasRecording ? "text-primary" : ""}`}
+                            onClick={() => setRecordingEvent(event)}
+                          >
+                            <Video className="h-3.5 w-3.5" />
+                            {hasRecording ? "Edit Recording" : "Add Recording"}
+                          </Button>
+                        );
+                      })()}
+                      {/* Hide unpublish for past events */}
+                      {(event as any).published && !isEventPast(event) && (
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
                             <Button
@@ -595,6 +629,91 @@ export default function EventControlRoom() {
           eventTitle={broadcastEvent.title}
         />
       )}
+
+      {recordingEvent && (
+        <RecordingModal
+          event={recordingEvent}
+          onClose={() => {
+            setRecordingEvent(null);
+            queryClient.invalidateQueries({ queryKey: ["admin-events"] });
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+
+function RecordingModal({ event, onClose }: { event: EventRow; onClose: () => void }) {
+  const [url, setUrl] = useState((event as any).recording_url ?? "");
+  const [passcode, setPasscode] = useState((event as any).recording_passcode ?? "");
+  const [saving, setSaving] = useState(false);
+
+  const handleSave = async () => {
+    setSaving(true);
+    const { error } = await supabase
+      .from("events")
+      .update({
+        recording_url: url.trim() || null,
+        recording_passcode: passcode.trim() || null,
+      } as any)
+      .eq("id", event.id);
+    setSaving(false);
+    if (error) {
+      toast.error("Failed to save recording.");
+    } else {
+      toast.success("Recording saved!");
+      onClose();
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+      <div className="w-full max-w-md rounded-xl border border-border bg-card p-6 shadow-xl">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h3 className="font-heading text-lg font-semibold text-foreground">
+              {(event as any).recording_url ? "Edit Recording" : "Add Recording"}
+            </h3>
+            <p className="text-sm text-muted-foreground truncate">{event.title}</p>
+          </div>
+          <button onClick={onClose} className="rounded-md p-1 hover:bg-muted">
+            <X className="h-5 w-5 text-muted-foreground" />
+          </button>
+        </div>
+        <div className="space-y-4">
+          <div>
+            <Label htmlFor="modal-rec-url">Recording URL</Label>
+            <Input
+              id="modal-rec-url"
+              type="url"
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+              placeholder="https://zoom.us/rec/share/..."
+              className="mt-1.5"
+            />
+          </div>
+          <div>
+            <Label htmlFor="modal-rec-pass">Passcode (optional)</Label>
+            <Input
+              id="modal-rec-pass"
+              type="text"
+              value={passcode}
+              onChange={(e) => setPasscode(e.target.value)}
+              placeholder="Optional passcode"
+              className="mt-1.5"
+            />
+          </div>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={onClose} className="flex-1">
+              Cancel
+            </Button>
+            <Button onClick={handleSave} disabled={saving} className="flex-1">
+              {saving ? "Saving…" : "Save"}
+            </Button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
