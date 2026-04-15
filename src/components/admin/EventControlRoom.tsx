@@ -374,6 +374,12 @@ export default function EventControlRoom() {
                         <Badge variant="default" className="text-xs capitalize">
                           {event.status}
                         </Badge>
+                        {isEventPast(event) && (
+                          <Badge variant="outline" className="text-xs border-muted-foreground text-muted-foreground">Past</Badge>
+                        )}
+                        {(event as any).recording_url && (
+                          <Badge variant="outline" className="text-xs border-primary text-primary">🎥 Recording</Badge>
+                        )}
                         {event.capacity && (() => {
                           const count = getRsvpCount(event);
                           const full = count >= event.capacity;
