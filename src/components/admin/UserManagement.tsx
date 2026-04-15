@@ -340,13 +340,14 @@ export default function UserManagement() {
   const [bulkDeleteConfirmOpen, setBulkDeleteConfirmOpen] = useState(false);
 
   const stats = useMemo(() => {
-    if (!profiles) return { total: 0, approved: 0, pending: 0, suspended: 0, guests: 0 };
+    if (!profiles) return { total: 0, approved: 0, pending: 0, suspended: 0, guests: 0, mureeds: 0 };
     return {
       total: profiles.length,
       approved: profiles.filter((p) => p.role === "approved").length,
       pending: profiles.filter((p) => p.role === "pending").length,
       suspended: profiles.filter((p) => p.role === "suspended").length,
       guests: profiles.filter((p) => p.role === "guest").length,
+      mureeds: profiles.filter((p) => p.is_mureed === true).length,
     };
   }, [profiles]);
 
@@ -357,13 +358,14 @@ export default function UserManagement() {
   return (
     <div className="space-y-6 py-4">
       {/* Summary Banner */}
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
         {[
           { label: "Total", value: stats.total, className: "text-foreground" },
           { label: "Active", value: stats.approved, className: "text-primary" },
           { label: "Pending", value: stats.pending, className: "text-amber-600 dark:text-amber-400" },
           { label: "Guests", value: stats.guests, className: "text-muted-foreground" },
           { label: "Suspended", value: stats.suspended, className: "text-destructive" },
+          { label: "Mureeds", value: stats.mureeds, className: "text-emerald-700 dark:text-emerald-400" },
         ].map((s) => (
           <Card key={s.label} className="border-border">
             <CardContent className="flex flex-col items-center py-3 px-2">
