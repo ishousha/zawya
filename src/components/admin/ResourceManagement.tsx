@@ -148,8 +148,32 @@ export default function ResourceManagement() {
     onError: () => toast.error("Failed to delete resource"),
   });
 
+  const editMutation = useMutation({
+    mutationFn: async ({ id, updates }: { id: string; updates: { title: string; description: string | null; category: string; resource_type: string } }) => {
+      const { error } = await supabase.from("resources").update(updates).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-resources"] });
+      queryClient.invalidateQueries({ queryKey: ["resources"] });
+      toast.success("Resource updated");
+      resetForm();
+    },
+    onError: () => toast.error("Failed to update resource"),
+  });
+
+  function startEdit(res: any) {
+    setEditingId(res.id);
+    setTitle(res.title);
+    setDescription(res.description || "");
+    setCategory(res.category || "General");
+    setResourceType(res.resource_type || "pdf");
+    setShowForm(true);
+  }
+
   function resetForm() {
     setShowForm(false);
+    setEditingId(null);
     setTitle("");
     setDescription("");
     setCategory("General");
