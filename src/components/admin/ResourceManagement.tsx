@@ -321,78 +321,96 @@ export default function ResourceManagement() {
               />
             </div>
 
-            {/* Source Toggle */}
-            <div>
-              <label className="text-sm font-medium text-foreground">Resource Source *</label>
-              <RadioGroup
-                value={source}
-                onValueChange={(v) => setSource(v as "upload" | "external")}
-                className="mt-1.5 flex gap-4"
-              >
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="upload" id="source-upload" />
-                  <Label htmlFor="source-upload" className="text-sm cursor-pointer">Upload File</Label>
+            {/* Source Toggle — hidden in edit mode (can't change the file) */}
+            {!editingId && (
+              <>
+                <div>
+                  <label className="text-sm font-medium text-foreground">Resource Source *</label>
+                  <RadioGroup
+                    value={source}
+                    onValueChange={(v) => setSource(v as "upload" | "external")}
+                    className="mt-1.5 flex gap-4"
+                  >
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="upload" id="source-upload" />
+                      <Label htmlFor="source-upload" className="text-sm cursor-pointer">Upload File</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="external" id="source-external" />
+                      <Label htmlFor="source-external" className="text-sm cursor-pointer">External Link</Label>
+                    </div>
+                  </RadioGroup>
                 </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="external" id="source-external" />
-                  <Label htmlFor="source-external" className="text-sm cursor-pointer">External Link</Label>
-                </div>
-              </RadioGroup>
-            </div>
 
-            {source === "upload" ? (
-              <div>
-                <label className="flex cursor-pointer items-center gap-2 rounded-md border border-dashed border-input p-4 hover:bg-muted/50 transition-colors">
-                  <Upload className="h-5 w-5 text-muted-foreground" />
-                  <span className="text-sm text-muted-foreground">
-                    {file ? file.name : "Choose a file..."}
-                  </span>
-                  <input
-                    type="file"
-                    accept=".pdf,.doc,.docx,.txt"
-                    className="hidden"
-                    onChange={(e) => {
-                      const picked = e.target.files?.[0] ?? null;
-                      if (picked) {
-                        if (picked.type.startsWith("video/") || picked.type.startsWith("audio/")) {
-                          toast.error("Audio and Video files cannot be uploaded directly. Please use the \"External Link\" option instead.");
-                          e.target.value = "";
-                          return;
-                        }
-                        if (picked.size > 10 * 1024 * 1024) {
-                          toast.error("File is too large. Maximum size is 10MB.");
-                          e.target.value = "";
-                          return;
-                        }
-                      }
-                      setFile(picked);
-                    }}
-                  />
-                </label>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Limit 10MB. PDFs and Documents only. For audio/video, use the External Link option.
-                </p>
-              </div>
-            ) : (
-              <div>
-                <Input
-                  value={externalUrl}
-                  onChange={(e) => setExternalUrl(e.target.value)}
-                  placeholder="Paste URL here (OneDrive, YouTube, etc.)"
-                  type="url"
-                />
-                <p className="text-xs text-muted-foreground mt-1">
-                  Paste a link to an externally hosted file or video
-                </p>
-              </div>
+                {source === "upload" ? (
+                  <div>
+                    <label className="flex cursor-pointer items-center gap-2 rounded-md border border-dashed border-input p-4 hover:bg-muted/50 transition-colors">
+                      <Upload className="h-5 w-5 text-muted-foreground" />
+                      <span className="text-sm text-muted-foreground">
+                        {file ? file.name : "Choose a file..."}
+                      </span>
+                      <input
+                        type="file"
+                        accept=".pdf,.doc,.docx,.txt"
+                        className="hidden"
+                        onChange={(e) => {
+                          const picked = e.target.files?.[0] ?? null;
+                          if (picked) {
+                            if (picked.type.startsWith("video/") || picked.type.startsWith("audio/")) {
+                              toast.error("Audio and Video files cannot be uploaded directly. Please use the \"External Link\" option instead.");
+                              e.target.value = "";
+                              return;
+                            }
+                            if (picked.size > 10 * 1024 * 1024) {
+                              toast.error("File is too large. Maximum size is 10MB.");
+                              e.target.value = "";
+                              return;
+                            }
+                          }
+                          setFile(picked);
+                        }}
+                      />
+                    </label>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Limit 10MB. PDFs and Documents only. For audio/video, use the External Link option.
+                    </p>
+                  </div>
+                ) : (
+                  <div>
+                    <Input
+                      value={externalUrl}
+                      onChange={(e) => setExternalUrl(e.target.value)}
+                      placeholder="Paste URL here (OneDrive, YouTube, etc.)"
+                      type="url"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Paste a link to an externally hosted file or video
+                    </p>
+                  </div>
+                )}
+              </>
             )}
 
             <Button
               className="w-full h-11"
-              onClick={() => uploadMutation.mutate()}
-              disabled={uploadMutation.isPending || !isFormValid}
+              onClick={() => {
+                if (editingId) {
+                  editMutation.mutate({
+                    id: editingId,
+                    updates: {
+                      title,
+                      description: description || null,
+                      category: category.trim(),
+                      resource_type: resourceType,
+                    },
+                  });
+                } else {
+                  uploadMutation.mutate();
+                }
+              }}
+              disabled={(editingId ? editMutation.isPending : uploadMutation.isPending) || (editingId ? !title.trim() : !isFormValid)}
             >
-              {uploadMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {(editingId ? editMutation.isPending : uploadMutation.isPending) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {source === "upload" ? "Upload Resource" : "Add External Resource"}
             </Button>
           </CardContent>
