@@ -638,6 +638,81 @@ export default function EventControlRoom() {
 }
 
 
+function RecordingModal({ event, onClose }: { event: EventRow; onClose: () => void }) {
+  const [url, setUrl] = useState((event as any).recording_url ?? "");
+  const [passcode, setPasscode] = useState((event as any).recording_passcode ?? "");
+  const [saving, setSaving] = useState(false);
+
+  const handleSave = async () => {
+    setSaving(true);
+    const { error } = await supabase
+      .from("events")
+      .update({
+        recording_url: url.trim() || null,
+        recording_passcode: passcode.trim() || null,
+      } as any)
+      .eq("id", event.id);
+    setSaving(false);
+    if (error) {
+      toast.error("Failed to save recording.");
+    } else {
+      toast.success("Recording saved!");
+      onClose();
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+      <div className="w-full max-w-md rounded-xl border border-border bg-card p-6 shadow-xl">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h3 className="font-heading text-lg font-semibold text-foreground">
+              {(event as any).recording_url ? "Edit Recording" : "Add Recording"}
+            </h3>
+            <p className="text-sm text-muted-foreground truncate">{event.title}</p>
+          </div>
+          <button onClick={onClose} className="rounded-md p-1 hover:bg-muted">
+            <X className="h-5 w-5 text-muted-foreground" />
+          </button>
+        </div>
+        <div className="space-y-4">
+          <div>
+            <Label htmlFor="modal-rec-url">Recording URL</Label>
+            <Input
+              id="modal-rec-url"
+              type="url"
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+              placeholder="https://zoom.us/rec/share/..."
+              className="mt-1.5"
+            />
+          </div>
+          <div>
+            <Label htmlFor="modal-rec-pass">Passcode (optional)</Label>
+            <Input
+              id="modal-rec-pass"
+              type="text"
+              value={passcode}
+              onChange={(e) => setPasscode(e.target.value)}
+              placeholder="Optional passcode"
+              className="mt-1.5"
+            />
+          </div>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={onClose} className="flex-1">
+              Cancel
+            </Button>
+            <Button onClick={handleSave} disabled={saving} className="flex-1">
+              {saving ? "Saving…" : "Save"}
+            </Button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
 function PendingGuestApprovalsInline({
   requests,
   onUpdated,
