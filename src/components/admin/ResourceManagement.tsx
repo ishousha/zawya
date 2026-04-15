@@ -411,7 +411,7 @@ export default function ResourceManagement() {
               disabled={(editingId ? editMutation.isPending : uploadMutation.isPending) || (editingId ? !title.trim() : !isFormValid)}
             >
               {(editingId ? editMutation.isPending : uploadMutation.isPending) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {source === "upload" ? "Upload Resource" : "Add External Resource"}
+              {editingId ? "Save Changes" : source === "upload" ? "Upload Resource" : "Add External Resource"}
             </Button>
           </CardContent>
         </Card>
