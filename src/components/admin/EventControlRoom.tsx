@@ -93,7 +93,7 @@ export default function EventControlRoom() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("events")
-        .select("*, rsvps(id, status)")
+        .select("*, rsvps(id, status), host:host_id(name)")
         .order("date_time", { ascending: true })
         .limit(50);
       if (error) throw error;
@@ -398,6 +398,7 @@ export default function EventControlRoom() {
                       {(event as any).last_published_at && (
                         <p className="text-xs text-muted-foreground mt-1">
                           Last published {format(new Date((event as any).last_published_at), "MMM d, yyyy 'at' h:mm a")}
+                          {(event as any).host?.name && ` by ${(event as any).host.name.split(" ")[0]}`}
                         </p>
                       )}
                     </div>
