@@ -11,23 +11,28 @@ import AppHeader from "@/components/AppHeader";
 import BottomNav from "@/components/BottomNav";
 import OfflineBanner from "@/components/OfflineBanner";
 
-
 // Lazy-loaded pages
 const Rejected = lazy(() => import("@/pages/Rejected"));
 const CompleteProfile = lazy(() => import("@/pages/CompleteProfile"));
 const PendingApproval = lazy(() => import("@/pages/PendingApproval"));
 const Suspended = lazy(() => import("@/pages/Suspended"));
-const HomeFeed = lazy(() => import("@/pages/HomeFeed"));
+
+const homeFeedImport = () => import("@/pages/HomeFeed");
+const libraryImport = () => import("@/pages/Library");
+const adminImport = () => import("@/pages/AdminDashboard");
+const profileImport = () => import("@/pages/Profile");
+
+const HomeFeed = lazy(homeFeedImport);
 const EventDetail = lazy(() => import("@/pages/EventDetail"));
-const ProfilePage = lazy(() => import("@/pages/Profile"));
-const AdminDashboard = lazy(() => import("@/pages/AdminDashboard"));
+const ProfilePage = lazy(profileImport);
+const AdminDashboard = lazy(adminImport);
 const Unsubscribe = lazy(() => import("@/pages/Unsubscribe"));
 const NotificationsPage = lazy(() => import("@/pages/Notifications"));
 const CommunityGuidelines = lazy(() => import("@/pages/CommunityGuidelines"));
 const JoinFamily = lazy(() => import("@/pages/JoinFamily"));
 const Onboarding = lazy(() => import("@/pages/Onboarding"));
 const NotFound = lazy(() => import("@/pages/NotFound"));
-const Library = lazy(() => import("@/pages/Library"));
+const Library = lazy(libraryImport);
 const SpeakersDirectory = lazy(() => import("@/pages/SpeakersDirectory"));
 const SpeakerProfile = lazy(() => import("@/pages/SpeakerProfile"));
 
@@ -156,15 +161,27 @@ export default function AppRoutes() {
 
 /**
  * StableLayout keeps the four main tab pages mounted at all times (hidden via CSS)
- * so they preserve scroll position & component state across tab switches.
- * Non-tab routes (event detail, speakers, etc.) render normally via Routes.
+ * so they preserve scroll position, component state, and avoid re-fetching on tab switch.
  */
 function StableLayout({ profile }: { profile: any }) {
   const location = useLocation();
   const isAdmin = profile?.role === "admin";
   const isModerator = (profile?.role as string) === "moderator";
 
-  // Determine which stable tab (if any) matches the current path
+  // Preload all tab chunks after first paint so future tab switches are instant
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      homeFeedImport();
+      libraryImport();
+      profileImport();
+      if (isAdmin || isModerator) adminImport();
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [isAdmin, isModerator]);
+
+  // Track which tabs have been visited so we mount them on first visit and keep them alive
+  const [visited, setVisited] = useState<Set<string>>(() => new Set());
+
   const stableTab = useMemo(() => {
     if (location.pathname === "/") return "home";
     if (location.pathname === "/library") return "library";
@@ -173,20 +190,42 @@ function StableLayout({ profile }: { profile: any }) {
     return null;
   }, [location.pathname, isAdmin, isModerator]);
 
+  // Mark tab as visited so it stays mounted
+  useEffect(() => {
+    if (stableTab && !visited.has(stableTab)) {
+      setVisited((prev) => new Set(prev).add(stableTab));
+    }
+  }, [stableTab]);
+
   const isStableRoute = stableTab !== null;
 
   return (
     <>
       <OfflineBanner />
-      
       <AppHeader />
 
       <Suspense fallback={<LazyFallback />}>
-        {/* Only render the active tab to avoid hidden tabs running heavy queries in the background */}
-        {stableTab === "home" && <HomeFeed />}
-        {stableTab === "library" && <Library />}
-        {stableTab === "admin" && (isAdmin || isModerator) && <AdminDashboard />}
-        {stableTab === "profile" && <ProfilePage />}
+        {/* Keep visited tabs mounted, hide inactive ones with CSS */}
+        {(visited.has("home") || stableTab === "home") && (
+          <div style={{ display: stableTab === "home" ? "block" : "none" }}>
+            <HomeFeed />
+          </div>
+        )}
+        {(visited.has("library") || stableTab === "library") && (
+          <div style={{ display: stableTab === "library" ? "block" : "none" }}>
+            <Library />
+          </div>
+        )}
+        {(isAdmin || isModerator) && (visited.has("admin") || stableTab === "admin") && (
+          <div style={{ display: stableTab === "admin" ? "block" : "none" }}>
+            <AdminDashboard />
+          </div>
+        )}
+        {(visited.has("profile") || stableTab === "profile") && (
+          <div style={{ display: stableTab === "profile" ? "block" : "none" }}>
+            <ProfilePage />
+          </div>
+        )}
 
         {/* Non-tab routes render normally */}
         {!isStableRoute && (
