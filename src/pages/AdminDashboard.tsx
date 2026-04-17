@@ -1,5 +1,5 @@
 import { useAuth } from "@/contexts/AuthContext";
-import { Navigate } from "react-router-dom";
+import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { useRef, useEffect, useCallback, useState, lazy, Suspense, type ReactNode } from "react";
 import { useSwipeable } from "react-swipeable";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
