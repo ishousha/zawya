@@ -11,9 +11,19 @@ import { Badge } from "@/components/ui/badge";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { toast } from "sonner";
-import { Plus, Users, UserPlus, X, Loader2, Check, ChevronsUpDown, Search, Eye } from "lucide-react";
+import { Plus, Users, UserPlus, X, Loader2, Check, ChevronsUpDown, Search, Eye, Pencil, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import FamilyDetailsModal from "./FamilyDetailsModal";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface Family {
   id: string;
@@ -77,6 +87,9 @@ export default function FamilyManagement() {
   const [memberComboOpen, setMemberComboOpen] = useState(false);
   const [tableSearch, setTableSearch] = useState("");
   const [detailFamily, setDetailFamily] = useState<Family | null>(null);
+  const [editFamily, setEditFamily] = useState<Family | null>(null);
+  const [editName, setEditName] = useState("");
+  const [deleteFamily, setDeleteFamily] = useState<Family | null>(null);
 
   const unassignedMembers = useMemo(
     () => profiles?.filter((p) => !p.family_id) ?? [],
@@ -151,6 +164,39 @@ export default function FamilyManagement() {
       invalidate();
     },
     onError: () => toast.error("Failed to remove member"),
+  });
+
+  const renameFamily = useMutation({
+    mutationFn: async ({ id, name }: { id: string; name: string }) => {
+      const { error } = await supabase.from("families").update({ name }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Family renamed");
+      setEditFamily(null);
+      setEditName("");
+      invalidate();
+    },
+    onError: () => toast.error("Failed to rename family"),
+  });
+
+  const deleteFamilyMutation = useMutation({
+    mutationFn: async (id: string) => {
+      // Unassign all members first to satisfy FK
+      const { error: unassignErr } = await supabase
+        .from("profiles")
+        .update({ family_id: null })
+        .eq("family_id", id);
+      if (unassignErr) throw unassignErr;
+      const { error } = await supabase.from("families").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Family deleted");
+      setDeleteFamily(null);
+      invalidate();
+    },
+    onError: (err: any) => toast.error(err?.message || "Failed to delete family"),
   });
 
   const getMembersOfFamily = (familyId: string) =>
@@ -409,6 +455,24 @@ export default function FamilyManagement() {
                     >
                       <Eye className="h-3.5 w-3.5" /> Details
                     </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-7 w-7 p-0"
+                      title="Rename family"
+                      onClick={() => { setEditFamily(family); setEditName(family.name); }}
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-7 w-7 p-0 text-destructive hover:text-destructive"
+                      title="Delete family"
+                      onClick={() => setDeleteFamily(family)}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -448,6 +512,65 @@ export default function FamilyManagement() {
           onOpenChange={(open) => { if (!open) setDetailFamily(null); }}
         />
       )}
+
+      {/* Rename family dialog */}
+      <Dialog open={!!editFamily} onOpenChange={(open) => { if (!open) { setEditFamily(null); setEditName(""); } }}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Rename Family</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-2">
+            <div>
+              <Label htmlFor="edit-family-name">Family Name</Label>
+              <Input
+                id="edit-family-name"
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+                placeholder="Family name"
+              />
+            </div>
+            <Button
+              className="w-full"
+              disabled={!editName.trim() || editName.trim() === editFamily?.name || renameFamily.isPending}
+              onClick={() => editFamily && renameFamily.mutate({ id: editFamily.id, name: editName.trim() })}
+            >
+              {renameFamily.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Save
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete family confirmation */}
+      <AlertDialog open={!!deleteFamily} onOpenChange={(open) => { if (!open) setDeleteFamily(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete "{deleteFamily?.name}"?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {deleteFamily && (() => {
+                const count = getMembersOfFamily(deleteFamily.id).length;
+                return count > 0
+                  ? `This family has ${count} ${count === 1 ? "member" : "members"}. They will be unassigned (not deleted) and the family will be removed. This action cannot be undone.`
+                  : "This family has no members. It will be permanently removed. This action cannot be undone.";
+              })()}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteFamilyMutation.isPending}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={deleteFamilyMutation.isPending}
+              onClick={(e) => {
+                e.preventDefault();
+                if (deleteFamily) deleteFamilyMutation.mutate(deleteFamily.id);
+              }}
+            >
+              {deleteFamilyMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Delete Family
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
