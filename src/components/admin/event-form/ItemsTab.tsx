@@ -128,21 +128,57 @@ export default function ItemsTab({ items, onChange }: ItemsTabProps) {
               </div>
 
               {/* Limit controls */}
-              <div className="flex items-center gap-2 shrink-0">
+              <div className="flex items-center gap-1.5 shrink-0">
                 {item.quantity_limit === 0 ? (
-                  <span className="text-xs text-muted-foreground whitespace-nowrap">No limit</span>
+                  <span className="text-xs text-muted-foreground whitespace-nowrap px-1">No limit</span>
                 ) : (
-                  <Input
-                    type="number"
-                    min={1}
-                    value={item.quantity_limit}
-                    onChange={(e) =>
-                      updateItem(index, {
-                        quantity_limit: Math.max(1, parseInt(e.target.value) || 1),
-                      })
-                    }
-                    className="h-8 w-16 text-center text-xs"
-                  />
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        updateItem(index, {
+                          quantity_limit: Math.max(1, item.quantity_limit - 1),
+                        })
+                      }
+                      disabled={item.quantity_limit <= 1}
+                      className="h-8 w-8 flex items-center justify-center rounded-md border border-border bg-muted text-muted-foreground hover:text-foreground hover:bg-accent disabled:opacity-30 transition-colors active:scale-95"
+                      aria-label="Decrease quantity"
+                    >
+                      <Minus className="h-3.5 w-3.5" />
+                    </button>
+                    <Input
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      value={item.quantity_limit}
+                      onFocus={(e) => e.target.select()}
+                      onChange={(e) => {
+                        const raw = e.target.value.replace(/[^0-9]/g, "");
+                        if (raw === "") {
+                          updateItem(index, { quantity_limit: 0 });
+                          return;
+                        }
+                        const n = parseInt(raw, 10);
+                        updateItem(index, { quantity_limit: Math.max(1, n) });
+                      }}
+                      onBlur={(e) => {
+                        if (!e.target.value || parseInt(e.target.value, 10) < 1) {
+                          updateItem(index, { quantity_limit: 1 });
+                        }
+                      }}
+                      className="h-8 w-12 text-center text-sm px-1"
+                    />
+                    <button
+                      type="button"
+                      onClick={() =>
+                        updateItem(index, { quantity_limit: item.quantity_limit + 1 })
+                      }
+                      className="h-8 w-8 flex items-center justify-center rounded-md border border-border bg-muted text-muted-foreground hover:text-foreground hover:bg-accent transition-colors active:scale-95"
+                      aria-label="Increase quantity"
+                    >
+                      <Plus className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
                 )}
                 <Switch
                   checked={item.quantity_limit > 0}
