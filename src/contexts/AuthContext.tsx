@@ -46,7 +46,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let initialDone = false;
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, newSession) => {
+      (_event, newSession) => {
         if (!initialDone) return;
         if (!mounted) return;
 
@@ -57,16 +57,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         sessionRef.current = newSession;
 
         if (newSession?.user) {
-          // If a different user signed in (or first sign-in after null session),
-          // show loading while we fetch their profile to avoid routing flicker.
           if (newUserId !== prevUserId) {
             setLoading(true);
+            // Defer async DB call to avoid deadlocking the Supabase auth lock,
+            // which causes the first save/update after auth events to hang.
+            setTimeout(() => {
+              if (!mounted) return;
+              fetchProfile(newSession.user.id).finally(() => {
+                if (mounted) setLoading(false);
+              });
+            }, 0);
+          } else {
+            // Same user — token refresh etc. Refresh profile in background, don't block.
+            setTimeout(() => {
+              if (mounted) fetchProfile(newSession.user.id);
+            }, 0);
+            if (mounted) setLoading(false);
           }
-          await fetchProfile(newSession.user.id);
         } else {
           setProfile(null);
+          if (mounted) setLoading(false);
         }
-        if (mounted) setLoading(false);
       }
     );
 
