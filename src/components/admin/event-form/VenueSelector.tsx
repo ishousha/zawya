@@ -98,7 +98,9 @@ export default function VenueSelector({ value, onChange }: VenueSelectorProps) {
     setFormAreaHint("");
     setFormAddress("");
     setOpen(false);
-    setDialogOpen(true);
+    // Defer dialog open so Popover close finishes first (avoids Radix focus-trap conflict
+    // that immediately re-closes the newly opened dialog).
+    setTimeout(() => setDialogOpen(true), 0);
   };
 
   const openEdit = (venue: Venue, e: React.MouseEvent) => {
@@ -108,13 +110,13 @@ export default function VenueSelector({ value, onChange }: VenueSelectorProps) {
     setFormAreaHint(venue.area_hint ?? "");
     setFormAddress(venue.address ?? "");
     setOpen(false);
-    setDialogOpen(true);
+    setTimeout(() => setDialogOpen(true), 0);
   };
 
   const openDelete = (venue: Venue, e: React.MouseEvent) => {
     e.stopPropagation();
     setOpen(false);
-    setDeleteVenue(venue);
+    setTimeout(() => setDeleteVenue(venue), 0);
   };
 
   const closeDialog = () => {
