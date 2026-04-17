@@ -61,6 +61,8 @@ export default function AdminDashboard() {
   const { profile } = useAuth();
   const { data: pendingCount } = usePendingUsersCount();
   const tabsListRef = useRef<HTMLDivElement>(null);
+  const location = useLocation();
+  const navigate = useNavigate();
 
   const isAdmin = profile?.role === "admin";
   const isModerator = (profile?.role as string) === "moderator";
@@ -69,6 +71,30 @@ export default function AdminDashboard() {
   const [modTab, setModTab] = useState<ModeratorTab>("events");
   const [slideDir, setSlideDir] = useState<"left" | "right" | null>(null);
   const [slideKey, setSlideKey] = useState(0);
+
+  // Honor navigation state from Quick Actions (tab + optional action/eventId)
+  useEffect(() => {
+    const state = location.state as { tab?: string; action?: string; eventId?: string } | null;
+    if (!state?.tab) return;
+    if (isAdmin && (ADMIN_TABS as readonly string[]).includes(state.tab)) {
+      setActiveTab(state.tab as AdminTab);
+    } else if (isModerator && (MODERATOR_TABS as readonly string[]).includes(state.tab)) {
+      setModTab(state.tab as ModeratorTab);
+    }
+    if (state.action || state.eventId) {
+      // Defer so target tab mounts first
+      setTimeout(() => {
+        window.dispatchEvent(
+          new CustomEvent("admin-quick-action", {
+            detail: { tab: state.tab, action: state.action, eventId: state.eventId },
+          })
+        );
+      }, 80);
+    }
+    // Clear state so refresh / back doesn't retrigger
+    navigate(location.pathname, { replace: true, state: null });
+  }, [location.state, location.pathname, navigate, isAdmin, isModerator]);
+
 
   const changeTab = useCallback((
     tabs: readonly string[],
