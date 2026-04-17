@@ -114,6 +114,10 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
       etiquette_notes: (event as any).etiquette_notes ?? "",
       location_hint: (event as any).location_hint ?? "",
       age_group: (event as any).age_group ?? "All Ages",
+      age_groups: Array.isArray((event as any).age_groups) && (event as any).age_groups.length > 0
+        ? (event as any).age_groups
+        : [(event as any).age_group ?? "All Ages"],
+      audience_gender: ((event as any).audience_gender ?? "Everyone") as any,
       published: (event as any).published ?? false,
       scheduled_publish_at: (event as any).scheduled_publish_at
         ? format(new Date((event as any).scheduled_publish_at), "yyyy-MM-dd'T'HH:mm")
@@ -257,7 +261,9 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
         mureeds_only: form.mureeds_only === true,
         etiquette_notes: form.etiquette_notes || null,
         location_hint: form.location_hint || null,
-        age_group: form.age_group || "All Ages",
+        age_group: (form.age_groups && form.age_groups[0]) || form.age_group || "All Ages",
+        age_groups: form.age_groups && form.age_groups.length > 0 ? form.age_groups : ["All Ages"],
+        audience_gender: form.audience_gender || "Everyone",
         published: shouldPublish,
         ...(shouldPublish ? { last_published_at: new Date().toISOString() } : {}),
         scheduled_publish_at: !shouldPublish && form.scheduled_publish_at
