@@ -166,6 +166,39 @@ export default function FamilyManagement() {
     onError: () => toast.error("Failed to remove member"),
   });
 
+  const renameFamily = useMutation({
+    mutationFn: async ({ id, name }: { id: string; name: string }) => {
+      const { error } = await supabase.from("families").update({ name }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Family renamed");
+      setEditFamily(null);
+      setEditName("");
+      invalidate();
+    },
+    onError: () => toast.error("Failed to rename family"),
+  });
+
+  const deleteFamilyMutation = useMutation({
+    mutationFn: async (id: string) => {
+      // Unassign all members first to satisfy FK
+      const { error: unassignErr } = await supabase
+        .from("profiles")
+        .update({ family_id: null })
+        .eq("family_id", id);
+      if (unassignErr) throw unassignErr;
+      const { error } = await supabase.from("families").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Family deleted");
+      setDeleteFamily(null);
+      invalidate();
+    },
+    onError: (err: any) => toast.error(err?.message || "Failed to delete family"),
+  });
+
   const getMembersOfFamily = (familyId: string) =>
     profiles?.filter((p) => p.family_id === familyId) ?? [];
 
