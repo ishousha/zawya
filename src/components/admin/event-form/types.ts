@@ -46,6 +46,8 @@ export interface EventFormState {
   etiquette_notes: string;
   location_hint: string;
   age_group: string;
+  age_groups: string[];
+  audience_gender: AudienceGender;
   published: boolean;
   scheduled_publish_at: string;
   enable_virtual: boolean;
@@ -89,6 +91,8 @@ export const defaultEventForm: EventFormState = {
   etiquette_notes: "",
   location_hint: "",
   age_group: "All Ages",
+  age_groups: ["All Ages"],
+  audience_gender: "Everyone",
   published: false,
   scheduled_publish_at: "",
   enable_virtual: false,
