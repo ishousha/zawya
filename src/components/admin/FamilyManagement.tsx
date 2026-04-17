@@ -455,6 +455,24 @@ export default function FamilyManagement() {
                     >
                       <Eye className="h-3.5 w-3.5" /> Details
                     </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-7 w-7 p-0"
+                      title="Rename family"
+                      onClick={() => { setEditFamily(family); setEditName(family.name); }}
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-7 w-7 p-0 text-destructive hover:text-destructive"
+                      title="Delete family"
+                      onClick={() => setDeleteFamily(family)}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
