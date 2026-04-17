@@ -512,6 +512,65 @@ export default function FamilyManagement() {
           onOpenChange={(open) => { if (!open) setDetailFamily(null); }}
         />
       )}
+
+      {/* Rename family dialog */}
+      <Dialog open={!!editFamily} onOpenChange={(open) => { if (!open) { setEditFamily(null); setEditName(""); } }}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Rename Family</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-2">
+            <div>
+              <Label htmlFor="edit-family-name">Family Name</Label>
+              <Input
+                id="edit-family-name"
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+                placeholder="Family name"
+              />
+            </div>
+            <Button
+              className="w-full"
+              disabled={!editName.trim() || editName.trim() === editFamily?.name || renameFamily.isPending}
+              onClick={() => editFamily && renameFamily.mutate({ id: editFamily.id, name: editName.trim() })}
+            >
+              {renameFamily.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Save
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete family confirmation */}
+      <AlertDialog open={!!deleteFamily} onOpenChange={(open) => { if (!open) setDeleteFamily(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete "{deleteFamily?.name}"?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {deleteFamily && (() => {
+                const count = getMembersOfFamily(deleteFamily.id).length;
+                return count > 0
+                  ? `This family has ${count} ${count === 1 ? "member" : "members"}. They will be unassigned (not deleted) and the family will be removed. This action cannot be undone.`
+                  : "This family has no members. It will be permanently removed. This action cannot be undone.";
+              })()}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteFamilyMutation.isPending}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={deleteFamilyMutation.isPending}
+              onClick={(e) => {
+                e.preventDefault();
+                if (deleteFamily) deleteFamilyMutation.mutate(deleteFamily.id);
+              }}
+            >
+              {deleteFamilyMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Delete Family
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
