@@ -159,6 +159,10 @@ export default function EventControlRoom() {
       etiquette_notes: (event as any).etiquette_notes ?? "",
       location_hint: (event as any).location_hint ?? "",
       age_group: (event as any).age_group ?? "All Ages",
+      age_groups: Array.isArray((event as any).age_groups) && (event as any).age_groups.length > 0
+        ? (event as any).age_groups
+        : [(event as any).age_group ?? "All Ages"],
+      audience_gender: ((event as any).audience_gender ?? "Everyone") as any,
       published: false,
       scheduled_publish_at: "",
       enable_virtual: !!(event.online_link),
