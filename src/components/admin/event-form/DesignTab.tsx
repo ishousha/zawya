@@ -12,7 +12,8 @@ import DateTimePicker from "./DateTimePicker";
 import VenueSelector from "./VenueSelector";
 import SpeakerSelector from "./SpeakerSelector";
 import type { EventFormState } from "./types";
-import { AGE_GROUP_OPTIONS } from "./types";
+import { AGE_GROUP_OPTIONS, AUDIENCE_GENDER_OPTIONS } from "./types";
+import { Checkbox } from "@/components/ui/checkbox";
 
 const DURATION_OPTIONS = [
   { label: "30 minutes", minutes: 30 },
@@ -300,18 +301,50 @@ export default function DesignTab({ form, setForm, isEditing }: DesignTabProps) 
           </Select>
         </div>
 
-        {/* Age Group */}
+        {/* Age Group — multi-select */}
         <div>
-          <Label>Target Age Group</Label>
+          <Label>Target Age Groups</Label>
+          <p className="text-xs text-muted-foreground mt-0.5 mb-2">
+            Select all groups this event is open to.
+          </p>
+          <div className="grid grid-cols-2 gap-2">
+            {AGE_GROUP_OPTIONS.map((opt) => {
+              const checked = (form.age_groups ?? []).includes(opt);
+              return (
+                <label
+                  key={opt}
+                  className="flex items-center gap-2 rounded-md border border-border bg-card px-3 py-2 text-sm cursor-pointer hover:bg-accent/50 transition-colors"
+                >
+                  <Checkbox
+                    checked={checked}
+                    onCheckedChange={(v) => {
+                      const current = new Set(form.age_groups ?? []);
+                      if (v) current.add(opt);
+                      else current.delete(opt);
+                      // Always keep at least one selected
+                      const next = Array.from(current);
+                      update("age_groups", next.length > 0 ? next : ["All Ages"]);
+                    }}
+                  />
+                  <span>{opt}</span>
+                </label>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Audience Gender */}
+        <div>
+          <Label>Audience</Label>
           <Select
-            value={form.age_group}
-            onValueChange={(v) => update("age_group", v)}
+            value={form.audience_gender}
+            onValueChange={(v) => update("audience_gender", v as any)}
           >
             <SelectTrigger className="mt-1.5">
-              <SelectValue placeholder="Select age group..." />
+              <SelectValue placeholder="Who is this event for?" />
             </SelectTrigger>
             <SelectContent className="z-[90]">
-              {AGE_GROUP_OPTIONS.map((opt) => (
+              {AUDIENCE_GENDER_OPTIONS.map((opt) => (
                 <SelectItem key={opt} value={opt}>
                   {opt}
                 </SelectItem>
