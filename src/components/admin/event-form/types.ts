@@ -10,6 +10,14 @@ export const AGE_GROUP_OPTIONS = [
   "Adults (18+)",
 ] as const;
 
+export const AUDIENCE_GENDER_OPTIONS = [
+  "Everyone",
+  "Brothers Only",
+  "Sisters Only",
+] as const;
+
+export type AudienceGender = typeof AUDIENCE_GENDER_OPTIONS[number];
+
 export interface EventFormState {
   title: string;
   description: string;
