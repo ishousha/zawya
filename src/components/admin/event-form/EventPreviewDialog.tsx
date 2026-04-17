@@ -64,6 +64,16 @@ export default function EventPreviewDialog({ open, onOpenChange, form }: EventPr
                   🔒 Private
                 </span>
               )}
+              {form.audience_gender === "Brothers Only" && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-blue-500/15 px-2.5 py-0.5 text-xs font-semibold text-blue-700 dark:text-blue-300">
+                  ♂ Brothers Only
+                </span>
+              )}
+              {form.audience_gender === "Sisters Only" && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-pink-500/15 px-2.5 py-0.5 text-xs font-semibold text-pink-700 dark:text-pink-300">
+                  ♀ Sisters Only
+                </span>
+              )}
               {isCancelled && (
                 <span className="inline-flex items-center gap-1 rounded-full bg-destructive px-2.5 py-0.5 text-xs font-bold uppercase tracking-wider text-destructive-foreground">
                   <Ban className="h-3 w-3" />
@@ -75,11 +85,11 @@ export default function EventPreviewDialog({ open, onOpenChange, form }: EventPr
                   💰 Fee: ${fee.toFixed(0)}
                 </span>
               )}
-              {form.age_group && form.age_group !== "All Ages" && (
-                <span className="inline-flex items-center gap-1 rounded-full bg-[hsl(250,60%,95%)] px-2.5 py-0.5 text-xs font-medium text-[hsl(250,40%,35%)]">
-                  👥 {form.age_group}
+              {(form.age_groups ?? []).filter((g) => g !== "All Ages").map((g) => (
+                <span key={g} className="inline-flex items-center gap-1 rounded-full bg-[hsl(250,60%,95%)] px-2.5 py-0.5 text-xs font-medium text-[hsl(250,40%,35%)]">
+                  👥 {g}
                 </span>
-              )}
+              ))}
               {form.capacity && (
                 <span className="ml-auto text-xs text-muted-foreground">
                   0/{form.capacity} spots

@@ -309,24 +309,53 @@ export default function RSVPModal({ event, open, onOpenChange }: RSVPModalProps)
         <div className="space-y-5 py-2">
           {/* Virtual event link removed — shown only on EventCard after RSVP + 15-min gate */}
 
-          {/* Attendee checklist — filter dependents by event age group */}
+          {/* Attendee checklist — filter dependents by event age groups */}
           {(() => {
-            const ageGroup = (event as any).age_group as string | undefined;
-            const isAdultsOnly = ageGroup === "Adults (18+)" || ageGroup === "Young Adults (18-30)";
+            const rawGroups = (event as any).age_groups as string[] | undefined;
+            const legacyGroup = (event as any).age_group as string | undefined;
+            const ageGroups: string[] =
+              Array.isArray(rawGroups) && rawGroups.length > 0
+                ? rawGroups
+                : legacyGroup
+                ? [legacyGroup]
+                : ["All Ages"];
+
+            const allowsEveryone = ageGroups.includes("All Ages");
+            const allowsKids = ageGroups.includes("Kids (Under 12)");
+            const allowsYouth = ageGroups.includes("Youth (13-18)");
+            const allowsAdults =
+              ageGroups.includes("Adults (18+)") ||
+              ageGroups.includes("Young Adults (18-30)");
+
             const allDeps = dependents ?? [];
 
-            const filteredDeps = isAdultsOnly
-              ? allDeps.filter((dep) => {
-                  if ((dep as any).type === "child") return false;
-                  if (dep.date_of_birth) {
-                    const dob = new Date(dep.date_of_birth);
-                    const age = Math.floor((Date.now() - dob.getTime()) / (365.25 * 24 * 60 * 60 * 1000));
-                    if (age < 18) return false;
-                  }
-                  return true;
-                })
-              : allDeps;
+            const depMatches = (dep: any) => {
+              if (allowsEveryone) return true;
 
+              // Compute age (if DOB known) and use age_group field as a hint
+              let age: number | null = null;
+              if (dep.date_of_birth) {
+                const dob = new Date(dep.date_of_birth);
+                age = Math.floor((Date.now() - dob.getTime()) / (365.25 * 24 * 60 * 60 * 1000));
+              }
+              const depAgeGroup = dep.age_group as string | null;
+
+              const isInfant = depAgeGroup === "infant_0_3" || (age !== null && age <= 3);
+              const isChild = depAgeGroup === "child_4_12" || (age !== null && age >= 4 && age <= 12);
+              const isYouth = depAgeGroup === "youth_13_17" || (age !== null && age >= 13 && age <= 17);
+              const isAdult = depAgeGroup === "adult_18_plus" || (age !== null && age >= 18) || dep.type === "elder";
+
+              if (allowsKids && (isInfant || isChild)) return true;
+              if (allowsYouth && isYouth) return true;
+              if (allowsAdults && isAdult) return true;
+
+              // Unknown / no age info — show by default to avoid false-hides
+              if (age === null && !depAgeGroup) return true;
+
+              return false;
+            };
+
+            const filteredDeps = allDeps.filter(depMatches);
             const hiddenCount = allDeps.length - filteredDeps.length;
 
             return (

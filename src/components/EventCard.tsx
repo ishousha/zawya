@@ -152,6 +152,16 @@ function EventCardInner({ event, onShowTicket, isPast = false }: EventCardProps)
               🔒 Private
             </span>
           )}
+          {(event as any).audience_gender === "Brothers Only" && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-blue-500/15 px-2.5 py-0.5 text-xs font-semibold text-blue-700 dark:text-blue-300">
+              ♂ Brothers Only
+            </span>
+          )}
+          {(event as any).audience_gender === "Sisters Only" && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-pink-500/15 px-2.5 py-0.5 text-xs font-semibold text-pink-700 dark:text-pink-300">
+              ♀ Sisters Only
+            </span>
+          )}
           {isLiveNow && !isCancelled && (
             <span className="inline-flex items-center gap-1 rounded-full bg-accent px-2.5 py-0.5 text-xs font-bold text-accent-foreground">
               <span className="relative flex h-2 w-2">

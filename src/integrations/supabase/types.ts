@@ -328,6 +328,8 @@ export type Database = {
         Row: {
           address: string | null
           age_group: string
+          age_groups: string[]
+          audience_gender: string
           capacity: number | null
           checkin_pin: string | null
           cover_photo_url: string | null
@@ -364,6 +366,8 @@ export type Database = {
         Insert: {
           address?: string | null
           age_group?: string
+          age_groups?: string[]
+          audience_gender?: string
           capacity?: number | null
           checkin_pin?: string | null
           cover_photo_url?: string | null
@@ -400,6 +404,8 @@ export type Database = {
         Update: {
           address?: string | null
           age_group?: string
+          age_groups?: string[]
+          audience_gender?: string
           capacity?: number | null
           checkin_pin?: string | null
           cover_photo_url?: string | null
