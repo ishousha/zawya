@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import AdminGuestApprovals from "./AdminGuestApprovals";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -84,6 +84,22 @@ export default function EventControlRoom() {
 
   const { data: eventTypes } = useEventTypes();
   const getTypeName = (id: string) => eventTypes?.find((t) => t.id === id)?.name ?? "Event";
+
+  // Listen for quick-action navigation from AdminQuickActions
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail as { tab?: string; action?: string; eventId?: string } | undefined;
+      if (!detail || detail.tab !== "events") return;
+      if (detail.action === "create") {
+        setCreating(true);
+      } else if (detail.eventId) {
+        setMonitoringEventId(detail.eventId);
+      }
+    };
+    window.addEventListener("admin-quick-action", handler);
+    return () => window.removeEventListener("admin-quick-action", handler);
+  }, []);
+
 
   const { data: events, isLoading } = useQuery({
     queryKey: ["admin-events"],
