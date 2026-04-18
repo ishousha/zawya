@@ -42,6 +42,24 @@ export default function LoginPage() {
     if (hash && (hash.includes("access_token") || hash.includes("type=magiclink") || hash.includes("type=signup"))) {
       setStage("magic-link");
     }
+
+    // Detect OAuth errors returned from the Lovable broker (e.g. state verification failure
+    // in incognito mode where third-party cookies are blocked).
+    const params = new URLSearchParams(window.location.search);
+    const oauthError = params.get("error") || (hash.includes("error=") ? new URLSearchParams(hash.slice(1)).get("error") : null);
+    const errorDesc = params.get("error_description") || (hash.includes("error_description=") ? new URLSearchParams(hash.slice(1)).get("error_description") : null);
+    if (oauthError) {
+      const isStateError = (errorDesc || "").toLowerCase().includes("state") || oauthError === "invalid_request";
+      toast.error(
+        isStateError
+          ? "Google sign-in failed (cookies blocked). Try a normal browser window, or use email code below."
+          : `Google sign-in failed: ${errorDesc || oauthError}`,
+        { duration: 8000 }
+      );
+      // Clean URL so the toast doesn't re-fire on refresh
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+
     return () => { if (expiryRef.current) clearInterval(expiryRef.current); };
   }, []);
 
