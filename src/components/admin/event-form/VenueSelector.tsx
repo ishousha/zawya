@@ -286,6 +286,7 @@ export default function VenueSelector({ value, onChange }: VenueSelectorProps) {
           </div>
           <DialogFooter>
             <Button
+              type="button"
               onClick={() => saveMutation.mutate()}
               disabled={!formName.trim() || saveMutation.isPending}
               className="w-full"
