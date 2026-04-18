@@ -73,7 +73,7 @@ export default function VenueSelector({ value, onChange }: VenueSelectorProps) {
       closeDialog();
       toast.success(editingVenue ? "Venue updated" : `Venue "${venue.name}" created`);
     },
-    onError: () => toast.error("Failed to save venue"),
+    onError: (err: any) => toast.error(err?.message || "Failed to save venue"),
   });
 
   const deleteMutation = useMutation({
