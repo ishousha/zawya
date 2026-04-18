@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -33,6 +33,35 @@ export default function VenueSelector({ value, onChange }: VenueSelectorProps) {
   const [formAreaHint, setFormAreaHint] = useState("");
   const [formAddress, setFormAddress] = useState("");
   const [deleteVenue, setDeleteVenue] = useState<Venue | null>(null);
+  const [pendingAction, setPendingAction] = useState<
+    | { type: "add" }
+    | { type: "edit"; venue: Venue }
+    | { type: "delete"; venue: Venue }
+    | null
+  >(null);
+
+  useEffect(() => {
+    if (open || !pendingAction) return;
+
+    if (pendingAction.type === "add") {
+      setEditingVenue(null);
+      setFormName("");
+      setFormAreaHint("");
+      setFormAddress("");
+      setDialogOpen(true);
+    } else if (pendingAction.type === "edit") {
+      const venue = pendingAction.venue;
+      setEditingVenue(venue);
+      setFormName(venue.name);
+      setFormAreaHint(venue.area_hint ?? "");
+      setFormAddress(venue.address ?? "");
+      setDialogOpen(true);
+    } else {
+      setDeleteVenue(pendingAction.venue);
+    }
+
+    setPendingAction(null);
+  }, [open, pendingAction]);
 
   const { data: venues = [], isLoading } = useQuery({
     queryKey: ["venues"],
@@ -93,36 +122,27 @@ export default function VenueSelector({ value, onChange }: VenueSelectorProps) {
   });
 
   const openAdd = () => {
-    setEditingVenue(null);
-    setFormName("");
-    setFormAreaHint("");
-    setFormAddress("");
+    setPendingAction({ type: "add" });
     setOpen(false);
-    // Wait for Popover unmount + focus restore before opening Dialog,
-    // otherwise Radix's focus-trap / pointer-down-outside immediately closes it.
-    setTimeout(() => setDialogOpen(true), 150);
   };
 
   const openEdit = (venue: Venue, e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
-    setEditingVenue(venue);
-    setFormName(venue.name);
-    setFormAreaHint(venue.area_hint ?? "");
-    setFormAddress(venue.address ?? "");
+    setPendingAction({ type: "edit", venue });
     setOpen(false);
-    setTimeout(() => setDialogOpen(true), 150);
   };
 
   const openDelete = (venue: Venue, e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
+    setPendingAction({ type: "delete", venue });
     setOpen(false);
-    setTimeout(() => setDeleteVenue(venue), 150);
   };
 
   const closeDialog = () => {
     setDialogOpen(false);
+    setPendingAction(null);
     setEditingVenue(null);
     setFormName("");
     setFormAreaHint("");
