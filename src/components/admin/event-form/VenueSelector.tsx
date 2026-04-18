@@ -196,12 +196,14 @@ export default function VenueSelector({ value, onChange }: VenueSelectorProps) {
                   </div>
                   <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
                     <button
+                      type="button"
                       className="p-1 rounded hover:bg-muted transition-colors"
                       onClick={(e) => openEdit(venue, e)}
                     >
                       <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
                     </button>
                     <button
+                      type="button"
                       className="p-1 rounded hover:bg-muted transition-colors"
                       onClick={(e) => openDelete(venue, e)}
                     >
@@ -217,6 +219,7 @@ export default function VenueSelector({ value, onChange }: VenueSelectorProps) {
 
           {value && (
             <button
+              type="button"
               className="w-full border-t px-3 py-2 text-sm text-muted-foreground hover:bg-accent transition-colors text-left"
               onClick={() => {
                 onChange(null, "", "", "");
@@ -228,8 +231,13 @@ export default function VenueSelector({ value, onChange }: VenueSelectorProps) {
           )}
 
           <button
+            type="button"
             className="flex w-full items-center gap-2 border-t px-3 py-2 text-sm font-medium text-primary hover:bg-accent transition-colors"
-            onClick={openAdd}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              openAdd();
+            }}
           >
             <Plus className="h-4 w-4" />
             Add New Venue
