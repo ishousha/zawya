@@ -98,25 +98,27 @@ export default function VenueSelector({ value, onChange }: VenueSelectorProps) {
     setFormAreaHint("");
     setFormAddress("");
     setOpen(false);
-    // Defer dialog open so Popover close finishes first (avoids Radix focus-trap conflict
-    // that immediately re-closes the newly opened dialog).
-    setTimeout(() => setDialogOpen(true), 0);
+    // Wait for Popover unmount + focus restore before opening Dialog,
+    // otherwise Radix's focus-trap / pointer-down-outside immediately closes it.
+    setTimeout(() => setDialogOpen(true), 150);
   };
 
   const openEdit = (venue: Venue, e: React.MouseEvent) => {
     e.stopPropagation();
+    e.preventDefault();
     setEditingVenue(venue);
     setFormName(venue.name);
     setFormAreaHint(venue.area_hint ?? "");
     setFormAddress(venue.address ?? "");
     setOpen(false);
-    setTimeout(() => setDialogOpen(true), 0);
+    setTimeout(() => setDialogOpen(true), 150);
   };
 
   const openDelete = (venue: Venue, e: React.MouseEvent) => {
     e.stopPropagation();
+    e.preventDefault();
     setOpen(false);
-    setTimeout(() => setDeleteVenue(venue), 0);
+    setTimeout(() => setDeleteVenue(venue), 150);
   };
 
   const closeDialog = () => {
