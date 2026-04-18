@@ -16,7 +16,7 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 
-const DEFAULT_CATEGORIES = ["Daily Awrad", "Books", "Event Materials", "General"];
+const DEFAULT_CATEGORIES = ["Awrad/Litanies", "Books", "Event Materials", "General"];
 const RESOURCE_TYPES = [
   { value: "pdf", label: "PDF", icon: FileText },
   { value: "video", label: "Video", icon: Video },
