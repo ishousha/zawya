@@ -73,7 +73,7 @@ export default function VenueSelector({ value, onChange }: VenueSelectorProps) {
       closeDialog();
       toast.success(editingVenue ? "Venue updated" : `Venue "${venue.name}" created`);
     },
-    onError: () => toast.error("Failed to save venue"),
+    onError: (err: any) => toast.error(err?.message || "Failed to save venue"),
   });
 
   const deleteMutation = useMutation({
@@ -98,25 +98,27 @@ export default function VenueSelector({ value, onChange }: VenueSelectorProps) {
     setFormAreaHint("");
     setFormAddress("");
     setOpen(false);
-    // Defer dialog open so Popover close finishes first (avoids Radix focus-trap conflict
-    // that immediately re-closes the newly opened dialog).
-    setTimeout(() => setDialogOpen(true), 0);
+    // Wait for Popover unmount + focus restore before opening Dialog,
+    // otherwise Radix's focus-trap / pointer-down-outside immediately closes it.
+    setTimeout(() => setDialogOpen(true), 150);
   };
 
   const openEdit = (venue: Venue, e: React.MouseEvent) => {
     e.stopPropagation();
+    e.preventDefault();
     setEditingVenue(venue);
     setFormName(venue.name);
     setFormAreaHint(venue.area_hint ?? "");
     setFormAddress(venue.address ?? "");
     setOpen(false);
-    setTimeout(() => setDialogOpen(true), 0);
+    setTimeout(() => setDialogOpen(true), 150);
   };
 
   const openDelete = (venue: Venue, e: React.MouseEvent) => {
     e.stopPropagation();
+    e.preventDefault();
     setOpen(false);
-    setTimeout(() => setDeleteVenue(venue), 0);
+    setTimeout(() => setDeleteVenue(venue), 150);
   };
 
   const closeDialog = () => {
@@ -194,12 +196,14 @@ export default function VenueSelector({ value, onChange }: VenueSelectorProps) {
                   </div>
                   <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
                     <button
+                      type="button"
                       className="p-1 rounded hover:bg-muted transition-colors"
                       onClick={(e) => openEdit(venue, e)}
                     >
                       <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
                     </button>
                     <button
+                      type="button"
                       className="p-1 rounded hover:bg-muted transition-colors"
                       onClick={(e) => openDelete(venue, e)}
                     >
@@ -215,6 +219,7 @@ export default function VenueSelector({ value, onChange }: VenueSelectorProps) {
 
           {value && (
             <button
+              type="button"
               className="w-full border-t px-3 py-2 text-sm text-muted-foreground hover:bg-accent transition-colors text-left"
               onClick={() => {
                 onChange(null, "", "", "");
@@ -226,8 +231,13 @@ export default function VenueSelector({ value, onChange }: VenueSelectorProps) {
           )}
 
           <button
+            type="button"
             className="flex w-full items-center gap-2 border-t px-3 py-2 text-sm font-medium text-primary hover:bg-accent transition-colors"
-            onClick={openAdd}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              openAdd();
+            }}
           >
             <Plus className="h-4 w-4" />
             Add New Venue
