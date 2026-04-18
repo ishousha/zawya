@@ -247,7 +247,7 @@ export default function VenueSelector({ value, onChange }: VenueSelectorProps) {
 
       {/* Add / Edit Venue Dialog */}
       <Dialog open={dialogOpen} onOpenChange={(v) => { if (!v) closeDialog(); }}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md top-4 translate-y-0 sm:top-1/2 sm:-translate-y-1/2 max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editingVenue ? "Edit Venue" : "Add New Venue"}</DialogTitle>
           </DialogHeader>
