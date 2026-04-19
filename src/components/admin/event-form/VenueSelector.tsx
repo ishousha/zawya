@@ -328,8 +328,30 @@ export default function VenueSelector({ value, onChange }: VenueSelectorProps) {
               </div>
             </div>
           )}
-        </PopoverContent>
-      </Popover>
+          </PopoverContent>
+        </Popover>
+
+        {selected && (
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            className="h-10 w-10 shrink-0"
+            onClick={() => {
+              setEditingVenue(selected);
+              setFormName(selected.name);
+              setFormAreaHint(selected.area_hint ?? "");
+              setFormAddress(selected.address ?? "");
+              setView("form");
+              setOpen(true);
+            }}
+            aria-label={`Edit ${selected.name}`}
+            title="Edit selected venue"
+          >
+            <Pencil className="h-4 w-4" />
+          </Button>
+        )}
+      </div>
 
       {/* Delete confirmation */}
       <AlertDialog open={!!deleteVenue} onOpenChange={(v) => { if (!v) setDeleteVenue(null); }}>
