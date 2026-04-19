@@ -1,11 +1,13 @@
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { UserCheck, X } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { UserCheck, ChevronsUpDown, Loader2, Check, X } from "lucide-react";
 import { useDebounce } from "@/hooks/useDebounce";
+import { cn } from "@/lib/utils";
 
 interface HostSelectorProps {
   hostId: string | null;
@@ -13,8 +15,8 @@ interface HostSelectorProps {
 }
 
 export default function HostSelector({ hostId, onChange }: HostSelectorProps) {
-  const [search, setSearch] = useState("");
   const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
   const debouncedSearch = useDebounce(search, 300);
 
   const { data: searchResults, isLoading } = useQuery({
@@ -47,80 +49,130 @@ export default function HostSelector({ hostId, onChange }: HostSelectorProps) {
     },
   });
 
-  if (hostId && selectedProfile) {
-    return (
-      <div>
-        <Label className="block text-sm font-medium mb-1.5">Event Host</Label>
-        <div className="flex items-center gap-2 rounded-lg border border-primary/30 bg-primary/5 px-3 py-2.5">
-          <UserCheck className="h-4 w-4 text-primary shrink-0" />
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-foreground truncate">
-              {selectedProfile.name || selectedProfile.email}
-            </p>
-            {selectedProfile.email && selectedProfile.name && (
-              <p className="text-xs text-muted-foreground truncate">{selectedProfile.email}</p>
-            )}
-            {selectedProfile.family_name && (
-              <p className="text-xs text-muted-foreground">{selectedProfile.family_name}</p>
-            )}
-          </div>
-          <Button
-            type="button"
-            size="icon"
-            variant="ghost"
-            className="h-7 w-7 shrink-0"
-            onClick={() => onChange(null)}
-          >
-            <X className="h-3.5 w-3.5" />
-          </Button>
-        </div>
-      </div>
-    );
-  }
+  const triggerLabel = selectedProfile
+    ? selectedProfile.name || selectedProfile.email || "Selected host"
+    : "Select host…";
 
   return (
     <div>
-      <Label className="block text-sm font-medium mb-1.5">Event Host</Label>
-      <Input
-        placeholder="Search by name or email (min 2 chars)..."
-        value={search}
-        onChange={(e) => {
-          setSearch(e.target.value);
-          setOpen(true);
-        }}
-        onFocus={() => setOpen(true)}
-        className="text-sm"
-      />
-      {open && debouncedSearch.trim().length >= 2 && (
-        <div className="mt-1 max-h-40 overflow-y-auto rounded-md border border-border bg-popover shadow-md">
-          {isLoading ? (
-            <p className="px-3 py-2 text-sm text-muted-foreground">Searching…</p>
-          ) : !searchResults?.length ? (
-            <p className="px-3 py-2 text-sm text-muted-foreground">No users found</p>
-          ) : (
-            searchResults.map((p) => (
+      <Label className="flex items-center gap-1.5 mb-1.5 text-sm font-medium">
+        <UserCheck className="h-3.5 w-3.5 text-primary" />
+        Event Host
+      </Label>
+
+      <div className="flex gap-1.5">
+        <Popover
+          open={open}
+          onOpenChange={(o) => {
+            setOpen(o);
+            if (!o) setSearch("");
+          }}
+        >
+          <PopoverTrigger asChild>
+            <Button
+              type="button"
+              variant="outline"
+              role="combobox"
+              aria-expanded={open}
+              className={cn(
+                "flex-1 justify-between font-normal h-10 min-w-0",
+                !selectedProfile && "text-muted-foreground"
+              )}
+            >
+              <span className="truncate">{triggerLabel}</span>
+              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent
+            className="w-[var(--radix-popover-trigger-width)] p-0 z-[90]"
+            align="start"
+            onOpenAutoFocus={(e) => e.preventDefault()}
+          >
+            <div className="p-2">
+              <Input
+                placeholder="Search by name or email (min 2)…"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="h-9"
+                autoFocus
+              />
+            </div>
+
+            <div className="max-h-56 overflow-y-auto">
+              {debouncedSearch.trim().length < 2 ? (
+                <p className="px-3 py-3 text-center text-sm text-muted-foreground">
+                  Type at least 2 characters to search
+                </p>
+              ) : isLoading ? (
+                <div className="flex justify-center py-4">
+                  <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                </div>
+              ) : !searchResults?.length ? (
+                <p className="px-3 py-3 text-center text-sm text-muted-foreground">No users found</p>
+              ) : (
+                searchResults.map((p) => (
+                  <div
+                    key={p.id}
+                    className={cn(
+                      "flex w-full items-center gap-2 px-3 py-2 text-sm hover:bg-accent transition-colors cursor-pointer",
+                      hostId === p.id && "bg-accent"
+                    )}
+                    onClick={() => {
+                      onChange(p.id);
+                      setSearch("");
+                      setOpen(false);
+                    }}
+                  >
+                    <Check
+                      className={cn(
+                        "h-4 w-4 shrink-0",
+                        hostId === p.id ? "opacity-100 text-primary" : "opacity-0"
+                      )}
+                    />
+                    <div className="min-w-0 flex-1">
+                      <p className="font-medium truncate">{p.name || p.email}</p>
+                      {p.email && p.name && (
+                        <p className="text-xs text-muted-foreground truncate">{p.email}</p>
+                      )}
+                      {p.family_name && (
+                        <p className="text-xs text-muted-foreground truncate">{p.family_name}</p>
+                      )}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            {hostId && (
               <button
-                key={p.id}
                 type="button"
-                className="w-full text-left px-3 py-2 text-sm hover:bg-accent/50 transition-colors"
+                className="w-full border-t px-3 py-2 text-sm text-muted-foreground hover:bg-accent transition-colors text-left"
                 onClick={() => {
-                  onChange(p.id);
-                  setSearch("");
+                  onChange(null);
                   setOpen(false);
                 }}
               >
-                <span className="font-medium text-foreground">{p.name || p.email}</span>
-                {p.email && p.name && (
-                  <span className="text-muted-foreground ml-1 text-xs">({p.email})</span>
-                )}
-                {p.family_name && (
-                  <span className="text-muted-foreground ml-1">— {p.family_name}</span>
-                )}
+                Clear selection
               </button>
-            ))
-          )}
-        </div>
-      )}
+            )}
+          </PopoverContent>
+        </Popover>
+
+        {hostId && (
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            className="h-10 w-10 shrink-0"
+            onClick={() => onChange(null)}
+            aria-label="Remove host"
+            title="Remove host"
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        )}
+      </div>
+
       <p className="text-xs text-muted-foreground mt-1">
         Optional — the host can see the guest list and potluck details
       </p>
