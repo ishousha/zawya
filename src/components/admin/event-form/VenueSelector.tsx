@@ -43,24 +43,34 @@ export default function VenueSelector({ value, onChange }: VenueSelectorProps) {
   useEffect(() => {
     if (open || !pendingAction) return;
 
-    if (pendingAction.type === "add") {
-      setEditingVenue(null);
-      setFormName("");
-      setFormAreaHint("");
-      setFormAddress("");
-      setDialogOpen(true);
-    } else if (pendingAction.type === "edit") {
-      const venue = pendingAction.venue;
-      setEditingVenue(venue);
-      setFormName(venue.name);
-      setFormAreaHint(venue.area_hint ?? "");
-      setFormAddress(venue.address ?? "");
-      setDialogOpen(true);
-    } else {
-      setDeleteVenue(pendingAction.venue);
-    }
-
+    const action = pendingAction;
     setPendingAction(null);
+
+    // Defer to next frame so Radix Popover fully unmounts and releases
+    // pointer-events lock on body before opening the Dialog. Critical on mobile.
+    const timer = setTimeout(() => {
+      // Force-clear any lingering pointer-events lock from Radix
+      document.body.style.pointerEvents = "";
+
+      if (action.type === "add") {
+        setEditingVenue(null);
+        setFormName("");
+        setFormAreaHint("");
+        setFormAddress("");
+        setDialogOpen(true);
+      } else if (action.type === "edit") {
+        const venue = action.venue;
+        setEditingVenue(venue);
+        setFormName(venue.name);
+        setFormAreaHint(venue.area_hint ?? "");
+        setFormAddress(venue.address ?? "");
+        setDialogOpen(true);
+      } else {
+        setDeleteVenue(action.venue);
+      }
+    }, 100);
+
+    return () => clearTimeout(timer);
   }, [open, pendingAction]);
 
   const { data: venues = [], isLoading } = useQuery({
