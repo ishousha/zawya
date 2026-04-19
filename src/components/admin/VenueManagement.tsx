@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Plus, Pencil, Trash2, Loader2, Building2 } from "lucide-react";
@@ -130,10 +131,10 @@ export default function VenueManagement() {
       ) : (
         <Table>
           <TableHeader>
-            <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Area Hint</TableHead>
-              <TableHead>Address</TableHead>
+          <TableRow>
+              <TableHead>Location Name</TableHead>
+              <TableHead>Street Address</TableHead>
+              <TableHead>Hint / Directions</TableHead>
               <TableHead className="w-20" />
             </TableRow>
           </TableHeader>
@@ -141,8 +142,8 @@ export default function VenueManagement() {
             {venues.map((v) => (
               <TableRow key={v.id}>
                 <TableCell className="font-medium">{v.name}</TableCell>
-                <TableCell className="text-sm text-muted-foreground">{v.area_hint || "—"}</TableCell>
                 <TableCell className="text-sm text-muted-foreground max-w-[200px] truncate">{v.address || "—"}</TableCell>
+                <TableCell className="text-sm text-muted-foreground italic max-w-[200px] truncate">{v.area_hint || "—"}</TableCell>
                 <TableCell>
                   <div className="flex gap-1">
                     <Button size="icon" variant="ghost" onClick={() => openEdit(v)}>
@@ -175,22 +176,22 @@ export default function VenueManagement() {
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div>
-              <Label htmlFor="v-name">Venue Name</Label>
-              <Input id="v-name" value={formName} onChange={(e) => setFormName(e.target.value)} placeholder="e.g. Sr. Alia's House" className="mt-1.5" />
+              <Label htmlFor="v-name">Location Name <span className="text-destructive">*</span></Label>
+              <Input id="v-name" value={formName} onChange={(e) => setFormName(e.target.value)} placeholder="e.g. Zawya Community Center" className="mt-1.5" />
             </div>
             <div>
-              <Label htmlFor="v-hint">Area Hint</Label>
-              <Input id="v-hint" value={formAreaHint} onChange={(e) => setFormAreaHint(e.target.value)} placeholder="e.g. Barsha 3, JLT Cluster D" className="mt-1.5" />
-              <p className="text-xs text-muted-foreground mt-1">Shown to members before they RSVP.</p>
+              <Label htmlFor="v-addr">Street Address <span className="text-destructive">*</span></Label>
+              <Input id="v-addr" value={formAddress} onChange={(e) => setFormAddress(e.target.value)} placeholder="e.g. 123 Main St, Dubai" className="mt-1.5" />
+              <p className="text-xs text-muted-foreground mt-1">Used to open Apple/Google Maps when members tap the address.</p>
             </div>
             <div>
-              <Label htmlFor="v-addr">Full Address / Maps Link</Label>
-              <Input id="v-addr" value={formAddress} onChange={(e) => setFormAddress(e.target.value)} placeholder="Full address or Google Maps link" className="mt-1.5" />
+              <Label htmlFor="v-hint">Location Hint / Directions <span className="text-muted-foreground font-normal">(optional)</span></Label>
+              <Textarea id="v-hint" value={formAreaHint} onChange={(e) => setFormAreaHint(e.target.value)} placeholder="e.g. Park in the rear lot, ring the bell at the green gate" className="mt-1.5 min-h-[72px]" />
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={closeDialog}>Cancel</Button>
-            <Button onClick={() => saveMutation.mutate()} disabled={!formName.trim() || saveMutation.isPending}>
+            <Button onClick={() => saveMutation.mutate()} disabled={!formName.trim() || !formAddress.trim() || saveMutation.isPending}>
               {saveMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {editingVenue ? "Update" : "Save"}
             </Button>

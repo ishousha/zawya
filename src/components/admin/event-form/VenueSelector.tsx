@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Building2, ChevronsUpDown, Check, Plus, Loader2, Pencil, Trash2, ArrowLeft } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -273,35 +274,34 @@ export default function VenueSelector({ value, onChange }: VenueSelectorProps) {
               </div>
 
               <div>
-                <Label htmlFor="venue-name" className="text-xs">Venue Name</Label>
+                <Label htmlFor="venue-name" className="text-xs">Location Name <span className="text-destructive">*</span></Label>
                 <Input
                   id="venue-name"
                   value={formName}
                   onChange={(e) => setFormName(e.target.value)}
-                  placeholder="e.g. Br Aleem's House"
+                  placeholder="e.g. Zawya Community Center"
                   className="mt-1 h-9"
                   autoFocus
                 />
               </div>
               <div>
-                <Label htmlFor="venue-hint" className="text-xs">Area Hint</Label>
-                <Input
-                  id="venue-hint"
-                  value={formAreaHint}
-                  onChange={(e) => setFormAreaHint(e.target.value)}
-                  placeholder="e.g. Barsha 3, JLT Cluster D"
-                  className="mt-1 h-9"
-                />
-                <p className="text-[11px] text-muted-foreground mt-0.5">Shown before RSVP.</p>
-              </div>
-              <div>
-                <Label htmlFor="venue-address" className="text-xs">Full Address / Maps Link</Label>
+                <Label htmlFor="venue-address" className="text-xs">Street Address <span className="text-destructive">*</span></Label>
                 <Input
                   id="venue-address"
                   value={formAddress}
                   onChange={(e) => setFormAddress(e.target.value)}
-                  placeholder="Full address or Google Maps link"
+                  placeholder="e.g. 123 Main St, Dubai"
                   className="mt-1 h-9"
+                />
+              </div>
+              <div>
+                <Label htmlFor="venue-hint" className="text-xs">Location Hint / Directions <span className="text-muted-foreground font-normal">(optional)</span></Label>
+                <Textarea
+                  id="venue-hint"
+                  value={formAreaHint}
+                  onChange={(e) => setFormAreaHint(e.target.value)}
+                  placeholder="e.g. Park in the rear lot"
+                  className="mt-1 min-h-[60px]"
                 />
               </div>
 
@@ -319,7 +319,7 @@ export default function VenueSelector({ value, onChange }: VenueSelectorProps) {
                   type="button"
                   size="sm"
                   onClick={() => saveMutation.mutate()}
-                  disabled={!formName.trim() || saveMutation.isPending}
+                  disabled={!formName.trim() || !formAddress.trim() || saveMutation.isPending}
                   className="flex-1"
                 >
                   {saveMutation.isPending && <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />}

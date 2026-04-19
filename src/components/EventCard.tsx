@@ -252,31 +252,57 @@ function EventCardInner({ event, onShowTicket, isPast = false }: EventCardProps)
 
         {/* Speaker Badge */}
         <SpeakerBadge eventId={event.id} />
-        {!isCancelled && isAttending && event.location && (
-          <div className="mt-2 space-y-1">
-            <p className="text-sm text-foreground inline-flex items-center gap-1.5">
-              <Building2 className="h-3.5 w-3.5 text-primary shrink-0" />
-              {event.location}
-            </p>
-            {event.address && (
-              <p className="text-sm text-muted-foreground inline-flex items-center gap-1.5 pl-5">
-                <MapPin className="h-3.5 w-3.5 shrink-0" />
-                {event.address.startsWith("http") ? (
-                  <a
-                    href={event.address}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-primary underline underline-offset-2 inline-flex items-center gap-1"
-                  >
-                    View on Maps <ExternalLink className="h-3 w-3" />
-                  </a>
-                ) : (
-                  event.address
-                )}
+        {!isCancelled && isAttending && event.location && (() => {
+          const addr = event.address ?? "";
+          const isUrl = addr.startsWith("http");
+          const mapsHref = isUrl
+            ? addr
+            : addr
+              ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(addr)}`
+              : null;
+          const hint = (event as any).location_hint as string | null;
+
+          const Inner = (
+            <>
+              <p className="text-sm font-semibold text-foreground inline-flex items-center gap-1.5">
+                <Building2 className="h-3.5 w-3.5 text-primary shrink-0" />
+                {event.location}
               </p>
-            )}
-          </div>
-        )}
+              {addr && (
+                <p className="text-sm text-muted-foreground inline-flex items-center gap-1.5 pl-5">
+                  <MapPin className="h-3.5 w-3.5 shrink-0" />
+                  <span className="inline-flex items-center gap-1">
+                    {isUrl ? "View on Maps" : addr}
+                    {mapsHref && <ExternalLink className="h-3 w-3" />}
+                  </span>
+                </p>
+              )}
+            </>
+          );
+
+          return (
+            <div className="mt-2 space-y-1">
+              {mapsHref ? (
+                <a
+                  href={mapsHref}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block space-y-1 -mx-1 px-1 py-0.5 rounded hover:bg-accent/40 transition-colors"
+                  aria-label={`Open ${event.location} in maps`}
+                >
+                  {Inner}
+                </a>
+              ) : (
+                <div className="space-y-1">{Inner}</div>
+              )}
+              {hint && (
+                <p className="text-sm text-muted-foreground italic pl-5">
+                  {hint}
+                </p>
+              )}
+            </div>
+          );
+        })()}
         {/* Cancelled: show location with strikethrough */}
         {isCancelled && isAttending && event.location && (
           <p className="mt-2 text-sm text-muted-foreground line-through inline-flex items-center gap-1.5">
