@@ -458,6 +458,22 @@ export default function ProfilePage() {
           <LogOut className="mr-2 h-4 w-4" />
           Sign Out
         </Button>
+
+        <p className="pt-2 text-center text-[11px] text-muted-foreground">
+          Build {(() => {
+            try {
+              return new Date(__APP_BUILD_TIME__).toLocaleString(undefined, {
+                year: "2-digit",
+                month: "short",
+                day: "numeric",
+                hour: "2-digit",
+                minute: "2-digit",
+              });
+            } catch {
+              return __APP_BUILD_TIME__;
+            }
+          })()}
+        </p>
       </main>
     </div>
   );
