@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { LogOut, User, CalendarIcon, Loader2, ScrollText, Camera, Download, Share } from "lucide-react";
+import { LogOut, User, CalendarIcon, Loader2, ScrollText, Camera, Download, Share, RefreshCw } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -19,6 +19,7 @@ import FamilyInviteSection from "@/components/profile/FamilyInviteSection";
 import LinkedAccounts from "@/components/profile/LinkedAccounts";
 import NotificationPreferences from "@/components/profile/NotificationPreferences";
 import UserAvatar from "@/components/UserAvatar";
+import { forceRefreshApp } from "@/components/PWAUpdatePrompt";
 
 const COUNTRY_CODES = [
   { code: "+971", label: "🇦🇪 +971", country: "UAE" },
@@ -428,6 +429,18 @@ export default function ProfilePage() {
         >
           <ScrollText className="h-4 w-4" />
           Community Guidelines
+        </Button>
+
+        <Button
+          variant="outline"
+          className="w-full gap-2"
+          onClick={() => {
+            toast.info("Refreshing the app…");
+            forceRefreshApp();
+          }}
+        >
+          <RefreshCw className="h-4 w-4" />
+          Force Refresh App
         </Button>
 
         {profile?.role === "admin" && (
