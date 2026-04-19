@@ -138,25 +138,26 @@ export default function VenueSelector({ value, onChange }: VenueSelectorProps) {
         Venue
       </Label>
 
-      <Popover
-        open={open}
-        onOpenChange={(o) => {
-          setOpen(o);
-          if (!o) resetForm();
-        }}
-      >
-        <PopoverTrigger asChild>
-          <Button
-            type="button"
-            variant="outline"
-            role="combobox"
-            aria-expanded={open}
-            className="w-full justify-between font-normal h-10"
-          >
-            {selected ? selected.name : "Select venue…"}
-            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-          </Button>
-        </PopoverTrigger>
+      <div className="flex gap-1.5">
+        <Popover
+          open={open}
+          onOpenChange={(o) => {
+            setOpen(o);
+            if (!o) resetForm();
+          }}
+        >
+          <PopoverTrigger asChild>
+            <Button
+              type="button"
+              variant="outline"
+              role="combobox"
+              aria-expanded={open}
+              className="flex-1 justify-between font-normal h-10 min-w-0"
+            >
+              <span className="truncate">{selected ? selected.name : "Select venue…"}</span>
+              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+            </Button>
+          </PopoverTrigger>
         <PopoverContent
           className="w-[var(--radix-popover-trigger-width)] p-0 z-[90]"
           align="start"
@@ -327,8 +328,30 @@ export default function VenueSelector({ value, onChange }: VenueSelectorProps) {
               </div>
             </div>
           )}
-        </PopoverContent>
-      </Popover>
+          </PopoverContent>
+        </Popover>
+
+        {selected && (
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            className="h-10 w-10 shrink-0"
+            onClick={() => {
+              setEditingVenue(selected);
+              setFormName(selected.name);
+              setFormAreaHint(selected.area_hint ?? "");
+              setFormAddress(selected.address ?? "");
+              setView("form");
+              setOpen(true);
+            }}
+            aria-label={`Edit ${selected.name}`}
+            title="Edit selected venue"
+          >
+            <Pencil className="h-4 w-4" />
+          </Button>
+        )}
+      </div>
 
       {/* Delete confirmation */}
       <AlertDialog open={!!deleteVenue} onOpenChange={(v) => { if (!v) setDeleteVenue(null); }}>
