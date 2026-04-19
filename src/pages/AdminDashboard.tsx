@@ -19,6 +19,7 @@ const AdminAnalytics = lazy(() => import("@/components/admin/AdminAnalytics"));
 const EventTypeManagement = lazy(() => import("@/components/admin/EventTypeManagement"));
 const SpeakerManagement = lazy(() => import("@/components/admin/SpeakerManagement"));
 const ResourceManagement = lazy(() => import("@/components/admin/ResourceManagement"));
+const AnnouncementManagement = lazy(() => import("@/components/admin/AnnouncementManagement"));
 
 const ADMIN_TABS = ["users", "families", "events", "scanner", "speakers", "resources", "analytics", "settings", "activity"] as const;
 type AdminTab = typeof ADMIN_TABS[number];
@@ -224,7 +225,12 @@ export default function AdminDashboard() {
             <KeepAliveTab id="speakers" active={activeTab === "speakers"}><SpeakerManagement /></KeepAliveTab>
             <KeepAliveTab id="resources" active={activeTab === "resources"}><ResourceManagement /></KeepAliveTab>
             <KeepAliveTab id="analytics" active={activeTab === "analytics"}><AdminAnalytics /></KeepAliveTab>
-            <KeepAliveTab id="settings" active={activeTab === "settings"}><EventTypeManagement /></KeepAliveTab>
+            <KeepAliveTab id="settings" active={activeTab === "settings"}>
+              <div className="space-y-6">
+                <AnnouncementManagement />
+                <EventTypeManagement />
+              </div>
+            </KeepAliveTab>
             <KeepAliveTab id="activity" active={activeTab === "activity"}><AdminActivityLog /></KeepAliveTab>
           </div>
         </Tabs>
