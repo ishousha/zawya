@@ -16,11 +16,12 @@ interface Venue {
   name: string;
   address: string | null;
   area_hint: string | null;
+  maps_url: string | null;
 }
 
 interface VenueSelectorProps {
   value: string | null;
-  onChange: (venueId: string | null, name: string, address: string, areaHint: string) => void;
+  onChange: (venueId: string | null, name: string, address: string, areaHint: string, mapsUrl: string) => void;
 }
 
 type ViewMode = "list" | "form";
@@ -34,6 +35,7 @@ export default function VenueSelector({ value, onChange }: VenueSelectorProps) {
   const [formName, setFormName] = useState("");
   const [formAreaHint, setFormAreaHint] = useState("");
   const [formAddress, setFormAddress] = useState("");
+  const [formMapsUrl, setFormMapsUrl] = useState("");
   const [deleteVenue, setDeleteVenue] = useState<Venue | null>(null);
 
   const { data: venues = [], isLoading } = useQuery({
@@ -50,10 +52,16 @@ export default function VenueSelector({ value, onChange }: VenueSelectorProps) {
 
   const saveMutation = useMutation({
     mutationFn: async () => {
+      const payload = {
+        name: formName,
+        address: formAddress || null,
+        area_hint: formAreaHint || null,
+        maps_url: formMapsUrl || null,
+      };
       if (editingVenue) {
         const { data, error } = await supabase
           .from("venues")
-          .update({ name: formName, address: formAddress || null, area_hint: formAreaHint || null } as any)
+          .update(payload as any)
           .eq("id", editingVenue.id)
           .select()
           .single();
@@ -62,7 +70,7 @@ export default function VenueSelector({ value, onChange }: VenueSelectorProps) {
       } else {
         const { data, error } = await supabase
           .from("venues")
-          .insert({ name: formName, address: formAddress || null, area_hint: formAreaHint || null } as any)
+          .insert(payload as any)
           .select()
           .single();
         if (error) throw error;
@@ -71,7 +79,7 @@ export default function VenueSelector({ value, onChange }: VenueSelectorProps) {
     },
     onSuccess: (venue) => {
       queryClient.invalidateQueries({ queryKey: ["venues"] });
-      onChange(venue.id, venue.name, venue.address ?? "", (venue as any).area_hint ?? "");
+      onChange(venue.id, venue.name, venue.address ?? "", (venue as any).area_hint ?? "", (venue as any).maps_url ?? "");
       toast.success(editingVenue ? "Venue updated" : `Venue "${venue.name}" created`);
       resetForm();
       setOpen(false);
@@ -87,7 +95,7 @@ export default function VenueSelector({ value, onChange }: VenueSelectorProps) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["venues"] });
       if (deleteVenue && value === deleteVenue.id) {
-        onChange(null, "", "", "");
+        onChange(null, "", "", "", "");
       }
       setDeleteVenue(null);
       toast.success("Venue deleted");
@@ -101,6 +109,7 @@ export default function VenueSelector({ value, onChange }: VenueSelectorProps) {
     setFormName("");
     setFormAreaHint("");
     setFormAddress("");
+    setFormMapsUrl("");
   };
 
   const openAdd = () => {
@@ -108,6 +117,7 @@ export default function VenueSelector({ value, onChange }: VenueSelectorProps) {
     setFormName("");
     setFormAreaHint("");
     setFormAddress("");
+    setFormMapsUrl("");
     setView("form");
   };
 
@@ -118,6 +128,7 @@ export default function VenueSelector({ value, onChange }: VenueSelectorProps) {
     setFormName(venue.name);
     setFormAreaHint(venue.area_hint ?? "");
     setFormAddress(venue.address ?? "");
+    setFormMapsUrl((venue as any).maps_url ?? "");
     setView("form");
   };
 
@@ -189,7 +200,7 @@ export default function VenueSelector({ value, onChange }: VenueSelectorProps) {
                         value === venue.id && "bg-accent"
                       )}
                       onClick={() => {
-                        onChange(venue.id, venue.name, venue.address ?? "", (venue as any).area_hint ?? "");
+                        onChange(venue.id, venue.name, venue.address ?? "", (venue as any).area_hint ?? "", (venue as any).maps_url ?? "");
                         setOpen(false);
                         setSearch("");
                       }}
@@ -236,7 +247,7 @@ export default function VenueSelector({ value, onChange }: VenueSelectorProps) {
                   type="button"
                   className="w-full border-t px-3 py-2 text-sm text-muted-foreground hover:bg-accent transition-colors text-left"
                   onClick={() => {
-                    onChange(null, "", "", "");
+                    onChange(null, "", "", "", "");
                     setOpen(false);
                   }}
                 >
@@ -295,6 +306,18 @@ export default function VenueSelector({ value, onChange }: VenueSelectorProps) {
                 />
               </div>
               <div>
+                <Label htmlFor="venue-maps" className="text-xs">Location Link <span className="text-muted-foreground font-normal">(optional)</span></Label>
+                <Input
+                  id="venue-maps"
+                  value={formMapsUrl}
+                  onChange={(e) => setFormMapsUrl(e.target.value)}
+                  placeholder="https://maps.app.goo.gl/…"
+                  className="mt-1 h-9"
+                  type="url"
+                />
+                <p className="text-[11px] text-muted-foreground mt-1">Paste an Apple/Google Maps link. Used when members tap the address.</p>
+              </div>
+              <div>
                 <Label htmlFor="venue-hint" className="text-xs">Location Hint / Directions <span className="text-muted-foreground font-normal">(optional)</span></Label>
                 <Textarea
                   id="venue-hint"
@@ -342,6 +365,7 @@ export default function VenueSelector({ value, onChange }: VenueSelectorProps) {
               setFormName(selected.name);
               setFormAreaHint(selected.area_hint ?? "");
               setFormAddress(selected.address ?? "");
+              setFormMapsUrl((selected as any).maps_url ?? "");
               setView("form");
               setOpen(true);
             }}
