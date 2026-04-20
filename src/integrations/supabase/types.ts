@@ -420,6 +420,7 @@ export type Database = {
           last_published_at: string | null
           location: string | null
           location_hint: string | null
+          maps_url: string | null
           mureeds_only: boolean
           online_link: string | null
           payment_instructions: string | null
@@ -458,6 +459,7 @@ export type Database = {
           last_published_at?: string | null
           location?: string | null
           location_hint?: string | null
+          maps_url?: string | null
           mureeds_only?: boolean
           online_link?: string | null
           payment_instructions?: string | null
@@ -496,6 +498,7 @@ export type Database = {
           last_published_at?: string | null
           location?: string | null
           location_hint?: string | null
+          maps_url?: string | null
           mureeds_only?: boolean
           online_link?: string | null
           payment_instructions?: string | null
@@ -1024,6 +1027,7 @@ export type Database = {
           area_hint: string | null
           created_at: string | null
           id: string
+          maps_url: string | null
           name: string
         }
         Insert: {
@@ -1031,6 +1035,7 @@ export type Database = {
           area_hint?: string | null
           created_at?: string | null
           id?: string
+          maps_url?: string | null
           name: string
         }
         Update: {
@@ -1038,6 +1043,7 @@ export type Database = {
           area_hint?: string | null
           created_at?: string | null
           id?: string
+          maps_url?: string | null
           name?: string
         }
         Relationships: []
