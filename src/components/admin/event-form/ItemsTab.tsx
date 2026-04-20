@@ -176,17 +176,6 @@ export default function ItemsTab({ items, onChange }: ItemsTabProps) {
                   aria-label="Toggle limit"
                 />
               </div>
-
-              {/* Delete */}
-              <Button
-                type="button"
-                size="icon"
-                variant="ghost"
-                className="h-8 w-8 text-muted-foreground hover:text-destructive shrink-0"
-                onClick={() => removeItem(index)}
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-              </Button>
             </div>
           ))}
         </div>
