@@ -37,7 +37,7 @@ export default function EventDetail() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("events")
-        .select("id, title, date_time, end_date_time, location, address, status, cover_photo_url, event_type_id, capacity, has_potluck, virtual_link, zoom_link, online_link, zoom_password, is_hybrid, host_id, description, venue_id, ticket_fee, mureeds_only, age_group, location_hint, etiquette_notes, payment_instructions, waitlist_capacity, published, scheduled_publish_at, last_published_at, created_at, updated_at")
+        .select("id, title, date_time, end_date_time, location, address, maps_url, status, cover_photo_url, event_type_id, capacity, has_potluck, virtual_link, zoom_link, online_link, zoom_password, is_hybrid, host_id, description, venue_id, ticket_fee, mureeds_only, age_group, location_hint, etiquette_notes, payment_instructions, waitlist_capacity, published, scheduled_publish_at, last_published_at, created_at, updated_at")
         .eq("id", eventId!)
         .single();
       if (error) throw error;

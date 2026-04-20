@@ -16,6 +16,7 @@ interface Venue {
   name: string;
   address: string | null;
   area_hint: string | null;
+  maps_url: string | null;
 }
 
 export default function VenueManagement() {
@@ -25,6 +26,7 @@ export default function VenueManagement() {
   const [formName, setFormName] = useState("");
   const [formAreaHint, setFormAreaHint] = useState("");
   const [formAddress, setFormAddress] = useState("");
+  const [formMapsUrl, setFormMapsUrl] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<Venue | null>(null);
 
   const { data: venues = [], isLoading } = useQuery({
@@ -45,6 +47,7 @@ export default function VenueManagement() {
         name: formName.trim(),
         area_hint: formAreaHint.trim() || null,
         address: formAddress.trim() || null,
+        maps_url: formMapsUrl.trim() || null,
       };
       if (editingVenue) {
         const { error } = await supabase.from("venues").update(payload as any).eq("id", editingVenue.id);
@@ -91,6 +94,7 @@ export default function VenueManagement() {
     setFormName("");
     setFormAreaHint("");
     setFormAddress("");
+    setFormMapsUrl("");
     setOpen(true);
   }
 
@@ -99,6 +103,7 @@ export default function VenueManagement() {
     setFormName(v.name);
     setFormAreaHint(v.area_hint ?? "");
     setFormAddress(v.address ?? "");
+    setFormMapsUrl((v as any).maps_url ?? "");
     setOpen(true);
   }
 
@@ -108,6 +113,7 @@ export default function VenueManagement() {
     setFormName("");
     setFormAreaHint("");
     setFormAddress("");
+    setFormMapsUrl("");
   }
 
   return (
@@ -183,6 +189,11 @@ export default function VenueManagement() {
               <Label htmlFor="v-addr">Street Address <span className="text-destructive">*</span></Label>
               <Input id="v-addr" value={formAddress} onChange={(e) => setFormAddress(e.target.value)} placeholder="e.g. 123 Main St, Dubai" className="mt-1.5" />
               <p className="text-xs text-muted-foreground mt-1">Used to open Apple/Google Maps when members tap the address.</p>
+            </div>
+            <div>
+              <Label htmlFor="v-maps">Location Link <span className="text-muted-foreground font-normal">(optional)</span></Label>
+              <Input id="v-maps" type="url" value={formMapsUrl} onChange={(e) => setFormMapsUrl(e.target.value)} placeholder="https://maps.app.goo.gl/…" className="mt-1.5" />
+              <p className="text-xs text-muted-foreground mt-1">Optional Apple/Google Maps share link. Overrides the address-based map search when present.</p>
             </div>
             <div>
               <Label htmlFor="v-hint">Location Hint / Directions <span className="text-muted-foreground font-normal">(optional)</span></Label>

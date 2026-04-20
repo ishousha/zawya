@@ -254,12 +254,15 @@ function EventCardInner({ event, onShowTicket, isPast = false }: EventCardProps)
         <SpeakerBadge eventId={event.id} />
         {!isCancelled && isAttending && event.location && (() => {
           const addr = event.address ?? "";
+          const customMapsUrl = (event as any).maps_url as string | null;
           const isUrl = addr.startsWith("http");
-          const mapsHref = isUrl
-            ? addr
-            : addr
-              ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(addr)}`
-              : null;
+          const mapsHref = customMapsUrl
+            ? customMapsUrl
+            : isUrl
+              ? addr
+              : addr
+                ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(addr)}`
+                : null;
           const hint = (event as any).location_hint as string | null;
 
           const Inner = (
@@ -362,16 +365,21 @@ function EventCardInner({ event, onShowTicket, isPast = false }: EventCardProps)
           );
         })()}
 
-        {/* Not attending: show general location hint */}
-        {!isPast && !isCancelled && !isAttending && requiresLocation && (event.location || (event as any).location_hint) && (
+        {/* Not attending: show ONLY the location hint (no name, no address) */}
+        {!isPast && !isCancelled && !isAttending && requiresLocation && (event as any).location_hint && (
           <div className="mt-2 flex items-start gap-1.5 text-sm text-muted-foreground">
             <Lock className="h-3.5 w-3.5 mt-0.5 shrink-0 text-muted-foreground" />
             <span>
-              {(event as any).location_hint
-                ? <>{(event as any).location_hint} <span className="italic text-xs">(Exact address revealed after RSVP)</span></>
-                : <span className="italic">Location revealed after RSVP</span>
-              }
+              {(event as any).location_hint}{" "}
+              <span className="italic text-xs">(Exact location revealed after RSVP)</span>
             </span>
+          </div>
+        )}
+        {/* Not attending + no hint set: minimal "revealed after RSVP" notice */}
+        {!isPast && !isCancelled && !isAttending && requiresLocation && !(event as any).location_hint && event.location && (
+          <div className="mt-2 flex items-start gap-1.5 text-sm text-muted-foreground">
+            <Lock className="h-3.5 w-3.5 mt-0.5 shrink-0 text-muted-foreground" />
+            <span className="italic">Location revealed after RSVP</span>
           </div>
         )}
 
