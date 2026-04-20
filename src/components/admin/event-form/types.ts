@@ -27,6 +27,7 @@ export interface EventFormState {
   venue_id: string | null;
   location: string;
   address: string;
+  maps_url: string;
   virtual_link: string;
   cover_photo_url: string | null;
   capacity: string;
@@ -72,6 +73,7 @@ export const defaultEventForm: EventFormState = {
   venue_id: null,
   location: "",
   address: "",
+  maps_url: "",
   virtual_link: "",
   cover_photo_url: "https://ikzaalswkajtaxejyskw.supabase.co/storage/v1/object/public/event-covers/Event_Cover_27r1gi27r1gi27r1.webp",
   capacity: "",
