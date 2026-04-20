@@ -159,6 +159,22 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
     return () => window.removeEventListener("beforeunload", handler);
   }, [isDirty]);
 
+  // Lock body scroll while the form is open to prevent mobile "wobble" / accidental edge-swipes
+  useEffect(() => {
+    const { body, documentElement: html } = document;
+    const prevBodyOverflow = body.style.overflow;
+    const prevBodyOverscroll = body.style.overscrollBehavior;
+    const prevHtmlOverscroll = html.style.overscrollBehavior;
+    body.style.overflow = "hidden";
+    body.style.overscrollBehavior = "none";
+    html.style.overscrollBehavior = "none";
+    return () => {
+      body.style.overflow = prevBodyOverflow;
+      body.style.overscrollBehavior = prevBodyOverscroll;
+      html.style.overscrollBehavior = prevHtmlOverscroll;
+    };
+  }, []);
+
   useEffect(() => {
     if (!isNewEvent) return;
     saveDraft(form, signUpItems);
