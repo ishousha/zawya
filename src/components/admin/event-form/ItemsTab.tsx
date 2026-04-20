@@ -96,17 +96,27 @@ export default function ItemsTab({ items, onChange }: ItemsTabProps) {
           {items.map((item, index) => (
             <div
               key={`${item.id ?? "new"}-${index}`}
-              className="flex items-center gap-2 rounded-lg border border-border bg-card p-3"
+              className="rounded-lg border border-border bg-card p-3 space-y-2"
             >
-              {/* Item name */}
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-foreground truncate">
+              {/* Item name row */}
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-sm font-medium text-foreground break-words flex-1 min-w-0">
                   {item.item_name}
                 </p>
+                {/* Delete */}
+                <Button
+                  type="button"
+                  size="icon"
+                  variant="ghost"
+                  className="h-8 w-8 text-muted-foreground hover:text-destructive shrink-0 -mr-1"
+                  onClick={() => removeItem(index)}
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </Button>
               </div>
 
-              {/* Limit controls */}
-              <div className="flex items-center gap-1.5 shrink-0">
+              {/* Limit controls row */}
+              <div className="flex items-center justify-between gap-1.5">
                 {item.quantity_limit === 0 ? (
                   <span className="text-xs text-muted-foreground whitespace-nowrap px-1">No limit</span>
                 ) : (
@@ -166,17 +176,6 @@ export default function ItemsTab({ items, onChange }: ItemsTabProps) {
                   aria-label="Toggle limit"
                 />
               </div>
-
-              {/* Delete */}
-              <Button
-                type="button"
-                size="icon"
-                variant="ghost"
-                className="h-8 w-8 text-muted-foreground hover:text-destructive shrink-0"
-                onClick={() => removeItem(index)}
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-              </Button>
             </div>
           ))}
         </div>
