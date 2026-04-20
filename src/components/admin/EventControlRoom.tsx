@@ -156,6 +156,7 @@ export default function EventControlRoom() {
       venue_id: event.venue_id ?? null,
       location: event.location ?? "",
       address: event.address ?? "",
+      maps_url: (event as any).maps_url ?? "",
       virtual_link: event.virtual_link ?? event.zoom_link ?? "",
       cover_photo_url: event.cover_photo_url ?? null,
       capacity: event.capacity?.toString() ?? "",
