@@ -153,7 +153,7 @@ export default function EventRsvpDetail({ eventId, eventTitle, eventDate, checki
 
     if (legacyPotluckItems.length > 0) {
       rows.push({
-        id: "legacy-potluck",
+        id: -1,
         itemName: "Other / Surprise Dish",
         quantityLimit: 0,
         totalClaimed: legacyPotluckItems.length,
