@@ -34,6 +34,8 @@ export default function EventRsvpDetail({ eventId, eventTitle, eventDate, checki
     html: string;
     recipients: { name: string | null; email: string }[];
     summary: { totalHeadcount: number; totalAdults: number; totalElders: number; totalChildren: number; guestCount: number; potluckCount: number };
+    guestList: { name: string; family?: string; adults: number; children: number; elders: number }[];
+    potluckItems: { dish: string; family: string; category?: string }[];
   } | null>(null);
 
   // Fetch RSVPs + profiles
@@ -124,13 +126,18 @@ export default function EventRsvpDetail({ eventId, eventTitle, eventDate, checki
   const handleSendGuestList = async () => {
     setSendingGuestList(true);
     try {
-      const { error } = await supabase.functions.invoke("send-guest-list-reminder", {
+      const { data, error } = await supabase.functions.invoke("send-guest-list-reminder", {
         body: { event_id: eventId },
       });
       if (error) throw error;
-      toast.success("Guest list sent to host, admins & moderators");
-    } catch {
-      toast.error("Failed to send guest list email");
+      const result = data as { sent?: number; error?: string; errors?: { message: string }[] } | null;
+      if (result?.error || !result?.sent) {
+        throw new Error(result?.error || result?.errors?.[0]?.message || "No guest list emails were queued");
+      }
+      toast.success(`Guest list queued for ${result.sent} recipient${result.sent === 1 ? "" : "s"}`);
+    } catch (err: any) {
+      console.error("send guest list failed", err);
+      toast.error("Failed to send guest list email", { description: err?.message || "Unknown error" });
     } finally {
       setSendingGuestList(false);
     }
@@ -157,6 +164,8 @@ export default function EventRsvpDetail({ eventId, eventTitle, eventDate, checki
         html: result.html,
         recipients: result.recipients ?? [],
         summary: result.summary,
+        guestList: result.guestList ?? [],
+        potluckItems: result.potluckItems ?? [],
       });
     } catch (err: any) {
       console.error("preview guest list failed", err);
