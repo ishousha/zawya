@@ -458,7 +458,7 @@ export default function EventRsvpDetail({ eventId, eventTitle, eventDate, checki
       <WalkInRsvpModal eventId={eventId} open={showWalkIn} onOpenChange={setShowWalkIn} />
 
       <Dialog open={!!previewData} onOpenChange={(o) => !o && setPreviewData(null)}>
-        <DialogContent className="max-w-3xl w-[calc(100vw-2rem)] h-[90vh] sm:h-auto sm:max-h-[90vh] flex flex-col p-4 sm:p-6 gap-3 overflow-hidden">
+        <DialogContent className="max-w-3xl w-[calc(100vw-1.5rem)] max-h-[calc(100dvh-1.5rem)] flex flex-col p-4 sm:p-6 gap-3 overflow-hidden">
           <DialogHeader className="shrink-0">
             <DialogTitle className="text-base">Guest List Email Preview</DialogTitle>
             <DialogDescription className="text-xs">
@@ -467,11 +467,11 @@ export default function EventRsvpDetail({ eventId, eventTitle, eventDate, checki
           </DialogHeader>
 
           {previewData && (
-            <div className="flex-1 min-h-0 flex flex-col gap-3 overflow-y-auto -mx-1 px-1" style={{ WebkitOverflowScrolling: "touch" }}>
-              <div className="rounded-md border border-border p-3 bg-muted/30 text-xs space-y-2 shrink-0">
+            <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain -mx-1 px-1 pb-1 space-y-3" style={{ WebkitOverflowScrolling: "touch" }}>
+              <div className="rounded-md border border-border p-3 bg-muted/30 text-xs space-y-2">
                 <div>
                   <p className="font-semibold mb-1">Recipients ({previewData.recipients.length})</p>
-                  <div className="flex flex-wrap gap-1">
+                  <div className="max-h-24 overflow-y-auto flex flex-wrap gap-1 pr-1" style={{ WebkitOverflowScrolling: "touch" }}>
                     {previewData.recipients.map((r, i) => (
                       <Badge key={i} variant="secondary" className="text-[10px]">
                         {r.name ? `${r.name} <${r.email}>` : r.email}
@@ -489,11 +489,39 @@ export default function EventRsvpDetail({ eventId, eventTitle, eventDate, checki
                 </div>
               </div>
 
-              <iframe
-                title="Guest list email preview"
-                srcDoc={previewData.html}
-                className="w-full rounded-md border border-border bg-white min-h-[600px] shrink-0"
-              />
+              <div className="rounded-md border border-border bg-background p-3 space-y-3 text-sm">
+                <div>
+                  <p className="font-semibold font-serif text-base mb-2">Guest List ({previewData.guestList.length} families)</p>
+                  <div className="space-y-2">
+                    {previewData.guestList.map((g, i) => (
+                      <div key={i} className="border-b border-border/60 pb-2 last:border-0 last:pb-0">
+                        <p className="font-medium leading-snug">
+                          {g.name}{g.family ? <span className="text-muted-foreground font-normal"> — {g.family}</span> : null}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {g.adults} adult{g.adults === 1 ? "" : "s"}
+                          {g.elders > 0 ? `, ${g.elders} elder${g.elders === 1 ? "" : "s"}` : ""}
+                          {g.children > 0 ? `, ${g.children} kid${g.children === 1 ? "" : "s"}` : ""}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {previewData.potluckItems.length > 0 && (
+                  <div className="pt-3 border-t border-border">
+                    <p className="font-semibold font-serif text-base mb-2">Potluck Menu</p>
+                    <div className="space-y-2">
+                      {previewData.potluckItems.map((item, i) => (
+                        <div key={i} className="text-sm leading-snug">
+                          <span className="font-medium">{item.category ? `${item.category}: ` : ""}{item.dish}</span>
+                          <span className="text-muted-foreground"> — {item.family}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           )}
 
