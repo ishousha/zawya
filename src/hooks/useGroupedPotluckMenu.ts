@@ -8,96 +8,51 @@ export interface GroupedCategory {
 }
 
 export function useGroupedPotluckMenu(eventId: string, prefetchedDishes?: string[]) {
-  const { data: legacyRsvps } = useQuery({
-    queryKey: ["potluck-menu", eventId],
-    enabled: !prefetchedDishes,
+  const { data: rows } = useQuery({
+    queryKey: ["potluck-menu-rpc", eventId],
+    enabled: !prefetchedDishes && !!eventId,
+    staleTime: 30 * 1000,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("rsvps")
-        .select("specific_food_item, potluck_category")
-        .eq("event_id", eventId)
-        .neq("status", "cancelled");
+      const { data, error } = await (supabase as any).rpc("get_event_potluck_menu", {
+        _event_id: eventId,
+      });
       if (error) throw error;
-      return data ?? [];
-    },
-  });
-
-  const { data: signUpSelections } = useQuery({
-    queryKey: ["potluck-signup-items", eventId],
-    staleTime: 2 * 60 * 1000,
-    queryFn: async () => {
-      const { data: rsvps, error: rErr } = await supabase
-        .from("rsvps")
-        .select("id")
-        .eq("event_id", eventId)
-        .neq("status", "cancelled");
-      if (rErr) throw rErr;
-      if (!rsvps || rsvps.length === 0) return [];
-
-      const rsvpIds = rsvps.map((r) => r.id);
-      const { data: selections, error: sErr } = await supabase
-        .from("rsvp_sign_up_selections")
-        .select("quantity, sign_up_item_id, description")
-        .in("rsvp_id", rsvpIds);
-      if (sErr) throw sErr;
-      if (!selections || selections.length === 0) return [];
-
-      const itemIds = [...new Set(selections.map((s) => s.sign_up_item_id))];
-      const { data: items, error: iErr } = await supabase
-        .from("event_sign_up_items")
-        .select("id, item_name")
-        .in("id", itemIds);
-      if (iErr) throw iErr;
-
-      const nameMap = new Map(items?.map((i) => [i.id, i.item_name]) ?? []);
-      return selections.map((s) => ({
-        category: nameMap.get(s.sign_up_item_id) ?? "Other",
-        dish: s.description?.trim() || null,
-        quantity: s.quantity ?? 1,
-      }));
+      return (data ?? []) as Array<{
+        category: string;
+        dish: string;
+        quantity: number;
+        order_index: number;
+      }>;
     },
   });
 
   const grouped = useMemo<GroupedCategory[]>(() => {
-    const categoryMap = new Map<string, string[]>();
-
-    if (!prefetchedDishes && legacyRsvps) {
-      for (const r of legacyRsvps) {
-        const cat = r.potluck_category
-          ? r.potluck_category.charAt(0).toUpperCase() + r.potluck_category.slice(1)
-          : null;
-        const dish = r.specific_food_item?.trim();
-        if (!cat && !dish) continue;
-        const key = cat ?? "Other";
-        if (!categoryMap.has(key)) categoryMap.set(key, []);
-        if (dish) categoryMap.get(key)!.push(dish);
-      }
-    }
+    const categoryMap = new Map<string, { items: string[]; order: number }>();
 
     if (prefetchedDishes) {
+      const key = "Items";
+      categoryMap.set(key, { items: [], order: 0 });
       for (const d of prefetchedDishes) {
         const trimmed = d.trim();
         if (!trimmed) continue;
-        const key = "Items";
-        if (!categoryMap.has(key)) categoryMap.set(key, []);
-        categoryMap.get(key)!.push(trimmed);
+        categoryMap.get(key)!.items.push(trimmed);
       }
-    }
-
-    if (signUpSelections) {
-      for (const s of signUpSelections) {
-        const key = s.category;
-        if (!categoryMap.has(key)) categoryMap.set(key, []);
-        if (s.dish) {
-          categoryMap.get(key)!.push(s.dish);
+    } else if (rows) {
+      for (const r of rows) {
+        const cat = r.category || "Other";
+        if (!categoryMap.has(cat)) categoryMap.set(cat, { items: [], order: r.order_index ?? 9000 });
+        const dish = (r.dish || "").trim();
+        if (dish && dish.toLowerCase() !== "undecided") {
+          categoryMap.get(cat)!.items.push(dish);
         }
       }
     }
 
     return Array.from(categoryMap.entries())
-      .map(([category, items]) => ({ category, items }))
-      .sort((a, b) => a.category.localeCompare(b.category));
-  }, [legacyRsvps, signUpSelections, prefetchedDishes]);
+      .map(([category, v]) => ({ category, items: v.items, _order: v.order }))
+      .sort((a, b) => a._order - b._order || a.category.localeCompare(b.category))
+      .map(({ category, items }) => ({ category, items }));
+  }, [rows, prefetchedDishes]);
 
   return grouped;
 }

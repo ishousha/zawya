@@ -438,6 +438,28 @@ export default function EventRsvpDetail({ eventId, eventTitle, eventDate, checki
                   ) : (
                     <p className="text-sm text-muted-foreground text-center py-4">No potluck sign-ups yet.</p>
                   )}
+
+                  {potluckRows.length > 0 && legacyPotluckItems.length > 0 && (
+                    <div className="overflow-x-auto -mx-4 px-4">
+                      <h4 className="text-xs font-semibold text-muted-foreground mb-2 mt-4">Free-text contributions</h4>
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="text-xs">Dish</TableHead>
+                            <TableHead className="text-xs">Brought By</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {legacyPotluckItems.map((item, i) => (
+                            <TableRow key={i}>
+                              <TableCell className="py-2 text-sm">{item.dish}</TableCell>
+                              <TableCell className="py-2 text-sm text-muted-foreground">{item.name}</TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  )}
                 </TabsContent>
               </Tabs>
             </div>
