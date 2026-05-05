@@ -4,6 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { generateQRHash } from "@/lib/qr-hash";
 import { notifyRSVPCreated, notifyRSVPUpdated, notifyRSVPCancelled } from "@/lib/webhooks";
 import { removeCachedTicket } from "@/lib/offline-ticket-cache";
+import { invalidateEventPotluckQueries } from "@/lib/potluck-query-cache";
 import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -180,11 +181,11 @@ export function useRSVPConcurrency(eventId: string) {
 
   const invalidateAll = () => {
     queryClient.invalidateQueries({ queryKey: ["rsvps", eventId] });
+    queryClient.invalidateQueries({ queryKey: ["admin-rsvps", eventId] });
     queryClient.invalidateQueries({ queryKey: ["my-rsvp", eventId, user?.id] });
-    queryClient.invalidateQueries({ queryKey: ["event-selections", eventId] });
+    queryClient.invalidateQueries({ queryKey: ["admin-signup-items", eventId] });
     queryClient.invalidateQueries({ queryKey: ["my-selections"] });
-    queryClient.invalidateQueries({ queryKey: ["potluck-menu", eventId] });
-    queryClient.invalidateQueries({ queryKey: ["potluck-signup-items", eventId] });
+    invalidateEventPotluckQueries(queryClient, eventId);
     queryClient.invalidateQueries({ queryKey: ["events"] });
   };
 
