@@ -9,6 +9,8 @@ import RSVPModal from "@/components/RSVPModal";
 import SelfCheckinModal from "@/components/SelfCheckinModal";
 import AddToCalendarButton from "@/components/AddToCalendarButton";
 import PotluckMenu from "@/components/PotluckMenu";
+import { useNeedsReclaim } from "@/hooks/useReclaimPotluck";
+import { AlertTriangle } from "lucide-react";
 import SpeakerBadge from "@/components/SpeakerBadge";
 import LazyImage from "@/components/LazyImage";
 import type { Database } from "@/integrations/supabase/types";
@@ -499,6 +501,11 @@ function EventCardInner({ event, onShowTicket, isPast = false }: EventCardProps)
           )}
         </div>
 
+        {/* Potluck reclaim notice — shows when this user's potluck claims were wiped */}
+        {!isPast && !isCancelled && event.has_potluck && isAttending && (
+          <ReclaimNotice eventId={event.id} hasPotluck={event.has_potluck} onReclaim={() => setRsvpOpen(true)} />
+        )}
+
         {/* Potluck Menu — anonymous dish list */}
         {!isPast && !isCancelled && event.has_potluck && (
           <PotluckMenu eventId={event.id} />
@@ -520,6 +527,40 @@ function EventCardInner({ event, onShowTicket, isPast = false }: EventCardProps)
         />
       )}
     </>
+  );
+}
+
+function ReclaimNotice({
+  eventId,
+  hasPotluck,
+  onReclaim,
+}: {
+  eventId: string;
+  hasPotluck: boolean | null | undefined;
+  onReclaim: () => void;
+}) {
+  const { data: needsReclaim } = useNeedsReclaim(eventId, hasPotluck);
+  if (!needsReclaim) return null;
+  return (
+    <div className="mt-3 rounded-lg border border-amber-300 bg-amber-50 p-3 text-amber-900">
+      <div className="flex items-start gap-2">
+        <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5 text-amber-700" />
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-semibold">Re-select your potluck items</p>
+          <p className="mt-0.5 text-xs leading-relaxed">
+            Due to a recent fix, your potluck selections were cleared. Please pick them again so the host knows what you're bringing.
+          </p>
+          <Button
+            size="sm"
+            variant="outline"
+            className="mt-2 h-8 border-amber-400 bg-white text-amber-900 hover:bg-amber-100"
+            onClick={onReclaim}
+          >
+            Reclaim potluck
+          </Button>
+        </div>
+      </div>
+    </div>
   );
 }
 
