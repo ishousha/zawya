@@ -39,7 +39,8 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders })
   }
 
-  // Validate caller: accept any valid JWT (user or service_role)
+  // Validate caller: accept any valid user JWT, or the service-role token when
+  // another backend function is queueing an app email on behalf of the system.
   const authHeader = req.headers.get('Authorization')
   if (!authHeader?.startsWith('Bearer ')) {
     return new Response(JSON.stringify({ error: 'Unauthorized' }), {
@@ -49,21 +50,23 @@ Deno.serve(async (req) => {
   }
 
   const supabaseUrl = Deno.env.get('SUPABASE_URL')!
-  const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!
-  const tempClient = createClient(supabaseUrl, supabaseAnonKey, {
-    global: { headers: { Authorization: authHeader } },
-  })
-  const { data: claimsData, error: claimsError } = await tempClient.auth.getClaims(
-    authHeader.replace('Bearer ', '')
-  )
-  if (claimsError || !claimsData?.claims) {
-    return new Response(JSON.stringify({ error: 'Invalid or expired token' }), {
-      status: 401,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    })
-  }
-
   const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+  const providedToken = authHeader.replace('Bearer ', '')
+  const isServiceRoleCall = Boolean(supabaseServiceKey && providedToken === supabaseServiceKey)
+  const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!
+
+  if (!isServiceRoleCall) {
+    const tempClient = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } },
+    })
+    const { data: claimsData, error: claimsError } = await tempClient.auth.getClaims(providedToken)
+    if (claimsError || !claimsData?.claims) {
+      return new Response(JSON.stringify({ error: 'Invalid or expired token' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+  }
 
   if (!supabaseUrl || !supabaseServiceKey) {
     console.error('Missing required environment variables')
