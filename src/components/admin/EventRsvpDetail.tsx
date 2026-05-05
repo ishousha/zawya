@@ -28,6 +28,13 @@ export default function EventRsvpDetail({ eventId, eventTitle, eventDate, checki
   const [showPoster, setShowPoster] = useState(false);
   const [showWalkIn, setShowWalkIn] = useState(false);
   const [sendingGuestList, setSendingGuestList] = useState(false);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewData, setPreviewData] = useState<{
+    subject: string;
+    html: string;
+    recipients: { name: string | null; email: string }[];
+    summary: { totalHeadcount: number; totalAdults: number; totalElders: number; totalChildren: number; guestCount: number; potluckCount: number };
+  } | null>(null);
 
   // Fetch RSVPs + profiles
   const { data: rsvps, isLoading } = useQuery({
