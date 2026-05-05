@@ -60,6 +60,9 @@ export default function EventRsvpDetail({ eventId, eventTitle, eventDate, checki
       const profileMap = new Map((profilesData ?? []).map((p) => [p.id, p]));
       return rsvpData.map((r) => ({ ...r, profile: profileMap.get(r.user_id) ?? null }));
     },
+    refetchInterval: 5000,
+    refetchOnWindowFocus: true,
+    refetchIntervalInBackground: false,
   });
 
   // Fetch sign-up items + selections for potluck. Keep this independent from
@@ -94,6 +97,9 @@ export default function EventRsvpDetail({ eventId, eventTitle, eventDate, checki
 
       return { items, selections: selections ?? [] };
     },
+    refetchInterval: hasPotluck ? 5000 : false,
+    refetchOnWindowFocus: true,
+    refetchIntervalInBackground: false,
   });
 
   useEffect(() => {
