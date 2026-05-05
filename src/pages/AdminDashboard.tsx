@@ -228,6 +228,7 @@ export default function AdminDashboard() {
             <KeepAliveTab id="analytics" active={activeTab === "analytics"}><AdminAnalytics /></KeepAliveTab>
             <KeepAliveTab id="settings" active={activeTab === "settings"}>
               <div className="space-y-6">
+                <PotluckReclaimReport />
                 <AnnouncementManagement />
                 <EventTypeManagement />
               </div>
