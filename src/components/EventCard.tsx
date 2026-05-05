@@ -501,6 +501,11 @@ function EventCardInner({ event, onShowTicket, isPast = false }: EventCardProps)
           )}
         </div>
 
+        {/* Potluck reclaim notice — shows when this user's potluck claims were wiped */}
+        {!isPast && !isCancelled && event.has_potluck && isAttending && (
+          <ReclaimNotice eventId={event.id} hasPotluck={event.has_potluck} onReclaim={() => setRsvpOpen(true)} />
+        )}
+
         {/* Potluck Menu — anonymous dish list */}
         {!isPast && !isCancelled && event.has_potluck && (
           <PotluckMenu eventId={event.id} />
