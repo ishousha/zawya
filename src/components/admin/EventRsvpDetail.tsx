@@ -97,6 +97,9 @@ export default function EventRsvpDetail({ eventId, eventTitle, eventDate, checki
 
       return { items, selections: selections ?? [] };
     },
+    refetchInterval: hasPotluck ? 5000 : false,
+    refetchOnWindowFocus: true,
+    refetchIntervalInBackground: false,
   });
 
   useEffect(() => {
