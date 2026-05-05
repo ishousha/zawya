@@ -9,6 +9,8 @@ import RSVPModal from "@/components/RSVPModal";
 import SelfCheckinModal from "@/components/SelfCheckinModal";
 import AddToCalendarButton from "@/components/AddToCalendarButton";
 import PotluckMenu from "@/components/PotluckMenu";
+import { useNeedsReclaim } from "@/hooks/useReclaimPotluck";
+import { AlertTriangle } from "lucide-react";
 import SpeakerBadge from "@/components/SpeakerBadge";
 import LazyImage from "@/components/LazyImage";
 import type { Database } from "@/integrations/supabase/types";
