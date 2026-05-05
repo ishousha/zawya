@@ -1,5 +1,5 @@
-import { useState, useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useEffect, useState, useMemo } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -25,6 +25,7 @@ interface Props {
 }
 
 export default function EventRsvpDetail({ eventId, eventTitle, eventDate, checkinPin, hasPotluck, onClose }: Props) {
+  const queryClient = useQueryClient();
   const [showPoster, setShowPoster] = useState(false);
   const [showWalkIn, setShowWalkIn] = useState(false);
   const [sendingGuestList, setSendingGuestList] = useState(false);
@@ -60,7 +61,8 @@ export default function EventRsvpDetail({ eventId, eventTitle, eventDate, checki
     },
   });
 
-  // Fetch sign-up items + selections for potluck
+  // Fetch sign-up items + selections for potluck. Keep this independent from
+  // the RSVP query so it cannot cache an empty selection list before RSVPs load.
   const { data: signUpData } = useQuery({
     queryKey: ["admin-signup-items", eventId],
     enabled: hasPotluck,
@@ -73,7 +75,14 @@ export default function EventRsvpDetail({ eventId, eventTitle, eventDate, checki
       if (iErr) throw iErr;
       if (!items || items.length === 0) return { items: [], selections: [] };
 
-      const rsvpIds = (rsvps ?? []).map((r) => r.id);
+      const { data: activeRsvps, error: rErr } = await supabase
+        .from("rsvps")
+        .select("id, user_id")
+        .eq("event_id", eventId)
+        .neq("status", "cancelled");
+      if (rErr) throw rErr;
+
+      const rsvpIds = (activeRsvps ?? []).map((r) => r.id);
       if (rsvpIds.length === 0) return { items, selections: [] };
 
       const { data: selections, error: sErr } = await supabase
@@ -86,16 +95,46 @@ export default function EventRsvpDetail({ eventId, eventTitle, eventDate, checki
     },
   });
 
+  useEffect(() => {
+    if (!hasPotluck) return;
+
+    const refreshPotluck = () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-rsvps", eventId] });
+      queryClient.invalidateQueries({ queryKey: ["admin-signup-items", eventId] });
+      queryClient.invalidateQueries({ queryKey: ["potluck-menu", eventId] });
+      queryClient.invalidateQueries({ queryKey: ["potluck-signup-items", eventId] });
+    };
+
+    const channel = supabase
+      .channel(`admin-potluck-${eventId}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "rsvps", filter: `event_id=eq.${eventId}` }, refreshPotluck)
+      .on("postgres_changes", { event: "*", schema: "public", table: "rsvp_sign_up_selections" }, refreshPotluck)
+      .on("postgres_changes", { event: "*", schema: "public", table: "event_sign_up_items", filter: `event_id=eq.${eventId}` }, refreshPotluck)
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [eventId, hasPotluck, queryClient]);
+
   const attending = useMemo(() => (rsvps ?? []).filter((r) => r.status === "attending" && !r.is_waitlisted), [rsvps]);
   const waitlisted = useMemo(() => (rsvps ?? []).filter((r) => r.status === "waitlisted" || r.is_waitlisted), [rsvps]);
 
+  // Also gather legacy potluck items (specific_food_item on rsvps)
+  const legacyPotluckItems = useMemo(() => {
+    return (rsvps ?? [])
+      .filter((r) => r.status !== "cancelled" && r.specific_food_item?.trim())
+      .map((r) => ({
+        dish: r.specific_food_item!.trim(),
+        name: (r.profile as any)?.name || "Unknown",
+      }));
+  }, [rsvps]);
+
   // Build potluck table rows
   const potluckRows = useMemo(() => {
-    if (!signUpData) return [];
-    const { items, selections } = signUpData;
+    if (!signUpData && legacyPotluckItems.length === 0) return [];
+    const { items, selections } = signUpData ?? { items: [], selections: [] };
     const rsvpMap = new Map((rsvps ?? []).map((r) => [r.id, r]));
 
-    return items.map((item) => {
+    const rows = items.map((item) => {
       const itemSelections = selections.filter((s) => s.sign_up_item_id === item.id);
       const totalClaimed = itemSelections.reduce((sum, s) => sum + (s.quantity ?? 1), 0);
       const claimants = itemSelections.map((s) => {
@@ -111,17 +150,19 @@ export default function EventRsvpDetail({ eventId, eventTitle, eventDate, checki
         claimants,
       };
     });
-  }, [signUpData, rsvps]);
 
-  // Also gather legacy potluck items (specific_food_item on rsvps)
-  const legacyPotluckItems = useMemo(() => {
-    return (rsvps ?? [])
-      .filter((r) => r.specific_food_item?.trim())
-      .map((r) => ({
-        dish: r.specific_food_item!,
-        name: (r.profile as any)?.name || "Unknown",
-      }));
-  }, [rsvps]);
+    if (legacyPotluckItems.length > 0) {
+      rows.push({
+        id: -1,
+        itemName: "Other / Surprise Dish",
+        quantityLimit: 0,
+        totalClaimed: legacyPotluckItems.length,
+        claimants: legacyPotluckItems.map((item) => ({ name: item.name, quantity: 1, description: item.dish })),
+      });
+    }
+
+    return rows;
+  }, [signUpData, rsvps, legacyPotluckItems]);
 
   const handleSendGuestList = async () => {
     setSendingGuestList(true);
