@@ -1062,6 +1062,15 @@ export type Database = {
         Args: { payload: Json; queue_name: string }
         Returns: number
       }
+      get_event_potluck_menu: {
+        Args: { _event_id: string }
+        Returns: {
+          category: string
+          dish: string
+          order_index: number
+          quantity: number
+        }[]
+      }
       get_my_family_id: { Args: never; Returns: string }
       guest_has_rsvp: {
         Args: { _event_id: string; _user_id: string }

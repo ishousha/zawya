@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/components/ui/table";
-import { Loader2, X, Download, UserPlus, Mail, Printer, Users, UtensilsCrossed, CheckCircle2 } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Loader2, X, Download, UserPlus, Mail, Printer, Users, UtensilsCrossed, CheckCircle2, Eye } from "lucide-react";
 import { downloadCsv, zawyaFilename } from "@/lib/csv-export";
 import { toast } from "sonner";
 import HostDashboard from "@/components/HostDashboard";
@@ -27,6 +28,13 @@ export default function EventRsvpDetail({ eventId, eventTitle, eventDate, checki
   const [showPoster, setShowPoster] = useState(false);
   const [showWalkIn, setShowWalkIn] = useState(false);
   const [sendingGuestList, setSendingGuestList] = useState(false);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewData, setPreviewData] = useState<{
+    subject: string;
+    html: string;
+    recipients: { name: string | null; email: string }[];
+    summary: { totalHeadcount: number; totalAdults: number; totalElders: number; totalChildren: number; guestCount: number; potluckCount: number };
+  } | null>(null);
 
   // Fetch RSVPs + profiles
   const { data: rsvps, isLoading } = useQuery({
@@ -128,6 +136,36 @@ export default function EventRsvpDetail({ eventId, eventTitle, eventDate, checki
     }
   };
 
+  const handlePreviewGuestList = async () => {
+    setPreviewLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("send-guest-list-reminder", {
+        body: { event_id: eventId, preview: true },
+      });
+      if (error) throw error;
+      const result = data as any;
+      if (result?.error) {
+        toast.error("Preview failed", { description: result.error });
+        return;
+      }
+      if (!result?.html) {
+        toast.warning("Nothing to preview", { description: "No guest list could be generated." });
+        return;
+      }
+      setPreviewData({
+        subject: result.subject,
+        html: result.html,
+        recipients: result.recipients ?? [],
+        summary: result.summary,
+      });
+    } catch (err: any) {
+      console.error("preview guest list failed", err);
+      toast.error("Preview failed", { description: err?.message || "Unknown error" });
+    } finally {
+      setPreviewLoading(false);
+    }
+  };
+
   const handleExportCsv = () => {
     if (!rsvps || rsvps.length === 0) return;
 
@@ -211,9 +249,13 @@ export default function EventRsvpDetail({ eventId, eventTitle, eventDate, checki
               <Button size="sm" variant="outline" className="h-8 gap-1.5 text-xs" onClick={handleExportCsv} disabled={!rsvps || rsvps.length === 0}>
                 <Download className="h-3.5 w-3.5" /> Export CSV
               </Button>
+              <Button size="sm" variant="outline" className="h-8 gap-1.5 text-xs" onClick={handlePreviewGuestList} disabled={previewLoading}>
+                {previewLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Eye className="h-3.5 w-3.5" />}
+                Preview
+              </Button>
               <Button size="sm" variant="outline" className="h-8 gap-1.5 text-xs" onClick={handleSendGuestList} disabled={sendingGuestList}>
                 {sendingGuestList ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Mail className="h-3.5 w-3.5" />}
-                Guest List
+                Send Guest List
               </Button>
               {checkinPin && (
                 <Button size="sm" variant="outline" className="h-8 gap-1.5 text-xs" onClick={() => setShowPoster(true)}>
@@ -405,6 +447,61 @@ export default function EventRsvpDetail({ eventId, eventTitle, eventDate, checki
         </CardContent>
       </Card>
       <WalkInRsvpModal eventId={eventId} open={showWalkIn} onOpenChange={setShowWalkIn} />
+
+      <Dialog open={!!previewData} onOpenChange={(o) => !o && setPreviewData(null)}>
+        <DialogContent className="max-w-3xl w-[calc(100vw-2rem)] h-[90vh] sm:h-auto sm:max-h-[90vh] flex flex-col p-4 sm:p-6 gap-3 overflow-hidden">
+          <DialogHeader className="shrink-0">
+            <DialogTitle className="text-base">Guest List Email Preview</DialogTitle>
+            <DialogDescription className="text-xs">
+              Subject: <span className="font-medium text-foreground">{previewData?.subject}</span>
+            </DialogDescription>
+          </DialogHeader>
+
+          {previewData && (
+            <div className="flex-1 min-h-0 flex flex-col gap-3 overflow-y-auto -mx-1 px-1" style={{ WebkitOverflowScrolling: "touch" }}>
+              <div className="rounded-md border border-border p-3 bg-muted/30 text-xs space-y-2 shrink-0">
+                <div>
+                  <p className="font-semibold mb-1">Recipients ({previewData.recipients.length})</p>
+                  <div className="flex flex-wrap gap-1">
+                    {previewData.recipients.map((r, i) => (
+                      <Badge key={i} variant="secondary" className="text-[10px]">
+                        {r.name ? `${r.name} <${r.email}>` : r.email}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-x-3 gap-y-1 text-muted-foreground pt-1 border-t border-border/50">
+                  <span>Total: <strong className="text-foreground">{previewData.summary.totalHeadcount}</strong></span>
+                  <span>Adults: <strong className="text-foreground">{previewData.summary.totalAdults}</strong></span>
+                  <span>Elders: <strong className="text-foreground">{previewData.summary.totalElders}</strong></span>
+                  <span>Children: <strong className="text-foreground">{previewData.summary.totalChildren}</strong></span>
+                  <span>RSVPs: <strong className="text-foreground">{previewData.summary.guestCount}</strong></span>
+                  <span>Potluck: <strong className="text-foreground">{previewData.summary.potluckCount}</strong></span>
+                </div>
+              </div>
+
+              <iframe
+                title="Guest list email preview"
+                srcDoc={previewData.html}
+                className="w-full rounded-md border border-border bg-white min-h-[600px] shrink-0"
+              />
+            </div>
+          )}
+
+          <DialogFooter className="gap-2 sm:gap-2 shrink-0">
+            <Button
+              onClick={async () => {
+                setPreviewData(null);
+                await handleSendGuestList();
+              }}
+              disabled={sendingGuestList || !previewData?.recipients.length}
+            >
+              <Mail className="h-4 w-4 mr-1.5" /> Send Now
+            </Button>
+            <Button variant="outline" onClick={() => setPreviewData(null)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
