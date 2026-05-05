@@ -498,6 +498,47 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
 
   // isNewEvent is declared at top of component
 
+  const checkDestructiveAndSave = useCallback(async (publish: boolean) => {
+    if (form.end_date_time && form.end_date_time <= form.date_time) {
+      toast.error("End time must be after start time");
+      return;
+    }
+    if (event && !initialForm) {
+      try {
+        const { data: existing } = await supabase
+          .from("event_sign_up_items")
+          .select("id, item_name")
+          .eq("event_id", event.id);
+        const keptIds = new Set(
+          signUpItems.map((it) => it.id).filter((id): id is number => typeof id === "number")
+        );
+        const removed = (existing ?? []).filter((r: any) => !keptIds.has(Number(r.id)));
+        if (removed.length > 0) {
+          const removedIds = removed.map((r: any) => Number(r.id));
+          const { data: claims } = await supabase
+            .from("rsvp_sign_up_selections")
+            .select("sign_up_item_id")
+            .in("sign_up_item_id", removedIds);
+          const counts = new Map<number, number>();
+          (claims ?? []).forEach((c: any) => {
+            const k = Number(c.sign_up_item_id);
+            counts.set(k, (counts.get(k) ?? 0) + 1);
+          });
+          const impacted = removed
+            .map((r: any) => ({ name: r.item_name as string, claims: counts.get(Number(r.id)) ?? 0 }))
+            .filter((r) => r.claims > 0);
+          if (impacted.length > 0) {
+            setDestructiveCheck({ publish, items: impacted });
+            return;
+          }
+        }
+      } catch (e) {
+        console.warn("Destructive precheck failed:", e);
+      }
+    }
+    mutation.mutate(publish);
+  }, [event, initialForm, signUpItems, form.date_time, form.end_date_time, mutation]);
+
   return (
     <>
       {/* Full-screen overlay on mobile, card on desktop */}
