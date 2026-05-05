@@ -610,13 +610,7 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
               <Button
                 variant="outline"
                 className="flex-1 h-10 gap-1.5 text-sm"
-                onClick={() => {
-                  if (form.end_date_time && form.end_date_time <= form.date_time) {
-                    toast.error("End time must be after start time");
-                    return;
-                  }
-                  mutation.mutate(false);
-                }}
+                onClick={() => checkDestructiveAndSave(false)}
                 disabled={mutation.isPending || !form.title || !form.date_time}
               >
                 {mutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
@@ -625,13 +619,7 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
               </Button>
               <Button
                 className="flex-1 h-10 gap-1.5 text-sm"
-                onClick={() => {
-                  if (form.end_date_time && form.end_date_time <= form.date_time) {
-                    toast.error("End time must be after start time");
-                    return;
-                  }
-                  mutation.mutate(true);
-                }}
+                onClick={() => checkDestructiveAndSave(true)}
                 disabled={mutation.isPending || !form.title || !form.date_time}
               >
                 {mutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
