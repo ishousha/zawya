@@ -118,13 +118,23 @@ export default function EventRsvpDetail({ eventId, eventTitle, eventDate, checki
   const attending = useMemo(() => (rsvps ?? []).filter((r) => r.status === "attending" && !r.is_waitlisted), [rsvps]);
   const waitlisted = useMemo(() => (rsvps ?? []).filter((r) => r.status === "waitlisted" || r.is_waitlisted), [rsvps]);
 
+  // Also gather legacy potluck items (specific_food_item on rsvps)
+  const legacyPotluckItems = useMemo(() => {
+    return (rsvps ?? [])
+      .filter((r) => r.status !== "cancelled" && r.specific_food_item?.trim())
+      .map((r) => ({
+        dish: r.specific_food_item!.trim(),
+        name: (r.profile as any)?.name || "Unknown",
+      }));
+  }, [rsvps]);
+
   // Build potluck table rows
   const potluckRows = useMemo(() => {
-    if (!signUpData) return [];
-    const { items, selections } = signUpData;
+    if (!signUpData && legacyPotluckItems.length === 0) return [];
+    const { items, selections } = signUpData ?? { items: [], selections: [] };
     const rsvpMap = new Map((rsvps ?? []).map((r) => [r.id, r]));
 
-    return items.map((item) => {
+    const rows = items.map((item) => {
       const itemSelections = selections.filter((s) => s.sign_up_item_id === item.id);
       const totalClaimed = itemSelections.reduce((sum, s) => sum + (s.quantity ?? 1), 0);
       const claimants = itemSelections.map((s) => {
@@ -140,17 +150,19 @@ export default function EventRsvpDetail({ eventId, eventTitle, eventDate, checki
         claimants,
       };
     });
-  }, [signUpData, rsvps]);
 
-  // Also gather legacy potluck items (specific_food_item on rsvps)
-  const legacyPotluckItems = useMemo(() => {
-    return (rsvps ?? [])
-      .filter((r) => r.specific_food_item?.trim())
-      .map((r) => ({
-        dish: r.specific_food_item!,
-        name: (r.profile as any)?.name || "Unknown",
-      }));
-  }, [rsvps]);
+    if (legacyPotluckItems.length > 0) {
+      rows.push({
+        id: "legacy-potluck",
+        itemName: "Other / Surprise Dish",
+        quantityLimit: 0,
+        totalClaimed: legacyPotluckItems.length,
+        claimants: legacyPotluckItems.map((item) => ({ name: item.name, quantity: 1, description: item.dish })),
+      });
+    }
+
+    return rows;
+  }, [signUpData, rsvps, legacyPotluckItems]);
 
   const handleSendGuestList = async () => {
     setSendingGuestList(true);
