@@ -9,6 +9,7 @@ import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Loader2, X, Download, UserPlus, Mail, Printer, Users, UtensilsCrossed, CheckCircle2, Eye } from "lucide-react";
 import { downloadCsv, zawyaFilename } from "@/lib/csv-export";
+import { invalidateEventPotluckQueries } from "@/lib/potluck-query-cache";
 import { toast } from "sonner";
 import HostDashboard from "@/components/HostDashboard";
 import AdminGuestApprovals from "./AdminGuestApprovals";
@@ -98,12 +99,7 @@ export default function EventRsvpDetail({ eventId, eventTitle, eventDate, checki
   useEffect(() => {
     if (!hasPotluck) return;
 
-    const refreshPotluck = () => {
-      queryClient.invalidateQueries({ queryKey: ["admin-rsvps", eventId] });
-      queryClient.invalidateQueries({ queryKey: ["admin-signup-items", eventId] });
-      queryClient.invalidateQueries({ queryKey: ["potluck-menu", eventId] });
-      queryClient.invalidateQueries({ queryKey: ["potluck-signup-items", eventId] });
-    };
+    const refreshPotluck = () => invalidateEventPotluckQueries(queryClient, eventId);
 
     const channel = supabase
       .channel(`admin-potluck-${eventId}`)
