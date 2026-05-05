@@ -649,6 +649,50 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <AlertDialog
+        open={!!destructiveCheck}
+        onOpenChange={(open) => { if (!open) setDestructiveCheck(null); }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove items with existing claims?</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-2">
+                <p>
+                  You're about to delete sign-up items that members have already claimed.
+                  This will permanently remove their potluck selections.
+                </p>
+                <ul className="list-disc pl-5 text-sm">
+                  {destructiveCheck?.items.map((it) => (
+                    <li key={it.name}>
+                      <strong>{it.name}</strong> — {it.claims} claim{it.claims === 1 ? "" : "s"}
+                    </li>
+                  ))}
+                </ul>
+                <p className="text-sm text-muted-foreground">
+                  Affected members will need to reclaim. Continue?
+                </p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setDestructiveCheck(null)}>
+              Keep Items
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                const publish = destructiveCheck?.publish ?? false;
+                setDestructiveCheck(null);
+                mutation.mutate(publish);
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete & Save
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
