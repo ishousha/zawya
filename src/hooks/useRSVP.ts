@@ -307,9 +307,6 @@ export function useRSVPConcurrency(eventId: string) {
 
       return { previousRSVPs };
     },
-    onSuccess: () => {
-      invalidateAll();
-    },
     onError: (err, _input, context) => {
       if (context?.previousRSVPs) {
         queryClient.setQueryData(["rsvps", eventId], context.previousRSVPs);
@@ -317,7 +314,7 @@ export function useRSVPConcurrency(eventId: string) {
       queryClient.setQueryData(["my-rsvp", eventId, user?.id], null);
       toast.error(getErrorMessage(err, "Failed to create RSVP"));
     },
-    onSettled: () => {},
+    onSettled: invalidateAll,
   });
 
   const updateRSVP = useMutation({
@@ -362,13 +359,10 @@ export function useRSVPConcurrency(eventId: string) {
       notifyRSVPUpdated(data.id, eventId, user.id);
       return data as RSVP;
     },
-    onSuccess: () => {
-      invalidateAll();
-    },
     onError: (err) => {
       toast.error(getErrorMessage(err, "Failed to update RSVP"));
     },
-    onSettled: () => {},
+    onSettled: invalidateAll,
   });
 
   const cancelRSVP = useMutation({
@@ -397,16 +391,13 @@ export function useRSVPConcurrency(eventId: string) {
       queryClient.setQueryData(["my-rsvp", eventId, user?.id], null);
       return { previousRSVPs };
     },
-    onSuccess: () => {
-      invalidateAll();
-    },
     onError: (err, _id, context) => {
       if (context?.previousRSVPs) {
         queryClient.setQueryData(["rsvps", eventId], context.previousRSVPs);
       }
       toast.error(getErrorMessage(err, "Failed to cancel RSVP"));
     },
-    onSettled: () => {},
+    onSettled: invalidateAll,
   });
 
   return { createRSVP, updateRSVP, cancelRSVP };
