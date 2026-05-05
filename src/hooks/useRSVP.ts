@@ -4,7 +4,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { generateQRHash } from "@/lib/qr-hash";
 import { notifyRSVPCreated, notifyRSVPUpdated, notifyRSVPCancelled } from "@/lib/webhooks";
 import { removeCachedTicket } from "@/lib/offline-ticket-cache";
-import { invalidateEventPotluckQueries } from "@/lib/potluck-query-cache";
 import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -181,11 +180,11 @@ export function useRSVPConcurrency(eventId: string) {
 
   const invalidateAll = () => {
     queryClient.invalidateQueries({ queryKey: ["rsvps", eventId] });
-    queryClient.invalidateQueries({ queryKey: ["admin-rsvps", eventId] });
     queryClient.invalidateQueries({ queryKey: ["my-rsvp", eventId, user?.id] });
-    queryClient.invalidateQueries({ queryKey: ["admin-signup-items", eventId] });
+    queryClient.invalidateQueries({ queryKey: ["event-selections", eventId] });
     queryClient.invalidateQueries({ queryKey: ["my-selections"] });
-    invalidateEventPotluckQueries(queryClient, eventId);
+    queryClient.invalidateQueries({ queryKey: ["potluck-menu", eventId] });
+    queryClient.invalidateQueries({ queryKey: ["potluck-signup-items", eventId] });
     queryClient.invalidateQueries({ queryKey: ["events"] });
   };
 
@@ -307,6 +306,9 @@ export function useRSVPConcurrency(eventId: string) {
 
       return { previousRSVPs };
     },
+    onSuccess: () => {
+      invalidateAll();
+    },
     onError: (err, _input, context) => {
       if (context?.previousRSVPs) {
         queryClient.setQueryData(["rsvps", eventId], context.previousRSVPs);
@@ -314,7 +316,7 @@ export function useRSVPConcurrency(eventId: string) {
       queryClient.setQueryData(["my-rsvp", eventId, user?.id], null);
       toast.error(getErrorMessage(err, "Failed to create RSVP"));
     },
-    onSettled: invalidateAll,
+    onSettled: () => {},
   });
 
   const updateRSVP = useMutation({
@@ -359,10 +361,13 @@ export function useRSVPConcurrency(eventId: string) {
       notifyRSVPUpdated(data.id, eventId, user.id);
       return data as RSVP;
     },
+    onSuccess: () => {
+      invalidateAll();
+    },
     onError: (err) => {
       toast.error(getErrorMessage(err, "Failed to update RSVP"));
     },
-    onSettled: invalidateAll,
+    onSettled: () => {},
   });
 
   const cancelRSVP = useMutation({
@@ -391,13 +396,16 @@ export function useRSVPConcurrency(eventId: string) {
       queryClient.setQueryData(["my-rsvp", eventId, user?.id], null);
       return { previousRSVPs };
     },
+    onSuccess: () => {
+      invalidateAll();
+    },
     onError: (err, _id, context) => {
       if (context?.previousRSVPs) {
         queryClient.setQueryData(["rsvps", eventId], context.previousRSVPs);
       }
       toast.error(getErrorMessage(err, "Failed to cancel RSVP"));
     },
-    onSettled: invalidateAll,
+    onSettled: () => {},
   });
 
   return { createRSVP, updateRSVP, cancelRSVP };

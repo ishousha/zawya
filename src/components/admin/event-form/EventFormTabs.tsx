@@ -16,7 +16,6 @@ import { EventFormState, defaultEventForm, generateCheckinPin } from "./types";
 import EventPreviewDialog from "./EventPreviewDialog";
 import type { EventType } from "./types";
 import type { Database } from "@/integrations/supabase/types";
-import { invalidateEventPotluckQueries } from "@/lib/potluck-query-cache";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -407,7 +406,6 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
       queryClient.invalidateQueries({ queryKey: ["admin-events"] });
       queryClient.invalidateQueries({ queryKey: ["events"] });
       queryClient.invalidateQueries({ queryKey: ["sign-up-items"] });
-      invalidateEventPotluckQueries(queryClient, _data);
       queryClient.invalidateQueries({ queryKey: ["event-speakers"] });
 
       // Auto-sync Zoom meeting time if start_time changed + virtual + zoom link

@@ -1,5 +1,5 @@
-import { useEffect, useState, useMemo } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState, useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,6 @@ import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Loader2, X, Download, UserPlus, Mail, Printer, Users, UtensilsCrossed, CheckCircle2, Eye } from "lucide-react";
 import { downloadCsv, zawyaFilename } from "@/lib/csv-export";
-import { invalidateEventPotluckQueries } from "@/lib/potluck-query-cache";
 import { toast } from "sonner";
 import HostDashboard from "@/components/HostDashboard";
 import AdminGuestApprovals from "./AdminGuestApprovals";
@@ -26,7 +25,6 @@ interface Props {
 }
 
 export default function EventRsvpDetail({ eventId, eventTitle, eventDate, checkinPin, hasPotluck, onClose }: Props) {
-  const queryClient = useQueryClient();
   const [showPoster, setShowPoster] = useState(false);
   const [showWalkIn, setShowWalkIn] = useState(false);
   const [sendingGuestList, setSendingGuestList] = useState(false);
@@ -36,8 +34,6 @@ export default function EventRsvpDetail({ eventId, eventTitle, eventDate, checki
     html: string;
     recipients: { name: string | null; email: string }[];
     summary: { totalHeadcount: number; totalAdults: number; totalElders: number; totalChildren: number; guestCount: number; potluckCount: number };
-    guestList: { name: string; family?: string; adults: number; children: number; elders: number }[];
-    potluckItems: { dish: string; family: string; category?: string }[];
   } | null>(null);
 
   // Fetch RSVPs + profiles
@@ -60,13 +56,9 @@ export default function EventRsvpDetail({ eventId, eventTitle, eventDate, checki
       const profileMap = new Map((profilesData ?? []).map((p) => [p.id, p]));
       return rsvpData.map((r) => ({ ...r, profile: profileMap.get(r.user_id) ?? null }));
     },
-    refetchInterval: 5000,
-    refetchOnWindowFocus: true,
-    refetchIntervalInBackground: false,
   });
 
-  // Fetch sign-up items + selections for potluck. Keep this independent from
-  // the RSVP query so it cannot cache an empty selection list before RSVPs load.
+  // Fetch sign-up items + selections for potluck
   const { data: signUpData } = useQuery({
     queryKey: ["admin-signup-items", eventId],
     enabled: hasPotluck,
@@ -79,14 +71,7 @@ export default function EventRsvpDetail({ eventId, eventTitle, eventDate, checki
       if (iErr) throw iErr;
       if (!items || items.length === 0) return { items: [], selections: [] };
 
-      const { data: activeRsvps, error: rErr } = await supabase
-        .from("rsvps")
-        .select("id, user_id")
-        .eq("event_id", eventId)
-        .neq("status", "cancelled");
-      if (rErr) throw rErr;
-
-      const rsvpIds = (activeRsvps ?? []).map((r) => r.id);
+      const rsvpIds = (rsvps ?? []).map((r) => r.id);
       if (rsvpIds.length === 0) return { items, selections: [] };
 
       const { data: selections, error: sErr } = await supabase
@@ -97,116 +82,18 @@ export default function EventRsvpDetail({ eventId, eventTitle, eventDate, checki
 
       return { items, selections: selections ?? [] };
     },
-    refetchInterval: hasPotluck ? 5000 : false,
-    refetchOnWindowFocus: true,
-    refetchIntervalInBackground: false,
   });
-
-  useEffect(() => {
-    if (!hasPotluck) return;
-
-    let cancelled = false;
-    let channel: ReturnType<typeof supabase.channel> | null = null;
-    let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
-    let debounceTimer: ReturnType<typeof setTimeout> | null = null;
-    let attempts = 0;
-    const seenEvents = new Set<string>();
-    // Cap dedupe set growth
-    const rememberEvent = (key: string) => {
-      seenEvents.add(key);
-      if (seenEvents.size > 500) {
-        const first = seenEvents.values().next().value;
-        if (first) seenEvents.delete(first);
-      }
-    };
-
-    const scheduleRefresh = () => {
-      if (debounceTimer) clearTimeout(debounceTimer);
-      debounceTimer = setTimeout(() => {
-        invalidateEventPotluckQueries(queryClient, eventId);
-      }, 250);
-    };
-
-    const handlePayload = (payload: any) => {
-      // Dedupe by table + commit_timestamp + record id (realtime can occasionally
-      // redeliver during reconnects).
-      const rec = payload?.new ?? payload?.old ?? {};
-      const key = `${payload?.table}:${payload?.commit_timestamp ?? ""}:${rec?.id ?? ""}:${payload?.eventType ?? ""}`;
-      if (seenEvents.has(key)) return;
-      rememberEvent(key);
-      scheduleRefresh();
-    };
-
-    const connect = () => {
-      if (cancelled) return;
-      // Tear down any prior channel before creating a new one
-      if (channel) {
-        try { supabase.removeChannel(channel); } catch { /* noop */ }
-        channel = null;
-      }
-      channel = supabase
-        .channel(`admin-potluck-${eventId}-${Date.now()}`)
-        .on("postgres_changes", { event: "*", schema: "public", table: "rsvps", filter: `event_id=eq.${eventId}` }, handlePayload)
-        .on("postgres_changes", { event: "*", schema: "public", table: "rsvp_sign_up_selections" }, handlePayload)
-        .on("postgres_changes", { event: "*", schema: "public", table: "event_sign_up_items", filter: `event_id=eq.${eventId}` }, handlePayload)
-        .subscribe((status) => {
-          if (status === "SUBSCRIBED") {
-            attempts = 0;
-            // Force a refresh on (re)connect to recover any missed events
-            scheduleRefresh();
-          } else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") {
-            if (cancelled) return;
-            attempts += 1;
-            const delay = Math.min(30000, 1000 * 2 ** Math.min(attempts, 5));
-            if (reconnectTimer) clearTimeout(reconnectTimer);
-            reconnectTimer = setTimeout(connect, delay);
-          }
-        });
-    };
-
-    connect();
-
-    // Resync on tab focus / network back online (recover from sleep/disconnect)
-    const onVisible = () => {
-      if (document.visibilityState === "visible") {
-        scheduleRefresh();
-        connect();
-      }
-    };
-    const onOnline = () => { scheduleRefresh(); connect(); };
-    document.addEventListener("visibilitychange", onVisible);
-    window.addEventListener("online", onOnline);
-
-    return () => {
-      cancelled = true;
-      if (reconnectTimer) clearTimeout(reconnectTimer);
-      if (debounceTimer) clearTimeout(debounceTimer);
-      document.removeEventListener("visibilitychange", onVisible);
-      window.removeEventListener("online", onOnline);
-      if (channel) { try { supabase.removeChannel(channel); } catch { /* noop */ } }
-    };
-  }, [eventId, hasPotluck, queryClient]);
 
   const attending = useMemo(() => (rsvps ?? []).filter((r) => r.status === "attending" && !r.is_waitlisted), [rsvps]);
   const waitlisted = useMemo(() => (rsvps ?? []).filter((r) => r.status === "waitlisted" || r.is_waitlisted), [rsvps]);
 
-  // Also gather legacy potluck items (specific_food_item on rsvps)
-  const legacyPotluckItems = useMemo(() => {
-    return (rsvps ?? [])
-      .filter((r) => r.status !== "cancelled" && r.specific_food_item?.trim())
-      .map((r) => ({
-        dish: r.specific_food_item!.trim(),
-        name: (r.profile as any)?.name || "Unknown",
-      }));
-  }, [rsvps]);
-
   // Build potluck table rows
   const potluckRows = useMemo(() => {
-    if (!signUpData && legacyPotluckItems.length === 0) return [];
-    const { items, selections } = signUpData ?? { items: [], selections: [] };
+    if (!signUpData) return [];
+    const { items, selections } = signUpData;
     const rsvpMap = new Map((rsvps ?? []).map((r) => [r.id, r]));
 
-    const rows = items.map((item) => {
+    return items.map((item) => {
       const itemSelections = selections.filter((s) => s.sign_up_item_id === item.id);
       const totalClaimed = itemSelections.reduce((sum, s) => sum + (s.quantity ?? 1), 0);
       const claimants = itemSelections.map((s) => {
@@ -222,35 +109,28 @@ export default function EventRsvpDetail({ eventId, eventTitle, eventDate, checki
         claimants,
       };
     });
+  }, [signUpData, rsvps]);
 
-    if (legacyPotluckItems.length > 0) {
-      rows.push({
-        id: -1,
-        itemName: "Other / Surprise Dish",
-        quantityLimit: 0,
-        totalClaimed: legacyPotluckItems.length,
-        claimants: legacyPotluckItems.map((item) => ({ name: item.name, quantity: 1, description: item.dish })),
-      });
-    }
-
-    return rows;
-  }, [signUpData, rsvps, legacyPotluckItems]);
+  // Also gather legacy potluck items (specific_food_item on rsvps)
+  const legacyPotluckItems = useMemo(() => {
+    return (rsvps ?? [])
+      .filter((r) => r.specific_food_item?.trim())
+      .map((r) => ({
+        dish: r.specific_food_item!,
+        name: (r.profile as any)?.name || "Unknown",
+      }));
+  }, [rsvps]);
 
   const handleSendGuestList = async () => {
     setSendingGuestList(true);
     try {
-      const { data, error } = await supabase.functions.invoke("send-guest-list-reminder", {
+      const { error } = await supabase.functions.invoke("send-guest-list-reminder", {
         body: { event_id: eventId },
       });
       if (error) throw error;
-      const result = data as { sent?: number; error?: string; errors?: { message: string }[] } | null;
-      if (result?.error || !result?.sent) {
-        throw new Error(result?.error || result?.errors?.[0]?.message || "No guest list emails were queued");
-      }
-      toast.success(`Guest list queued for ${result.sent} recipient${result.sent === 1 ? "" : "s"}`);
-    } catch (err: any) {
-      console.error("send guest list failed", err);
-      toast.error("Failed to send guest list email", { description: err?.message || "Unknown error" });
+      toast.success("Guest list sent to host, admins & moderators");
+    } catch {
+      toast.error("Failed to send guest list email");
     } finally {
       setSendingGuestList(false);
     }
@@ -277,8 +157,6 @@ export default function EventRsvpDetail({ eventId, eventTitle, eventDate, checki
         html: result.html,
         recipients: result.recipients ?? [],
         summary: result.summary,
-        guestList: result.guestList ?? [],
-        potluckItems: result.potluckItems ?? [],
       });
     } catch (err: any) {
       console.error("preview guest list failed", err);
@@ -571,7 +449,7 @@ export default function EventRsvpDetail({ eventId, eventTitle, eventDate, checki
       <WalkInRsvpModal eventId={eventId} open={showWalkIn} onOpenChange={setShowWalkIn} />
 
       <Dialog open={!!previewData} onOpenChange={(o) => !o && setPreviewData(null)}>
-        <DialogContent className="max-w-3xl w-[calc(100vw-1.5rem)] max-h-[calc(100dvh-1.5rem)] flex flex-col p-4 sm:p-6 gap-3 overflow-hidden">
+        <DialogContent className="max-w-3xl w-[calc(100vw-2rem)] h-[90vh] sm:h-auto sm:max-h-[90vh] flex flex-col p-4 sm:p-6 gap-3 overflow-hidden">
           <DialogHeader className="shrink-0">
             <DialogTitle className="text-base">Guest List Email Preview</DialogTitle>
             <DialogDescription className="text-xs">
@@ -580,11 +458,11 @@ export default function EventRsvpDetail({ eventId, eventTitle, eventDate, checki
           </DialogHeader>
 
           {previewData && (
-            <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain -mx-1 px-1 pb-1 space-y-3" style={{ WebkitOverflowScrolling: "touch" }}>
-              <div className="rounded-md border border-border p-3 bg-muted/30 text-xs space-y-2">
+            <div className="flex-1 min-h-0 flex flex-col gap-3 overflow-y-auto -mx-1 px-1" style={{ WebkitOverflowScrolling: "touch" }}>
+              <div className="rounded-md border border-border p-3 bg-muted/30 text-xs space-y-2 shrink-0">
                 <div>
                   <p className="font-semibold mb-1">Recipients ({previewData.recipients.length})</p>
-                  <div className="max-h-24 overflow-y-auto flex flex-wrap gap-1 pr-1" style={{ WebkitOverflowScrolling: "touch" }}>
+                  <div className="flex flex-wrap gap-1">
                     {previewData.recipients.map((r, i) => (
                       <Badge key={i} variant="secondary" className="text-[10px]">
                         {r.name ? `${r.name} <${r.email}>` : r.email}
@@ -602,39 +480,11 @@ export default function EventRsvpDetail({ eventId, eventTitle, eventDate, checki
                 </div>
               </div>
 
-              <div className="rounded-md border border-border bg-background p-3 space-y-3 text-sm">
-                <div>
-                  <p className="font-semibold font-serif text-base mb-2">Guest List ({previewData.guestList.length} families)</p>
-                  <div className="space-y-2">
-                    {previewData.guestList.map((g, i) => (
-                      <div key={i} className="border-b border-border/60 pb-2 last:border-0 last:pb-0">
-                        <p className="font-medium leading-snug">
-                          {g.name}{g.family ? <span className="text-muted-foreground font-normal"> — {g.family}</span> : null}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {g.adults} adult{g.adults === 1 ? "" : "s"}
-                          {g.elders > 0 ? `, ${g.elders} elder${g.elders === 1 ? "" : "s"}` : ""}
-                          {g.children > 0 ? `, ${g.children} kid${g.children === 1 ? "" : "s"}` : ""}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {previewData.potluckItems.length > 0 && (
-                  <div className="pt-3 border-t border-border">
-                    <p className="font-semibold font-serif text-base mb-2">Potluck Menu</p>
-                    <div className="space-y-2">
-                      {previewData.potluckItems.map((item, i) => (
-                        <div key={i} className="text-sm leading-snug">
-                          <span className="font-medium">{item.category ? `${item.category}: ` : ""}{item.dish}</span>
-                          <span className="text-muted-foreground"> — {item.family}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
+              <iframe
+                title="Guest list email preview"
+                srcDoc={previewData.html}
+                className="w-full rounded-md border border-border bg-white min-h-[600px] shrink-0"
+              />
             </div>
           )}
 

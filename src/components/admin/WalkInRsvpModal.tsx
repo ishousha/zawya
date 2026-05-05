@@ -10,7 +10,6 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Check, ChevronsUpDown, Loader2, UserPlus } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { invalidateEventPotluckQueries } from "@/lib/potluck-query-cache";
 import { toast } from "sonner";
 
 interface WalkInRsvpModalProps {
@@ -89,7 +88,8 @@ export default function WalkInRsvpModal({ eventId, open, onOpenChange }: WalkInR
     },
     onSuccess: () => {
       toast.success(`Walk-in RSVP created for ${selectedUser?.name || "user"}`);
-      invalidateEventPotluckQueries(queryClient, eventId);
+      queryClient.invalidateQueries({ queryKey: ["admin-rsvps", eventId] });
+      queryClient.invalidateQueries({ queryKey: ["host-rsvps", eventId] });
       queryClient.invalidateQueries({ queryKey: ["existing-rsvp-users", eventId] });
       resetForm();
       onOpenChange(false);
