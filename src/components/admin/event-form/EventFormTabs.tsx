@@ -305,22 +305,62 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
         // Run sign-up items and speakers operations in parallel
         const parallelOps: Promise<void>[] = [];
 
-        // Sign-up items
+        // Sign-up items — diff existing vs new to preserve IDs (deleting cascades to RSVP selections!)
         parallelOps.push((async () => {
+          // For edits, fetch existing IDs to compute diff
+          let existingIds: number[] = [];
           if (event && !initialForm) {
-            const { error: deleteItemsError } = await supabase.from("event_sign_up_items").delete().eq("event_id", eventId!);
-            if (deleteItemsError) throw deleteItemsError;
+            const { data: existing, error: fetchErr } = await supabase
+              .from("event_sign_up_items")
+              .select("id")
+              .eq("event_id", eventId!);
+            if (fetchErr) throw fetchErr;
+            existingIds = (existing ?? []).map((r: any) => Number(r.id));
           }
-          if (signUpItems.length > 0) {
-            const rows = signUpItems.map((item, i) => ({
+
+          const keptIds = new Set(
+            signUpItems.map((it) => it.id).filter((id): id is number => typeof id === "number")
+          );
+          const toDelete = existingIds.filter((id) => !keptIds.has(id));
+          const toUpdate = signUpItems.filter((it) => typeof it.id === "number");
+          const toInsert = signUpItems.filter((it) => typeof it.id !== "number");
+
+          // Only delete items that were actually removed by the admin
+          if (toDelete.length > 0) {
+            const { error: delErr } = await supabase
+              .from("event_sign_up_items")
+              .delete()
+              .in("id", toDelete);
+            if (delErr) throw delErr;
+          }
+
+          // Update kept items in-place (preserves id, so RSVP selections survive)
+          for (let i = 0; i < signUpItems.length; i++) {
+            const item = signUpItems[i];
+            if (typeof item.id !== "number") continue;
+            const { error: updErr } = await supabase
+              .from("event_sign_up_items")
+              .update({
+                item_name: item.item_name,
+                quantity_limit: item.quantity_limit,
+                order_index: i,
+              })
+              .eq("id", item.id);
+            if (updErr) throw updErr;
+          }
+
+          // Insert brand-new items (use their position in the array as order_index)
+          if (toInsert.length > 0) {
+            const rows = toInsert.map((item) => ({
               event_id: eventId,
               item_name: item.item_name,
               quantity_limit: item.quantity_limit,
-              order_index: i,
+              order_index: signUpItems.indexOf(item),
             }));
-            const { error: signUpItemsError } = await supabase.from("event_sign_up_items").insert(rows);
-            if (signUpItemsError) throw signUpItemsError;
+            const { error: insErr } = await supabase.from("event_sign_up_items").insert(rows);
+            if (insErr) throw insErr;
           }
+          void toUpdate;
         })());
 
         // Speakers — sanitize to raw UUID strings in case objects leak in
