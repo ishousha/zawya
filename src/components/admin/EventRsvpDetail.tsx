@@ -136,6 +136,36 @@ export default function EventRsvpDetail({ eventId, eventTitle, eventDate, checki
     }
   };
 
+  const handlePreviewGuestList = async () => {
+    setPreviewLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("send-guest-list-reminder", {
+        body: { event_id: eventId, preview: true },
+      });
+      if (error) throw error;
+      const result = data as any;
+      if (result?.error) {
+        toast.error("Preview failed", { description: result.error });
+        return;
+      }
+      if (!result?.html) {
+        toast.warning("Nothing to preview", { description: "No guest list could be generated." });
+        return;
+      }
+      setPreviewData({
+        subject: result.subject,
+        html: result.html,
+        recipients: result.recipients ?? [],
+        summary: result.summary,
+      });
+    } catch (err: any) {
+      console.error("preview guest list failed", err);
+      toast.error("Preview failed", { description: err?.message || "Unknown error" });
+    } finally {
+      setPreviewLoading(false);
+    }
+  };
+
   const handleExportCsv = () => {
     if (!rsvps || rsvps.length === 0) return;
 
