@@ -1,5 +1,5 @@
-import { useState, useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useEffect, useState, useMemo } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -25,6 +25,7 @@ interface Props {
 }
 
 export default function EventRsvpDetail({ eventId, eventTitle, eventDate, checkinPin, hasPotluck, onClose }: Props) {
+  const queryClient = useQueryClient();
   const [showPoster, setShowPoster] = useState(false);
   const [showWalkIn, setShowWalkIn] = useState(false);
   const [sendingGuestList, setSendingGuestList] = useState(false);
@@ -60,7 +61,8 @@ export default function EventRsvpDetail({ eventId, eventTitle, eventDate, checki
     },
   });
 
-  // Fetch sign-up items + selections for potluck
+  // Fetch sign-up items + selections for potluck. Keep this independent from
+  // the RSVP query so it cannot cache an empty selection list before RSVPs load.
   const { data: signUpData } = useQuery({
     queryKey: ["admin-signup-items", eventId],
     enabled: hasPotluck,
@@ -73,7 +75,14 @@ export default function EventRsvpDetail({ eventId, eventTitle, eventDate, checki
       if (iErr) throw iErr;
       if (!items || items.length === 0) return { items: [], selections: [] };
 
-      const rsvpIds = (rsvps ?? []).map((r) => r.id);
+      const { data: activeRsvps, error: rErr } = await supabase
+        .from("rsvps")
+        .select("id, user_id")
+        .eq("event_id", eventId)
+        .neq("status", "cancelled");
+      if (rErr) throw rErr;
+
+      const rsvpIds = (activeRsvps ?? []).map((r) => r.id);
       if (rsvpIds.length === 0) return { items, selections: [] };
 
       const { data: selections, error: sErr } = await supabase
@@ -85,6 +94,26 @@ export default function EventRsvpDetail({ eventId, eventTitle, eventDate, checki
       return { items, selections: selections ?? [] };
     },
   });
+
+  useEffect(() => {
+    if (!hasPotluck) return;
+
+    const refreshPotluck = () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-rsvps", eventId] });
+      queryClient.invalidateQueries({ queryKey: ["admin-signup-items", eventId] });
+      queryClient.invalidateQueries({ queryKey: ["potluck-menu", eventId] });
+      queryClient.invalidateQueries({ queryKey: ["potluck-signup-items", eventId] });
+    };
+
+    const channel = supabase
+      .channel(`admin-potluck-${eventId}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "rsvps", filter: `event_id=eq.${eventId}` }, refreshPotluck)
+      .on("postgres_changes", { event: "*", schema: "public", table: "rsvp_sign_up_selections" }, refreshPotluck)
+      .on("postgres_changes", { event: "*", schema: "public", table: "event_sign_up_items", filter: `event_id=eq.${eventId}` }, refreshPotluck)
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [eventId, hasPotluck, queryClient]);
 
   const attending = useMemo(() => (rsvps ?? []).filter((r) => r.status === "attending" && !r.is_waitlisted), [rsvps]);
   const waitlisted = useMemo(() => (rsvps ?? []).filter((r) => r.status === "waitlisted" || r.is_waitlisted), [rsvps]);
