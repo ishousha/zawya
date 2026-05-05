@@ -105,16 +105,86 @@ export default function EventRsvpDetail({ eventId, eventTitle, eventDate, checki
   useEffect(() => {
     if (!hasPotluck) return;
 
-    const refreshPotluck = () => invalidateEventPotluckQueries(queryClient, eventId);
+    let cancelled = false;
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+    let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+    let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+    let attempts = 0;
+    const seenEvents = new Set<string>();
+    // Cap dedupe set growth
+    const rememberEvent = (key: string) => {
+      seenEvents.add(key);
+      if (seenEvents.size > 500) {
+        const first = seenEvents.values().next().value;
+        if (first) seenEvents.delete(first);
+      }
+    };
 
-    const channel = supabase
-      .channel(`admin-potluck-${eventId}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "rsvps", filter: `event_id=eq.${eventId}` }, refreshPotluck)
-      .on("postgres_changes", { event: "*", schema: "public", table: "rsvp_sign_up_selections" }, refreshPotluck)
-      .on("postgres_changes", { event: "*", schema: "public", table: "event_sign_up_items", filter: `event_id=eq.${eventId}` }, refreshPotluck)
-      .subscribe();
+    const scheduleRefresh = () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        invalidateEventPotluckQueries(queryClient, eventId);
+      }, 250);
+    };
 
-    return () => { supabase.removeChannel(channel); };
+    const handlePayload = (payload: any) => {
+      // Dedupe by table + commit_timestamp + record id (realtime can occasionally
+      // redeliver during reconnects).
+      const rec = payload?.new ?? payload?.old ?? {};
+      const key = `${payload?.table}:${payload?.commit_timestamp ?? ""}:${rec?.id ?? ""}:${payload?.eventType ?? ""}`;
+      if (seenEvents.has(key)) return;
+      rememberEvent(key);
+      scheduleRefresh();
+    };
+
+    const connect = () => {
+      if (cancelled) return;
+      // Tear down any prior channel before creating a new one
+      if (channel) {
+        try { supabase.removeChannel(channel); } catch { /* noop */ }
+        channel = null;
+      }
+      channel = supabase
+        .channel(`admin-potluck-${eventId}-${Date.now()}`)
+        .on("postgres_changes", { event: "*", schema: "public", table: "rsvps", filter: `event_id=eq.${eventId}` }, handlePayload)
+        .on("postgres_changes", { event: "*", schema: "public", table: "rsvp_sign_up_selections" }, handlePayload)
+        .on("postgres_changes", { event: "*", schema: "public", table: "event_sign_up_items", filter: `event_id=eq.${eventId}` }, handlePayload)
+        .subscribe((status) => {
+          if (status === "SUBSCRIBED") {
+            attempts = 0;
+            // Force a refresh on (re)connect to recover any missed events
+            scheduleRefresh();
+          } else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") {
+            if (cancelled) return;
+            attempts += 1;
+            const delay = Math.min(30000, 1000 * 2 ** Math.min(attempts, 5));
+            if (reconnectTimer) clearTimeout(reconnectTimer);
+            reconnectTimer = setTimeout(connect, delay);
+          }
+        });
+    };
+
+    connect();
+
+    // Resync on tab focus / network back online (recover from sleep/disconnect)
+    const onVisible = () => {
+      if (document.visibilityState === "visible") {
+        scheduleRefresh();
+        connect();
+      }
+    };
+    const onOnline = () => { scheduleRefresh(); connect(); };
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("online", onOnline);
+
+    return () => {
+      cancelled = true;
+      if (reconnectTimer) clearTimeout(reconnectTimer);
+      if (debounceTimer) clearTimeout(debounceTimer);
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("online", onOnline);
+      if (channel) { try { supabase.removeChannel(channel); } catch { /* noop */ } }
+    };
   }, [eventId, hasPotluck, queryClient]);
 
   const attending = useMemo(() => (rsvps ?? []).filter((r) => r.status === "attending" && !r.is_waitlisted), [rsvps]);
