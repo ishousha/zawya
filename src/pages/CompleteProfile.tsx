@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -63,13 +63,31 @@ function GenderToggle({ value, onChange }: { value: string; onChange: (v: string
 export { GenderToggle };
 
 export default function CompleteProfile() {
-  const { user, signOut } = useAuth();
+  const { user, profile, signOut } = useAuth();
   const [name, setName] = useState("");
   const [familyName, setFamilyName] = useState("");
   const [gender, setGender] = useState("");
   const [whatsappCC, setWhatsappCC] = useState("+971");
   const [whatsappNum, setWhatsappNum] = useState("");
   const [saving, setSaving] = useState(false);
+
+  // Pre-fill name from existing profile or OAuth metadata (Google full_name, etc.)
+  useEffect(() => {
+    if (name) return;
+    const profileName = (profile?.name || "").trim();
+    if (profileName) { setName(profileName); return; }
+    const meta = (user?.user_metadata || {}) as Record<string, any>;
+    const fromMeta = (
+      meta.name ||
+      meta.full_name ||
+      meta.display_name ||
+      [meta.first_name, meta.last_name].filter(Boolean).join(" ") ||
+      [meta.given_name, meta.family_name].filter(Boolean).join(" ") ||
+      ""
+    ).toString().trim();
+    if (fromMeta) setName(fromMeta);
+  }, [user, profile]);
+
 
   const handleSubmit = async () => {
     if (!user) return;
