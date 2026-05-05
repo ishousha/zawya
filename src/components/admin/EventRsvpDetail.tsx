@@ -447,6 +447,61 @@ export default function EventRsvpDetail({ eventId, eventTitle, eventDate, checki
         </CardContent>
       </Card>
       <WalkInRsvpModal eventId={eventId} open={showWalkIn} onOpenChange={setShowWalkIn} />
+
+      <Dialog open={!!previewData} onOpenChange={(o) => !o && setPreviewData(null)}>
+        <DialogContent className="max-w-3xl w-[calc(100vw-2rem)] h-[90vh] sm:h-auto sm:max-h-[90vh] flex flex-col p-4 sm:p-6 gap-3 overflow-hidden">
+          <DialogHeader className="shrink-0">
+            <DialogTitle className="text-base">Guest List Email Preview</DialogTitle>
+            <DialogDescription className="text-xs">
+              Subject: <span className="font-medium text-foreground">{previewData?.subject}</span>
+            </DialogDescription>
+          </DialogHeader>
+
+          {previewData && (
+            <div className="flex-1 min-h-0 flex flex-col gap-3 overflow-y-auto -mx-1 px-1" style={{ WebkitOverflowScrolling: "touch" }}>
+              <div className="rounded-md border border-border p-3 bg-muted/30 text-xs space-y-2 shrink-0">
+                <div>
+                  <p className="font-semibold mb-1">Recipients ({previewData.recipients.length})</p>
+                  <div className="flex flex-wrap gap-1">
+                    {previewData.recipients.map((r, i) => (
+                      <Badge key={i} variant="secondary" className="text-[10px]">
+                        {r.name ? `${r.name} <${r.email}>` : r.email}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-x-3 gap-y-1 text-muted-foreground pt-1 border-t border-border/50">
+                  <span>Total: <strong className="text-foreground">{previewData.summary.totalHeadcount}</strong></span>
+                  <span>Adults: <strong className="text-foreground">{previewData.summary.totalAdults}</strong></span>
+                  <span>Elders: <strong className="text-foreground">{previewData.summary.totalElders}</strong></span>
+                  <span>Children: <strong className="text-foreground">{previewData.summary.totalChildren}</strong></span>
+                  <span>RSVPs: <strong className="text-foreground">{previewData.summary.guestCount}</strong></span>
+                  <span>Potluck: <strong className="text-foreground">{previewData.summary.potluckCount}</strong></span>
+                </div>
+              </div>
+
+              <iframe
+                title="Guest list email preview"
+                srcDoc={previewData.html}
+                className="w-full rounded-md border border-border bg-white min-h-[600px] shrink-0"
+              />
+            </div>
+          )}
+
+          <DialogFooter className="gap-2 sm:gap-2 shrink-0">
+            <Button
+              onClick={async () => {
+                setPreviewData(null);
+                await handleSendGuestList();
+              }}
+              disabled={sendingGuestList || !previewData?.recipients.length}
+            >
+              <Mail className="h-4 w-4 mr-1.5" /> Send Now
+            </Button>
+            <Button variant="outline" onClick={() => setPreviewData(null)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
