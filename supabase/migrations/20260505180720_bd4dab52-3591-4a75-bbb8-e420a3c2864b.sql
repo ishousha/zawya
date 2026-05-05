@@ -1,0 +1,1 @@
+ALTER TABLE public.rsvp_sign_up_selections DROP CONSTRAINT IF EXISTS rsvp_sign_up_selections_rsvp_id_sign_up_item_id_key;
