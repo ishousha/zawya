@@ -62,7 +62,7 @@ function AdminDashboardSummary() {
       const { count, error } = await supabase
         .from("profiles")
         .select("*", { count: "exact", head: true })
-        .in("role", ["approved", "admin", "moderator"]);
+        .eq("role", "approved");
       if (error) throw error;
       return count ?? 0;
     },
