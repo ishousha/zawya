@@ -33,6 +33,27 @@ export default function HostDashboard({ eventId }: HostDashboardProps) {
     },
   });
 
+  const { data: signUpData } = useQuery({
+    queryKey: ["host-signup-items", eventId, (rsvps ?? []).map((r) => r.id).sort().join(",")],
+    enabled: !!rsvps && rsvps.length > 0,
+    queryFn: async () => {
+      const { data: items, error: iErr } = await supabase
+        .from("event_sign_up_items")
+        .select("id, item_name, order_index")
+        .eq("event_id", eventId)
+        .order("order_index");
+      if (iErr) throw iErr;
+      const rsvpIds = (rsvps ?? []).map((r) => r.id);
+      if (rsvpIds.length === 0 || !items || items.length === 0) return { items: items ?? [], selections: [] };
+      const { data: sels, error: sErr } = await supabase
+        .from("rsvp_sign_up_selections")
+        .select("rsvp_id, sign_up_item_id, quantity, description")
+        .in("rsvp_id", rsvpIds);
+      if (sErr) throw sErr;
+      return { items, selections: sels ?? [] };
+    },
+  });
+
   // Realtime: auto-refresh when RSVPs change (check-ins, new RSVPs, cancellations)
   useEffect(() => {
     const channel = supabase
