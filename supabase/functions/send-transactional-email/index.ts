@@ -50,20 +50,22 @@ Deno.serve(async (req) => {
 
   const supabaseUrl = Deno.env.get('SUPABASE_URL')!
   const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!
-  const tempClient = createClient(supabaseUrl, supabaseAnonKey, {
-    global: { headers: { Authorization: authHeader } },
-  })
-  const { data: claimsData, error: claimsError } = await tempClient.auth.getClaims(
-    authHeader.replace('Bearer ', '')
-  )
-  if (claimsError || !claimsData?.claims) {
-    return new Response(JSON.stringify({ error: 'Invalid or expired token' }), {
-      status: 401,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    })
-  }
-
   const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+  const bearerToken = authHeader.replace('Bearer ', '')
+
+  // Allow service-role callers (other edge functions, DB triggers) to bypass user JWT validation.
+  if (bearerToken !== supabaseServiceKey) {
+    const tempClient = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } },
+    })
+    const { data: claimsData, error: claimsError } = await tempClient.auth.getClaims(bearerToken)
+    if (claimsError || !claimsData?.claims) {
+      return new Response(JSON.stringify({ error: 'Invalid or expired token' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+  }
 
   if (!supabaseUrl || !supabaseServiceKey) {
     console.error('Missing required environment variables')
