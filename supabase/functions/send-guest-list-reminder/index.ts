@@ -1,4 +1,7 @@
+import * as React from 'npm:react@18.3.1'
+import { renderAsync } from 'npm:@react-email/components@0.0.22'
 import { createClient } from 'npm:@supabase/supabase-js@2'
+import { TEMPLATES } from '../_shared/transactional-email-templates/registry.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -25,11 +28,13 @@ Deno.serve(async (req) => {
 
   const supabaseUrl = Deno.env.get('SUPABASE_URL')!
   const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+  const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!
   const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
-  // Determine mode: auto (cron) or manual (with event_id in body)
+  // Determine mode: auto (cron), manual, or preview
   let mode: 'auto' | 'manual' = 'auto'
   let targetEventId: string | null = null
+  let preview = false
 
   if (req.method === 'POST') {
     try {
@@ -38,12 +43,15 @@ Deno.serve(async (req) => {
         mode = 'manual'
         targetEventId = body.event_id
       }
+      if (body.preview === true) {
+        preview = true
+      }
     } catch {
       // No body = auto mode (cron trigger)
     }
   }
 
-  console.log(`Guest list reminder: mode=${mode}, targetEventId=${targetEventId}`)
+  console.log(`Guest list reminder: mode=${mode}, preview=${preview}, targetEventId=${targetEventId}`)
 
   // Find events to send reminders for
   let events: any[] = []
@@ -57,10 +65,9 @@ Deno.serve(async (req) => {
       .single()
     if (data) events = [data]
   } else {
-    // Auto mode: find events starting within 2 hours
     const now = new Date()
     const twoHoursLater = new Date(now.getTime() + 2 * 60 * 60 * 1000)
-    const buffer = new Date(now.getTime() + 2 * 60 * 60 * 1000 + 10 * 60 * 1000) // +10min buffer
+    const buffer = new Date(now.getTime() + 2 * 60 * 60 * 1000 + 10 * 60 * 1000)
 
     const { data } = await supabase
       .from('events')
@@ -74,6 +81,11 @@ Deno.serve(async (req) => {
 
   if (events.length === 0) {
     console.log('No events to send reminders for')
+    if (preview) {
+      return new Response(JSON.stringify({ error: 'Event not found or not active' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
     return new Response(JSON.stringify({ sent: 0 }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
@@ -82,8 +94,7 @@ Deno.serve(async (req) => {
   let totalSent = 0
 
   for (const event of events) {
-    // Check if already sent (skip for manual — allow re-send)
-    if (mode === 'auto') {
+    if (mode === 'auto' && !preview) {
       const { data: existing } = await supabase
         .from('guest_list_reminders_sent')
         .select('id')
@@ -96,12 +107,18 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Fetch RSVPs with profiles
     const { data: rsvps } = await supabase
       .from('rsvps')
       .select('*')
       .eq('event_id', event.id)
-    if (!rsvps || rsvps.length === 0) continue
+    if (!rsvps || rsvps.length === 0) {
+      if (preview) {
+        return new Response(JSON.stringify({ error: 'No RSVPs yet for this event' }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
+      continue
+    }
 
     const userIds = [...new Set(rsvps.map((r: any) => r.user_id))]
     const { data: profiles } = await supabase
@@ -110,7 +127,6 @@ Deno.serve(async (req) => {
       .in('id', userIds)
     const profileMap = new Map((profiles ?? []).map((p: any) => [p.id, p]))
 
-    // Compute headcount
     let totalRegularAdults = 0
     let totalElders = 0
     let totalChildren = 0
@@ -148,7 +164,6 @@ Deno.serve(async (req) => {
     const totalAdults = totalRegularAdults + totalElders
     const totalHeadcount = totalAdults + totalChildren
 
-    // Format event date
     const eventDate = new Date(event.date_time).toLocaleString('en-US', {
       weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
       hour: 'numeric', minute: '2-digit',
@@ -171,10 +186,8 @@ Deno.serve(async (req) => {
 
     // Collect recipients: host + admins + moderators
     const recipientIds = new Set<string>()
-
     if (event.host_id) recipientIds.add(event.host_id)
 
-    // Get admin and moderator user IDs
     const { data: adminRoles } = await supabase
       .from('user_roles')
       .select('user_id')
@@ -183,35 +196,78 @@ Deno.serve(async (req) => {
       recipientIds.add(r.user_id)
     }
 
-    // Get email addresses
     const { data: recipientProfiles } = await supabase
       .from('profiles')
       .select('id, name, email')
       .in('id', Array.from(recipientIds))
 
+    if (preview) {
+      const tpl = TEMPLATES['guest-list-reminder']
+      if (!tpl) {
+        return new Response(JSON.stringify({ error: 'Template guest-list-reminder not registered' }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
+      const html = await renderAsync(React.createElement(tpl.component, templateData))
+      const subject =
+        typeof tpl.subject === 'function' ? tpl.subject(templateData) : tpl.subject
+      const recipients = (recipientProfiles ?? [])
+        .filter((p: any) => p.email)
+        .map((p: any) => ({ name: p.name, email: p.email }))
+
+      return new Response(
+        JSON.stringify({
+          preview: true,
+          subject,
+          html,
+          recipients,
+          summary: {
+            totalHeadcount,
+            totalAdults,
+            totalElders,
+            totalChildren,
+            guestCount: guestList.length,
+          },
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      )
+    }
+
     for (const recipient of recipientProfiles ?? []) {
       if (!recipient.email) continue
 
       try {
-        await supabase.functions.invoke('send-transactional-email', {
-          body: {
+        const resp = await fetch(`${supabaseUrl}/functions/v1/send-transactional-email`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            // Hardcoded anon JWT — required by the gateway. SUPABASE_ANON_KEY env
+            // returns the new sb_publishable_ format which the gateway rejects.
+            Authorization: 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlremFhbHN3a2FqdGF4ZWp5c2t3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUyOTMxMzksImV4cCI6MjA5MDg2OTEzOX0.l6J3gnjuaBXgIMjDgffn6T5N9hJAVkcB4PCoVO3WZWg',
+            'x-internal-secret': supabaseServiceKey,
+          },
+          body: JSON.stringify({
             templateName: 'guest-list-reminder',
             recipientEmail: recipient.email,
-            idempotencyKey: `guest-list-${event.id}-${recipient.id}-${mode}`,
+            idempotencyKey: `guest-list-${event.id}-${recipient.id}-${mode}-${Date.now()}`,
             templateData: {
               ...templateData,
               recipientName: recipient.name || undefined,
             },
-          },
+          }),
         })
-        totalSent++
-        console.log(`Sent guest list to ${recipient.email} for event ${event.title}`)
+        if (!resp.ok) {
+          const txt = await resp.text()
+          console.error(`send-transactional-email ${resp.status} for ${recipient.email}: ${txt}`)
+        } else {
+          totalSent++
+          console.log(`Sent guest list to ${recipient.email} for event ${event.title}`)
+        }
       } catch (e) {
         console.error(`Failed to send guest list to ${recipient.email}:`, e)
       }
     }
 
-    // Record that we sent
     await supabase.from('guest_list_reminders_sent').insert({
       event_id: event.id,
       trigger_type: mode,

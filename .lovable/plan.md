@@ -1,52 +1,33 @@
-## Problem
+## Root Causes
 
-Three views of the same potluck data are out of sync:
+**1. "Send guest list" — emails never delivered**
+`send-guest-list-reminder` returns `{ sent: 6 }` and the client toasts success, but every inner call to `send-transactional-email` fails with **HTTP 401** (confirmed via edge logs at 19:40). Cause: `send-transactional-email` validates the caller with `supabase.auth.getClaims(token)`, which rejects the **service-role** JWT that `supabase.functions.invoke()` automatically attaches when called from inside another edge function. Result: every send 401s, the failure is swallowed by the `try/catch` inside the loop, and `email_send_log` never receives a row.
 
-1. **Event card "Current Menu"** (member view) — uses the `get_event_potluck_menu` RPC, which unions both `rsvp_sign_up_selections` (claims against admin items) and legacy `rsvps.specific_food_item` text. Shows everything correctly.
-2. **Admin → Event → Potluck Sign-ups tab** — shows `0` claimed for every item even though selections exist in the DB.
-3. **Admin → Event → Guest List → "Potluck Menu (Host View)"** — only lists `rsvps.specific_food_item` (legacy free-text). Doesn't include items members claimed from the admin sign-up list.
-
-I verified the data in the DB for the upcoming Thursday Gathering: 21 selection rows exist (e.g. Arabic Coffee × 2, Side Dish × 4, Dessert × 7, Karak × 3, Juice × 1, Other × 4) but the admin sign-up table shows 0 across the board.
-
-## Root causes
-
-**Bug A — Admin Potluck Sign-ups tab shows 0 claimed**
-In `src/components/admin/EventRsvpDetail.tsx`, the `admin-signup-items` query:
-- Reads `rsvpIds` from the outer `rsvps` state at execution time
-- But its `queryKey` is `["admin-signup-items", eventId]` — does **not** depend on `rsvps`
-- And it has `enabled: hasPotluck`, so it fires before the `rsvps` query resolves
-- Result: `rsvpIds = []` → `selections: []` → all rows show 0, and it never refetches when RSVPs load
-
-**Bug B — Host View potluck list is incomplete**
-`src/components/HostDashboard.tsx` builds `potluckItems` only from `r.specific_food_item`. It ignores `rsvp_sign_up_selections`, so any member who claimed a structured item (e.g. "Arabic Coffee") never appears in the Host View list — even though they show up in the member-facing Current Menu.
+**2. "Preview" button — shows "Nothing to preview"**
+The client (`EventRsvpDetail.handlePreviewGuestList`) calls `send-guest-list-reminder` with `{ event_id, preview: true }` and expects `{ html, subject, recipients, summary }` back. But the edge function **has no preview branch** — it ignores `preview`, actually sends the emails, and returns `{ sent: N }`. So the dialog never opens AND every preview click silently fires real (failing) sends.
 
 ## Fix
 
-### 1. `src/components/admin/EventRsvpDetail.tsx`
-- Make the `admin-signup-items` query depend on RSVPs:
-  - Set `enabled: hasPotluck && !!rsvps`
-  - Include rsvp ids (or just `rsvps?.length`) in the `queryKey` so it re-runs after RSVPs load
-- No other logic changes; `potluckRows` already correctly aggregates `totalClaimed` and `claimants` once selections are present.
+### A. `supabase/functions/send-transactional-email/index.ts`
+Allow service-role callers to bypass `getClaims()`:
+- After reading the `Authorization` header, if `token === Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')`, skip the `getClaims` check and proceed (this is exactly the case for server-to-server invocations from other edge functions / DB triggers).
+- Otherwise keep current `getClaims` validation for end-user calls.
 
-### 2. `src/components/HostDashboard.tsx`
-- Fetch `rsvp_sign_up_selections` joined to `event_sign_up_items` for this event (alongside the existing rsvps query) so the Host View can list every claimed dish, not just legacy free-text.
-- Build the Potluck Menu (Host View) list from both sources, mirroring the unioned shape used by the member-facing menu:
-  - Structured claims → `"<item_name>" — <family/name>` (with optional description in parens)
-  - Legacy `specific_food_item` → unchanged
-- Keep the existing dependency map, sort by item order, and continue to show family/name attribution.
+### B. `supabase/functions/send-guest-list-reminder/index.ts`
+Add a `preview` mode:
+- Parse `body.preview === true` alongside `event_id`.
+- When `preview` is true: build the same `templateData`, render the `guest-list-reminder` template via `renderAsync(React.createElement(template.component, templateData))` (import from `../_shared/transactional-email-templates/registry.ts`), resolve `template.subject`, collect recipient emails (host + admins + moderators) but **do NOT enqueue or send anything** and **do NOT insert into `guest_list_reminders_sent`**.
+- Return `{ preview: true, subject, html, recipients, summary: { totalHeadcount, totalAdults, totalElders, totalChildren, guestCount: guestList.length } }`.
+- Existing non-preview path is unchanged.
 
-### 3. No DB or RPC changes needed
-The `get_event_potluck_menu` RPC already returns the unioned view used by the event card, so the member-facing Current Menu stays as-is. After the fixes above, all three surfaces are driven by the same underlying data:
+### C. Redeploy both functions (auto-deploy on save).
 
-```text
-event_sign_up_items  ──┐
-                       ├── unioned view ─── Event card "Current Menu"   (RPC, unchanged)
-rsvp_sign_up_selections┘                ─── Host View potluck list      (fix #2)
-                                        ─── Admin Potluck Sign-ups tab  (fix #1)
-rsvps.specific_food_item (legacy free text) participates in all three
-```
+## Verification
+1. Click **Preview** on Thursday Gathering admin → preview dialog opens with rendered HTML; no rows added to `guest_list_reminders_sent`; no rows added to `email_send_log`.
+2. Click **Send guest list** → toast success; `email_send_log` shows ~6 new `pending → sent` rows for `guest-list-reminder`; recipients (host + admins + moderators) actually receive the email.
+3. Edge logs for `send-transactional-email` show `200`, no more `401`.
 
-### Verification
-- Re-open the Thursday Gathering admin panel → Potluck Sign-ups should show non-zero "Claimed" counts and member names matching the DB (Arabic Coffee 2, Side Dish 4, Dessert 7, Karak 3, Juice 1, Other 4).
-- Open Guest List → Potluck Menu (Host View) should now also list the structured claims (Arabic Coffee, Side Dish dishes, etc.), not only the "Surprise Dish" / "Cake" / "Biryani" free-text entries.
-- Member-facing event card "Current Menu" remains unchanged.
+## Notes
+- No DB schema or RLS changes needed.
+- No client changes needed — `EventRsvpDetail` already sends `preview: true` and consumes `{ html, subject, recipients, summary }`.
+- Other server-to-server callers of `send-transactional-email` (e.g. `promote_waitlisted_on_cancel` DB trigger using service-role bearer, `send-event-reminders`, `send-event-broadcast`, `notify-guest-rejected`) will also start working if they were silently 401-ing.
