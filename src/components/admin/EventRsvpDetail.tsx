@@ -60,8 +60,8 @@ export default function EventRsvpDetail({ eventId, eventTitle, eventDate, checki
 
   // Fetch sign-up items + selections for potluck
   const { data: signUpData } = useQuery({
-    queryKey: ["admin-signup-items", eventId],
-    enabled: hasPotluck,
+    queryKey: ["admin-signup-items", eventId, (rsvps ?? []).map((r) => r.id).sort().join(",")],
+    enabled: hasPotluck && !!rsvps,
     queryFn: async () => {
       const { data: items, error: iErr } = await supabase
         .from("event_sign_up_items")
