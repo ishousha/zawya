@@ -236,8 +236,14 @@ Deno.serve(async (req) => {
       if (!recipient.email) continue
 
       try {
-        await supabase.functions.invoke('send-transactional-email', {
-          body: {
+        const resp = await fetch(`${supabaseUrl}/functions/v1/send-transactional-email`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${supabaseServiceKey}`,
+            apikey: supabaseServiceKey,
+          },
+          body: JSON.stringify({
             templateName: 'guest-list-reminder',
             recipientEmail: recipient.email,
             idempotencyKey: `guest-list-${event.id}-${recipient.id}-${mode}-${Date.now()}`,
@@ -245,10 +251,15 @@ Deno.serve(async (req) => {
               ...templateData,
               recipientName: recipient.name || undefined,
             },
-          },
+          }),
         })
-        totalSent++
-        console.log(`Sent guest list to ${recipient.email} for event ${event.title}`)
+        if (!resp.ok) {
+          const txt = await resp.text()
+          console.error(`send-transactional-email ${resp.status} for ${recipient.email}: ${txt}`)
+        } else {
+          totalSent++
+          console.log(`Sent guest list to ${recipient.email} for event ${event.title}`)
+        }
       } catch (e) {
         console.error(`Failed to send guest list to ${recipient.email}:`, e)
       }
