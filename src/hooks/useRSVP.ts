@@ -147,15 +147,18 @@ async function checkWaitlistStatus(
 
   if (!capacity) return false;
 
-  const { count: confirmedCount, error: cErr } = await supabase
+  const { data: confirmedRows, error: cErr } = await supabase
     .from("rsvps")
-    .select("*", { count: "exact", head: true })
+    .select("guests_count")
     .eq("event_id", eventId)
     .eq("status", "attending")
     .neq("user_id", currentUserId);
   if (cErr) throw cErr;
 
-  const confirmed = confirmedCount ?? 0;
+  const confirmed = (confirmedRows ?? []).reduce(
+    (sum, r: any) => sum + (r.guests_count ?? 1),
+    0
+  );
   if (confirmed < capacity) return false;
 
   const { count: waitlistedCount, error: wErr } = await supabase
