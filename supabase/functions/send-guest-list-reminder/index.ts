@@ -241,8 +241,9 @@ Deno.serve(async (req) => {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            Authorization: `Bearer ${supabaseServiceKey}`,
+            Authorization: `Bearer ${supabaseAnonKey}`,
             apikey: supabaseAnonKey,
+            'x-internal-secret': supabaseServiceKey,
           },
           body: JSON.stringify({
             templateName: 'guest-list-reminder',
