@@ -241,7 +241,9 @@ Deno.serve(async (req) => {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            Authorization: `Bearer ${supabaseAnonKey}`,
+            // Hardcoded anon JWT — required by the gateway. SUPABASE_ANON_KEY env
+            // returns the new sb_publishable_ format which the gateway rejects.
+            Authorization: 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlremFhbHN3a2FqdGF4ZWp5c2t3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUyOTMxMzksImV4cCI6MjA5MDg2OTEzOX0.l6J3gnjuaBXgIMjDgffn6T5N9hJAVkcB4PCoVO3WZWg',
             'x-internal-secret': supabaseServiceKey,
           },
           body: JSON.stringify({
