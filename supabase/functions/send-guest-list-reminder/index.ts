@@ -241,8 +241,7 @@ Deno.serve(async (req) => {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            Authorization: `Bearer ${supabaseAnonKey}`,
-            apikey: supabaseAnonKey,
+            Authorization: `Bearer ${supabaseServiceKey}`,
             'x-internal-secret': supabaseServiceKey,
           },
           body: JSON.stringify({
