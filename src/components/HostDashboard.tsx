@@ -33,6 +33,27 @@ export default function HostDashboard({ eventId }: HostDashboardProps) {
     },
   });
 
+  const { data: signUpData } = useQuery({
+    queryKey: ["host-signup-items", eventId, (rsvps ?? []).map((r) => r.id).sort().join(",")],
+    enabled: !!rsvps && rsvps.length > 0,
+    queryFn: async () => {
+      const { data: items, error: iErr } = await supabase
+        .from("event_sign_up_items")
+        .select("id, item_name, order_index")
+        .eq("event_id", eventId)
+        .order("order_index");
+      if (iErr) throw iErr;
+      const rsvpIds = (rsvps ?? []).map((r) => r.id);
+      if (rsvpIds.length === 0 || !items || items.length === 0) return { items: items ?? [], selections: [] };
+      const { data: sels, error: sErr } = await supabase
+        .from("rsvp_sign_up_selections")
+        .select("rsvp_id, sign_up_item_id, quantity, description")
+        .in("rsvp_id", rsvpIds);
+      if (sErr) throw sErr;
+      return { items, selections: sels ?? [] };
+    },
+  });
+
   // Realtime: auto-refresh when RSVPs change (check-ins, new RSVPs, cancellations)
   useEffect(() => {
     const channel = supabase
@@ -74,12 +95,32 @@ export default function HostDashboard({ eventId }: HostDashboardProps) {
 
   const totalHeadcount = totalAdults + totalChildren;
 
-  const potluckItems = rsvps
+  const rsvpById = new Map(rsvps.map((r) => [r.id, r]));
+  const itemById = new Map((signUpData?.items ?? []).map((i: any) => [i.id, i]));
+
+  const structuredPotluck = (signUpData?.selections ?? []).flatMap((s: any) => {
+    const r: any = rsvpById.get(s.rsvp_id);
+    if (!r || r.status === "cancelled") return [];
+    const item: any = itemById.get(s.sign_up_item_id);
+    const itemName = item?.item_name || "Item";
+    const desc = (s.description ?? "").toString().trim();
+    const dish = desc ? `${itemName} — ${desc}` : itemName;
+    return [{
+      dish,
+      family: (r.profiles as any)?.family_name || (r.profiles as any)?.name || "Unknown",
+      order: item?.order_index ?? 9000,
+    }];
+  });
+
+  const legacyPotluck = rsvps
     .filter((r) => r.specific_food_item?.trim())
     .map((r) => ({
-      dish: r.specific_food_item!,
+      dish: r.specific_food_item!.trim(),
       family: (r.profiles as any)?.family_name || (r.profiles as any)?.name || "Unknown",
+      order: 9999,
     }));
+
+  const potluckItems = [...structuredPotluck, ...legacyPotluck].sort((a, b) => a.order - b.order);
 
   const checkedInCount = rsvps.filter((r) => r.checked_in).length;
 
