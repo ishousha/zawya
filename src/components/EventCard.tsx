@@ -53,8 +53,20 @@ function EventCardInner({ event, onShowTicket, isPast = false }: EventCardProps)
   const isWaitlisted = myRSVP?.status === "waitlisted";
   const isCancelled = event.status === "cancelled";
 
-  const confirmedCount = useMemo(() => allRsvps?.filter((r) => r.status === "attending").length ?? 0, [allRsvps]);
-  const checkedInCount = useMemo(() => allRsvps?.filter((r) => r.checked_in && r.status === "attending").length ?? 0, [allRsvps]);
+  const confirmedCount = useMemo(
+    () =>
+      allRsvps
+        ?.filter((r) => r.status === "attending")
+        .reduce((sum, r) => sum + (r.guests_count ?? 1), 0) ?? 0,
+    [allRsvps]
+  );
+  const checkedInCount = useMemo(
+    () =>
+      allRsvps
+        ?.filter((r) => r.checked_in && r.status === "attending")
+        .reduce((sum, r) => sum + (r.guests_count ?? 1), 0) ?? 0,
+    [allRsvps]
+  );
   const isFull = !!event.capacity && confirmedCount >= event.capacity;
 
   // Modality flags
