@@ -5,7 +5,6 @@ import { supabase } from "@/integrations/supabase/client";
  * Prefetch data for the Home tab.
  */
 export function prefetchHome(queryClient: QueryClient) {
-  const now = new Date().toISOString();
   const fallbackCutoff = new Date(Date.now() - 60 * 60 * 1000).toISOString();
 
   queryClient.prefetchQuery({
