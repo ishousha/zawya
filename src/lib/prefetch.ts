@@ -6,7 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
  */
 export function prefetchHome(queryClient: QueryClient) {
   const now = new Date().toISOString();
-  const fallbackCutoff = new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString();
+  const fallbackCutoff = new Date(Date.now() - 60 * 60 * 1000).toISOString();
 
   queryClient.prefetchQuery({
     queryKey: ["events"],
