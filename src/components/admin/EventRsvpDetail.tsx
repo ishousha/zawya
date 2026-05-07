@@ -457,19 +457,75 @@ export default function EventRsvpDetail({ eventId, eventTitle, eventDate, checki
                                 </Badge>
                               </TableCell>
                               <TableCell className="py-2">
-                                {row.claimants.length === 0 ? (
-                                  <span className="text-muted-foreground text-xs">—</span>
-                                ) : (
-                                  <div className="space-y-0.5">
-                                    {row.claimants.map((c, i) => (
-                                      <p key={i} className="text-xs">
-                                        {c.name}
-                                        {c.description && <span className="text-muted-foreground"> ({c.description})</span>}
-                                        {c.quantity > 1 && <span className="text-muted-foreground"> ×{c.quantity}</span>}
-                                      </p>
-                                    ))}
-                                  </div>
-                                )}
+                                <div className="space-y-1.5">
+                                  {row.claimants.map((c) => (
+                                    <div key={c.selectionId} className="flex items-center gap-1.5 flex-wrap">
+                                      <Select
+                                        value={String(c.rsvpId ?? "")}
+                                        onValueChange={(val) => {
+                                          if (val && val !== String(c.rsvpId)) {
+                                            reassignItem.mutate({ selectionId: c.selectionId, rsvpId: val });
+                                          }
+                                        }}
+                                      >
+                                        <SelectTrigger className="h-7 text-xs w-[160px]">
+                                          <SelectValue>{c.name}</SelectValue>
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          {attending.map((r: any) => (
+                                            <SelectItem key={r.id} value={r.id} className="text-xs">
+                                              {r.profile?.name || "Unknown"}
+                                            </SelectItem>
+                                          ))}
+                                        </SelectContent>
+                                      </Select>
+                                      {c.description && <span className="text-[11px] text-muted-foreground">({c.description})</span>}
+                                      <Button
+                                        size="icon"
+                                        variant="ghost"
+                                        className="h-6 w-6 text-destructive hover:text-destructive"
+                                        onClick={() => removeAssignment.mutate(c.selectionId)}
+                                        title="Remove assignment"
+                                      >
+                                        <Trash2 className="h-3.5 w-3.5" />
+                                      </Button>
+                                    </div>
+                                  ))}
+                                  {(row.quantityLimit === 0 || row.totalClaimed < row.quantityLimit) && (
+                                    <div className="flex items-center gap-1.5">
+                                      <Select
+                                        value={assignSelections[row.id] || ""}
+                                        onValueChange={(val) => setAssignSelections((s) => ({ ...s, [row.id]: val }))}
+                                      >
+                                        <SelectTrigger className="h-7 text-xs w-[160px]">
+                                          <SelectValue placeholder="Assign to…" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          {attending.map((r: any) => (
+                                            <SelectItem key={r.id} value={r.id} className="text-xs">
+                                              {r.profile?.name || "Unknown"}
+                                            </SelectItem>
+                                          ))}
+                                        </SelectContent>
+                                      </Select>
+                                      <Button
+                                        size="icon"
+                                        variant="ghost"
+                                        className="h-6 w-6"
+                                        disabled={!assignSelections[row.id]}
+                                        onClick={() => {
+                                          const rsvpId = assignSelections[row.id];
+                                          if (rsvpId) {
+                                            assignItem.mutate({ itemId: row.id, rsvpId });
+                                            setAssignSelections((s) => ({ ...s, [row.id]: "" }));
+                                          }
+                                        }}
+                                      >
+                                        <Plus className="h-3.5 w-3.5" />
+                                      </Button>
+                                    </div>
+                                  )}
+                                </div>
                               </TableCell>
                             </TableRow>
                           ))}
