@@ -264,6 +264,7 @@ export default function RSVPModal({ event, open, onOpenChange }: RSVPModalProps)
           attending_dependents: attendingDeps,
           specific_food_item: foodItem,
           selections: selArray,
+          forceAttending: isAdminOrMod,
         });
         if (result.status === "waitlisted") {
           toast.success("Added to the Waitlist", {
