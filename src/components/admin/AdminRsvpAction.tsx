@@ -64,6 +64,8 @@ export default function AdminRsvpAction({ userId, userName, existingRsvps = [] }
         event_id: selectedEvent,
         user_id: userId,
         guests_count: 1,
+        status: "attending",
+        is_waitlisted: false,
       });
       if (error) throw error;
     },
