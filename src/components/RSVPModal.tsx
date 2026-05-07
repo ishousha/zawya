@@ -132,17 +132,21 @@ export default function RSVPModal({ event, open, onOpenChange }: RSVPModalProps)
     });
   };
 
-  // Calculate claimed counts per item (excluding current user)
+  // Calculate claimed counts per item (excluding current user's own selections)
   const claimedPerItem = useMemo(() => {
     const map: Record<number, number> = {};
-    if (!allSelections) return map;
-    for (const sel of allSelections) {
-      if (myRSVP && sel.rsvp_id === myRSVP.id) continue;
-      const itemId = Number(sel.sign_up_item_id);
-      map[itemId] = (map[itemId] || 0) + sel.quantity;
+    if (!claimsAgg) return map;
+    for (const row of claimsAgg) {
+      map[Number(row.sign_up_item_id)] = row.total_quantity;
+    }
+    if (mySelections) {
+      for (const sel of mySelections) {
+        const itemId = Number(sel.sign_up_item_id);
+        map[itemId] = Math.max(0, (map[itemId] ?? 0) - sel.quantity);
+      }
     }
     return map;
-  }, [allSelections, myRSVP]);
+  }, [claimsAgg, mySelections]);
 
   const showSignUpItems = event.has_potluck !== false && signUpItems && signUpItems.length > 0;
   const isPotluck = event.has_potluck === true;
