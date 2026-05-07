@@ -96,6 +96,57 @@ export default function EventRsvpDetail({ eventId, eventTitle, eventDate, checki
   const attending = useMemo(() => (rsvps ?? []).filter((r) => r.status === "attending" && !r.is_waitlisted), [rsvps]);
   const waitlisted = useMemo(() => (rsvps ?? []).filter((r) => r.status === "waitlisted" || r.is_waitlisted), [rsvps]);
 
+  const invalidatePotluck = () => {
+    queryClient.invalidateQueries({ queryKey: ["admin-signup-items", eventId] });
+    queryClient.invalidateQueries({ queryKey: ["potluck-menu", eventId] });
+    queryClient.invalidateQueries({ queryKey: ["signup-claims", eventId] });
+    queryClient.invalidateQueries({ queryKey: ["event-selections", eventId] });
+  };
+
+  const assignItem = useMutation({
+    mutationFn: async ({ itemId, rsvpId }: { itemId: number; rsvpId: string }) => {
+      const { error } = await supabase
+        .from("rsvp_sign_up_selections")
+        .insert({ sign_up_item_id: itemId, rsvp_id: rsvpId, quantity: 1 });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      invalidatePotluck();
+      toast.success("Item assigned");
+    },
+    onError: (e: any) => toast.error(e?.message || "Failed to assign"),
+  });
+
+  const removeAssignment = useMutation({
+    mutationFn: async (selectionId: number) => {
+      const { error } = await supabase
+        .from("rsvp_sign_up_selections")
+        .delete()
+        .eq("id", selectionId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      invalidatePotluck();
+      toast.success("Assignment removed");
+    },
+    onError: (e: any) => toast.error(e?.message || "Failed to remove"),
+  });
+
+  const reassignItem = useMutation({
+    mutationFn: async ({ selectionId, rsvpId }: { selectionId: number; rsvpId: string }) => {
+      const { error } = await supabase
+        .from("rsvp_sign_up_selections")
+        .update({ rsvp_id: rsvpId })
+        .eq("id", selectionId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      invalidatePotluck();
+      toast.success("Item reassigned");
+    },
+    onError: (e: any) => toast.error(e?.message || "Failed to reassign"),
+  });
+
   // Build potluck table rows
   const potluckRows = useMemo(() => {
     if (!signUpData) return [];
