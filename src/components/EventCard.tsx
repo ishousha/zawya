@@ -478,14 +478,14 @@ function EventCardInner({ event, onShowTicket, isPast = false }: EventCardProps)
                     <p className="text-xs text-muted-foreground text-center">{genderBlock.helper}</p>
                   </div>
                 ) : (
-                  isFull && event.waitlist_capacity <= 0 ? (
+                  fullyClosed ? (
                     <Button
                       size="sm"
-                      className="w-full"
+                      className="w-full opacity-60"
                       variant="secondary"
                       disabled
                     >
-                      Event Full
+                      {waitlistFull ? "Waitlist Full" : "Event Full"}
                     </Button>
                   ) : (
                   <Button
