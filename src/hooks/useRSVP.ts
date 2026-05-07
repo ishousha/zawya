@@ -217,6 +217,8 @@ export function useRSVPConcurrency(eventId: string) {
 
   const invalidateAll = () => {
     queryClient.invalidateQueries({ queryKey: ["rsvps", eventId] });
+    queryClient.invalidateQueries({ queryKey: ["rsvp-counts", eventId] });
+    queryClient.invalidateQueries({ queryKey: ["signup-claims", eventId] });
     queryClient.invalidateQueries({ queryKey: ["my-rsvp", eventId, user?.id] });
     queryClient.invalidateQueries({ queryKey: ["event-selections", eventId] });
     queryClient.invalidateQueries({ queryKey: ["my-selections"] });
