@@ -234,10 +234,13 @@ export function useRSVPConcurrency(eventId: string) {
       specific_food_item?: string | null;
       attending_dependents?: Record<string, any>[] | null;
       selections?: { sign_up_item_id: number; quantity: number; description?: string | null }[];
+      forceAttending?: boolean;
     }) => {
       if (!user) throw new Error("Not authenticated");
 
-      const isWaitlisted = await checkWaitlistStatus(eventId, user.id);
+      const isWaitlisted = input.forceAttending
+        ? false
+        : await checkWaitlistStatus(eventId, user.id);
       const rsvpId = crypto.randomUUID();
       const qrHash = await generateQRHash(rsvpId);
 
