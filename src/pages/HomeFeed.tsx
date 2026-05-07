@@ -31,27 +31,26 @@ export default function HomeFeed() {
     queryKey: ["events", tab],
     staleTime: 60_000,
     queryFn: async () => {
-      const now = new Date().toISOString();
+      // Keep events visible for 60 minutes past their end so late arrivals can still check in.
+      const graceCutoff = new Date(Date.now() - 60 * 60 * 1000).toISOString();
 
       if (tab === "past") {
-        const fallbackCutoff = new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString();
         const { data, error } = await supabase
           .from("events")
           .select("*")
           .in("status", ["active", "full", "cancelled"])
-          .or(`end_date_time.lt.${now},and(end_date_time.is.null,date_time.lt.${fallbackCutoff})`)
+          .or(`end_date_time.lt.${graceCutoff},and(end_date_time.is.null,date_time.lt.${graceCutoff})`)
           .order("date_time", { ascending: false })
           .limit(20);
         if (error) throw error;
         return data as unknown as Event[];
       }
 
-      const fallbackCutoff = new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString();
       const { data, error } = await supabase
         .from("events")
         .select("*")
         .in("status", ["active", "full", "cancelled"])
-        .or(`end_date_time.gte.${now},and(end_date_time.is.null,date_time.gte.${fallbackCutoff})`)
+        .or(`end_date_time.gte.${graceCutoff},and(end_date_time.is.null,date_time.gte.${graceCutoff})`)
         .order("date_time", { ascending: true })
         .limit(10);
       if (error) throw error;
