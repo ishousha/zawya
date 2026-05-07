@@ -159,7 +159,7 @@ export default function EventRsvpDetail({ eventId, eventTitle, eventDate, checki
       const claimants = itemSelections.map((s) => {
         const rsvp = rsvpMap.get(s.rsvp_id);
         const name = (rsvp?.profile as any)?.name || "Unknown";
-        return { selectionId: s.id, name, quantity: s.quantity ?? 1, description: s.description || "" };
+        return { selectionId: s.id, rsvpId: s.rsvp_id, name, quantity: s.quantity ?? 1, description: s.description || "" };
       });
       return {
         id: item.id,
