@@ -98,14 +98,11 @@ function EventCardInner({ event, onShowTicket, isPast = false }: EventCardProps)
     return () => clearInterval(interval);
   }, [isVirtual, isLinkActive]);
 
-  // Calculate waitlist position for the current user
+  // Waitlist position not available without full row access; fall back to total waitlisted count
   const waitlistPosition = useMemo(() => {
-    if (!isWaitlisted || !allRsvps) return 0;
-    return allRsvps
-      .filter((r) => r.status === "waitlisted")
-      .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
-      .findIndex((r) => r.user_id === myRSVP?.user_id) + 1;
-  }, [isWaitlisted, allRsvps, myRSVP?.user_id]);
+    if (!isWaitlisted) return 0;
+    return waitlistedCount;
+  }, [isWaitlisted, waitlistedCount]);
 
   // Check if this is a virtual-only event type (no location required)
   const requiresLocation = eventType?.requires_location ?? true;
