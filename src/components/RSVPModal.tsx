@@ -45,7 +45,7 @@ export default function RSVPModal({ event, open, onOpenChange }: RSVPModalProps)
   const { user } = useAuth();
   const { data: myRSVP } = useMyRSVP(event.id);
   const { data: signUpItems } = useSignUpItems(event.id);
-  const { data: allSelections } = useEventSelections(event.id);
+  const { data: claimsAgg } = useEventSignUpClaims(event.id);
   const { data: mySelections } = useMySelections(myRSVP?.id);
   const { data: dependents } = useDependents();
   const { data: familyMembers } = useFamilyMembers();
