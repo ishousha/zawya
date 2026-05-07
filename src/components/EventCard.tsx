@@ -496,7 +496,9 @@ function EventCardInner({ event, onShowTicket, isPast = false }: EventCardProps)
                     className="w-full"
                     variant={isFull ? "outline" : "default"}
                   >
-                    {isFull ? (
+                    {adminOverride ? (
+                      "Force RSVP"
+                    ) : isFull ? (
                       <>
                         <ClockIcon className="mr-1.5 h-3.5 w-3.5" />
                         Join Waitlist
