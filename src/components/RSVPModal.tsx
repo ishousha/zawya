@@ -682,6 +682,8 @@ export default function RSVPModal({ event, open, onOpenChange }: RSVPModalProps)
             </AlertDialog>
           )}
         </div>
+        </>
+        )}
       </DialogContent>
     </Dialog>
   );
