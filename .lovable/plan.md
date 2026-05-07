@@ -1,57 +1,43 @@
 ## Bug
-Non-admin members see `0/50 spots` and `0/N claimed` for every potluck item, even though 51 guests have RSVP'd and 26 selections exist. Admins see correct numbers.
-
-## Root cause
-`rsvps` RLS only exposes a user's own row (plus full access for admins/mods/hosts). The client-side hooks aggregate counts from `rsvps` directly:
-
-- `useEventRSVPs` → returns ≤1 row for a regular member → `EventCard` computes `confirmedCount = 0` → shows `0/50 spots`, no waitlist messaging.
-- `useEventSelections` → first queries `rsvps` for ids (returns nothing) → never fetches the selections that the broader `rsvp_sign_up_selections` SELECT policy would actually allow → every item reads `0/N claimed`.
-
-We can't simply broaden `rsvps` RLS — those rows contain PII (user_id, dependents, food prefs, qr_hash). Need server-side aggregation.
+Events disappear from the Home "Upcoming" tab the moment their end time passes. Late-arriving members lose access to the event card (and the self check-in button along with it).
 
 ## Fix
-Add two `SECURITY DEFINER` RPCs that return only aggregate, non-PII data, then use them on the member-facing card and RSVP modal.
+Keep events on Home for **60 minutes after they end**, so members can still see them, view their ticket, and self check-in if they arrive late.
 
-### 1. DB migration — two RPCs
+### 1. `src/pages/HomeFeed.tsx` — upcoming/past split
 
-**`get_event_rsvp_counts(_event_id uuid)`** returns one row:
-- `attending_count` (SUM of `guests_count` where status='attending')
-- `attending_rsvp_count` (COUNT)
-- `waitlisted_count` (COUNT where status='waitlisted')
-- `checked_in_count` (SUM of guests_count where checked_in)
+Replace the time filter in both branches of the `events` query:
 
-Visibility check inside the function: caller must be admin/moderator/host of the event, OR the event is `published=true` AND the caller has role `approved`/`guest` (mirroring existing `get_event_potluck_menu` pattern). Returns zeros otherwise.
+- **Upcoming** currently includes events where `end_date_time >= now` OR (no end and `date_time >= now - 4h`). Change to:
+  - `end_date_time >= now - 60 min`, OR
+  - (no `end_date_time` AND `date_time >= now - 60 min`)
+- **Past** is the inverse:
+  - `end_date_time < now - 60 min`, OR
+  - (no `end_date_time` AND `date_time < now - 60 min`)
 
-**`get_event_signup_claims(_event_id uuid)`** returns rows: `sign_up_item_id bigint`, `total_quantity int`. Same visibility check.
+This keeps an event on Home for a full hour after the scheduled end (or after the start time if the event has no end set — admins should set an end time, but we degrade gracefully).
 
-Both functions: `STABLE`, `SECURITY DEFINER`, `SET search_path = public`. `GRANT EXECUTE TO authenticated`.
+### 2. `src/lib/prefetch.ts` — match Home cutoff
 
-### 2. Hook updates (`src/hooks/useRSVP.ts`)
+`prefetchHome` uses the same 4-hour fallback. Update it to the new 60-minute grace so the prefetched cache matches what HomeFeed actually queries (avoids a flicker).
 
-- Add `useEventRsvpCounts(eventId)` calling `supabase.rpc("get_event_rsvp_counts", { _event_id })`.
-- Add `useEventSignUpClaims(eventId)` calling `supabase.rpc("get_event_signup_claims", { _event_id })`.
-- Keep `useEventRSVPs` and `useEventSelections` unchanged (still used by admin/host dashboards which need full rows).
-- Invalidate the new query keys inside `invalidateAll()` in `useRSVPConcurrency`.
+### 3. `src/components/EventCard.tsx` — check-in stays available during grace
 
-### 3. EventCard (`src/components/EventCard.tsx`)
+The card already opens self check-in via `SelfCheckinModal` when `isCheckinActive` (2 h before start, no upper bound). Currently when `isPast=true` the card collapses to a "Past Event" / "Watch Recording" footer and hides Edit RSVP / View Ticket / check-in.
 
-Replace `useEventRSVPs` usage for the member view with `useEventRsvpCounts`:
-- `confirmedCount` ← `counts.attending_count`
-- `checkedInCount` ← `counts.checked_in_count`
-- `isFull` derivation unchanged (uses `confirmedCount` + `event.capacity`)
-- For waitlist position display (current user's place in line), keep the existing logic but compute against `counts.waitlisted_count` as the total — the user's own rsvp gives them their position only when admin loads it; for non-admins, fall back to "You're on the waitlist" without a numeric position. (Acceptable degradation — current numeric position is already broken for non-admins.)
+With the new cutoff, late-arrival cards stay on the Upcoming tab, so the existing check-in flow naturally works for the full 60-minute grace — no logic change needed inside the card itself, just confirm:
+- `isLiveNow` calculation (`now < endTime`) still drives the "Live now" badge correctly during the actual event window.
+- After the event ends but before the 60-min cutoff, the card simply shows the normal RSVP/Ticket/check-in actions (no "Past Event" UI yet).
 
-### 4. RSVPModal (`src/components/RSVPModal.tsx`)
+No change to the Past tab behavior — once an event is more than 60 min past its end, it moves there as before.
 
-Swap `useEventSelections` for `useEventSignUpClaims`. Build `claimedPerItem` from the RPC rows. Subtract the current user's own selections (already fetched via `useMySelections`) so the claimed count shown to them excludes themselves, matching today's behavior.
+### Out of scope
+- No DB schema changes.
+- No change to RSVP RLS, reminders, or check-in PIN logic.
+- Admin views and EventDetail pages unchanged.
 
-## Out of scope / unchanged
-- Admin `EventRsvpDetail`, `HostDashboard`, `PotluckReclaimReport`, etc. still use `useEventRSVPs`/`useEventSelections` — they have the RLS access they need.
-- No changes to `rsvps` RLS (PII stays protected).
-- `CurrentMenuPreview`/`PotluckMenu` already work via the existing `get_event_potluck_menu` RPC.
-
-## Verification
-1. Log in as a regular approved member, view "Thursday Gathering" — card now shows `51/50 spots` (or capacity-aware label) and waitlist messaging when full.
-2. Open RSVP modal — each potluck item shows the correct `X/Y claimed` matching admin view.
-3. Log in as admin — admin views remain unchanged.
-4. Cancel/create an RSVP — counts and claimed numbers refresh via `invalidateAll`.
+### Verification
+1. With an event whose `end_date_time` is 30 min in the past: card still appears on Upcoming, shows ticket + check-in.
+2. Same event 61 min after end: moves to Past tab.
+3. Event with no `end_date_time`, started 30 min ago: stays on Upcoming. 61 min after `date_time`: moves to Past.
+4. Live event during its window: still shows "Live now" badge.
