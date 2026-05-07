@@ -59,7 +59,7 @@ function EventCardInner({ event, onShowTicket, isPast = false }: EventCardProps)
   const isFull = !!event.capacity && confirmedCount >= event.capacity;
   const waitlistFull = isFull && event.waitlist_capacity > 0 && waitlistedCount >= event.waitlist_capacity;
   const noWaitlist = isFull && event.waitlist_capacity <= 0;
-  const fullyClosed = noWaitlist || waitlistFull;
+  const rawFullyClosed = noWaitlist || waitlistFull;
 
   // Modality flags
   const isPhysical = !!event.location && !event.location.match(/^https?:\/\//i);
@@ -73,6 +73,8 @@ function EventCardInner({ event, onShowTicket, isPast = false }: EventCardProps)
   const linkActivatesAt = eventTime - 15 * 60 * 1000;
   const isLinkActive = now.getTime() >= linkActivatesAt;
   const isAdminOrMod = profile?.role === "admin" || profile?.role === "moderator";
+  const fullyClosed = rawFullyClosed && !isAdminOrMod;
+  const adminOverride = rawFullyClosed && isAdminOrMod;
 
   // Gender restriction
   const audienceGender = (event as any).audience_gender as string | undefined;
@@ -494,7 +496,9 @@ function EventCardInner({ event, onShowTicket, isPast = false }: EventCardProps)
                     className="w-full"
                     variant={isFull ? "outline" : "default"}
                   >
-                    {isFull ? (
+                    {adminOverride ? (
+                      "Force RSVP"
+                    ) : isFull ? (
                       <>
                         <ClockIcon className="mr-1.5 h-3.5 w-3.5" />
                         Join Waitlist
