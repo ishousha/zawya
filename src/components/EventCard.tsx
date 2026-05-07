@@ -3,7 +3,7 @@ import { format } from "date-fns";
 import { MapPin, Video, Users, Calendar, Clock, CheckCircle2, Ticket, Edit, Building2, ExternalLink, Ban, BookOpen, Mountain, Handshake, ClockIcon, ScanLine, Lock, Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
-import { useMyRSVP, useEventRSVPs } from "@/hooks/useRSVP";
+import { useMyRSVP, useEventRsvpCounts } from "@/hooks/useRSVP";
 import { useEventTypes, getEventTypeIcon } from "@/hooks/useEventTypes";
 import RSVPModal from "@/components/RSVPModal";
 import SelfCheckinModal from "@/components/SelfCheckinModal";
@@ -31,7 +31,7 @@ function EventCardInner({ event, onShowTicket, isPast = false }: EventCardProps)
   const typeLabel = eventType?.name ?? "Event";
 
   const { data: myRSVP } = useMyRSVP(event.id);
-  const { data: allRsvps } = useEventRSVPs(event.id);
+  const { data: counts } = useEventRsvpCounts(event.id);
   const [rsvpOpen, setRsvpOpen] = useState(false);
   const [checkinOpen, setCheckinOpen] = useState(false);
   const [now, setNow] = useState(() => new Date());
@@ -53,20 +53,9 @@ function EventCardInner({ event, onShowTicket, isPast = false }: EventCardProps)
   const isWaitlisted = myRSVP?.status === "waitlisted";
   const isCancelled = event.status === "cancelled";
 
-  const confirmedCount = useMemo(
-    () =>
-      allRsvps
-        ?.filter((r) => r.status === "attending")
-        .reduce((sum, r) => sum + (r.guests_count ?? 1), 0) ?? 0,
-    [allRsvps]
-  );
-  const checkedInCount = useMemo(
-    () =>
-      allRsvps
-        ?.filter((r) => r.checked_in && r.status === "attending")
-        .reduce((sum, r) => sum + (r.guests_count ?? 1), 0) ?? 0,
-    [allRsvps]
-  );
+  const confirmedCount = counts?.attending_count ?? 0;
+  const checkedInCount = counts?.checked_in_count ?? 0;
+  const waitlistedCount = counts?.waitlisted_count ?? 0;
   const isFull = !!event.capacity && confirmedCount >= event.capacity;
 
   // Modality flags
@@ -109,14 +98,11 @@ function EventCardInner({ event, onShowTicket, isPast = false }: EventCardProps)
     return () => clearInterval(interval);
   }, [isVirtual, isLinkActive]);
 
-  // Calculate waitlist position for the current user
+  // Waitlist position not available without full row access; fall back to total waitlisted count
   const waitlistPosition = useMemo(() => {
-    if (!isWaitlisted || !allRsvps) return 0;
-    return allRsvps
-      .filter((r) => r.status === "waitlisted")
-      .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
-      .findIndex((r) => r.user_id === myRSVP?.user_id) + 1;
-  }, [isWaitlisted, allRsvps, myRSVP?.user_id]);
+    if (!isWaitlisted) return 0;
+    return waitlistedCount;
+  }, [isWaitlisted, waitlistedCount]);
 
   // Check if this is a virtual-only event type (no location required)
   const requiresLocation = eventType?.requires_location ?? true;

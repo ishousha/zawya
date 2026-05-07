@@ -1071,6 +1071,22 @@ export type Database = {
           quantity: number
         }[]
       }
+      get_event_rsvp_counts: {
+        Args: { _event_id: string }
+        Returns: {
+          attending_count: number
+          attending_rsvp_count: number
+          checked_in_count: number
+          waitlisted_count: number
+        }[]
+      }
+      get_event_signup_claims: {
+        Args: { _event_id: string }
+        Returns: {
+          sign_up_item_id: number
+          total_quantity: number
+        }[]
+      }
       get_my_family_id: { Args: never; Returns: string }
       guest_has_rsvp: {
         Args: { _event_id: string; _user_id: string }

@@ -18,6 +18,40 @@ function getErrorMessage(error: unknown, fallback: string) {
   return fallback;
 }
 
+export function useEventRsvpCounts(eventId: string) {
+  return useQuery({
+    queryKey: ["rsvp-counts", eventId],
+    staleTime: 2 * 60 * 1000,
+    gcTime: 5 * 60 * 1000,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("get_event_rsvp_counts", { _event_id: eventId });
+      if (error) throw error;
+      const row = (data as any[])?.[0];
+      return {
+        attending_count: row?.attending_count ?? 0,
+        attending_rsvp_count: row?.attending_rsvp_count ?? 0,
+        waitlisted_count: row?.waitlisted_count ?? 0,
+        checked_in_count: row?.checked_in_count ?? 0,
+      };
+    },
+    enabled: !!eventId,
+  });
+}
+
+export function useEventSignUpClaims(eventId: string) {
+  return useQuery({
+    queryKey: ["signup-claims", eventId],
+    staleTime: 2 * 60 * 1000,
+    gcTime: 5 * 60 * 1000,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("get_event_signup_claims", { _event_id: eventId });
+      if (error) throw error;
+      return (data as { sign_up_item_id: number; total_quantity: number }[]) ?? [];
+    },
+    enabled: !!eventId,
+  });
+}
+
 export function useEventRSVPs(eventId: string) {
   return useQuery({
     queryKey: ["rsvps", eventId],
@@ -183,6 +217,8 @@ export function useRSVPConcurrency(eventId: string) {
 
   const invalidateAll = () => {
     queryClient.invalidateQueries({ queryKey: ["rsvps", eventId] });
+    queryClient.invalidateQueries({ queryKey: ["rsvp-counts", eventId] });
+    queryClient.invalidateQueries({ queryKey: ["signup-claims", eventId] });
     queryClient.invalidateQueries({ queryKey: ["my-rsvp", eventId, user?.id] });
     queryClient.invalidateQueries({ queryKey: ["event-selections", eventId] });
     queryClient.invalidateQueries({ queryKey: ["my-selections"] });
