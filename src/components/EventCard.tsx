@@ -73,6 +73,8 @@ function EventCardInner({ event, onShowTicket, isPast = false }: EventCardProps)
   const linkActivatesAt = eventTime - 15 * 60 * 1000;
   const isLinkActive = now.getTime() >= linkActivatesAt;
   const isAdminOrMod = profile?.role === "admin" || profile?.role === "moderator";
+  const fullyClosed = rawFullyClosed && !isAdminOrMod;
+  const adminOverride = rawFullyClosed && isAdminOrMod;
 
   // Gender restriction
   const audienceGender = (event as any).audience_gender as string | undefined;
