@@ -5,8 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
  * Prefetch data for the Home tab.
  */
 export function prefetchHome(queryClient: QueryClient) {
-  const now = new Date().toISOString();
-  const fallbackCutoff = new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString();
+  const fallbackCutoff = new Date(Date.now() - 60 * 60 * 1000).toISOString();
 
   queryClient.prefetchQuery({
     queryKey: ["events"],
@@ -16,7 +15,7 @@ export function prefetchHome(queryClient: QueryClient) {
         .from("events")
         .select("id, title, date_time, end_date_time, location, address, maps_url, status, cover_photo_url, event_type_id, capacity, has_potluck, virtual_link, zoom_link, online_link, zoom_password, is_hybrid, host_id, description, venue_id, ticket_fee, mureeds_only, age_group, location_hint, etiquette_notes, payment_instructions, waitlist_capacity, published, scheduled_publish_at, last_published_at, created_at, updated_at")
         .in("status", ["active", "full", "cancelled"])
-        .or(`end_date_time.gte.${now},and(end_date_time.is.null,date_time.gte.${fallbackCutoff})`)
+        .or(`end_date_time.gte.${fallbackCutoff},and(end_date_time.is.null,date_time.gte.${fallbackCutoff})`)
         .order("date_time", { ascending: true })
         .limit(10);
       if (error) throw error;
