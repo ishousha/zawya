@@ -32,7 +32,9 @@ interface Props {
 }
 
 export default function EventRsvpDetail({ eventId, eventTitle, eventDate, checkinPin, hasPotluck, onClose }: Props) {
+  const queryClient = useQueryClient();
   const [showPoster, setShowPoster] = useState(false);
+  const [assignSelections, setAssignSelections] = useState<Record<number, string>>({});
   const [showWalkIn, setShowWalkIn] = useState(false);
   const [sendingGuestList, setSendingGuestList] = useState(false);
   const [previewLoading, setPreviewLoading] = useState(false);
