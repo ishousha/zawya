@@ -335,6 +335,8 @@ export default function RSVPModal({ event, open, onOpenChange }: RSVPModalProps)
             <Button onClick={() => onOpenChange(false)} className="w-full">Close</Button>
           </div>
         ) : (
+        <>
+        <div className="space-y-5 py-2">
         <div className="space-y-5 py-2">
           {/* Virtual event link removed — shown only on EventCard after RSVP + 15-min gate */}
 
