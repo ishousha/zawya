@@ -57,6 +57,9 @@ function EventCardInner({ event, onShowTicket, isPast = false }: EventCardProps)
   const checkedInCount = counts?.checked_in_count ?? 0;
   const waitlistedCount = counts?.waitlisted_count ?? 0;
   const isFull = !!event.capacity && confirmedCount >= event.capacity;
+  const waitlistFull = isFull && event.waitlist_capacity > 0 && waitlistedCount >= event.waitlist_capacity;
+  const noWaitlist = isFull && event.waitlist_capacity <= 0;
+  const fullyClosed = noWaitlist || waitlistFull;
 
   // Modality flags
   const isPhysical = !!event.location && !event.location.match(/^https?:\/\//i);
