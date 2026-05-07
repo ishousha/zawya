@@ -31,7 +31,7 @@ function EventCardInner({ event, onShowTicket, isPast = false }: EventCardProps)
   const typeLabel = eventType?.name ?? "Event";
 
   const { data: myRSVP } = useMyRSVP(event.id);
-  const { data: allRsvps } = useEventRSVPs(event.id);
+  const { data: counts } = useEventRsvpCounts(event.id);
   const [rsvpOpen, setRsvpOpen] = useState(false);
   const [checkinOpen, setCheckinOpen] = useState(false);
   const [now, setNow] = useState(() => new Date());
