@@ -321,6 +321,22 @@ export default function RSVPModal({ event, open, onOpenChange }: RSVPModalProps)
           </DialogTitle>
         </DialogHeader>
 
+        {(() => {
+          const cap = (event as any).capacity as number | null;
+          const wlCap = ((event as any).waitlist_capacity ?? 0) as number;
+          if (!isAdminOrMod || !cap || isEditing) return null;
+          const attending = (allRsvps ?? []).filter((r: any) => r.status === "attending").reduce((s: number, r: any) => s + (r.guests_count ?? 1), 0);
+          const waitlisted = (allRsvps ?? []).filter((r: any) => r.status === "waitlisted").length;
+          const isOver = attending >= cap && (wlCap === 0 || waitlisted >= wlCap);
+          if (!isOver) return null;
+          return (
+            <div className="rounded-md border border-yellow-500/40 bg-yellow-50 dark:bg-yellow-950/20 px-3 py-2 text-xs text-yellow-900 dark:text-yellow-200 flex items-start gap-2">
+              <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
+              <span>This event is full. Your RSVP will be added as a confirmed attendee (admin override).</span>
+            </div>
+          );
+        })()}
+
         {genderBlocked ? (
           <div className="space-y-4 py-4 text-center">
             <p className="text-sm text-foreground">
