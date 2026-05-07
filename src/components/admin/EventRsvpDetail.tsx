@@ -1,5 +1,12 @@
 import { useState, useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,7 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
-import { Loader2, X, Download, UserPlus, Mail, Printer, Users, UtensilsCrossed, CheckCircle2, Eye } from "lucide-react";
+import { Loader2, X, Download, UserPlus, Mail, Printer, Users, UtensilsCrossed, CheckCircle2, Eye, Plus, Trash2 } from "lucide-react";
 import { downloadCsv, zawyaFilename } from "@/lib/csv-export";
 import { toast } from "sonner";
 import HostDashboard from "@/components/HostDashboard";
@@ -25,7 +32,9 @@ interface Props {
 }
 
 export default function EventRsvpDetail({ eventId, eventTitle, eventDate, checkinPin, hasPotluck, onClose }: Props) {
+  const queryClient = useQueryClient();
   const [showPoster, setShowPoster] = useState(false);
+  const [assignSelections, setAssignSelections] = useState<Record<number, string>>({});
   const [showWalkIn, setShowWalkIn] = useState(false);
   const [sendingGuestList, setSendingGuestList] = useState(false);
   const [previewLoading, setPreviewLoading] = useState(false);
@@ -87,6 +96,57 @@ export default function EventRsvpDetail({ eventId, eventTitle, eventDate, checki
   const attending = useMemo(() => (rsvps ?? []).filter((r) => r.status === "attending" && !r.is_waitlisted), [rsvps]);
   const waitlisted = useMemo(() => (rsvps ?? []).filter((r) => r.status === "waitlisted" || r.is_waitlisted), [rsvps]);
 
+  const invalidatePotluck = () => {
+    queryClient.invalidateQueries({ queryKey: ["admin-signup-items", eventId] });
+    queryClient.invalidateQueries({ queryKey: ["potluck-menu", eventId] });
+    queryClient.invalidateQueries({ queryKey: ["signup-claims", eventId] });
+    queryClient.invalidateQueries({ queryKey: ["event-selections", eventId] });
+  };
+
+  const assignItem = useMutation({
+    mutationFn: async ({ itemId, rsvpId }: { itemId: number; rsvpId: string }) => {
+      const { error } = await supabase
+        .from("rsvp_sign_up_selections")
+        .insert({ sign_up_item_id: itemId, rsvp_id: rsvpId, quantity: 1 });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      invalidatePotluck();
+      toast.success("Item assigned");
+    },
+    onError: (e: any) => toast.error(e?.message || "Failed to assign"),
+  });
+
+  const removeAssignment = useMutation({
+    mutationFn: async (selectionId: number) => {
+      const { error } = await supabase
+        .from("rsvp_sign_up_selections")
+        .delete()
+        .eq("id", selectionId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      invalidatePotluck();
+      toast.success("Assignment removed");
+    },
+    onError: (e: any) => toast.error(e?.message || "Failed to remove"),
+  });
+
+  const reassignItem = useMutation({
+    mutationFn: async ({ selectionId, rsvpId }: { selectionId: number; rsvpId: string }) => {
+      const { error } = await supabase
+        .from("rsvp_sign_up_selections")
+        .update({ rsvp_id: rsvpId })
+        .eq("id", selectionId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      invalidatePotluck();
+      toast.success("Item reassigned");
+    },
+    onError: (e: any) => toast.error(e?.message || "Failed to reassign"),
+  });
+
   // Build potluck table rows
   const potluckRows = useMemo(() => {
     if (!signUpData) return [];
@@ -99,7 +159,7 @@ export default function EventRsvpDetail({ eventId, eventTitle, eventDate, checki
       const claimants = itemSelections.map((s) => {
         const rsvp = rsvpMap.get(s.rsvp_id);
         const name = (rsvp?.profile as any)?.name || "Unknown";
-        return { name, quantity: s.quantity ?? 1, description: s.description || "" };
+        return { selectionId: s.id, rsvpId: s.rsvp_id, name, quantity: s.quantity ?? 1, description: s.description || "" };
       });
       return {
         id: item.id,
@@ -397,19 +457,75 @@ export default function EventRsvpDetail({ eventId, eventTitle, eventDate, checki
                                 </Badge>
                               </TableCell>
                               <TableCell className="py-2">
-                                {row.claimants.length === 0 ? (
-                                  <span className="text-muted-foreground text-xs">—</span>
-                                ) : (
-                                  <div className="space-y-0.5">
-                                    {row.claimants.map((c, i) => (
-                                      <p key={i} className="text-xs">
-                                        {c.name}
-                                        {c.description && <span className="text-muted-foreground"> ({c.description})</span>}
-                                        {c.quantity > 1 && <span className="text-muted-foreground"> ×{c.quantity}</span>}
-                                      </p>
-                                    ))}
-                                  </div>
-                                )}
+                                <div className="space-y-1.5">
+                                  {row.claimants.map((c) => (
+                                    <div key={c.selectionId} className="flex items-center gap-1.5 flex-wrap">
+                                      <Select
+                                        value={String(c.rsvpId ?? "")}
+                                        onValueChange={(val) => {
+                                          if (val && val !== String(c.rsvpId)) {
+                                            reassignItem.mutate({ selectionId: c.selectionId, rsvpId: val });
+                                          }
+                                        }}
+                                      >
+                                        <SelectTrigger className="h-7 text-xs w-[160px]">
+                                          <SelectValue>{c.name}</SelectValue>
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          {attending.map((r: any) => (
+                                            <SelectItem key={r.id} value={r.id} className="text-xs">
+                                              {r.profile?.name || "Unknown"}
+                                            </SelectItem>
+                                          ))}
+                                        </SelectContent>
+                                      </Select>
+                                      {c.description && <span className="text-[11px] text-muted-foreground">({c.description})</span>}
+                                      <Button
+                                        size="icon"
+                                        variant="ghost"
+                                        className="h-6 w-6 text-destructive hover:text-destructive"
+                                        onClick={() => removeAssignment.mutate(c.selectionId)}
+                                        title="Remove assignment"
+                                      >
+                                        <Trash2 className="h-3.5 w-3.5" />
+                                      </Button>
+                                    </div>
+                                  ))}
+                                  {(row.quantityLimit === 0 || row.totalClaimed < row.quantityLimit) && (
+                                    <div className="flex items-center gap-1.5">
+                                      <Select
+                                        value={assignSelections[row.id] || ""}
+                                        onValueChange={(val) => setAssignSelections((s) => ({ ...s, [row.id]: val }))}
+                                      >
+                                        <SelectTrigger className="h-7 text-xs w-[160px]">
+                                          <SelectValue placeholder="Assign to…" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          {attending.map((r: any) => (
+                                            <SelectItem key={r.id} value={r.id} className="text-xs">
+                                              {r.profile?.name || "Unknown"}
+                                            </SelectItem>
+                                          ))}
+                                        </SelectContent>
+                                      </Select>
+                                      <Button
+                                        size="icon"
+                                        variant="ghost"
+                                        className="h-6 w-6"
+                                        disabled={!assignSelections[row.id]}
+                                        onClick={() => {
+                                          const rsvpId = assignSelections[row.id];
+                                          if (rsvpId) {
+                                            assignItem.mutate({ itemId: row.id, rsvpId });
+                                            setAssignSelections((s) => ({ ...s, [row.id]: "" }));
+                                          }
+                                        }}
+                                      >
+                                        <Plus className="h-3.5 w-3.5" />
+                                      </Button>
+                                    </div>
+                                  )}
+                                </div>
                               </TableCell>
                             </TableRow>
                           ))}
