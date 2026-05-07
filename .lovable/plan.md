@@ -1,33 +1,38 @@
-## Root Causes
+## Goal
+When an admin increases an event's capacity, automatically promote the oldest waitlisted RSVPs into the new open spots, notify them in-app, and email them — mirroring the behavior that already happens when an attendee cancels.
 
-**1. "Send guest list" — emails never delivered**
-`send-guest-list-reminder` returns `{ sent: 6 }` and the client toasts success, but every inner call to `send-transactional-email` fails with **HTTP 401** (confirmed via edge logs at 19:40). Cause: `send-transactional-email` validates the caller with `supabase.auth.getClaims(token)`, which rejects the **service-role** JWT that `supabase.functions.invoke()` automatically attaches when called from inside another edge function. Result: every send 401s, the failure is swallowed by the `try/catch` inside the loop, and `email_send_log` never receives a row.
+## Approach
+Add a Postgres trigger on `events` that fires AFTER UPDATE when `capacity` changes. It promotes waitlisted RSVPs (oldest first, FIFO by `created_at`) until attending count reaches the new capacity, sends in-app notifications, and calls the existing `send-transactional-email` edge function with the `event-reactivated` template — reusing the same pattern already proven in `promote_waitlisted_on_cancel`.
 
-**2. "Preview" button — shows "Nothing to preview"**
-The client (`EventRsvpDetail.handlePreviewGuestList`) calls `send-guest-list-reminder` with `{ event_id, preview: true }` and expects `{ html, subject, recipients, summary }` back. But the edge function **has no preview branch** — it ignores `preview`, actually sends the emails, and returns `{ sent: N }`. So the dialog never opens AND every preview click silently fires real (failing) sends.
+No client/UI changes required. The capacity field in the admin form already saves via a normal `UPDATE` and invalidates queries, so the EventCard counter refreshes automatically.
 
-## Fix
+## Changes
 
-### A. `supabase/functions/send-transactional-email/index.ts`
-Allow service-role callers to bypass `getClaims()`:
-- After reading the `Authorization` header, if `token === Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')`, skip the `getClaims` check and proceed (this is exactly the case for server-to-server invocations from other edge functions / DB triggers).
-- Otherwise keep current `getClaims` validation for end-user calls.
+### 1. Database migration — new function + trigger
+- `promote_waitlisted_on_capacity_increase()` — SECURITY DEFINER plpgsql function that:
+  - Runs only when `NEW.capacity IS DISTINCT FROM OLD.capacity` AND `NEW.capacity > COALESCE(OLD.capacity, 0)` (skip on decrease/unlimited→limited edge cases where no promotion is needed).
+  - Computes available slots = `NEW.capacity - current attending count`.
+  - Loops through waitlisted RSVPs ordered by `created_at ASC` with `FOR UPDATE SKIP LOCKED`, promoting up to N rows.
+  - For each promoted RSVP: insert into `notifications` (respecting `rsvp` preference) and POST to `send-transactional-email` via `net.http_post` using `event-reactivated` template, exactly as `promote_waitlisted_on_cancel` does.
+- Trigger `trg_promote_waitlisted_on_capacity_increase` AFTER UPDATE OF capacity ON `events`.
 
-### B. `supabase/functions/send-guest-list-reminder/index.ts`
-Add a `preview` mode:
-- Parse `body.preview === true` alongside `event_id`.
-- When `preview` is true: build the same `templateData`, render the `guest-list-reminder` template via `renderAsync(React.createElement(template.component, templateData))` (import from `../_shared/transactional-email-templates/registry.ts`), resolve `template.subject`, collect recipient emails (host + admins + moderators) but **do NOT enqueue or send anything** and **do NOT insert into `guest_list_reminders_sent`**.
-- Return `{ preview: true, subject, html, recipients, summary: { totalHeadcount, totalAdults, totalElders, totalChildren, guestCount: guestList.length } }`.
-- Existing non-preview path is unchanged.
+### 2. No code changes
+- `EventFormTabs` already updates `capacity` and invalidates `admin-events` + `events` queries.
+- `EventCard` reads `event.capacity` for the spots counter — refreshes on invalidation.
+- Decreasing capacity remains non-destructive (no rows touched); UI may show `count > capacity` until natural cancellations occur.
 
-### C. Redeploy both functions (auto-deploy on save).
+## Edge cases
+- Capacity unchanged → trigger no-op.
+- Capacity decreased → trigger no-op (no promotions, no deletions).
+- New capacity ≤ current attending → no slots available, no promotions.
+- Fewer waitlisted than open slots → promotes all available.
+- Email failures are swallowed (matches existing behavior); in-app notification still sent.
 
 ## Verification
-1. Click **Preview** on Thursday Gathering admin → preview dialog opens with rendered HTML; no rows added to `guest_list_reminders_sent`; no rows added to `email_send_log`.
-2. Click **Send guest list** → toast success; `email_send_log` shows ~6 new `pending → sent` rows for `guest-list-reminder`; recipients (host + admins + moderators) actually receive the email.
-3. Edge logs for `send-transactional-email` show `200`, no more `401`.
-
-## Notes
-- No DB schema or RLS changes needed.
-- No client changes needed — `EventRsvpDetail` already sends `preview: true` and consumes `{ html, subject, recipients, summary }`.
-- Other server-to-server callers of `send-transactional-email` (e.g. `promote_waitlisted_on_cancel` DB trigger using service-role bearer, `send-event-reminders`, `send-event-broadcast`, `notify-guest-rejected`) will also start working if they were silently 401-ing.
+1. Create test event with capacity=2, waitlist_capacity=5. RSVP 4 users (2 attending, 2 waitlisted).
+2. In admin, change capacity from 2 → 4 → save.
+3. Check `rsvps`: both waitlisted rows now `status='attending'`, `is_waitlisted=false`.
+4. Check `notifications`: 2 new "You're In!" rows.
+5. Check `email_send_log`: 2 new `event-reactivated` rows.
+6. Reload event card → shows `4/4 spots`.
+7. Decrease capacity 4 → 3 → no row changes; counter shows `4/3`.
