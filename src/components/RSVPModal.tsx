@@ -301,6 +301,16 @@ export default function RSVPModal({ event, open, onOpenChange }: RSVPModalProps)
 
   const isPending = createRSVP.isPending || updateRSVP.isPending || cancelRSVP.isPending;
 
+  // Gender-restriction guard
+  const audienceGender = (event as any).audience_gender as string | undefined;
+  const userGender = (profile as any)?.gender as string | undefined;
+  const isAdminOrMod = profile?.role === "admin" || profile?.role === "moderator";
+  const genderBlocked =
+    !isAdminOrMod &&
+    !isEditing &&
+    ((audienceGender === "Brothers Only" && userGender !== "male") ||
+      (audienceGender === "Sisters Only" && userGender !== "female"));
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-md">
@@ -310,6 +320,21 @@ export default function RSVPModal({ event, open, onOpenChange }: RSVPModalProps)
           </DialogTitle>
         </DialogHeader>
 
+        {genderBlocked ? (
+          <div className="space-y-4 py-4 text-center">
+            <p className="text-sm text-foreground">
+              {audienceGender === "Brothers Only"
+                ? "This gathering is for brothers only."
+                : "This gathering is for sisters only."}
+            </p>
+            {!userGender && (
+              <p className="text-xs text-muted-foreground">
+                Add your gender in your profile to RSVP gender-restricted events.
+              </p>
+            )}
+            <Button onClick={() => onOpenChange(false)} className="w-full">Close</Button>
+          </div>
+        ) : (
         <div className="space-y-5 py-2">
           {/* Virtual event link removed — shown only on EventCard after RSVP + 15-min gate */}
 
