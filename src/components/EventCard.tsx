@@ -70,7 +70,32 @@ function EventCardInner({ event, onShowTicket, isPast = false }: EventCardProps)
   const linkActivatesAt = eventTime - 15 * 60 * 1000;
   const isLinkActive = now.getTime() >= linkActivatesAt;
   const isAdminOrMod = profile?.role === "admin" || profile?.role === "moderator";
-  
+
+  // Gender restriction
+  const audienceGender = (event as any).audience_gender as string | undefined;
+  const userGender = (profile as any)?.gender as string | undefined;
+  const genderBlock: null | { label: string; helper: string } = (() => {
+    if (isAdminOrMod) return null;
+    if (!audienceGender || audienceGender === "Everyone") return null;
+    if (audienceGender === "Brothers Only" && userGender !== "male") {
+      return {
+        label: "Brothers Only",
+        helper: !userGender
+          ? "Add your gender in your profile to RSVP."
+          : "This gathering is for brothers only.",
+      };
+    }
+    if (audienceGender === "Sisters Only" && userGender !== "female") {
+      return {
+        label: "Sisters Only",
+        helper: !userGender
+          ? "Add your gender in your profile to RSVP."
+          : "This gathering is for sisters only.",
+      };
+    }
+    return null;
+  })();
+
 
   // Self check-in: active within 2 hours of event start
   const checkinActivatesAt = eventTime - 2 * 60 * 60 * 1000;
