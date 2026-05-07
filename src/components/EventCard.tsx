@@ -467,6 +467,13 @@ function EventCardInner({ event, onShowTicket, isPast = false }: EventCardProps)
                       View Ticket
                     </Button>
                   </>
+                ) : genderBlock ? (
+                  <div className="w-full space-y-1">
+                    <Button size="sm" className="w-full" variant="secondary" disabled>
+                      {genderBlock.label}
+                    </Button>
+                    <p className="text-xs text-muted-foreground text-center">{genderBlock.helper}</p>
+                  </div>
                 ) : (
                   isFull && event.waitlist_capacity <= 0 ? (
                     <Button
