@@ -340,7 +340,9 @@ export default function RSVPModal({ event, open, onOpenChange }: RSVPModalProps)
         {genderBlocked ? (
           <div className="space-y-4 py-4 text-center">
             <p className="text-sm text-foreground">
-              {audienceGender === "Brothers Only"
+              {hasActiveRsvp
+                ? `This gathering is now restricted to ${audienceGender === "Brothers Only" ? "brothers" : "sisters"} only. Please cancel your RSVP.`
+                : audienceGender === "Brothers Only"
                 ? "This gathering is for brothers only."
                 : "This gathering is for sisters only."}
             </p>
@@ -349,7 +351,14 @@ export default function RSVPModal({ event, open, onOpenChange }: RSVPModalProps)
                 Add your gender in your profile to RSVP gender-restricted events.
               </p>
             )}
-            <Button onClick={() => onOpenChange(false)} className="w-full">Close</Button>
+            <div className="flex gap-2">
+              <Button onClick={() => onOpenChange(false)} variant="outline" className="flex-1">Close</Button>
+              {hasActiveRsvp && (
+                <Button onClick={handleCancel} disabled={isPending} variant="destructive" className="flex-1">
+                  Cancel my RSVP
+                </Button>
+              )}
+            </div>
           </div>
         ) : (
         <>
