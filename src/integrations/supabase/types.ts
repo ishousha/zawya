@@ -1062,6 +1062,23 @@ export type Database = {
         Args: { payload: Json; queue_name: string }
         Returns: number
       }
+      get_event_admin_secrets: {
+        Args: { _event_id: string }
+        Returns: {
+          checkin_pin: string
+          recording_passcode: string
+          zoom_password: string
+        }[]
+      }
+      get_event_attendee_profiles: {
+        Args: { _event_id: string }
+        Returns: {
+          avatar_url: string
+          family_name: string
+          id: string
+          name: string
+        }[]
+      }
       get_event_potluck_menu: {
         Args: { _event_id: string }
         Returns: {
@@ -1085,6 +1102,13 @@ export type Database = {
         Returns: {
           sign_up_item_id: number
           total_quantity: number
+        }[]
+      }
+      get_event_zoom_credentials: {
+        Args: { _event_id: string }
+        Returns: {
+          recording_passcode: string
+          zoom_password: string
         }[]
       }
       get_my_family_id: { Args: never; Returns: string }

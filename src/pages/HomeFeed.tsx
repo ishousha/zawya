@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { EVENT_PUBLIC_COLUMNS } from "@/lib/event-columns";
 import { useAuth } from "@/contexts/AuthContext";
 import { useMyRSVP } from "@/hooks/useRSVP";
 import EventCard from "@/components/EventCard";
@@ -37,7 +38,7 @@ export default function HomeFeed() {
       if (tab === "past") {
         const { data, error } = await supabase
           .from("events")
-          .select("*")
+          .select(EVENT_PUBLIC_COLUMNS)
           .in("status", ["active", "full", "cancelled"])
           .or(`end_date_time.lt.${graceCutoff},and(end_date_time.is.null,date_time.lt.${graceCutoff})`)
           .order("date_time", { ascending: false })
@@ -48,7 +49,7 @@ export default function HomeFeed() {
 
       const { data, error } = await supabase
         .from("events")
-        .select("*")
+        .select(EVENT_PUBLIC_COLUMNS)
         .in("status", ["active", "full", "cancelled"])
         .or(`end_date_time.gte.${graceCutoff},and(end_date_time.is.null,date_time.gte.${graceCutoff})`)
         .order("date_time", { ascending: true })

@@ -14,6 +14,8 @@ import { AlertTriangle } from "lucide-react";
 import SpeakerBadge from "@/components/SpeakerBadge";
 import LazyImage from "@/components/LazyImage";
 import { useShareEvent } from "@/components/ShareEventDialog";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 
 type Event = Database["public"]["Tables"]["events"]["Row"];
@@ -36,6 +38,20 @@ function EventCardInner({ event, onShowTicket, isPast = false }: EventCardProps)
   const [rsvpOpen, setRsvpOpen] = useState(false);
   const [checkinOpen, setCheckinOpen] = useState(false);
   const [now, setNow] = useState(() => new Date());
+
+  // Fetch sensitive event credentials only when the user has an active RSVP.
+  const hasActiveRsvp = !!myRSVP && myRSVP.status !== "cancelled";
+  const { data: eventCreds } = useQuery({
+    queryKey: ["event-credentials", event.id],
+    enabled: hasActiveRsvp,
+    staleTime: 5 * 60 * 1000,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("get_event_zoom_credentials", { _event_id: event.id });
+      if (error) throw error;
+      const row = Array.isArray(data) ? data[0] : data;
+      return (row ?? { zoom_password: null, recording_passcode: null }) as { zoom_password: string | null; recording_passcode: string | null };
+    },
+  });
   const { open: openShare, dialog: shareDialog } = useShareEvent();
   const [isExpanded, setIsExpanded] = useState(false);
   const [isClamped, setIsClamped] = useState(false);
@@ -364,9 +380,9 @@ function EventCardInner({ event, onShowTicket, isPast = false }: EventCardProps)
           if (isLinkActive && onlineLink) {
             return (
               <div className="mt-3 rounded-lg border border-primary/30 bg-primary/5 p-3 space-y-2">
-                {event.zoom_password && (
+                {eventCreds?.zoom_password && (
                   <p className="text-sm font-medium text-foreground text-center">
-                    🔑 Zoom Passcode: <span className="font-bold tracking-wide">{event.zoom_password}</span>
+                    🔑 Zoom Passcode: <span className="font-bold tracking-wide">{eventCreds.zoom_password}</span>
                   </p>
                 )}
                 <Button
@@ -391,6 +407,11 @@ function EventCardInner({ event, onShowTicket, isPast = false }: EventCardProps)
               {countdownText && (
                 <p className="text-xs text-muted-foreground text-center">
                   ⏳ Unlocks in <span className="font-medium text-foreground">{countdownText}</span>
+                </p>
+              )}
+              {eventCreds?.zoom_password && (
+                <p className="text-sm font-medium text-foreground text-center pt-1">
+                  🔑 Zoom Passcode: <span className="font-bold tracking-wide">{eventCreds.zoom_password}</span>
                 </p>
               )}
             </div>
@@ -429,9 +450,9 @@ function EventCardInner({ event, onShowTicket, isPast = false }: EventCardProps)
                     <Play className="h-3.5 w-3.5" />
                     ▶ Watch Recording
                   </Button>
-                  {(event as any).recording_passcode && (
+                  {eventCreds?.recording_passcode && (
                     <p className="text-xs text-muted-foreground text-center">
-                      🔑 Passcode: <span className="font-medium text-foreground">{(event as any).recording_passcode}</span>
+                      🔑 Passcode: <span className="font-medium text-foreground">{eventCreds.recording_passcode}</span>
                     </p>
                   )}
                 </div>
