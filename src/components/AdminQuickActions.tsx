@@ -108,6 +108,17 @@ export default function AdminQuickActions() {
     }
   };
 
+  // Detect live event from existing nextEvent fetch
+  const liveEvent = useMemo(() => {
+    if (!nextEvent) return null;
+    const now = Date.now();
+    const start = new Date(nextEvent.date_time).getTime();
+    const end = (nextEvent as any).end_date_time
+      ? new Date((nextEvent as any).end_date_time).getTime()
+      : start + 6 * 60 * 60 * 1000;
+    return start <= now && end >= now ? nextEvent : null;
+  }, [nextEvent]);
+
   return (
     <>
       <div className="mb-6">
