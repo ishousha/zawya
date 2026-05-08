@@ -1,35 +1,47 @@
-# Fix: Check-in tab event list
-
 ## Problem
-On Admin → Check-in:
-1. The event dropdown lists **all** active/full events including past ones (Apr 16, Apr 17, etc. while today is May 8).
-2. Only a currently *live* event gets a highlighted card above the dropdown — if nothing is live right now, the next upcoming event is buried inside a long list of stale past events.
 
-Check-in is only meaningful for an event that is happening today/now or about to start, so past events should not be selectable.
+Two issues with event sharing:
 
-## Changes (scoped to `src/components/admin/AdminDoorScanner.tsx` only)
+1. **Share button shows "Could not copy link"** (confirmed in session replay). The current `copyEventLink` helper relies solely on `navigator.clipboard.writeText`, which is blocked inside the Lovable preview iframe (no clipboard permission) and on some mobile browsers. The `execCommand` fallback also fails because the focused iframe doesn't get a user-activation clipboard grant. Result: nothing visible to the user, no link to copy manually.
 
-1. **Filter the events query** to exclude past events.
-   - In the `admin-events-active` query, only return events whose effective end (`end_date_time`, or `date_time + 6h` fallback) is `>= now`.
-   - Easiest: keep the existing query but filter client-side right after fetch, so the same logic that powers `liveEvent` stays consistent. (Server-side `.gte('date_time', ...)` would miss long events that started earlier today but haven't ended.)
+2. **Share is only available on EventDetail and the admin Control Room.** Users want to share any upcoming event directly from the events list without opening it first.
 
-2. **Surface the next upcoming event separately** when no event is live.
-   - Compute `nextUpcomingEvent` = earliest event with `date_time > now` (excluding the live one).
-   - If `liveEvent` exists → render the existing "LIVE NOW" card (unchanged).
-   - Else if `nextUpcomingEvent` exists → render a sibling card with the same layout but labelled "UP NEXT" (calendar icon, no pulsing dot, shows relative start like "Starts Thu, May 14 · 7:00 PM").
-   - Auto-select behavior: if nothing is live, auto-select the next upcoming event on first mount (mirrors the current `liveEvent` auto-select).
+The deep-link route itself (`/events/:eventId`) already works — both for authenticated users and for the unauthenticated "login → redirect back" flow in `AppRoutes.tsx`. The bug is purely in the share UX.
 
-3. **Dropdown contents** then naturally only contain present + future events. Sorting stays: live first, then chronological. The featured event (live or up-next) still appears in the dropdown so the admin can re-pick it after switching away.
+## Plan
 
-4. **Empty state**: if there are zero current/future events, show a small muted message in place of the dropdown ("No current or upcoming events to check in.") and hide the scanner controls.
+### 1. Replace `copyEventLink` with a reusable `ShareEventDialog`
 
-## Out of scope
-- No DB or RLS changes.
-- No changes to other admin tabs, EventControlRoom, or the events feed.
-- No change to how a "live" event is defined.
+New component `src/components/ShareEventDialog.tsx` (shadcn `Dialog`) opened via a small helper/hook. When triggered it:
 
-## Verification
-- Open Admin → Check-in: dropdown shows only events from today onward; Apr events disappear.
-- When no event is live, an "Up Next" card appears above the dropdown with the soonest future event pre-selected.
-- When an event is live (start ≤ now ≤ effective end), the existing "Live Now" card renders instead, unchanged.
-- With no current/future events, a friendly empty state renders and no scanner UI appears.
+- Computes the canonical URL using the **published origin** when available (prefer `window.location.origin` if it's not a `*lovable.app` preview/iframe; otherwise fall back to the project's published domain `https://zawya.app`). This guarantees the link works for recipients even when an admin shares from the in-editor preview.
+- Tries `navigator.share({ title, text, url })` first on devices that support it (mobile) — single tap to native share sheet.
+- On desktop / when Web Share is unavailable, opens a dialog showing:
+  - The full URL in a read-only `Input` (auto-selected on focus, tap-to-select on mobile).
+  - A "Copy link" button using `navigator.clipboard` with a `textarea + execCommand` fallback, plus a final fallback that simply tells the user "Long-press the link above to copy" if both fail. Toast only on success; never silently fail.
+  - Quick share buttons: WhatsApp (`https://wa.me/?text=`), Email (`mailto:`), and (if supported) "Share via…" that re-invokes Web Share.
+- Title/description text uses the event title so previews/messages look right.
+
+### 2. Update `src/lib/share-event.ts`
+
+- Keep `getEventShareUrl(eventId)` but make it preview-aware (fall back to production origin when running under `id-preview--*.lovable.app` or `localhost`).
+- Remove the silent-failure `copyEventLink`. Export a small `useShareEvent()` hook that returns `{ open, dialog }` so any component can render the dialog and trigger sharing without prop-drilling.
+
+### 3. Wire the new share UX everywhere
+
+- **`src/pages/EventDetail.tsx`** — replace the existing Share button's `onClick={copyEventLink}` with the new dialog opener. No layout change.
+- **`src/components/admin/EventControlRoom.tsx`** — same swap for the per-event Share button (line 486).
+- **`src/components/EventCard.tsx`** — add a small Share icon button (using `Share2` from lucide) in the card's action row, visible only for **upcoming/active** events (filter: `end_date_time ?? date_time + 6h >= now` AND `status !== 'cancelled'`). Stops propagation so it doesn't trigger card navigation. Tap → opens the same dialog.
+
+### 4. Verification
+
+- In the live preview: click Share on an event card → dialog opens with a `https://zawya.app/events/<id>` link, Copy succeeds (toast), WhatsApp/Email buttons open the right targets.
+- Open the copied link in a private window → lands on `/events/<id>`, unauthenticated users hit the login screen and are redirected back to the event after sign-in (existing behavior preserved).
+- On mobile viewport: tapping Share invokes the native share sheet when available.
+- Past/cancelled events do not show the Share button on cards.
+
+### Out of scope
+
+- No DB / RLS changes.
+- No change to the deep-link route or the unauthenticated redirect flow.
+- No OG/social preview metadata work (can be a follow-up if you want richer link unfurls in WhatsApp/iMessage).

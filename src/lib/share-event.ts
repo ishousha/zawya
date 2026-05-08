@@ -1,28 +1,20 @@
-import { toast } from "sonner";
+/**
+ * Returns a canonical, shareable deep link for an event.
+ * When called from inside the Lovable preview iframe or localhost, falls back
+ * to the production origin so recipients land on a working URL.
+ */
+const PRODUCTION_ORIGIN = "https://zawya.app";
 
 export function getEventShareUrl(eventId: string): string {
-  return `${window.location.origin}/events/${eventId}`;
-}
-
-export async function copyEventLink(eventId: string): Promise<void> {
-  const url = getEventShareUrl(eventId);
-  try {
-    if (navigator.clipboard?.writeText) {
-      await navigator.clipboard.writeText(url);
-    } else {
-      // Fallback for insecure contexts / older browsers
-      const ta = document.createElement("textarea");
-      ta.value = url;
-      ta.style.position = "fixed";
-      ta.style.opacity = "0";
-      document.body.appendChild(ta);
-      ta.select();
-      const ok = document.execCommand("copy");
-      document.body.removeChild(ta);
-      if (!ok) throw new Error("execCommand copy failed");
-    }
-    toast.success("Event link copied to clipboard!");
-  } catch {
-    toast.error("Could not copy link");
+  let origin = PRODUCTION_ORIGIN;
+  if (typeof window !== "undefined") {
+    const host = window.location.hostname;
+    const isPreview =
+      host.includes("lovable.app") ||
+      host === "localhost" ||
+      host === "127.0.0.1" ||
+      host.endsWith(".lovableproject.com");
+    origin = isPreview ? PRODUCTION_ORIGIN : window.location.origin;
   }
+  return `${origin}/events/${eventId}`;
 }

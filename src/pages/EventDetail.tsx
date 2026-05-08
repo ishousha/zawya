@@ -10,9 +10,9 @@ import QRTicketScreen from "@/components/QRTicketScreen";
 import SelfCheckinModal from "@/components/SelfCheckinModal";
 import ContactOrganizerModal from "@/components/ContactOrganizerModal";
 import FeaturedSpeakers from "@/components/FeaturedSpeaker";
-import { Loader2, ArrowLeft, Mail, Clock, ScrollText, Link2 } from "lucide-react";
+import { Loader2, ArrowLeft, Mail, Clock, ScrollText, Share2 } from "lucide-react";
 import { toast } from "sonner";
-import { copyEventLink } from "@/lib/share-event";
+import { useShareEvent } from "@/components/ShareEventDialog";
 import { Button } from "@/components/ui/button";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -30,6 +30,7 @@ export default function EventDetail() {
   const [showCheckin, setShowCheckin] = useState(false);
   const [ticketEvent, setTicketEvent] = useState<Event | null>(null);
   const [showContact, setShowContact] = useState(false);
+  const { open: openShare, dialog: shareDialog } = useShareEvent();
 
   const { data: event, isLoading: eventLoading, isError: eventError } = useQuery({
     queryKey: ["event-detail", eventId],
@@ -133,13 +134,14 @@ export default function EventDetail() {
             <Button
               variant="outline"
               className="w-full gap-2"
-              onClick={() => copyEventLink(event.id)}
+              onClick={() => openShare(event.id, event.title)}
             >
-              <Link2 className="h-4 w-4" />
-              Copy Event Link
+              <Share2 className="h-4 w-4" />
+              Share Event
             </Button>
           </div>
         )}
+        {shareDialog}
 
         {/* Host Dashboard — visible to assigned host, admins, and moderators */}
         {user && (
