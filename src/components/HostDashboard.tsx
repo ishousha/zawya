@@ -1,5 +1,4 @@
-import { useEffect } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, UtensilsCrossed, Baby, UserRound, CheckCircle2 } from "lucide-react";
@@ -10,7 +9,7 @@ interface HostDashboardProps {
 }
 
 export default function HostDashboard({ eventId }: HostDashboardProps) {
-  const queryClient = useQueryClient();
+  
 
   const { data: rsvps } = useQuery({
     queryKey: ["host-rsvps", eventId],
