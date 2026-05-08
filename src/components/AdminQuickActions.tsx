@@ -16,17 +16,29 @@ function QuickActionCard({
   label,
   badge,
   onClick,
+  live,
 }: {
   icon: React.ElementType;
   label: string;
   badge?: number;
   onClick: () => void;
+  live?: boolean;
 }) {
   return (
     <button
       onClick={onClick}
-      className="relative flex flex-col items-center justify-center gap-2 p-6 bg-card border border-border rounded-xl shadow-sm hover:shadow-md hover:bg-accent transition-all cursor-pointer"
+      className={`relative flex flex-col items-center justify-center gap-2 p-6 rounded-xl shadow-sm hover:shadow-md transition-all cursor-pointer ${
+        live
+          ? "bg-primary/10 border-2 border-primary hover:bg-primary/15"
+          : "bg-card border border-border hover:bg-accent"
+      }`}
     >
+      {live && (
+        <span className="absolute top-2 right-2 flex h-3 w-3">
+          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75" />
+          <span className="relative inline-flex h-3 w-3 rounded-full bg-primary" />
+        </span>
+      )}
       {badge != null && badge > 0 && (
         <span className="absolute top-2 right-2 flex h-5 min-w-5 items-center justify-center rounded-full bg-destructive px-1 text-[11px] font-bold text-destructive-foreground">
           {badge}
