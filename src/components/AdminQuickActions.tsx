@@ -59,17 +59,32 @@ export default function AdminQuickActions() {
     queryKey: ["admin-next-event"],
     staleTime: 60_000,
     queryFn: async () => {
+      const now = new Date();
+      const sixHoursAgo = new Date(now.getTime() - 6 * 60 * 60 * 1000).toISOString();
+      // Pull recent + upcoming candidates; pick live first, else soonest upcoming
       const { data, error } = await supabase
         .from("events")
-        .select("id, title")
+        .select("id, title, date_time, end_date_time")
         .in("status", ["active", "full"])
         .eq("published", true)
-        .gte("date_time", new Date().toISOString())
+        .gte("date_time", sixHoursAgo)
         .order("date_time", { ascending: true })
-        .limit(1)
-        .maybeSingle();
+        .limit(10);
       if (error) throw error;
-      return data;
+      if (!data?.length) return null;
+
+      const nowMs = now.getTime();
+      // Live: started in past, effective end still in future (end_date_time, or +6h fallback)
+      const live = data.find((e) => {
+        const start = new Date(e.date_time).getTime();
+        const end = e.end_date_time
+          ? new Date(e.end_date_time).getTime()
+          : start + 6 * 60 * 60 * 1000;
+        return start <= nowMs && end >= nowMs;
+      });
+      if (live) return live;
+      // Else soonest future event
+      return data.find((e) => new Date(e.date_time).getTime() > nowMs) ?? null;
     },
   });
 
