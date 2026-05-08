@@ -204,8 +204,11 @@ export const template = {
       { name: 'Fatima', family: 'Al-Hassan', adults: 1, children: 0, elders: 0 },
     ],
     potluckItems: [
-      { dish: 'Hummus', family: 'Abushousha' },
-      { dish: 'Biryani', family: 'Al-Hassan' },
+      { category: 'Appetizers', dish: 'Hummus', family: 'Abushousha', quantity: 1 },
+      { category: 'Mains', dish: 'Biryani', family: 'Al-Hassan', quantity: 2 },
+    ],
+    unclaimedItems: [
+      { name: 'Dessert', claimed: 1, limit: 3, remaining: 2 },
     ],
   },
 } satisfies TemplateEntry
