@@ -228,3 +228,4 @@ const summaryNum = { fontSize: '24px', color: '#166534', display: 'block', margi
 const summaryLabel = { fontSize: '11px', color: '#9ca3af', textTransform: 'uppercase' as const, letterSpacing: '0.5px' }
 const listTable = { width: '100%', borderCollapse: 'collapse' as const }
 const listCell = { padding: '8px 12px', borderBottom: '1px solid #f3f4f6', fontSize: '14px', color: '#374151' }
+const categoryLabel = { fontSize: '12px', fontWeight: '600' as const, color: '#166534', textTransform: 'uppercase' as const, letterSpacing: '0.5px', margin: '0 0 4px' }
