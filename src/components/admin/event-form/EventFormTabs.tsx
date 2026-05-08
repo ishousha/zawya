@@ -127,6 +127,7 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
       zoom_password: (event as any).zoom_password ?? "",
       recording_url: (event as any).recording_url ?? "",
       recording_passcode: (event as any).recording_passcode ?? "",
+      short_code: (event as any).short_code ?? "",
     };
   });
 
