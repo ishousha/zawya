@@ -61,14 +61,6 @@ export default function EventDetail() {
     }
   }, [actionParam, pinParam, myRSVP, setSearchParams]);
 
-  if (eventLoading || rsvpLoading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
-        <Loader2 className="h-6 w-6 animate-spin text-primary" />
-      </div>
-    );
-  }
-
   // Graceful 404 fallback — event missing or not visible to user
   useEffect(() => {
     if (!eventLoading && (eventError || (eventId && event === null))) {
@@ -76,6 +68,14 @@ export default function EventDetail() {
       navigate("/", { replace: true });
     }
   }, [eventLoading, eventError, event, eventId, navigate]);
+
+  if (eventLoading || rsvpLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   if (!event) {
     return (
