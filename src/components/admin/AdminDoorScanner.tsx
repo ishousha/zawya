@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect, useRef } from "react";
 import { format } from "date-fns";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { ScanLine, CheckCircle2, XOctagon, Users, Search, UserCheck, UserX } from "lucide-react";
+import { ScanLine, CheckCircle2, XOctagon, Users, Search, UserCheck, UserX, Radio } from "lucide-react";
 import { toast } from "sonner";
 import { Scanner } from "@yudiel/react-qr-scanner";
 
@@ -41,13 +41,49 @@ export default function AdminDoorScanner() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("events")
-        .select("id, title, date_time")
+        .select("id, title, date_time, end_date_time")
         .in("status", ["active", "full"])
         .order("date_time", { ascending: true });
       if (error) throw error;
       return data;
     },
   });
+
+  // Detect currently-live event (now between start and effective end; +6h fallback)
+  const liveEvent = useMemo(() => {
+    if (!events?.length) return null;
+    const nowMs = Date.now();
+    return (
+      events.find((e: any) => {
+        const start = new Date(e.date_time).getTime();
+        const end = e.end_date_time
+          ? new Date(e.end_date_time).getTime()
+          : start + 6 * 60 * 60 * 1000;
+        return start <= nowMs && end >= nowMs;
+      }) ?? null
+    );
+  }, [events]);
+
+  // Sort: live events first, then by date
+  const sortedEvents = useMemo(() => {
+    if (!events) return [];
+    const liveId = liveEvent?.id;
+    return [...events].sort((a, b) => {
+      if (a.id === liveId) return -1;
+      if (b.id === liveId) return 1;
+      return new Date(a.date_time).getTime() - new Date(b.date_time).getTime();
+    });
+  }, [events, liveEvent]);
+
+  // Auto-select live event once on mount when available
+  const autoSelected = useRef(false);
+  useEffect(() => {
+    if (autoSelected.current) return;
+    if (!selectedEventId && liveEvent) {
+      setSelectedEventId(liveEvent.id);
+      autoSelected.current = true;
+    }
+  }, [liveEvent, selectedEventId]);
 
   // Live check-in counter + attendee list for manual search
   const { data: attendees } = useQuery({
@@ -213,6 +249,39 @@ export default function AdminDoorScanner() {
 
   return (
     <div className="space-y-4 py-4">
+      {/* LIVE NOW quick-pick */}
+      {liveEvent && (
+        <button
+          type="button"
+          onClick={() => { setSelectedEventId(liveEvent.id); setShowManual(false); setSearchQuery(""); }}
+          className={`w-full rounded-lg border-2 p-3 text-left transition-all ${
+            selectedEventId === liveEvent.id
+              ? "border-primary bg-primary/10"
+              : "border-primary/40 bg-primary/5 hover:bg-primary/10"
+          }`}
+        >
+          <div className="flex items-center gap-3">
+            <span className="relative flex h-3 w-3 shrink-0">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75" />
+              <span className="relative inline-flex h-3 w-3 rounded-full bg-primary" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2">
+                <Radio className="h-3.5 w-3.5 text-primary" />
+                <span className="text-xs font-bold uppercase tracking-wider text-primary">Live now</span>
+              </div>
+              <p className="mt-0.5 truncate text-sm font-medium text-card-foreground">{liveEvent.title}</p>
+              <p className="text-xs text-muted-foreground">
+                Started {format(new Date(liveEvent.date_time), "h:mm a")}
+              </p>
+            </div>
+            {selectedEventId === liveEvent.id && (
+              <CheckCircle2 className="h-5 w-5 shrink-0 text-primary" />
+            )}
+          </div>
+        </button>
+      )}
+
       {/* Event selector */}
       <div>
         <Label>Select Event</Label>
@@ -221,11 +290,21 @@ export default function AdminDoorScanner() {
             <SelectValue placeholder="Choose an event..." />
           </SelectTrigger>
           <SelectContent>
-            {events?.map((e) => (
-              <SelectItem key={e.id} value={e.id}>
-                {e.title} — {format(new Date(e.date_time), "EEE, MMM d")}
-              </SelectItem>
-            ))}
+            {sortedEvents.map((e) => {
+              const isLive = liveEvent?.id === e.id;
+              return (
+                <SelectItem key={e.id} value={e.id}>
+                  <span className="flex items-center gap-2">
+                    {isLive && (
+                      <Badge variant="default" className="h-5 px-1.5 text-[10px] font-bold uppercase">
+                        Live
+                      </Badge>
+                    )}
+                    <span>{e.title} — {format(new Date(e.date_time), "EEE, MMM d")}</span>
+                  </span>
+                </SelectItem>
+              );
+            })}
           </SelectContent>
         </Select>
       </div>
