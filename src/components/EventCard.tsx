@@ -380,9 +380,9 @@ function EventCardInner({ event, onShowTicket, isPast = false }: EventCardProps)
           if (isLinkActive && onlineLink) {
             return (
               <div className="mt-3 rounded-lg border border-primary/30 bg-primary/5 p-3 space-y-2">
-                {event.zoom_password && (
+                {eventCreds?.zoom_password && (
                   <p className="text-sm font-medium text-foreground text-center">
-                    🔑 Zoom Passcode: <span className="font-bold tracking-wide">{event.zoom_password}</span>
+                    🔑 Zoom Passcode: <span className="font-bold tracking-wide">{eventCreds.zoom_password}</span>
                   </p>
                 )}
                 <Button
