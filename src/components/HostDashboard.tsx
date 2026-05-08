@@ -1,5 +1,4 @@
-import { useEffect } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, UtensilsCrossed, Baby, UserRound, CheckCircle2 } from "lucide-react";
@@ -10,10 +9,12 @@ interface HostDashboardProps {
 }
 
 export default function HostDashboard({ eventId }: HostDashboardProps) {
-  const queryClient = useQueryClient();
+  
 
   const { data: rsvps } = useQuery({
     queryKey: ["host-rsvps", eventId],
+    refetchInterval: 30_000,
+    refetchOnWindowFocus: true,
     queryFn: async () => {
       const { data: rsvpData, error } = await supabase
         .from("rsvps")
@@ -54,23 +55,9 @@ export default function HostDashboard({ eventId }: HostDashboardProps) {
     },
   });
 
-  // Realtime: auto-refresh when RSVPs change (check-ins, new RSVPs, cancellations)
-  useEffect(() => {
-    const channel = supabase
-      .channel(`host-dashboard-${eventId}`)
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "rsvps", filter: `event_id=eq.${eventId}` },
-        () => {
-          queryClient.invalidateQueries({ queryKey: ["host-rsvps", eventId] });
-          queryClient.invalidateQueries({ queryKey: ["rsvps", eventId] });
-          queryClient.invalidateQueries({ queryKey: ["my-rsvp"] });
-        }
-      )
-      .subscribe();
-
-    return () => { supabase.removeChannel(channel); };
-  }, [eventId, queryClient]);
+  // Note: Realtime subscription removed for security — RSVP data refreshes via
+  // refetchInterval and on window focus instead. This avoids broadcasting other
+  // attendees' RSVP changes to all subscribers.
 
   if (!rsvps) return null;
 

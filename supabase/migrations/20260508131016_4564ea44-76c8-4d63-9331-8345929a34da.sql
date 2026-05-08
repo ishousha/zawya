@@ -1,0 +1,16 @@
+REVOKE EXECUTE ON FUNCTION public.has_role(uuid, app_role) FROM PUBLIC;
+REVOKE EXECUTE ON FUNCTION public.accept_family_invite(uuid) FROM PUBLIC;
+REVOKE EXECUTE ON FUNCTION public.get_event_potluck_menu(uuid) FROM PUBLIC;
+REVOKE EXECUTE ON FUNCTION public.get_event_rsvp_counts(uuid) FROM PUBLIC;
+REVOKE EXECUTE ON FUNCTION public.get_event_signup_claims(uuid) FROM PUBLIC;
+REVOKE EXECUTE ON FUNCTION public.get_my_family_id() FROM PUBLIC;
+REVOKE EXECUTE ON FUNCTION public.guest_has_rsvp(uuid, uuid) FROM PUBLIC;
+REVOKE EXECUTE ON FUNCTION public.verify_checkin_pin(uuid, text) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.has_role(uuid, app_role) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.accept_family_invite(uuid) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.get_event_potluck_menu(uuid) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.get_event_rsvp_counts(uuid) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.get_event_signup_claims(uuid) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.get_my_family_id() TO authenticated;
+GRANT EXECUTE ON FUNCTION public.guest_has_rsvp(uuid, uuid) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.verify_checkin_pin(uuid, text) TO authenticated;
