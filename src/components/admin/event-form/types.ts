@@ -82,6 +82,7 @@ export interface EventFormState {
   zoom_password: string;
   recording_url: string;
   recording_passcode: string;
+  short_code: string;
 }
 
 export interface SignUpItemState {
