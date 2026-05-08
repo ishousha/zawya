@@ -15,8 +15,17 @@ interface GuestEntry {
 }
 
 interface PotluckItem {
+  category: string
   dish: string
   family: string
+  quantity: number
+}
+
+interface UnclaimedItem {
+  name: string
+  claimed: number
+  limit: number
+  remaining: number
 }
 
 interface GuestListReminderProps {
@@ -30,6 +39,7 @@ interface GuestListReminderProps {
   totalChildren?: number
   guestList?: GuestEntry[]
   potluckItems?: PotluckItem[]
+  unclaimedItems?: UnclaimedItem[]
 }
 
 const GuestListReminderEmail = ({
