@@ -140,6 +140,27 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
     return [];
   });
 
+  // Track whether the admin has manually edited the short code.
+  // For existing events with a saved code, default to true so we don't overwrite it.
+  const userEditedShortCodeRef = useRef<boolean>(!!(event as any)?.short_code);
+
+  const markShortCodeUserEdited = useCallback(() => {
+    userEditedShortCodeRef.current = true;
+  }, []);
+
+  const resetShortCodeSuggestion = useCallback(() => {
+    userEditedShortCodeRef.current = false;
+    setForm((prev) => ({ ...prev, short_code: suggestShortCode(prev.title, prev.date_time) }));
+  }, []);
+
+  // Auto-suggest short code from title + date when user hasn't customized it
+  useEffect(() => {
+    if (userEditedShortCodeRef.current) return;
+    const suggestion = suggestShortCode(form.title, form.date_time);
+    if (!suggestion) return;
+    setForm((prev) => (prev.short_code === suggestion ? prev : { ...prev, short_code: suggestion }));
+  }, [form.title, form.date_time]);
+
   // --- Dirty tracking ---
   const initialFormRef = useRef(JSON.stringify(form));
   const initialItemsRef = useRef(JSON.stringify(signUpItems));
