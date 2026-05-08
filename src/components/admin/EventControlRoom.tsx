@@ -667,6 +667,8 @@ export default function EventControlRoom() {
           }}
         />
       )}
+
+      {shareDialog}
     </div>
   );
 }
