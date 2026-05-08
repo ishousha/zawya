@@ -299,3 +299,10 @@ function StableLayout({ profile }: { profile: any }) {
     </>
   );
 }
+
+function EventAliasRedirect() {
+  const location = useLocation();
+  const id = location.pathname.split("/").pop() ?? "";
+  return <Navigate to={`/events/${id}${location.search}`} replace />;
+}
+
