@@ -556,16 +556,6 @@ function EventCardInner({ event, onShowTicket, isPast = false }: EventCardProps)
                   {isCheckinActive ? "Check In Now" : "Check-in opens 2hrs before event"}
                 </Button>
               )}
-              {isAttending && <AddToCalendarButton event={event} />}
-              <Button
-                size="sm"
-                variant="ghost"
-                className="w-full gap-1.5 text-muted-foreground hover:text-foreground"
-                onClick={() => openShare(event.id, event.title, (event as any).short_code)}
-              >
-                <Share2 className="h-3.5 w-3.5" />
-                Share Event
-              </Button>
             </>
           )}
         </div>
@@ -578,6 +568,26 @@ function EventCardInner({ event, onShowTicket, isPast = false }: EventCardProps)
         {/* Potluck Menu — anonymous dish list */}
         {!isPast && !isCancelled && event.has_potluck && (
           <PotluckMenu eventId={event.id} />
+        )}
+
+        {/* Calendar + Share row — placed under the Current Menu */}
+        {!isPast && !isCancelled && (
+          <div className="mt-3 flex items-center gap-2">
+            {isAttending && (
+              <div className="flex-1">
+                <AddToCalendarButton event={event} />
+              </div>
+            )}
+            <Button
+              size="sm"
+              variant="ghost"
+              className="flex-1 gap-1.5 text-muted-foreground hover:text-foreground"
+              onClick={() => openShare(event.id, event.title, (event as any).short_code)}
+            >
+              <Share2 className="h-3.5 w-3.5" />
+              Share Event
+            </Button>
+          </div>
         )}
         </div>
       </div>
