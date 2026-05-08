@@ -31,19 +31,20 @@ export default function EventDetail() {
   const [ticketEvent, setTicketEvent] = useState<Event | null>(null);
   const [showContact, setShowContact] = useState(false);
 
-  const { data: event, isLoading: eventLoading } = useQuery({
+  const { data: event, isLoading: eventLoading, isError: eventError } = useQuery({
     queryKey: ["event-detail", eventId],
     enabled: !!eventId,
     staleTime: 2 * 60 * 1000,
     gcTime: 5 * 60 * 1000,
+    retry: false,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("events")
         .select("id, title, date_time, end_date_time, location, address, maps_url, status, cover_photo_url, event_type_id, capacity, has_potluck, virtual_link, zoom_link, online_link, zoom_password, is_hybrid, host_id, description, venue_id, ticket_fee, mureeds_only, age_group, location_hint, etiquette_notes, payment_instructions, waitlist_capacity, published, scheduled_publish_at, last_published_at, created_at, updated_at")
         .eq("id", eventId!)
-        .single();
+        .maybeSingle();
       if (error) throw error;
-      return data as Event;
+      return data as Event | null;
     },
   });
 
