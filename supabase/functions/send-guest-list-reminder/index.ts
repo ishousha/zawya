@@ -17,8 +17,17 @@ interface GuestEntry {
 }
 
 interface PotluckItem {
+  category: string
   dish: string
   family: string
+  quantity: number
+}
+
+interface UnclaimedItem {
+  name: string
+  claimed: number
+  limit: number
+  remaining: number
 }
 
 Deno.serve(async (req) => {
