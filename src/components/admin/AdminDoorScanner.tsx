@@ -343,6 +343,15 @@ export default function AdminDoorScanner() {
               <span>{rsvpCounts.checkedInGuests} of {rsvpCounts.totalGuests} total guests arrived</span>
               <span>{rsvpCounts.total - rsvpCounts.checkedIn} remaining</span>
             </div>
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full gap-2"
+              onClick={() => navigate("/admin", { state: { tab: "events", eventId: selectedEventId } })}
+            >
+              <ClipboardList className="h-4 w-4" />
+              View Guest List
+            </Button>
           </CardContent>
         </Card>
       )}
