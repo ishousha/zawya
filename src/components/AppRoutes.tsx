@@ -217,6 +217,8 @@ function StableLayout({ profile }: { profile: any }) {
   const isAdmin = profile?.role === "admin";
   const isModerator = (profile?.role as string) === "moderator";
 
+  usePostLoginRedirect(true);
+
   // Preload all tab chunks after first paint so future tab switches are instant
   useEffect(() => {
     const timer = setTimeout(() => {
