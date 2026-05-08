@@ -17,8 +17,17 @@ interface GuestEntry {
 }
 
 interface PotluckItem {
+  category: string
   dish: string
   family: string
+  quantity: number
+}
+
+interface UnclaimedItem {
+  name: string
+  claimed: number
+  limit: number
+  remaining: number
 }
 
 Deno.serve(async (req) => {
@@ -158,12 +167,42 @@ Deno.serve(async (req) => {
       continue
     }
 
-    const userIds = [...new Set(rsvps.map((r: any) => r.user_id))]
+    // Exclude cancelled RSVPs from headcount/guest list/potluck
+    const activeRsvps = (rsvps ?? []).filter((r: any) => r.status !== 'cancelled')
+
+    if (activeRsvps.length === 0) {
+      if (preview) {
+        return new Response(JSON.stringify({ error: 'No active RSVPs yet for this event' }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
+      continue
+    }
+
+    const userIds = [...new Set(activeRsvps.map((r: any) => r.user_id))]
     const { data: profiles } = await supabase
       .from('profiles')
       .select('id, name, email, family_name')
       .in('id', userIds)
     const profileMap = new Map((profiles ?? []).map((p: any) => [p.id, p]))
+
+    // Fetch event sign-up items (the "potluck" config) and RSVP selections (reclaimed items)
+    const { data: signUpItems } = await supabase
+      .from('event_sign_up_items')
+      .select('id, item_name, quantity_limit, order_index')
+      .eq('event_id', event.id)
+      .order('order_index', { ascending: true })
+
+    const rsvpIds = activeRsvps.map((r: any) => r.id)
+    const { data: selections } = rsvpIds.length
+      ? await supabase
+          .from('rsvp_sign_up_selections')
+          .select('rsvp_id, sign_up_item_id, quantity, description')
+          .in('rsvp_id', rsvpIds)
+      : { data: [] as any[] }
+
+    const itemMap = new Map((signUpItems ?? []).map((i: any) => [i.id, i]))
+    const rsvpById = new Map(activeRsvps.map((r: any) => [r.id, r]))
 
     let totalRegularAdults = 0
     let totalElders = 0
@@ -172,7 +211,7 @@ Deno.serve(async (req) => {
     const guestList: GuestEntry[] = []
     const potluckItems: PotluckItem[] = []
 
-    for (const r of rsvps) {
+    for (const r of activeRsvps) {
       const profile = profileMap.get(r.user_id)
       const deps: any[] = (r.attending_dependents as any[]) || []
       const childDeps = deps.filter((d: any) => d.type === 'dependent' && d.dependent_type !== 'elder')
@@ -191,13 +230,54 @@ Deno.serve(async (req) => {
         elders: elderDeps.length,
       })
 
+      // Legacy single-field potluck (still used for some events)
       if (r.specific_food_item?.trim()) {
+        const cat = r.potluck_category
+          ? String(r.potluck_category).charAt(0).toUpperCase() + String(r.potluck_category).slice(1)
+          : 'Other'
         potluckItems.push({
+          category: cat,
           dish: r.specific_food_item,
           family: profile?.family_name || profile?.name || 'Unknown',
+          quantity: 1,
         })
       }
     }
+
+    // Map flexible sign-up selections (the actual "reclaimed items")
+    const claimedByItem = new Map<number, number>()
+    for (const s of (selections ?? []) as any[]) {
+      const item = itemMap.get(s.sign_up_item_id)
+      const rsvp = rsvpById.get(s.rsvp_id)
+      const profile = rsvp ? profileMap.get(rsvp.user_id) : null
+      const qty = Math.max(s.quantity ?? 1, 1)
+      claimedByItem.set(s.sign_up_item_id, (claimedByItem.get(s.sign_up_item_id) ?? 0) + qty)
+      potluckItems.push({
+        category: item?.item_name ?? 'Other',
+        dish: s.description?.trim() || '(unspecified)',
+        family: profile?.family_name || profile?.name || 'Unknown',
+        quantity: qty,
+      })
+    }
+
+    // Sort potluck items by category, then family
+    potluckItems.sort((a, b) =>
+      a.category.localeCompare(b.category) || a.family.localeCompare(b.family),
+    )
+
+    // Compute unclaimed: items with a quantity_limit that still have spots open
+    const unclaimedItems: UnclaimedItem[] = (signUpItems ?? [])
+      .filter((i: any) => (i.quantity_limit ?? 0) > 0)
+      .map((i: any) => {
+        const claimed = claimedByItem.get(i.id) ?? 0
+        return {
+          name: i.item_name,
+          claimed,
+          limit: i.quantity_limit,
+          remaining: Math.max(i.quantity_limit - claimed, 0),
+        }
+      })
+      .filter((u: UnclaimedItem) => u.remaining > 0)
 
     const totalAdults = totalRegularAdults + totalElders
     const totalHeadcount = totalAdults + totalChildren
@@ -220,6 +300,7 @@ Deno.serve(async (req) => {
       totalChildren,
       guestList,
       potluckItems,
+      unclaimedItems,
     }
 
     // Collect recipients: host + admins + moderators
