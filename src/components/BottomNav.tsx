@@ -1,4 +1,5 @@
 import { useCallback } from "react";
+import { createPortal } from "react-dom";
 import { NavLink } from "react-router-dom";
 import { Home, User, Shield, BookOpen } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -40,9 +41,9 @@ export default function BottomNav() {
     { to: "/profile", icon: User, label: "Profile" },
   ];
 
-  return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-border bg-card">
-      <div className="mx-auto flex max-w-lg">
+  const nav = (
+    <nav className="fixed inset-x-0 bottom-0 z-[60] border-t border-border bg-card/95 pb-[env(safe-area-inset-bottom)] shadow-lg backdrop-blur supports-[backdrop-filter]:bg-card/90">
+      <div className="mx-auto flex min-h-16 max-w-lg">
         {tabs.map(({ to, icon: Icon, label, showBadge }) => (
           <NavLink
             key={to}
@@ -72,4 +73,8 @@ export default function BottomNav() {
       </div>
     </nav>
   );
+
+  if (typeof document === "undefined") return null;
+
+  return createPortal(nav, document.body);
 }
