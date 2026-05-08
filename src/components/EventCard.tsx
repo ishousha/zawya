@@ -450,9 +450,9 @@ function EventCardInner({ event, onShowTicket, isPast = false }: EventCardProps)
                     <Play className="h-3.5 w-3.5" />
                     ▶ Watch Recording
                   </Button>
-                  {(event as any).recording_passcode && (
+                  {eventCreds?.recording_passcode && (
                     <p className="text-xs text-muted-foreground text-center">
-                      🔑 Passcode: <span className="font-medium text-foreground">{(event as any).recording_passcode}</span>
+                      🔑 Passcode: <span className="font-medium text-foreground">{eventCreds.recording_passcode}</span>
                     </p>
                   )}
                 </div>
