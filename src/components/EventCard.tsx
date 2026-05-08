@@ -409,6 +409,11 @@ function EventCardInner({ event, onShowTicket, isPast = false }: EventCardProps)
                   ⏳ Unlocks in <span className="font-medium text-foreground">{countdownText}</span>
                 </p>
               )}
+              {eventCreds?.zoom_password && (
+                <p className="text-sm font-medium text-foreground text-center pt-1">
+                  🔑 Zoom Passcode: <span className="font-bold tracking-wide">{eventCreds.zoom_password}</span>
+                </p>
+              )}
             </div>
           );
         })()}
