@@ -129,6 +129,7 @@ export const defaultEventForm: EventFormState = {
   zoom_password: "",
   recording_url: "",
   recording_passcode: "",
+  short_code: "",
 };
 
 // Keep EventType as a legacy re-export alias — no longer used
