@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo, memo } from "react";
 import { format } from "date-fns";
-import { MapPin, Video, Users, Calendar, Clock, CheckCircle2, Ticket, Edit, Building2, ExternalLink, Ban, BookOpen, Mountain, Handshake, ClockIcon, ScanLine, Lock, Play } from "lucide-react";
+import { MapPin, Video, Users, Calendar, Clock, CheckCircle2, Ticket, Edit, Building2, ExternalLink, Ban, BookOpen, Mountain, Handshake, ClockIcon, ScanLine, Lock, Play, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useMyRSVP, useEventRsvpCounts } from "@/hooks/useRSVP";
@@ -13,6 +13,7 @@ import { useNeedsReclaim } from "@/hooks/useReclaimPotluck";
 import { AlertTriangle } from "lucide-react";
 import SpeakerBadge from "@/components/SpeakerBadge";
 import LazyImage from "@/components/LazyImage";
+import { useShareEvent } from "@/components/ShareEventDialog";
 import type { Database } from "@/integrations/supabase/types";
 
 type Event = Database["public"]["Tables"]["events"]["Row"];
@@ -35,6 +36,7 @@ function EventCardInner({ event, onShowTicket, isPast = false }: EventCardProps)
   const [rsvpOpen, setRsvpOpen] = useState(false);
   const [checkinOpen, setCheckinOpen] = useState(false);
   const [now, setNow] = useState(() => new Date());
+  const { open: openShare, dialog: shareDialog } = useShareEvent();
   const [isExpanded, setIsExpanded] = useState(false);
   const [isClamped, setIsClamped] = useState(false);
   const descRef = useRef<HTMLParagraphElement>(null);
