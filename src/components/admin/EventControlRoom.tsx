@@ -86,20 +86,20 @@ export default function EventControlRoom() {
   const { data: eventTypes } = useEventTypes();
   const getTypeName = (id: string) => eventTypes?.find((t) => t.id === id)?.name ?? "Event";
 
-  // Listen for quick-action navigation from AdminQuickActions
+  // Honor navigation state directly (avoids race with window event listener mount)
+  const location = useLocation();
+  const navigate = useNavigate();
   useEffect(() => {
-    const handler = (e: Event) => {
-      const detail = (e as CustomEvent).detail as { tab?: string; action?: string; eventId?: string } | undefined;
-      if (!detail || detail.tab !== "events") return;
-      if (detail.action === "create") {
-        setCreating(true);
-      } else if (detail.eventId) {
-        setMonitoringEventId(detail.eventId);
-      }
-    };
-    window.addEventListener("admin-quick-action", handler);
-    return () => window.removeEventListener("admin-quick-action", handler);
-  }, []);
+    const state = location.state as { tab?: string; action?: string; eventId?: string } | null;
+    if (!state || state.tab !== "events") return;
+    if (state.action === "create") {
+      setCreating(true);
+    } else if (state.eventId) {
+      setMonitoringEventId(state.eventId);
+    }
+    // Clear so back/refresh doesn't retrigger
+    navigate(location.pathname, { replace: true, state: null });
+  }, [location.state, location.pathname, navigate]);
 
 
   const { data: events, isLoading } = useQuery({
