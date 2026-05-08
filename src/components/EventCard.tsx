@@ -38,6 +38,20 @@ function EventCardInner({ event, onShowTicket, isPast = false }: EventCardProps)
   const [rsvpOpen, setRsvpOpen] = useState(false);
   const [checkinOpen, setCheckinOpen] = useState(false);
   const [now, setNow] = useState(() => new Date());
+
+  // Fetch sensitive event credentials only when the user has an active RSVP.
+  const hasActiveRsvp = !!myRSVP && myRSVP.status !== "cancelled";
+  const { data: eventCreds } = useQuery({
+    queryKey: ["event-credentials", event.id],
+    enabled: hasActiveRsvp,
+    staleTime: 5 * 60 * 1000,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("get_event_zoom_credentials", { _event_id: event.id });
+      if (error) throw error;
+      const row = Array.isArray(data) ? data[0] : data;
+      return (row ?? { zoom_password: null, recording_passcode: null }) as { zoom_password: string | null; recording_passcode: string | null };
+    },
+  });
   const { open: openShare, dialog: shareDialog } = useShareEvent();
   const [isExpanded, setIsExpanded] = useState(false);
   const [isClamped, setIsClamped] = useState(false);
