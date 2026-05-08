@@ -41,13 +41,49 @@ export default function AdminDoorScanner() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("events")
-        .select("id, title, date_time")
+        .select("id, title, date_time, end_date_time")
         .in("status", ["active", "full"])
         .order("date_time", { ascending: true });
       if (error) throw error;
       return data;
     },
   });
+
+  // Detect currently-live event (now between start and effective end; +6h fallback)
+  const liveEvent = useMemo(() => {
+    if (!events?.length) return null;
+    const nowMs = Date.now();
+    return (
+      events.find((e: any) => {
+        const start = new Date(e.date_time).getTime();
+        const end = e.end_date_time
+          ? new Date(e.end_date_time).getTime()
+          : start + 6 * 60 * 60 * 1000;
+        return start <= nowMs && end >= nowMs;
+      }) ?? null
+    );
+  }, [events]);
+
+  // Sort: live events first, then by date
+  const sortedEvents = useMemo(() => {
+    if (!events) return [];
+    const liveId = liveEvent?.id;
+    return [...events].sort((a, b) => {
+      if (a.id === liveId) return -1;
+      if (b.id === liveId) return 1;
+      return new Date(a.date_time).getTime() - new Date(b.date_time).getTime();
+    });
+  }, [events, liveEvent]);
+
+  // Auto-select live event once on mount when available
+  const autoSelected = useRef(false);
+  useEffect(() => {
+    if (autoSelected.current) return;
+    if (!selectedEventId && liveEvent) {
+      setSelectedEventId(liveEvent.id);
+      autoSelected.current = true;
+    }
+  }, [liveEvent, selectedEventId]);
 
   // Live check-in counter + attendee list for manual search
   const { data: attendees } = useQuery({
