@@ -196,6 +196,49 @@ export default function SettingsTab({ form, setForm, isEditing, onShortCodeUserE
         </p>
       </div>
 
+      {/* Custom Short Link */}
+      <div>
+        <div className="flex items-center gap-2 mb-3">
+          <Link2 className="h-4 w-4 text-primary" />
+          <h3 className="text-sm font-semibold text-foreground">Custom Short Link (Optional)</h3>
+        </div>
+        <div className="flex gap-2">
+          <div className="flex items-center rounded-md border border-input bg-muted/40 px-2.5 text-sm text-muted-foreground">
+            zawya.app/e/
+          </div>
+          <Input
+            id="short_code"
+            type="text"
+            maxLength={32}
+            value={form.short_code}
+            onChange={(e) => {
+              const sanitized = e.target.value.replace(/[^A-Za-z0-9_-]/g, "").slice(0, 32);
+              update("short_code", sanitized);
+              onShortCodeUserEdit?.();
+            }}
+            placeholder="TG1405"
+            className="font-mono"
+          />
+          {onResetShortCode && (
+            <Button
+              type="button"
+              size="icon"
+              variant="outline"
+              onClick={onResetShortCode}
+              title="Re-suggest from title + date"
+            >
+              <RefreshCw className="h-4 w-4" />
+            </Button>
+          )}
+        </div>
+        <p className="text-xs text-muted-foreground mt-1">
+          Auto-suggested from title + date. Edit freely — if it's already taken, we'll append <span className="font-mono">-2</span>.
+          {form.short_code && form.short_code.length > 0 && form.short_code.length < 3 && (
+            <span className="block text-destructive">Use 3–32 characters: letters, numbers, _ or -.</span>
+          )}
+        </p>
+      </div>
+
       {/* Event Status */}
       <div>
         <div className="flex items-center gap-2 mb-3">
