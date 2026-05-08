@@ -46,7 +46,15 @@ export default function AdminDoorScanner() {
         .in("status", ["active", "full"])
         .order("date_time", { ascending: true });
       if (error) throw error;
-      return data;
+      // Exclude past events: keep events whose effective end is >= now
+      const nowMs = Date.now();
+      return (data ?? []).filter((e: any) => {
+        const start = new Date(e.date_time).getTime();
+        const end = e.end_date_time
+          ? new Date(e.end_date_time).getTime()
+          : start + 6 * 60 * 60 * 1000;
+        return end >= nowMs;
+      });
     },
   });
 
