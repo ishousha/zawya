@@ -451,9 +451,9 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
         }
       }
 
-      return eventId;
+      return { eventId, savedShortCode };
     },
-    onSuccess: (_data, publishOverride) => {
+    onSuccess: (result, publishOverride) => {
       clearDraft();
       queryClient.invalidateQueries({ queryKey: ["admin-events"] });
       queryClient.invalidateQueries({ queryKey: ["events"] });
