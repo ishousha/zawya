@@ -135,6 +135,7 @@ export default function AppRoutes() {
           <Route path="/unsubscribe" element={<Unsubscribe />} />
           <Route path="/event/:eventId" element={<LoginPage />} />
           <Route path="/events/:eventId" element={<LoginPage />} />
+          <Route path="/e/:shortCode" element={<LoginPage />} />
           <Route path="*" element={<LoginPage />} />
         </Routes>
       </Suspense>
