@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
-import { PlusCircle, ClipboardList, UserPlus, Video, X, ExternalLink } from "lucide-react";
+import { PlusCircle, ClipboardList, UserPlus, Video, X, ExternalLink, ScanLine } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,17 +16,29 @@ function QuickActionCard({
   label,
   badge,
   onClick,
+  live,
 }: {
   icon: React.ElementType;
   label: string;
   badge?: number;
   onClick: () => void;
+  live?: boolean;
 }) {
   return (
     <button
       onClick={onClick}
-      className="relative flex flex-col items-center justify-center gap-2 p-6 bg-card border border-border rounded-xl shadow-sm hover:shadow-md hover:bg-accent transition-all cursor-pointer"
+      className={`relative flex flex-col items-center justify-center gap-2 p-6 rounded-xl shadow-sm hover:shadow-md transition-all cursor-pointer ${
+        live
+          ? "bg-primary/10 border-2 border-primary hover:bg-primary/15"
+          : "bg-card border border-border hover:bg-accent"
+      }`}
     >
+      {live && (
+        <span className="absolute top-2 right-2 flex h-3 w-3">
+          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75" />
+          <span className="relative inline-flex h-3 w-3 rounded-full bg-primary" />
+        </span>
+      )}
       {badge != null && badge > 0 && (
         <span className="absolute top-2 right-2 flex h-5 min-w-5 items-center justify-center rounded-full bg-destructive px-1 text-[11px] font-bold text-destructive-foreground">
           {badge}
@@ -96,6 +108,17 @@ export default function AdminQuickActions() {
     }
   };
 
+  // Detect live event from existing nextEvent fetch
+  const liveEvent = useMemo(() => {
+    if (!nextEvent) return null;
+    const now = Date.now();
+    const start = new Date(nextEvent.date_time).getTime();
+    const end = (nextEvent as any).end_date_time
+      ? new Date((nextEvent as any).end_date_time).getTime()
+      : start + 6 * 60 * 60 * 1000;
+    return start <= now && end >= now ? nextEvent : null;
+  }, [nextEvent]);
+
   return (
     <>
       <div className="mb-6">
@@ -103,6 +126,14 @@ export default function AdminQuickActions() {
           Quick Actions
         </h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 w-full">
+          {liveEvent && (
+            <QuickActionCard
+              icon={ScanLine}
+              label="Check In (Live)"
+              live
+              onClick={() => navigate("/admin", { state: { tab: "scanner", eventId: liveEvent.id } })}
+            />
+          )}
           <QuickActionCard
             icon={PlusCircle}
             label="Create Event"

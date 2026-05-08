@@ -1,4 +1,5 @@
 import { useState, useCallback, useMemo, useEffect, useRef } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -84,6 +85,18 @@ export default function AdminDoorScanner() {
       autoSelected.current = true;
     }
   }, [liveEvent, selectedEventId]);
+
+  // Honor explicit eventId from navigation state (Quick Action click)
+  const location = useLocation();
+  const navigate = useNavigate();
+  useEffect(() => {
+    const state = location.state as { tab?: string; eventId?: string } | null;
+    if (state?.tab === "scanner" && state.eventId) {
+      setSelectedEventId(state.eventId);
+      autoSelected.current = true;
+      navigate(location.pathname, { replace: true, state: null });
+    }
+  }, [location.state, location.pathname, navigate]);
 
   // Live check-in counter + attendee list for manual search
   const { data: attendees } = useQuery({
