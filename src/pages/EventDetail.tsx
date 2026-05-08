@@ -10,7 +10,9 @@ import QRTicketScreen from "@/components/QRTicketScreen";
 import SelfCheckinModal from "@/components/SelfCheckinModal";
 import ContactOrganizerModal from "@/components/ContactOrganizerModal";
 import FeaturedSpeakers from "@/components/FeaturedSpeaker";
-import { Loader2, ArrowLeft, Mail, Clock, ScrollText } from "lucide-react";
+import { Loader2, ArrowLeft, Mail, Clock, ScrollText, Link2 } from "lucide-react";
+import { toast } from "sonner";
+import { copyEventLink } from "@/lib/share-event";
 import { Button } from "@/components/ui/button";
 import type { Database } from "@/integrations/supabase/types";
 
