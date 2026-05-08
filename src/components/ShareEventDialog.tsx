@@ -79,7 +79,7 @@ function ShareEventDialog({
   onOpenChange: (open: boolean) => void;
 }) {
   const [copied, setCopied] = useState(false);
-  const url = target ? getEventShareUrl(target.eventId) : "";
+  const url = target ? getEventShareUrl(target.eventId, target.shortCode) : "";
   const title = target?.title ?? "";
 
   const handleCopy = async () => {
