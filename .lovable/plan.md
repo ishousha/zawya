@@ -1,30 +1,30 @@
-# Allow admins to force-RSVP past capacity
+## Bug analysis
 
-## Problem
-When an event is full and the waitlist is also full, the RSVP button is disabled for everyone — including admins and moderators. Admins need to be able to add any member regardless of capacity.
+**Bug 1 — sometimes lands on the events tab instead of the guest list:**
+`AdminQuickActions` navigates to `/admin` with state, then `AdminDashboard` switches to the Events tab and dispatches an `admin-quick-action` window event after a fixed `80ms` setTimeout. `EventControlRoom` only registers its listener on mount. On the first navigation from another tab (Users / Scanner), the component mounts after the dispatch — the listener misses the event, so `monitoringEventId` is never set and the user sees the events list. Subsequent clicks work because the component is already mounted.
 
-## Scope
-UI-only change. The database does not enforce capacity on `rsvps` inserts (the waitlist promotion logic only triggers on cancel/expand), so admins/mods can already write — they just can't reach the modal.
+**Bug 2 — skips an event that is currently live:**
+The `admin-next-event` query filters `.gte("date_time", now)`. A live event's `date_time` (start) is in the past, so it's excluded and the query returns the *following* event.
 
-## Changes
+## Fix
 
-### 1. `src/components/EventCard.tsx`
-- Treat `fullyClosed` as `false` when `isAdminOrMod` is true so the button stays enabled.
-- When admin and event is over capacity, label the button **"Force RSVP"** (with a small subtle hint) instead of "Event Full" / "Waitlist Full" / "Join Waitlist".
-- Normal members keep the existing fade/disable behavior unchanged.
+### 1. `src/components/admin/EventControlRoom.tsx`
+- Replace the `window` event listener pattern with reading navigation state directly from `react-router`'s `useLocation` inside `EventControlRoom`. On mount (and when location.state changes), if `state.tab === "events"` and `state.eventId` is set, call `setMonitoringEventId(state.eventId)`; if `state.action === "create"`, call `setCreating(true)`. This removes the mount-order race entirely.
+- Keep `AdminDashboard`'s tab switch behavior, but stop dispatching the custom event (or keep dispatching as a no-op fallback — preferred: remove the dispatch + setTimeout).
 
-### 2. `src/components/RSVPModal.tsx`
-- Add a small amber notice at the top of the modal when admin/mod is RSVPing past capacity: *"This event is full. Your RSVP will be added as a confirmed attendee (admin override)."*
-- No change to insert logic — admins already write directly; we just suppress the auto-waitlist flag for admin-created RSVPs (set `status: 'attending'`, `is_waitlisted: false` explicitly when admin and over capacity).
+### 2. `src/pages/AdminDashboard.tsx`
+- Remove the `setTimeout` + `window.dispatchEvent` block. Just set the active tab. EventControlRoom will pick up `location.state` itself.
+- Continue clearing `location.state` after handling so back/refresh doesn't retrigger — but only after EventControlRoom has consumed it. Simpler: don't clear it here; let EventControlRoom clear it via `navigate(pathname, { replace: true, state: null })` once it has applied the eventId.
 
-### 3. `src/components/admin/AdminRsvpAction.tsx` (already exists)
-- Already lets admins add an RSVP for any user to any active/full event. Add an explicit `status: 'attending'` + `is_waitlisted: false` to the insert so a force-add doesn't accidentally land on the waitlist.
+### 3. `src/components/AdminQuickActions.tsx` — `admin-next-event` query
+- Change the filter so a currently-live event is preferred:
+  - Fetch events with status in `["active","full"]`, published, where **either** `end_date_time >= now` **or** (`end_date_time is null` AND `date_time >= now - 6 hours`) — i.e. include events that started recently and have no explicit end.
+  - Order: pick the event whose effective end is closest in the future, with live events ranked first. Implementation: query both `date_time, end_date_time`, then in JS pick the event where `now` falls between start and effective-end (live), else the soonest upcoming.
+  - Use a 6-hour fallback window for events missing `end_date_time` (matches typical gathering length; safe upper bound for "still live").
 
-## Out of scope
-- No schema changes, no new RLS, no audit log entry (existing `admin_activity_log` is not currently wired to RSVPs — separate request if wanted).
-- No change to non-admin behavior.
-
-## Verification
-- As admin on a full+waitlist-full event: button reads "Force RSVP", modal opens with override notice, RSVP saves as attending.
-- As approved member on same event: button stays disabled showing "Waitlist Full".
-- AdminRsvpAction in user management: adding RSVP to a full event creates an attending row, not waitlisted.
+### Verification
+- Hard reload `/admin` on Users tab → click Next Event Guest List → lands directly on the Event RSVP detail (guest list) on first click.
+- Repeat from Scanner tab → same behavior.
+- With an event currently live (start in past, end in future or within 6h window) → button opens that live event, not the next one.
+- With no live event → opens the next upcoming event as before.
+- With no upcoming or live event → existing "No upcoming events found" toast still shows.
