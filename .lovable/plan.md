@@ -1,43 +1,40 @@
-## Goal
+# Fix: Male users can RSVP to "Sisters Only" events
 
-On the home page event card, the Share Event button should sit **beside** Add to Calendar (not stacked underneath), and that pair should appear **below** the Current Menu (Potluck) section.
+## Root cause
 
-## Change
+DB trigger `enforce_event_gender_audience` and the frontend `genderBlock`/`genderBlocked` guards already block **new** male RSVPs on Sisters-Only events (and vice versa). The remaining loopholes:
 
-**File:** `src/components/EventCard.tsx`
+1. **`RSVPModal.tsx`** — `genderBlocked` is `false` when `isEditing` is true. So a mismatched user who already has an RSVP (e.g. event was originally "Everyone" and an admin later changed it to "Sisters Only") can keep editing/confirming via the modal.
+2. **`EventCard.tsx`** — when `isAttending`, the card shows "Edit RSVP" / "View Ticket" with no gender check, so a now-mismatched user sees no warning that they should cancel.
+3. **DB-level audience changes** — when an admin updates `events.audience_gender`, existing mismatched RSVPs are not cleaned up. The `enforce_event_gender_audience` trigger only fires on RSVP INSERT/UPDATE, not on `events` UPDATE.
+4. **Trigger UPDATE skip** — current trigger early-returns on `UPDATE` when `event_id` and `user_id` are unchanged. That's fine for keeping admin-driven check-ins working, but means a mismatched user editing their RSVP via the SDK directly is not re-validated. (UI fix above closes the practical path; trigger stays as is.)
 
-1. Remove the existing `{isAttending && <AddToCalendarButton />}` and the Share Event `<Button>` block from the action stack (currently at lines ~559–568, inside the `!isPast && !isCancelled` actions container).
+## Plan
 
-2. After the `<PotluckMenu />` block (line ~580), add a new flex row that renders both buttons side-by-side, gated by the same `!isPast && !isCancelled` condition that wraps the actions today:
+### 1. `src/components/RSVPModal.tsx`
+- Drop the `!isEditing` exemption from `genderBlocked` so the gender block screen always shows for mismatched users. Replace the "Close" button with two buttons:
+  - "Close"
+  - "Cancel my RSVP" (only if `myRSVP` exists and not cancelled) — calls existing `handleCancel()`.
+- Copy: "This gathering is now restricted to {brothers/sisters} only. Please cancel your RSVP."
 
-   ```tsx
-   {!isPast && !isCancelled && (isAttending || true) && (
-     <div className="mt-3 flex items-center gap-2">
-       {isAttending && (
-         <div className="flex-1">
-           <AddToCalendarButton event={event} />
-         </div>
-       )}
-       <Button
-         size="sm"
-         variant="ghost"
-         className="flex-1 gap-1.5 text-muted-foreground hover:text-foreground"
-         onClick={() => openShare(event.id, event.title, (event as any).short_code)}
-       >
-         <Share2 className="h-3.5 w-3.5" />
-         Share Event
-       </Button>
-     </div>
-   )}
-   ```
+### 2. `src/components/EventCard.tsx`
+- In the action area (lines ~476–520), when `isAttending && genderBlock` (and not admin/mod), replace the "Edit RSVP / View Ticket" row with:
+  - A small warning chip: `genderBlock.label` + "Your RSVP no longer matches this event's audience."
+  - A single "Cancel RSVP" button that opens `RSVPModal` (existing modal will surface the cancel action from step 1).
+- Admins/mods continue to see the normal Edit/Ticket buttons (already excluded from `genderBlock`).
 
-   - When the user is attending: both buttons render side-by-side (50/50).
-   - When not attending: only Share renders (full width via `flex-1`), preserving today's behavior of always showing Share to non-attendees.
-
-3. No changes to the Potluck Menu component, the share dialog, or any other action (RSVP, Check-in, virtual link box).
+### 3. Database trigger on `events` (new migration)
+- Add `BEFORE UPDATE` trigger on `public.events`: when `audience_gender` changes from `Everyone` to `Brothers Only` / `Sisters Only` (or between the two), cancel all mismatched non-cancelled RSVPs:
+  - `UPDATE rsvps SET status='cancelled', is_waitlisted=false WHERE event_id = NEW.id AND user_id IN (SELECT id FROM profiles WHERE gender IS DISTINCT FROM <required_gender>)`.
+  - Insert a `notifications` row for each affected user explaining the cancellation.
+- This guarantees historical RSVPs cannot leak through the UI even if a frontend check is missed.
 
 ## Out of scope
+- Changing how admins create walk-in RSVPs (admin override is intentional).
+- Auto-removing dependents whose gender mismatches (separate concern; dependents currently have no gender field used in this check).
+- Refactoring `enforce_event_gender_audience`.
 
-- No changes to the admin "Share Event" button on `EventDetail`.
-- No styling changes to `AddToCalendarButton` itself (it already renders full-width inside its container).
-- No change to past or cancelled event behavior.
+## Files touched
+- `src/components/RSVPModal.tsx` — gender block always shown for mismatched users; add cancel-RSVP action.
+- `src/components/EventCard.tsx` — replace edit/ticket buttons with warning + cancel for mismatched attendees.
+- New Supabase migration — trigger on `events` to cancel mismatched RSVPs and notify users when audience tightens.

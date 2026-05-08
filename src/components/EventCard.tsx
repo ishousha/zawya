@@ -476,6 +476,16 @@ function EventCardInner({ event, onShowTicket, isPast = false }: EventCardProps)
             <>
               <div className="flex gap-2">
                 {isAttending ? (
+                  genderBlock ? (
+                    <div className="w-full space-y-1">
+                      <Button size="sm" variant="destructive" className="w-full" onClick={() => setRsvpOpen(true)}>
+                        Cancel RSVP — {genderBlock.label}
+                      </Button>
+                      <p className="text-xs text-muted-foreground text-center">
+                        Your RSVP no longer matches this event's audience.
+                      </p>
+                    </div>
+                  ) : (
                   <>
                     <Button
                       size="sm"
@@ -495,6 +505,7 @@ function EventCardInner({ event, onShowTicket, isPast = false }: EventCardProps)
                       View Ticket
                     </Button>
                   </>
+                  )
                 ) : genderBlock ? (
                   <div className="w-full space-y-1">
                     <Button size="sm" className="w-full" variant="secondary" disabled>
