@@ -53,7 +53,16 @@ const GuestListReminderEmail = ({
   totalChildren = 0,
   guestList = [],
   potluckItems = [],
-}: GuestListReminderProps) => (
+  unclaimedItems = [],
+}: GuestListReminderProps) => {
+  // Group potluck items by category for display
+  const potluckByCategory = potluckItems.reduce<Record<string, PotluckItem[]>>((acc, item) => {
+    const key = item.category || 'Other'
+    ;(acc[key] = acc[key] || []).push(item)
+    return acc
+  }, {})
+  const potluckCategories = Object.keys(potluckByCategory).sort()
+  return (
   <Html lang="en" dir="ltr">
     <Head />
     <Preview>Guest list for {eventTitle || 'your event'} — {totalHeadcount} attending</Preview>
