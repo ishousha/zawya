@@ -12,6 +12,45 @@ Deno.serve(async (req) => {
 
   const supabaseUrl = Deno.env.get('SUPABASE_URL')!
   const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+  const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!
+
+  // --- Auth: internal (cron / service role) or admin only ---
+  const authHeader = req.headers.get('Authorization') ?? ''
+  const internalSecret = req.headers.get('x-internal-secret')
+  const isInternal = !!supabaseServiceKey && internalSecret === supabaseServiceKey
+  if (!isInternal) {
+    if (!authHeader.startsWith('Bearer ')) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+    const token = authHeader.replace('Bearer ', '')
+    if (token !== supabaseServiceKey) {
+      const anon = createClient(supabaseUrl, supabaseAnonKey, {
+        global: { headers: { Authorization: authHeader } },
+      })
+      const { data: claims } = await anon.auth.getClaims(token)
+      const callerId = claims?.claims?.sub
+      if (!callerId) {
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
+      const { data: isAdmin } = await anon.rpc('has_role', {
+        _user_id: callerId,
+        _role: 'admin',
+      })
+      if (!isAdmin) {
+        return new Response(JSON.stringify({ error: 'Forbidden' }), {
+          status: 403,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
+    }
+  }
+
   const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
   const now = new Date()
