@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { ScanLine, CheckCircle2, XOctagon, Users, Search, UserCheck, UserX, Radio } from "lucide-react";
+import { ScanLine, CheckCircle2, XOctagon, Users, Search, UserCheck, UserX, Radio, ClipboardList } from "lucide-react";
 import { toast } from "sonner";
 import { Scanner } from "@yudiel/react-qr-scanner";
 
