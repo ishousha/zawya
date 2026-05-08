@@ -17,9 +17,11 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 interface SettingsTabProps {
   form: EventFormState;
   setForm: React.Dispatch<React.SetStateAction<EventFormState>>;
+  onShortCodeUserEdit?: () => void;
+  onResetShortCode?: () => void;
 }
 
-export default function SettingsTab({ form, setForm, isEditing }: SettingsTabProps & { isEditing?: boolean }) {
+export default function SettingsTab({ form, setForm, isEditing, onShortCodeUserEdit, onResetShortCode }: SettingsTabProps & { isEditing?: boolean }) {
   const update = <K extends keyof EventFormState>(key: K, value: EventFormState[K]) =>
     setForm((prev) => ({ ...prev, [key]: value }));
 
