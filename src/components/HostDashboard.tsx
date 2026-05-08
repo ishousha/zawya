@@ -25,11 +25,9 @@ export default function HostDashboard({ eventId }: HostDashboardProps) {
 
       const userIds = [...new Set(rsvpData.map((r) => r.user_id))];
       const { data: profilesData } = await supabase
-        .from("profiles")
-        .select("id, name, family_name")
-        .in("id", userIds);
+        .rpc("get_event_attendee_profiles", { _event_id: eventId });
 
-      const profileMap = new Map((profilesData ?? []).map((p) => [p.id, p]));
+      const profileMap = new Map(((profilesData ?? []) as Array<{ id: string; name: string | null; family_name: string | null }>).map((p) => [p.id, p]));
       return rsvpData.map((r) => ({ ...r, profiles: profileMap.get(r.user_id) ?? null }));
     },
   });
