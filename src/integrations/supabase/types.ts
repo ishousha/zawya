@@ -428,6 +428,7 @@ export type Database = {
           recording_passcode: string | null
           recording_url: string | null
           scheduled_publish_at: string | null
+          short_code: string
           status: Database["public"]["Enums"]["event_status"]
           ticket_fee: number | null
           title: string
@@ -467,6 +468,7 @@ export type Database = {
           recording_passcode?: string | null
           recording_url?: string | null
           scheduled_publish_at?: string | null
+          short_code: string
           status?: Database["public"]["Enums"]["event_status"]
           ticket_fee?: number | null
           title: string
@@ -506,6 +508,7 @@ export type Database = {
           recording_passcode?: string | null
           recording_url?: string | null
           scheduled_publish_at?: string | null
+          short_code?: string
           status?: Database["public"]["Enums"]["event_status"]
           ticket_fee?: number | null
           title?: string
@@ -1062,6 +1065,7 @@ export type Database = {
         Args: { payload: Json; queue_name: string }
         Returns: number
       }
+      gen_event_short_code: { Args: never; Returns: string }
       get_event_admin_secrets: {
         Args: { _event_id: string }
         Returns: {

@@ -1,59 +1,50 @@
-# Security Hardening Plan
+## Goal
+Add native short links for events: `https://zawya.app/e/Ab3X9z` instead of long UUID URLs, so admins can share clean links via WhatsApp.
 
-Fix the 4 open findings before publish. No user-facing behavior change for legitimate flows.
+## 1. Database (migration)
+- Add column `short_code TEXT UNIQUE` to `events` (nullable initially so we can backfill).
+- Add a `gen_event_short_code()` SQL function that loops generating a random 6-char alphanumeric (alphabet: `ABCDEFGHJKLMNPQRSTUVWXYZ23456789` — drop look-alikes `IO01l`) until it finds an unused value, then returns it.
+- Add a `BEFORE INSERT` trigger on `events` that sets `short_code = gen_event_short_code()` when it is NULL.
+- Backfill: `UPDATE events SET short_code = gen_event_short_code() WHERE short_code IS NULL;` (loop-safe via the function).
+- After backfill, `ALTER COLUMN short_code SET NOT NULL`.
 
-## 1. Gate event credentials (zoom_password, checkin_pin, recording_passcode)
+No RLS change needed — `short_code` rides on existing event SELECT policies. The lookup route only resolves codes for events the caller can already see; unauth users get redirected to login first (see §3).
 
-**Problem:** All approved members receive these in every event SELECT, even when UI hides them.
+## 2. Resolver (no edge function needed)
+- The client resolves `short_code → event id` directly via Supabase from the new route. We do NOT expose an unauthenticated lookup, which keeps event existence private.
+- For unauthenticated users hitting `/e/:code`, the existing deep-link capture redirects them to login, then resolves after auth.
 
-**Fix:**
-- New view `events_public` exposing every column **except** `zoom_password`, `checkin_pin`, `recording_passcode`. Apply same RLS rules.
-- Switch all client-side reads (`EventDetail.tsx`, `prefetch.ts`, `EventCard`, anywhere that doesn't need the secrets) to select from `events_public` or omit those 3 columns.
-- New SECURITY DEFINER RPC `get_event_zoom_credentials(_event_id uuid)`:
-  - Returns `{ zoom_password, recording_passcode }` only when caller has a non-cancelled RSVP for that event (no time gate — user requested credentials shown after RSVP).
-  - Recording passcode returned only if event has ended.
-- `EventCard.tsx` calls this RPC for virtual/hybrid events when user has RSVP'd, replaces `event.zoom_password` reads.
-- `checkin_pin` is **never** sent to clients. Existing `verify_checkin_pin` RPC stays. Admin/Moderator UIs (`EventControlRoom`, event form) already use service-role-equivalent admin reads — add a separate RPC `get_event_admin_secrets(_event_id)` gated on `has_role(admin|moderator)` returning all 3 fields for the admin/host UI.
-- Update `EventControlRoom.tsx` and `EventFormTabs.tsx` to fetch secrets via this admin RPC instead of the events row.
+## 3. Routing — `/e/:shortCode`
+New file `src/pages/EventShortLinkRedirect.tsx`:
+- On mount, if no session → save `/e/:code` to `sessionStorage` (so post-login redirect re-runs the resolve), render Login.
+- If session present → `select id from events where short_code = :code` (single row).
+  - Found → `navigate('/events/' + id, { replace: true })`.
+  - Not found / error → `toast.error("Event link invalid.")` and `navigate('/', { replace: true })`.
 
-## 2. Restrict host profile access
+Wire into `AppRoutes.tsx`:
+- Unauth branch: `<Route path="/e/:shortCode" element={<LoginPage />} />` (deep link captured via `useCaptureDeepLink`).
+- Auth branch (inside `StableLayout` non-tab routes): `<Route path="/e/:shortCode" element={<EventShortLinkRedirect />} />`.
 
-**Problem:** "Hosts can view profiles of rsvpd users" policy returns all PII columns.
+Update `isSafeRedirectPath` to also allow `^/e/[A-Za-z0-9]{4,12}(\?.*)?$` and update `useCaptureDeepLink` (it already uses `isSafeRedirectPath`, so just widening the regex is enough).
 
-**Fix:**
-- Drop the host SELECT policy on `profiles`.
-- Add a SECURITY DEFINER RPC `get_event_attendee_profiles(_event_id uuid)` returning only `id, name, family_name, avatar_url` (no email/phone/DOB/whatsapp/is_mureed) for callers who are the host of that event OR admin/moderator.
-- Update `HostDashboard.tsx` to call this RPC. Admin views (`EventRsvpDetail.tsx`) keep direct profile access via the existing admin/moderator policies.
+## 4. Share URL — admin "Copy Link" / Share Event
+- Update `src/lib/share-event.ts`:
+  - `getEventShareUrl(event: { id: string; short_code?: string | null })` returns `${origin}/e/${short_code}` if present, else falls back to `/events/${id}`.
+- Update all callers to pass the event object (not just id):
+  - `src/pages/EventDetail.tsx` — already has `event`, pass `event` to `openShare`.
+  - `src/components/ShareEventDialog.tsx` — change `useShareEvent.open(eventOrId, title)` signature to accept the event object (or `{ id, short_code, title }`).
+  - `src/components/admin/EventControlRoom.tsx` — pass the event row when invoking share/copy.
+- Add `short_code` to `EVENT_PUBLIC_COLUMNS` (`src/lib/event-columns.ts`) so list/detail queries hydrate it.
 
-## 3. Harden dependents INSERT/UPDATE
-
-**Problem:** A user with `family_id IS NULL` can claim arbitrary dependents by setting `parent_id = self`.
-
-**Fix:**
-- Replace the INSERT policy with: caller must have non-null `family_id` AND `family_id` matches their own, OR caller is admin.
-- Replace the UPDATE policy similarly.
-- DELETE/SELECT policies stay as-is (they fail safely on NULL).
-
-## 4. Security memory update
-
-Document accepted patterns: event credentials only via gated RPCs, attendee profiles for hosts only via RPC with limited columns, dependents require family membership.
-
-## Technical details
-
-**New DB objects:**
-- View: `public.events_public` (all columns except 3 secrets) with appropriate `security_invoker = true` so RLS still applies.
-- RPCs: `get_event_zoom_credentials(uuid)`, `get_event_admin_secrets(uuid)`, `get_event_attendee_profiles(uuid)` — all `SECURITY DEFINER`, `STABLE`, `search_path = public`, `EXECUTE` granted only to `authenticated`.
-
-**Client files touched:**
-- `src/lib/prefetch.ts` — drop `zoom_password` from select.
-- `src/pages/EventDetail.tsx` — drop the 3 secret columns from select.
-- `src/components/EventCard.tsx` — fetch zoom credentials via RPC after RSVP confirmed.
-- `src/components/admin/EventControlRoom.tsx` — fetch admin secrets via RPC.
-- `src/components/admin/event-form/EventFormTabs.tsx` — same.
-- `src/components/HostDashboard.tsx` — switch attendee profiles to RPC.
-
-**No data migration needed** — only schema/policy/function changes.
+## 5. QA checklist (after implementation)
+1. Create a new event → confirm `short_code` is auto-set (6 chars, unguessable alphabet).
+2. Existing events have backfilled codes.
+3. Admin "Share Event" copies `https://zawya.app/e/<code>`.
+4. Pasting the link in a fresh browser → login screen, then after auth → lands on `/events/:id`.
+5. Already-logged-in user opening `/e/<code>` → instant redirect to event detail.
+6. Bad code (`/e/zzzzzz`) → toast "Event link invalid." + Home.
 
 ## Out of scope
-- No changes to event creation flow, RSVP flow, or email templates.
-- No changes to admin reads on `events` (admins continue to see all columns directly via existing admin SELECT policy).
+- Custom vanity codes (admin-chosen). Codes are auto-only.
+- QR ticket payloads (still use UUID — they're scanned by staff, not shared).
+- Email templates (continue to use full event URLs unless you ask to switch them too).
