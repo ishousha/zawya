@@ -1,27 +1,43 @@
-## What's happening
+## Goal
 
-On the admin **Monitor** view (`EventRsvpDetail`), the Host Dashboard component is embedded above the `Guest List | Potluck Sign-ups` tabs. The Host Dashboard renders its own inline "Guest List" — and that one is broken (every row says "Unknown (1 adult)" because it pulls names through a different RPC than the tabs do). The tabbed list right below already shows the correct names, dependents, party size and check-in.
+On the home page event card, the Share Event button should sit **beside** Add to Calendar (not stacked underneath), and that pair should appear **below** the Current Menu (Potluck) section.
 
-Same `HostDashboard` is also used standalone on the **Event Detail** page for assigned hosts who are not admins — there, the inline guest list is the only place a host can see who's coming, so we shouldn't delete it outright.
+## Change
 
-## Fix
+**File:** `src/components/EventCard.tsx`
 
-Add a `hideGuestList` prop to `HostDashboard` and set it on the admin Monitor screen so the inline list disappears there, without touching the host-only Event Detail view.
+1. Remove the existing `{isAttending && <AddToCalendarButton />}` and the Share Event `<Button>` block from the action stack (currently at lines ~559–568, inside the `!isPast && !isCancelled` actions container).
 
-### Changes
+2. After the `<PotluckMenu />` block (line ~580), add a new flex row that renders both buttons side-by-side, gated by the same `!isPast && !isCancelled` condition that wraps the actions today:
 
-1. **`src/components/HostDashboard.tsx`**
-   - Accept an optional `hideGuestList?: boolean` prop.
-   - Wrap the existing Guest List block (the `<Separator />` + `<h4>Guest List</h4>` + list, ~lines 166–196) so it's only rendered when `!hideGuestList`.
-   - Headcount cards (Total / Adults / Elders / Kids / Arrived) and the Potluck items block stay as-is.
+   ```tsx
+   {!isPast && !isCancelled && (isAttending || true) && (
+     <div className="mt-3 flex items-center gap-2">
+       {isAttending && (
+         <div className="flex-1">
+           <AddToCalendarButton event={event} />
+         </div>
+       )}
+       <Button
+         size="sm"
+         variant="ghost"
+         className="flex-1 gap-1.5 text-muted-foreground hover:text-foreground"
+         onClick={() => openShare(event.id, event.title, (event as any).short_code)}
+       >
+         <Share2 className="h-3.5 w-3.5" />
+         Share Event
+       </Button>
+     </div>
+   )}
+   ```
 
-2. **`src/components/admin/EventRsvpDetail.tsx`**
-   - At the embedded usage (~line 333), pass `hideGuestList`:
-     ```tsx
-     <HostDashboard eventId={eventId} hideGuestList />
-     ```
+   - When the user is attending: both buttons render side-by-side (50/50).
+   - When not attending: only Share renders (full width via `flex-1`), preserving today's behavior of always showing Share to non-attendees.
 
-### Out of scope
+3. No changes to the Potluck Menu component, the share dialog, or any other action (RSVP, Check-in, virtual link box).
 
-- Not touching the underlying "Unknown" name mapping in `get_event_attendee_profiles` — once the duplicate is hidden in admin Monitor, hosts on Event Detail still get names from that RPC the way they always have. If you want, we can address that name-mapping bug as a separate follow-up.
-- No changes to the Potluck section, the tabs, or any data fetching.
+## Out of scope
+
+- No changes to the admin "Share Event" button on `EventDetail`.
+- No styling changes to `AddToCalendarButton` itself (it already renders full-width inside its container).
+- No change to past or cancelled event behavior.
