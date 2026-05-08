@@ -1136,6 +1136,11 @@ export type Database = {
         }
         Returns: number
       }
+      next_unique_short_code: {
+        Args: { _desired: string; _self_id: string }
+        Returns: string
+      }
+      normalize_event_short_code: { Args: { _raw: string }; Returns: string }
       read_email_batch: {
         Args: { batch_size: number; queue_name: string; vt: number }
         Returns: {
