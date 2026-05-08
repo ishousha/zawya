@@ -10,6 +10,42 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders })
   }
 
+  // --- AuthN/AuthZ: admin only ---
+  const authHeader = req.headers.get('Authorization')
+  if (!authHeader?.startsWith('Bearer ')) {
+    return new Response(
+      JSON.stringify({ error: 'Unauthorized' }),
+      { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    )
+  }
+
+  const anonClient = createClient(
+    Deno.env.get('SUPABASE_URL')!,
+    Deno.env.get('SUPABASE_ANON_KEY')!,
+    { global: { headers: { Authorization: authHeader } } }
+  )
+
+  const token = authHeader.replace('Bearer ', '')
+  const { data: claimsData, error: claimsError } = await anonClient.auth.getClaims(token)
+  if (claimsError || !claimsData?.claims) {
+    return new Response(
+      JSON.stringify({ error: 'Unauthorized' }),
+      { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    )
+  }
+
+  const callerUserId = claimsData.claims.sub
+  const { data: isAdmin, error: roleError } = await anonClient.rpc('has_role', {
+    _user_id: callerUserId,
+    _role: 'admin',
+  })
+  if (roleError || !isAdmin) {
+    return new Response(
+      JSON.stringify({ error: 'Forbidden: admin only' }),
+      { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    )
+  }
+
   const webhookUrl = Deno.env.get('N8N_GUEST_REJECTED_WEBHOOK_URL')
   if (!webhookUrl) {
     console.error('N8N_GUEST_REJECTED_WEBHOOK_URL is not configured')
