@@ -14,6 +14,8 @@ export default function HostDashboard({ eventId }: HostDashboardProps) {
 
   const { data: rsvps } = useQuery({
     queryKey: ["host-rsvps", eventId],
+    refetchInterval: 30_000,
+    refetchOnWindowFocus: true,
     queryFn: async () => {
       const { data: rsvpData, error } = await supabase
         .from("rsvps")
@@ -54,23 +56,9 @@ export default function HostDashboard({ eventId }: HostDashboardProps) {
     },
   });
 
-  // Realtime: auto-refresh when RSVPs change (check-ins, new RSVPs, cancellations)
-  useEffect(() => {
-    const channel = supabase
-      .channel(`host-dashboard-${eventId}`)
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "rsvps", filter: `event_id=eq.${eventId}` },
-        () => {
-          queryClient.invalidateQueries({ queryKey: ["host-rsvps", eventId] });
-          queryClient.invalidateQueries({ queryKey: ["rsvps", eventId] });
-          queryClient.invalidateQueries({ queryKey: ["my-rsvp"] });
-        }
-      )
-      .subscribe();
-
-    return () => { supabase.removeChannel(channel); };
-  }, [eventId, queryClient]);
+  // Note: Realtime subscription removed for security — RSVP data refreshes via
+  // refetchInterval and on window focus instead. This avoids broadcasting other
+  // attendees' RSVP changes to all subscribers.
 
   if (!rsvps) return null;
 
