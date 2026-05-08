@@ -86,6 +86,18 @@ export default function AdminDoorScanner() {
     }
   }, [liveEvent, selectedEventId]);
 
+  // Honor explicit eventId from navigation state (Quick Action click)
+  const location = useLocation();
+  const navigate = useNavigate();
+  useEffect(() => {
+    const state = location.state as { tab?: string; eventId?: string } | null;
+    if (state?.tab === "scanner" && state.eventId) {
+      setSelectedEventId(state.eventId);
+      autoSelected.current = true;
+      navigate(location.pathname, { replace: true, state: null });
+    }
+  }, [location.state, location.pathname, navigate]);
+
   // Live check-in counter + attendee list for manual search
   const { data: attendees } = useQuery({
     queryKey: ["door-scanner-attendees", selectedEventId],
