@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { ScanLine, CheckCircle2, XOctagon, Users, Search, UserCheck, UserX, Radio, ClipboardList } from "lucide-react";
+import { ScanLine, CheckCircle2, XOctagon, Users, Search, UserCheck, UserX, Radio, ClipboardList, CalendarClock } from "lucide-react";
 import { toast } from "sonner";
 import { Scanner } from "@yudiel/react-qr-scanner";
 
@@ -46,7 +46,15 @@ export default function AdminDoorScanner() {
         .in("status", ["active", "full"])
         .order("date_time", { ascending: true });
       if (error) throw error;
-      return data;
+      // Exclude past events: keep events whose effective end is >= now
+      const nowMs = Date.now();
+      return (data ?? []).filter((e: any) => {
+        const start = new Date(e.date_time).getTime();
+        const end = e.end_date_time
+          ? new Date(e.end_date_time).getTime()
+          : start + 6 * 60 * 60 * 1000;
+        return end >= nowMs;
+      });
     },
   });
 
@@ -65,6 +73,18 @@ export default function AdminDoorScanner() {
     );
   }, [events]);
 
+  // Next upcoming (future) event, excluding the live one
+  const nextUpcomingEvent = useMemo(() => {
+    if (!events?.length) return null;
+    const nowMs = Date.now();
+    const liveId = liveEvent?.id;
+    return (
+      events
+        .filter((e: any) => e.id !== liveId && new Date(e.date_time).getTime() > nowMs)
+        .sort((a: any, b: any) => new Date(a.date_time).getTime() - new Date(b.date_time).getTime())[0] ?? null
+    );
+  }, [events, liveEvent]);
+
   // Sort: live events first, then by date
   const sortedEvents = useMemo(() => {
     if (!events) return [];
@@ -76,15 +96,16 @@ export default function AdminDoorScanner() {
     });
   }, [events, liveEvent]);
 
-  // Auto-select live event once on mount when available
+  // Auto-select live event (or next upcoming) once on mount
   const autoSelected = useRef(false);
   useEffect(() => {
-    if (autoSelected.current) return;
-    if (!selectedEventId && liveEvent) {
-      setSelectedEventId(liveEvent.id);
+    if (autoSelected.current || selectedEventId) return;
+    const target = liveEvent ?? nextUpcomingEvent;
+    if (target) {
+      setSelectedEventId(target.id);
       autoSelected.current = true;
     }
-  }, [liveEvent, selectedEventId]);
+  }, [liveEvent, nextUpcomingEvent, selectedEventId]);
 
   // Honor explicit eventId from navigation state (Quick Action click)
   const location = useLocation();
@@ -295,32 +316,67 @@ export default function AdminDoorScanner() {
         </button>
       )}
 
+      {/* UP NEXT quick-pick (only when nothing is live) */}
+      {!liveEvent && nextUpcomingEvent && (
+        <button
+          type="button"
+          onClick={() => { setSelectedEventId(nextUpcomingEvent.id); setShowManual(false); setSearchQuery(""); }}
+          className={`w-full rounded-lg border-2 p-3 text-left transition-all ${
+            selectedEventId === nextUpcomingEvent.id
+              ? "border-primary bg-primary/10"
+              : "border-primary/40 bg-primary/5 hover:bg-primary/10"
+          }`}
+        >
+          <div className="flex items-center gap-3">
+            <CalendarClock className="h-5 w-5 shrink-0 text-primary" />
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold uppercase tracking-wider text-primary">Up next</span>
+              </div>
+              <p className="mt-0.5 truncate text-sm font-medium text-card-foreground">{nextUpcomingEvent.title}</p>
+              <p className="text-xs text-muted-foreground">
+                Starts {format(new Date(nextUpcomingEvent.date_time), "EEE, MMM d · h:mm a")}
+              </p>
+            </div>
+            {selectedEventId === nextUpcomingEvent.id && (
+              <CheckCircle2 className="h-5 w-5 shrink-0 text-primary" />
+            )}
+          </div>
+        </button>
+      )}
+
       {/* Event selector */}
-      <div>
-        <Label>Select Event</Label>
-        <Select value={selectedEventId} onValueChange={(v) => { setSelectedEventId(v); setShowManual(false); setSearchQuery(""); }}>
-          <SelectTrigger className="h-12">
-            <SelectValue placeholder="Choose an event..." />
-          </SelectTrigger>
-          <SelectContent>
-            {sortedEvents.map((e) => {
-              const isLive = liveEvent?.id === e.id;
-              return (
-                <SelectItem key={e.id} value={e.id}>
-                  <span className="flex items-center gap-2">
-                    {isLive && (
-                      <Badge variant="default" className="h-5 px-1.5 text-[10px] font-bold uppercase">
-                        Live
-                      </Badge>
-                    )}
-                    <span>{e.title} — {format(new Date(e.date_time), "EEE, MMM d")}</span>
-                  </span>
-                </SelectItem>
-              );
-            })}
-          </SelectContent>
-        </Select>
-      </div>
+      {sortedEvents.length === 0 ? (
+        <div className="rounded-lg border border-dashed border-border bg-muted/30 p-6 text-center">
+          <p className="text-sm text-muted-foreground">No current or upcoming events to check in.</p>
+        </div>
+      ) : (
+        <div>
+          <Label>Select Event</Label>
+          <Select value={selectedEventId} onValueChange={(v) => { setSelectedEventId(v); setShowManual(false); setSearchQuery(""); }}>
+            <SelectTrigger className="h-12">
+              <SelectValue placeholder="Choose an event..." />
+            </SelectTrigger>
+            <SelectContent>
+              {sortedEvents.map((e) => {
+                const isLive = liveEvent?.id === e.id;
+                return (
+                  <SelectItem key={e.id} value={e.id}>
+                    <span className="flex items-center gap-2">
+                      {isLive && (
+                        <Badge variant="default" className="h-5 px-1.5 text-[10px] font-bold uppercase">
+                          Live
+                        </Badge>
+                      )}
+                      <span>{e.title} — {format(new Date(e.date_time), "EEE, MMM d")}</span>
+                    </span>
+                  </SelectItem>
+                );
+              })}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
 
       {/* Live check-in counter */}
       {selectedEventId && rsvpCounts && (
