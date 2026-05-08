@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { ScanLine, CheckCircle2, XOctagon, Users, Search, UserCheck, UserX, Radio } from "lucide-react";
+import { ScanLine, CheckCircle2, XOctagon, Users, Search, UserCheck, UserX, Radio, ClipboardList } from "lucide-react";
 import { toast } from "sonner";
 import { Scanner } from "@yudiel/react-qr-scanner";
 
@@ -343,6 +343,15 @@ export default function AdminDoorScanner() {
               <span>{rsvpCounts.checkedInGuests} of {rsvpCounts.totalGuests} total guests arrived</span>
               <span>{rsvpCounts.total - rsvpCounts.checkedIn} remaining</span>
             </div>
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full gap-2"
+              onClick={() => navigate("/admin", { state: { tab: "events", eventId: selectedEventId } })}
+            >
+              <ClipboardList className="h-4 w-4" />
+              View Guest List
+            </Button>
           </CardContent>
         </Card>
       )}
