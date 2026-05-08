@@ -83,6 +83,7 @@ export default function EventControlRoom() {
   const [duplicateForm, setDuplicateForm] = useState<{ form: EventFormState; items: SignUpItem[] } | null>(null);
   const [broadcastEvent, setBroadcastEvent] = useState<{ id: string; title: string } | null>(null);
   const [recordingEvent, setRecordingEvent] = useState<EventRow | null>(null);
+  const { open: openShare, dialog: shareDialog } = useShareEvent();
 
   const { data: eventTypes } = useEventTypes();
   const getTypeName = (id: string) => eventTypes?.find((t) => t.id === id)?.name ?? "Event";
@@ -483,7 +484,7 @@ export default function EventControlRoom() {
                       <Button size="sm" variant="ghost" className="h-9 gap-1.5 text-xs" onClick={() => handleDuplicate(event)}>
                         <Copy className="h-3.5 w-3.5" /> Copy
                       </Button>
-                      <Button size="sm" variant="ghost" className="h-9 gap-1.5 text-xs" onClick={() => copyEventLink(event.id)}>
+                      <Button size="sm" variant="ghost" className="h-9 gap-1.5 text-xs" onClick={() => openShare(event.id, event.title)}>
                         <Link2 className="h-3.5 w-3.5" /> Share
                       </Button>
                       <Button size="sm" variant="ghost" className="h-9 gap-1.5 text-xs" onClick={() => setBroadcastEvent({ id: event.id, title: event.title })}>
