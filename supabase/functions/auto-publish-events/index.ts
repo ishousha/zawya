@@ -13,6 +13,47 @@ Deno.serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+
+    // --- Auth: allow only internal/cron callers (service role) or admin users ---
+    const authHeader = req.headers.get("Authorization") ?? "";
+    const internalSecret = req.headers.get("x-internal-secret");
+    const isInternal = !!serviceKey && internalSecret === serviceKey;
+
+    if (!isInternal) {
+      if (!authHeader.startsWith("Bearer ")) {
+        return new Response(JSON.stringify({ error: "Unauthorized" }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const token = authHeader.replace("Bearer ", "");
+      // Treat the service-role JWT (used by pg_cron) as internal too
+      if (token !== serviceKey) {
+        const anon = createClient(supabaseUrl, anonKey, {
+          global: { headers: { Authorization: authHeader } },
+        });
+        const { data: claims } = await anon.auth.getClaims(token);
+        const callerId = claims?.claims?.sub;
+        if (!callerId) {
+          return new Response(JSON.stringify({ error: "Unauthorized" }), {
+            status: 401,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        const { data: isAdmin } = await anon.rpc("has_role", {
+          _user_id: callerId,
+          _role: "admin",
+        });
+        if (!isAdmin) {
+          return new Response(JSON.stringify({ error: "Forbidden" }), {
+            status: 403,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+      }
+    }
+
     const supabase = createClient(supabaseUrl, serviceKey);
 
     // Find draft events whose scheduled_publish_at has passed

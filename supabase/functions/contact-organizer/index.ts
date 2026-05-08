@@ -33,7 +33,21 @@ Deno.serve(async (req) => {
     })
   }
 
+  // Reject suspended/rejected/pending/guest users — only approved+ may contact organizers
+  const [{ data: isApproved }, { data: isMod }, { data: isAdmin }] = await Promise.all([
+    supabase.rpc('has_role', { _user_id: user.id, _role: 'approved' }),
+    supabase.rpc('has_role', { _user_id: user.id, _role: 'moderator' }),
+    supabase.rpc('has_role', { _user_id: user.id, _role: 'admin' }),
+  ])
+  if (!isApproved && !isMod && !isAdmin) {
+    return new Response(JSON.stringify({ error: 'Forbidden' }), {
+      status: 403,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    })
+  }
+
   // Parse body
+  const MAX_MESSAGE_LEN = 2000
   let eventId: string, message: string
   try {
     const body = await req.json()
@@ -45,6 +59,13 @@ Deno.serve(async (req) => {
       status: 400,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
+  }
+
+  if (message.length > MAX_MESSAGE_LEN) {
+    return new Response(
+      JSON.stringify({ error: `Message exceeds ${MAX_MESSAGE_LEN} character limit` }),
+      { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    )
   }
 
   // Get sender profile
