@@ -2,6 +2,33 @@ export function generateCheckinPin(): string {
   return String(Math.floor(1000 + Math.random() * 9000));
 }
 
+/**
+ * Suggest a vanity short code from event title + start datetime.
+ * Format: capitalized first letters of first two words + DDMM.
+ *   "Thursday Gathering" + 2026-05-14 → "TG1405"
+ * Returns "" if title or date are missing/unusable.
+ */
+export function suggestShortCode(title: string, dateTime: string): string {
+  if (!title?.trim() || !dateTime) return "";
+  const words = title
+    .trim()
+    .split(/\s+/)
+    .map((w) => w.replace(/[^A-Za-z]/g, ""))
+    .filter(Boolean);
+  let letters = "";
+  if (words.length >= 2) {
+    letters = (words[0][0] + words[1][0]).toUpperCase();
+  } else if (words.length === 1) {
+    letters = words[0].slice(0, 2).toUpperCase();
+  }
+  if (!letters) return "";
+  const d = new Date(dateTime);
+  if (isNaN(d.getTime())) return "";
+  const dd = String(d.getDate()).padStart(2, "0");
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  return `${letters}${dd}${mm}`;
+}
+
 export const AGE_GROUP_OPTIONS = [
   "All Ages",
   "Kids (Under 12)",
