@@ -49,8 +49,11 @@ const POST_LOGIN_REDIRECT_KEY = "zawya_post_login_redirect";
 
 function isSafeRedirectPath(path: string | null): path is string {
   if (!path) return false;
-  // Allowlist: only event deep links for now (prevents open-redirect)
-  return /^\/events\/[\w-]+(\?.*)?$/.test(path);
+  // Allowlist: event deep links and short-code links (prevents open-redirect)
+  return (
+    /^\/events\/[\w-]+(\?.*)?$/.test(path) ||
+    /^\/e\/[A-Za-z0-9]{4,12}(\?.*)?$/.test(path)
+  );
 }
 
 function usePendingInviteRedirect() {
