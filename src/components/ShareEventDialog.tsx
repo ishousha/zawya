@@ -9,6 +9,7 @@ import { getEventShareUrl } from "@/lib/share-event";
 interface ShareTarget {
   eventId: string;
   title: string;
+  shortCode?: string | null;
 }
 
 async function copyToClipboard(text: string): Promise<boolean> {
