@@ -74,7 +74,8 @@ export default function AdminDashboard() {
   const [slideDir, setSlideDir] = useState<"left" | "right" | null>(null);
   const [slideKey, setSlideKey] = useState(0);
 
-  // Honor navigation state from Quick Actions (tab + optional action/eventId)
+  // Honor navigation state from Quick Actions (tab switch only;
+  // EventControlRoom reads location.state itself for action/eventId)
   useEffect(() => {
     const state = location.state as { tab?: string; action?: string; eventId?: string } | null;
     if (!state?.tab) return;
@@ -83,18 +84,11 @@ export default function AdminDashboard() {
     } else if (isModerator && (MODERATOR_TABS as readonly string[]).includes(state.tab)) {
       setModTab(state.tab as ModeratorTab);
     }
-    if (state.action || state.eventId) {
-      // Defer so target tab mounts first
-      setTimeout(() => {
-        window.dispatchEvent(
-          new CustomEvent("admin-quick-action", {
-            detail: { tab: state.tab, action: state.action, eventId: state.eventId },
-          })
-        );
-      }, 80);
+    // If there's no further action/eventId, clear state here.
+    // Otherwise leave it for EventControlRoom to consume + clear.
+    if (!state.action && !state.eventId) {
+      navigate(location.pathname, { replace: true, state: null });
     }
-    // Clear state so refresh / back doesn't retrigger
-    navigate(location.pathname, { replace: true, state: null });
   }, [location.state, location.pathname, navigate, isAdmin, isModerator]);
 
 
