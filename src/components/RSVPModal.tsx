@@ -308,9 +308,9 @@ export default function RSVPModal({ event, open, onOpenChange }: RSVPModalProps)
   const isAdminOrMod = profile?.role === "admin" || profile?.role === "moderator";
   const genderBlocked =
     !isAdminOrMod &&
-    !isEditing &&
     ((audienceGender === "Brothers Only" && userGender !== "male") ||
       (audienceGender === "Sisters Only" && userGender !== "female"));
+  const hasActiveRsvp = !!myRSVP && myRSVP.status !== "cancelled";
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
