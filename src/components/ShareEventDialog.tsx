@@ -39,8 +39,8 @@ async function copyToClipboard(text: string): Promise<boolean> {
 export function useShareEvent() {
   const [target, setTarget] = useState<ShareTarget | null>(null);
 
-  const open = useCallback(async (eventId: string, title: string) => {
-    const url = getEventShareUrl(eventId);
+  const open = useCallback(async (eventId: string, title: string, shortCode?: string | null) => {
+    const url = getEventShareUrl(eventId, shortCode);
     // Try Web Share API first (mobile / supported browsers)
     if (typeof navigator !== "undefined" && typeof (navigator as any).share === "function") {
       try {
@@ -56,7 +56,7 @@ export function useShareEvent() {
         // Otherwise fall back to dialog
       }
     }
-    setTarget({ eventId, title });
+    setTarget({ eventId, title, shortCode });
   }, []);
 
   const dialog = (
