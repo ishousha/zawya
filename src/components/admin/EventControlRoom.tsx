@@ -189,6 +189,7 @@ export default function EventControlRoom() {
       zoom_password: (event as any).zoom_password ?? "",
       recording_url: "",
       recording_passcode: "",
+      short_code: "",
     };
 
     const copiedItems: SignUpItem[] = (items ?? []).map((item, i) => ({
