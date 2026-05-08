@@ -115,6 +115,14 @@ export default function AdminQuickActions() {
           Quick Actions
         </h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 w-full">
+          {liveEvent && (
+            <QuickActionCard
+              icon={ScanLine}
+              label="Check In (Live)"
+              live
+              onClick={() => navigate("/admin", { state: { tab: "scanner", eventId: liveEvent.id } })}
+            />
+          )}
           <QuickActionCard
             icon={PlusCircle}
             label="Create Event"
