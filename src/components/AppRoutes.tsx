@@ -112,6 +112,7 @@ export default function AppRoutes() {
 
   usePendingInviteRedirect();
   usePendingUserAlerts();
+  useCaptureDeepLink(!loading && !session);
 
   if (loading) {
     return (
@@ -128,6 +129,8 @@ export default function AppRoutes() {
         <Routes>
           <Route path="/join-family" element={<JoinFamily />} />
           <Route path="/unsubscribe" element={<Unsubscribe />} />
+          <Route path="/event/:eventId" element={<LoginPage />} />
+          <Route path="/events/:eventId" element={<LoginPage />} />
           <Route path="*" element={<LoginPage />} />
         </Routes>
       </Suspense>
