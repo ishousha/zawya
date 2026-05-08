@@ -257,12 +257,43 @@ export function useRSVPConcurrency(eventId: string) {
         attending_dependents: input.attending_dependents ?? null,
       };
 
-      const { data, error } = await supabase
+      // Check for existing RSVP (including cancelled) — unique constraint is on (event_id, user_id)
+      const { data: existing } = await supabase
         .from("rsvps")
-        .insert(rsvpData)
-        .select()
-        .single();
-      if (error) throw error;
+        .select("id")
+        .eq("event_id", eventId)
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      let data: RSVP;
+      if (existing) {
+        const { data: updated, error: updErr } = await supabase
+          .from("rsvps")
+          .update({
+            guests_count: rsvpData.guests_count,
+            potluck_category: rsvpData.potluck_category,
+            specific_food_item: rsvpData.specific_food_item,
+            qr_hash: qrHash,
+            is_waitlisted: isWaitlisted,
+            status: rsvpData.status,
+            attending_dependents: rsvpData.attending_dependents,
+          })
+          .eq("id", existing.id)
+          .select()
+          .single();
+        if (updErr) throw updErr;
+        data = updated as RSVP;
+        // Clear any old selections from prior RSVP
+        await supabase.from("rsvp_sign_up_selections").delete().eq("rsvp_id", existing.id);
+      } else {
+        const { data: inserted, error } = await supabase
+          .from("rsvps")
+          .insert(rsvpData)
+          .select()
+          .single();
+        if (error) throw error;
+        data = inserted as RSVP;
+      }
 
       if (input.selections && input.selections.length > 0) {
         const rows = input.selections.map((s) => ({
