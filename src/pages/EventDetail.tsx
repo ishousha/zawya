@@ -67,15 +67,18 @@ export default function EventDetail() {
     );
   }
 
+  // Graceful 404 fallback — event missing or not visible to user
+  useEffect(() => {
+    if (!eventLoading && (eventError || (eventId && event === null))) {
+      toast.error("This event could not be found or has been removed.");
+      navigate("/", { replace: true });
+    }
+  }, [eventLoading, eventError, event, eventId, navigate]);
+
   if (!event) {
     return (
-      <div className="min-h-screen bg-background pb-24">
-        <div className="px-4 py-8 text-center">
-          <p className="text-muted-foreground">Event not found.</p>
-          <Button variant="link" onClick={() => navigate("/")}>
-            Go Home
-          </Button>
-        </div>
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <Loader2 className="h-6 w-6 animate-spin text-primary" />
       </div>
     );
   }
