@@ -6,9 +6,10 @@ import { Separator } from "@/components/ui/separator";
 
 interface HostDashboardProps {
   eventId: string;
+  hideGuestList?: boolean;
 }
 
-export default function HostDashboard({ eventId }: HostDashboardProps) {
+export default function HostDashboard({ eventId, hideGuestList = false }: HostDashboardProps) {
   
 
   const { data: rsvps } = useQuery({
@@ -163,37 +164,41 @@ export default function HostDashboard({ eventId }: HostDashboardProps) {
           </div>
         </div>
 
-        <Separator />
+        {!hideGuestList && (
+          <>
+            <Separator />
 
-        {/* Guest list */}
-        <div>
-          <h4 className="text-sm font-semibold text-foreground mb-2">Guest List</h4>
-          {guestList.length === 0 ? (
-            <p className="text-sm text-muted-foreground italic">No RSVPs yet.</p>
-          ) : (
-            <ul className="space-y-1.5">
-              {guestList.map((g, i) => (
-                <li key={i} className="text-sm text-foreground flex items-start gap-2">
-                  {g.checkedIn ? (
-                    <CheckCircle2 className="h-4 w-4 text-emerald-600 mt-0.5 shrink-0" />
-                  ) : (
-                    <span className="text-muted-foreground/40 mt-0.5 shrink-0">○</span>
-                  )}
-                  <div>
-                    <span className="font-medium">{g.name}</span>
-                    {g.checkedIn && <span className="text-xs text-emerald-600 ml-1">arrived</span>}
-                    {g.family && <span className="text-muted-foreground"> — {g.family}</span>}
-                    <span className="text-muted-foreground text-xs ml-1">
-                      ({g.adultsCount} adult{g.adultsCount !== 1 ? "s" : ""}
-                      {g.children.length > 0 && `, ${g.children.length} kid${g.children.length !== 1 ? "s" : ""}`}
-                      {g.elders.length > 0 && `, ${g.elders.length} elder${g.elders.length !== 1 ? "s" : ""}`})
-                    </span>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
+            {/* Guest list */}
+            <div>
+              <h4 className="text-sm font-semibold text-foreground mb-2">Guest List</h4>
+              {guestList.length === 0 ? (
+                <p className="text-sm text-muted-foreground italic">No RSVPs yet.</p>
+              ) : (
+                <ul className="space-y-1.5">
+                  {guestList.map((g, i) => (
+                    <li key={i} className="text-sm text-foreground flex items-start gap-2">
+                      {g.checkedIn ? (
+                        <CheckCircle2 className="h-4 w-4 text-emerald-600 mt-0.5 shrink-0" />
+                      ) : (
+                        <span className="text-muted-foreground/40 mt-0.5 shrink-0">○</span>
+                      )}
+                      <div>
+                        <span className="font-medium">{g.name}</span>
+                        {g.checkedIn && <span className="text-xs text-emerald-600 ml-1">arrived</span>}
+                        {g.family && <span className="text-muted-foreground"> — {g.family}</span>}
+                        <span className="text-muted-foreground text-xs ml-1">
+                          ({g.adultsCount} adult{g.adultsCount !== 1 ? "s" : ""}
+                          {g.children.length > 0 && `, ${g.children.length} kid${g.children.length !== 1 ? "s" : ""}`}
+                          {g.elders.length > 0 && `, ${g.elders.length} elder${g.elders.length !== 1 ? "s" : ""}`})
+                        </span>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </>
+        )}
 
         {/* Potluck items with names */}
         {potluckItems.length > 0 && (

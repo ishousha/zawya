@@ -330,7 +330,7 @@ export default function EventRsvpDetail({ eventId, eventTitle, eventDate, checki
             <div className="flex justify-center py-6"><Loader2 className="h-5 w-5 animate-spin text-primary" /></div>
           ) : rsvps && rsvps.length > 0 ? (
             <div className="space-y-4">
-              <HostDashboard eventId={eventId} />
+              <HostDashboard eventId={eventId} hideGuestList />
 
               <Tabs defaultValue="guests" className="w-full">
                 <TabsList className="grid w-full grid-cols-2">
