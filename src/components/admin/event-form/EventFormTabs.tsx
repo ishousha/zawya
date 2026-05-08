@@ -298,13 +298,19 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
       };
 
       let eventId = event?.id;
+      let savedShortCode: string | null = null;
       if (event && !initialForm) {
-        const { error } = await supabase.from("events").update(payload).eq("id", event.id);
+        const { data, error } = await supabase.from("events").update(payload).eq("id", event.id).select("short_code").maybeSingle();
         if (error) throw error;
+        savedShortCode = (data as any)?.short_code ?? null;
       } else {
-        const { data, error } = await supabase.from("events").insert(payload).select("id").single();
+        const { data, error } = await supabase.from("events").insert(payload).select("id, short_code").single();
         if (error) throw error;
         eventId = data.id;
+        savedShortCode = (data as any)?.short_code ?? null;
+      }
+      if (savedShortCode && savedShortCode !== form.short_code) {
+        setForm((prev) => ({ ...prev, short_code: savedShortCode! }));
       }
 
       if (eventId) {
