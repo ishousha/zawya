@@ -536,6 +536,15 @@ function EventCardInner({ event, onShowTicket, isPast = false }: EventCardProps)
                 </Button>
               )}
               {isAttending && <AddToCalendarButton event={event} />}
+              <Button
+                size="sm"
+                variant="ghost"
+                className="w-full gap-1.5 text-muted-foreground hover:text-foreground"
+                onClick={() => openShare(event.id, event.title)}
+              >
+                <Share2 className="h-3.5 w-3.5" />
+                Share Event
+              </Button>
             </>
           )}
         </div>
@@ -565,6 +574,7 @@ function EventCardInner({ event, onShowTicket, isPast = false }: EventCardProps)
           eventTitle={event.title}
         />
       )}
+      {shareDialog}
     </>
   );
 }
