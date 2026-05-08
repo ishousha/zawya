@@ -561,7 +561,7 @@ function EventCardInner({ event, onShowTicket, isPast = false }: EventCardProps)
                 size="sm"
                 variant="ghost"
                 className="w-full gap-1.5 text-muted-foreground hover:text-foreground"
-                onClick={() => openShare(event.id, event.title)}
+                onClick={() => openShare(event.id, event.title, (event as any).short_code)}
               >
                 <Share2 className="h-3.5 w-3.5" />
                 Share Event

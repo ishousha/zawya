@@ -9,6 +9,7 @@ import { getEventShareUrl } from "@/lib/share-event";
 interface ShareTarget {
   eventId: string;
   title: string;
+  shortCode?: string | null;
 }
 
 async function copyToClipboard(text: string): Promise<boolean> {
@@ -38,8 +39,8 @@ async function copyToClipboard(text: string): Promise<boolean> {
 export function useShareEvent() {
   const [target, setTarget] = useState<ShareTarget | null>(null);
 
-  const open = useCallback(async (eventId: string, title: string) => {
-    const url = getEventShareUrl(eventId);
+  const open = useCallback(async (eventId: string, title: string, shortCode?: string | null) => {
+    const url = getEventShareUrl(eventId, shortCode);
     // Try Web Share API first (mobile / supported browsers)
     if (typeof navigator !== "undefined" && typeof (navigator as any).share === "function") {
       try {
@@ -55,7 +56,7 @@ export function useShareEvent() {
         // Otherwise fall back to dialog
       }
     }
-    setTarget({ eventId, title });
+    setTarget({ eventId, title, shortCode });
   }, []);
 
   const dialog = (
@@ -78,7 +79,7 @@ function ShareEventDialog({
   onOpenChange: (open: boolean) => void;
 }) {
   const [copied, setCopied] = useState(false);
-  const url = target ? getEventShareUrl(target.eventId) : "";
+  const url = target ? getEventShareUrl(target.eventId, target.shortCode) : "";
   const title = target?.title ?? "";
 
   const handleCopy = async () => {

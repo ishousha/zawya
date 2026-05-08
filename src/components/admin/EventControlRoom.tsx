@@ -484,7 +484,7 @@ export default function EventControlRoom() {
                       <Button size="sm" variant="ghost" className="h-9 gap-1.5 text-xs" onClick={() => handleDuplicate(event)}>
                         <Copy className="h-3.5 w-3.5" /> Copy
                       </Button>
-                      <Button size="sm" variant="ghost" className="h-9 gap-1.5 text-xs" onClick={() => openShare(event.id, event.title)}>
+                      <Button size="sm" variant="ghost" className="h-9 gap-1.5 text-xs" onClick={() => openShare(event.id, event.title, (event as any).short_code)}>
                         <Link2 className="h-3.5 w-3.5" /> Share
                       </Button>
                       <Button size="sm" variant="ghost" className="h-9 gap-1.5 text-xs" onClick={() => setBroadcastEvent({ id: event.id, title: event.title })}>

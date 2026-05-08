@@ -36,6 +36,7 @@ const NotFound = lazy(() => import("@/pages/NotFound"));
 const Library = lazy(libraryImport);
 const SpeakersDirectory = lazy(() => import("@/pages/SpeakersDirectory"));
 const SpeakerProfile = lazy(() => import("@/pages/SpeakerProfile"));
+const EventShortLinkRedirect = lazy(() => import("@/pages/EventShortLinkRedirect"));
 
 function LazyFallback() {
   return (
@@ -49,8 +50,11 @@ const POST_LOGIN_REDIRECT_KEY = "zawya_post_login_redirect";
 
 function isSafeRedirectPath(path: string | null): path is string {
   if (!path) return false;
-  // Allowlist: only event deep links for now (prevents open-redirect)
-  return /^\/events\/[\w-]+(\?.*)?$/.test(path);
+  // Allowlist: event deep links and short-code links (prevents open-redirect)
+  return (
+    /^\/events\/[\w-]+(\?.*)?$/.test(path) ||
+    /^\/e\/[A-Za-z0-9]{4,12}(\?.*)?$/.test(path)
+  );
 }
 
 function usePendingInviteRedirect() {
@@ -131,6 +135,7 @@ export default function AppRoutes() {
           <Route path="/unsubscribe" element={<Unsubscribe />} />
           <Route path="/event/:eventId" element={<LoginPage />} />
           <Route path="/events/:eventId" element={<LoginPage />} />
+          <Route path="/e/:shortCode" element={<LoginPage />} />
           <Route path="*" element={<LoginPage />} />
         </Routes>
       </Suspense>
@@ -284,6 +289,7 @@ function StableLayout({ profile }: { profile: any }) {
           <Routes>
             <Route path="/events/:eventId" element={<EventDetail />} />
             <Route path="/event/:eventId" element={<EventAliasRedirect />} />
+            <Route path="/e/:shortCode" element={<EventShortLinkRedirect />} />
             <Route path="/speakers" element={<SpeakersDirectory />} />
             <Route path="/speakers/:speakerId" element={<SpeakerProfile />} />
             <Route path="/notifications" element={<NotificationsPage />} />

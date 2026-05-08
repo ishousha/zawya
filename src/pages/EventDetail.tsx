@@ -135,7 +135,7 @@ export default function EventDetail() {
             <Button
               variant="outline"
               className="w-full gap-2"
-              onClick={() => openShare(event.id, event.title)}
+              onClick={() => openShare(event.id, event.title, (event as any).short_code)}
             >
               <Share2 className="h-4 w-4" />
               Share Event
