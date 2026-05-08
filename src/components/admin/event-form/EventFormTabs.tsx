@@ -294,6 +294,7 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
           : null,
         recording_url: form.recording_url || null,
         recording_passcode: form.recording_passcode || null,
+        short_code: form.short_code?.trim() || null,
       };
 
       let eventId = event?.id;
