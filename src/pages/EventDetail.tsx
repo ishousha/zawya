@@ -123,6 +123,24 @@ export default function EventDetail() {
           </div>
         )}
 
+        {/* Share / Copy Link — visible to admins, moderators, and assigned host */}
+        {user && (
+          profile?.role === "admin" ||
+          profile?.role === "moderator" ||
+          (event as any).host_id === user.id
+        ) && (
+          <div className="mt-2">
+            <Button
+              variant="outline"
+              className="w-full gap-2"
+              onClick={() => copyEventLink(event.id)}
+            >
+              <Link2 className="h-4 w-4" />
+              Copy Event Link
+            </Button>
+          </div>
+        )}
+
         {/* Host Dashboard — visible to assigned host, admins, and moderators */}
         {user && (
           (event as any).host_id === user.id ||
