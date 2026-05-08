@@ -316,32 +316,67 @@ export default function AdminDoorScanner() {
         </button>
       )}
 
+      {/* UP NEXT quick-pick (only when nothing is live) */}
+      {!liveEvent && nextUpcomingEvent && (
+        <button
+          type="button"
+          onClick={() => { setSelectedEventId(nextUpcomingEvent.id); setShowManual(false); setSearchQuery(""); }}
+          className={`w-full rounded-lg border-2 p-3 text-left transition-all ${
+            selectedEventId === nextUpcomingEvent.id
+              ? "border-primary bg-primary/10"
+              : "border-primary/40 bg-primary/5 hover:bg-primary/10"
+          }`}
+        >
+          <div className="flex items-center gap-3">
+            <CalendarClock className="h-5 w-5 shrink-0 text-primary" />
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold uppercase tracking-wider text-primary">Up next</span>
+              </div>
+              <p className="mt-0.5 truncate text-sm font-medium text-card-foreground">{nextUpcomingEvent.title}</p>
+              <p className="text-xs text-muted-foreground">
+                Starts {format(new Date(nextUpcomingEvent.date_time), "EEE, MMM d · h:mm a")}
+              </p>
+            </div>
+            {selectedEventId === nextUpcomingEvent.id && (
+              <CheckCircle2 className="h-5 w-5 shrink-0 text-primary" />
+            )}
+          </div>
+        </button>
+      )}
+
       {/* Event selector */}
-      <div>
-        <Label>Select Event</Label>
-        <Select value={selectedEventId} onValueChange={(v) => { setSelectedEventId(v); setShowManual(false); setSearchQuery(""); }}>
-          <SelectTrigger className="h-12">
-            <SelectValue placeholder="Choose an event..." />
-          </SelectTrigger>
-          <SelectContent>
-            {sortedEvents.map((e) => {
-              const isLive = liveEvent?.id === e.id;
-              return (
-                <SelectItem key={e.id} value={e.id}>
-                  <span className="flex items-center gap-2">
-                    {isLive && (
-                      <Badge variant="default" className="h-5 px-1.5 text-[10px] font-bold uppercase">
-                        Live
-                      </Badge>
-                    )}
-                    <span>{e.title} — {format(new Date(e.date_time), "EEE, MMM d")}</span>
-                  </span>
-                </SelectItem>
-              );
-            })}
-          </SelectContent>
-        </Select>
-      </div>
+      {sortedEvents.length === 0 ? (
+        <div className="rounded-lg border border-dashed border-border bg-muted/30 p-6 text-center">
+          <p className="text-sm text-muted-foreground">No current or upcoming events to check in.</p>
+        </div>
+      ) : (
+        <div>
+          <Label>Select Event</Label>
+          <Select value={selectedEventId} onValueChange={(v) => { setSelectedEventId(v); setShowManual(false); setSearchQuery(""); }}>
+            <SelectTrigger className="h-12">
+              <SelectValue placeholder="Choose an event..." />
+            </SelectTrigger>
+            <SelectContent>
+              {sortedEvents.map((e) => {
+                const isLive = liveEvent?.id === e.id;
+                return (
+                  <SelectItem key={e.id} value={e.id}>
+                    <span className="flex items-center gap-2">
+                      {isLive && (
+                        <Badge variant="default" className="h-5 px-1.5 text-[10px] font-bold uppercase">
+                          Live
+                        </Badge>
+                      )}
+                      <span>{e.title} — {format(new Date(e.date_time), "EEE, MMM d")}</span>
+                    </span>
+                  </SelectItem>
+                );
+              })}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
 
       {/* Live check-in counter */}
       {selectedEventId && rsvpCounts && (
