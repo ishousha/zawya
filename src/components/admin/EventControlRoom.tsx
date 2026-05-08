@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import AdminGuestApprovals from "./AdminGuestApprovals";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
