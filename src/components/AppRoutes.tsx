@@ -45,6 +45,14 @@ function LazyFallback() {
   );
 }
 
+const POST_LOGIN_REDIRECT_KEY = "zawya_post_login_redirect";
+
+function isSafeRedirectPath(path: string | null): path is string {
+  if (!path) return false;
+  // Allowlist: only event deep links for now (prevents open-redirect)
+  return /^\/events\/[\w-]+(\?.*)?$/.test(path);
+}
+
 function usePendingInviteRedirect() {
   const { session, loading } = useAuth();
   const navigate = useNavigate();
@@ -62,11 +70,49 @@ function usePendingInviteRedirect() {
   }, [session, loading]);
 }
 
+/**
+ * Captures /events/:id deep links when a user is unauthenticated so they can
+ * be redirected back after sign-in (sessionStorage survives OAuth round-trip).
+ */
+function useCaptureDeepLink(unauthenticated: boolean) {
+  const location = useLocation();
+  useEffect(() => {
+    if (!unauthenticated) return;
+    const path = location.pathname + location.search;
+    if (isSafeRedirectPath(path)) {
+      try {
+        sessionStorage.setItem(POST_LOGIN_REDIRECT_KEY, path);
+      } catch {}
+    }
+  }, [unauthenticated, location.pathname, location.search]);
+}
+
+/**
+ * After auth + onboarding gates pass, navigate to any saved deep link.
+ */
+function usePostLoginRedirect(active: boolean) {
+  const navigate = useNavigate();
+  useEffect(() => {
+    if (!active) return;
+    let saved: string | null = null;
+    try {
+      saved = sessionStorage.getItem(POST_LOGIN_REDIRECT_KEY);
+    } catch {}
+    if (isSafeRedirectPath(saved)) {
+      try { sessionStorage.removeItem(POST_LOGIN_REDIRECT_KEY); } catch {}
+      navigate(saved, { replace: true });
+    } else if (saved) {
+      try { sessionStorage.removeItem(POST_LOGIN_REDIRECT_KEY); } catch {}
+    }
+  }, [active]);
+}
+
 export default function AppRoutes() {
   const { session, profile, loading } = useAuth();
 
   usePendingInviteRedirect();
   usePendingUserAlerts();
+  useCaptureDeepLink(!loading && !session);
 
   if (loading) {
     return (
@@ -83,6 +129,8 @@ export default function AppRoutes() {
         <Routes>
           <Route path="/join-family" element={<JoinFamily />} />
           <Route path="/unsubscribe" element={<Unsubscribe />} />
+          <Route path="/event/:eventId" element={<LoginPage />} />
+          <Route path="/events/:eventId" element={<LoginPage />} />
           <Route path="*" element={<LoginPage />} />
         </Routes>
       </Suspense>
@@ -169,6 +217,8 @@ function StableLayout({ profile }: { profile: any }) {
   const isAdmin = profile?.role === "admin";
   const isModerator = (profile?.role as string) === "moderator";
 
+  usePostLoginRedirect(true);
+
   // Preload all tab chunks after first paint so future tab switches are instant
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -233,6 +283,7 @@ function StableLayout({ profile }: { profile: any }) {
         {!isStableRoute && (
           <Routes>
             <Route path="/events/:eventId" element={<EventDetail />} />
+            <Route path="/event/:eventId" element={<EventAliasRedirect />} />
             <Route path="/speakers" element={<SpeakersDirectory />} />
             <Route path="/speakers/:speakerId" element={<SpeakerProfile />} />
             <Route path="/notifications" element={<NotificationsPage />} />
@@ -248,3 +299,10 @@ function StableLayout({ profile }: { profile: any }) {
     </>
   );
 }
+
+function EventAliasRedirect() {
+  const location = useLocation();
+  const id = location.pathname.split("/").pop() ?? "";
+  return <Navigate to={`/events/${id}${location.search}`} replace />;
+}
+

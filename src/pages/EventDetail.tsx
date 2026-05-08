@@ -10,7 +10,9 @@ import QRTicketScreen from "@/components/QRTicketScreen";
 import SelfCheckinModal from "@/components/SelfCheckinModal";
 import ContactOrganizerModal from "@/components/ContactOrganizerModal";
 import FeaturedSpeakers from "@/components/FeaturedSpeaker";
-import { Loader2, ArrowLeft, Mail, Clock, ScrollText } from "lucide-react";
+import { Loader2, ArrowLeft, Mail, Clock, ScrollText, Link2 } from "lucide-react";
+import { toast } from "sonner";
+import { copyEventLink } from "@/lib/share-event";
 import { Button } from "@/components/ui/button";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -29,19 +31,20 @@ export default function EventDetail() {
   const [ticketEvent, setTicketEvent] = useState<Event | null>(null);
   const [showContact, setShowContact] = useState(false);
 
-  const { data: event, isLoading: eventLoading } = useQuery({
+  const { data: event, isLoading: eventLoading, isError: eventError } = useQuery({
     queryKey: ["event-detail", eventId],
     enabled: !!eventId,
     staleTime: 2 * 60 * 1000,
     gcTime: 5 * 60 * 1000,
+    retry: false,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("events")
         .select("id, title, date_time, end_date_time, location, address, maps_url, status, cover_photo_url, event_type_id, capacity, has_potluck, virtual_link, zoom_link, online_link, zoom_password, is_hybrid, host_id, description, venue_id, ticket_fee, mureeds_only, age_group, location_hint, etiquette_notes, payment_instructions, waitlist_capacity, published, scheduled_publish_at, last_published_at, created_at, updated_at")
         .eq("id", eventId!)
-        .single();
+        .maybeSingle();
       if (error) throw error;
-      return data as Event;
+      return data as Event | null;
     },
   });
 
@@ -64,15 +67,18 @@ export default function EventDetail() {
     );
   }
 
+  // Graceful 404 fallback — event missing or not visible to user
+  useEffect(() => {
+    if (!eventLoading && (eventError || (eventId && event === null))) {
+      toast.error("This event could not be found or has been removed.");
+      navigate("/", { replace: true });
+    }
+  }, [eventLoading, eventError, event, eventId, navigate]);
+
   if (!event) {
     return (
-      <div className="min-h-screen bg-background pb-24">
-        <div className="px-4 py-8 text-center">
-          <p className="text-muted-foreground">Event not found.</p>
-          <Button variant="link" onClick={() => navigate("/")}>
-            Go Home
-          </Button>
-        </div>
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <Loader2 className="h-6 w-6 animate-spin text-primary" />
       </div>
     );
   }
@@ -113,6 +119,24 @@ export default function EventDetail() {
             >
               <Mail className="h-4 w-4" />
               Contact Organizer
+            </Button>
+          </div>
+        )}
+
+        {/* Share / Copy Link — visible to admins, moderators, and assigned host */}
+        {user && (
+          profile?.role === "admin" ||
+          profile?.role === "moderator" ||
+          (event as any).host_id === user.id
+        ) && (
+          <div className="mt-2">
+            <Button
+              variant="outline"
+              className="w-full gap-2"
+              onClick={() => copyEventLink(event.id)}
+            >
+              <Link2 className="h-4 w-4" />
+              Copy Event Link
             </Button>
           </div>
         )}

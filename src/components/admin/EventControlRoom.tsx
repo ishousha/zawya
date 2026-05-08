@@ -9,7 +9,8 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Loader2, Plus, Edit2, X, Users, ChevronDown, Copy, Trash2, Ban, RotateCcw, Check, Mail, EyeOff, Video } from "lucide-react";
+import { Loader2, Plus, Edit2, X, Users, ChevronDown, Copy, Trash2, Ban, RotateCcw, Check, Mail, EyeOff, Video, Link2 } from "lucide-react";
+import { copyEventLink } from "@/lib/share-event";
 import { toast } from "sonner";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { format } from "date-fns";
@@ -481,6 +482,9 @@ export default function EventControlRoom() {
                       )}
                       <Button size="sm" variant="ghost" className="h-9 gap-1.5 text-xs" onClick={() => handleDuplicate(event)}>
                         <Copy className="h-3.5 w-3.5" /> Copy
+                      </Button>
+                      <Button size="sm" variant="ghost" className="h-9 gap-1.5 text-xs" onClick={() => copyEventLink(event.id)}>
+                        <Link2 className="h-3.5 w-3.5" /> Share
                       </Button>
                       <Button size="sm" variant="ghost" className="h-9 gap-1.5 text-xs" onClick={() => setBroadcastEvent({ id: event.id, title: event.title })}>
                         <Mail className="h-3.5 w-3.5" /> Email
