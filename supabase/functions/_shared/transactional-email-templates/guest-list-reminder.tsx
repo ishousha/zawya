@@ -122,18 +122,48 @@ const GuestListReminderEmail = ({
           )}
         </Section>
 
-        {/* Potluck Items */}
+        {/* Potluck Items — grouped by category (reclaimed sign-up items) */}
         {potluckItems.length > 0 && (
           <>
             <Hr style={hr} />
             <Section>
-              <Heading style={h2}>Potluck Menu</Heading>
+              <Heading style={h2}>Potluck Menu (Reclaimed)</Heading>
+              {potluckCategories.map((cat) => (
+                <div key={cat} style={{ marginBottom: '12px' }}>
+                  <Text style={categoryLabel}>{cat}</Text>
+                  <table style={listTable}>
+                    <tbody>
+                      {potluckByCategory[cat].map((item, i) => (
+                        <tr key={i}>
+                          <td style={listCell}>
+                            🍽 {item.dish}
+                            {item.quantity > 1 ? ` ×${item.quantity}` : ''}
+                            {' — '}
+                            <span style={{ color: '#6b7280' }}>{item.family}</span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ))}
+            </Section>
+          </>
+        )}
+
+        {/* Unclaimed sign-up items (still need volunteers) */}
+        {unclaimedItems.length > 0 && (
+          <>
+            <Hr style={hr} />
+            <Section>
+              <Heading style={h2}>Still Needed (Unclaimed)</Heading>
               <table style={listTable}>
                 <tbody>
-                  {potluckItems.map((item, i) => (
+                  {unclaimedItems.map((u, i) => (
                     <tr key={i}>
                       <td style={listCell}>
-                        🍽 {item.dish} — <span style={{ color: '#6b7280' }}>{item.family}</span>
+                        ⚠ <strong>{u.name}</strong> — {u.remaining} of {u.limit} still unclaimed
+                        {u.claimed > 0 ? ` (${u.claimed} claimed)` : ''}
                       </td>
                     </tr>
                   ))}
@@ -150,7 +180,8 @@ const GuestListReminderEmail = ({
       </Container>
     </Body>
   </Html>
-)
+  )
+}
 
 export const template = {
   component: GuestListReminderEmail,
