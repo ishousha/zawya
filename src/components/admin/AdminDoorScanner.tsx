@@ -73,6 +73,18 @@ export default function AdminDoorScanner() {
     );
   }, [events]);
 
+  // Next upcoming (future) event, excluding the live one
+  const nextUpcomingEvent = useMemo(() => {
+    if (!events?.length) return null;
+    const nowMs = Date.now();
+    const liveId = liveEvent?.id;
+    return (
+      events
+        .filter((e: any) => e.id !== liveId && new Date(e.date_time).getTime() > nowMs)
+        .sort((a: any, b: any) => new Date(a.date_time).getTime() - new Date(b.date_time).getTime())[0] ?? null
+    );
+  }, [events, liveEvent]);
+
   // Sort: live events first, then by date
   const sortedEvents = useMemo(() => {
     if (!events) return [];
@@ -84,15 +96,16 @@ export default function AdminDoorScanner() {
     });
   }, [events, liveEvent]);
 
-  // Auto-select live event once on mount when available
+  // Auto-select live event (or next upcoming) once on mount
   const autoSelected = useRef(false);
   useEffect(() => {
-    if (autoSelected.current) return;
-    if (!selectedEventId && liveEvent) {
-      setSelectedEventId(liveEvent.id);
+    if (autoSelected.current || selectedEventId) return;
+    const target = liveEvent ?? nextUpcomingEvent;
+    if (target) {
+      setSelectedEventId(target.id);
       autoSelected.current = true;
     }
-  }, [liveEvent, selectedEventId]);
+  }, [liveEvent, nextUpcomingEvent, selectedEventId]);
 
   // Honor explicit eventId from navigation state (Quick Action click)
   const location = useLocation();
