@@ -631,7 +631,7 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
                 <ItemsTab items={signUpItems} onChange={setSignUpItems} />
               </TabsContent>
               <TabsContent value="settings" className="overflow-x-hidden">
-                <SettingsTab form={form} setForm={setForm} isEditing={!isNewEvent} />
+                <SettingsTab form={form} setForm={setForm} isEditing={!isNewEvent} onShortCodeUserEdit={markShortCodeUserEdited} onResetShortCode={resetShortCodeSuggestion} />
               </TabsContent>
             </Tabs>
           </div>
