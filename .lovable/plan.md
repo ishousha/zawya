@@ -1,50 +1,73 @@
 ## Goal
-Add native short links for events: `https://zawya.app/e/Ab3X9z` instead of long UUID URLs, so admins can share clean links via WhatsApp.
+Upgrade event short-links from random codes to admin-friendly "Smart Vanity URLs" (e.g. `/e/TG1405`) with auto-suggest, manual override, and server-side collision handling.
 
-## 1. Database (migration)
-- Add column `short_code TEXT UNIQUE` to `events` (nullable initially so we can backfill).
-- Add a `gen_event_short_code()` SQL function that loops generating a random 6-char alphanumeric (alphabet: `ABCDEFGHJKLMNPQRSTUVWXYZ23456789` — drop look-alikes `IO01l`) until it finds an unused value, then returns it.
-- Add a `BEFORE INSERT` trigger on `events` that sets `short_code = gen_event_short_code()` when it is NULL.
-- Backfill: `UPDATE events SET short_code = gen_event_short_code() WHERE short_code IS NULL;` (loop-safe via the function).
-- After backfill, `ALTER COLUMN short_code SET NOT NULL`.
+## 1. Database (single migration)
 
-No RLS change needed — `short_code` rides on existing event SELECT policies. The lookup route only resolves codes for events the caller can already see; unauth users get redirected to login first (see §3).
+Replace the auto-generation trigger so it also handles **admin-supplied** short codes with collision fallback.
 
-## 2. Resolver (no edge function needed)
-- The client resolves `short_code → event id` directly via Supabase from the new route. We do NOT expose an unauthenticated lookup, which keeps event existence private.
-- For unauthenticated users hitting `/e/:code`, the existing deep-link capture redirects them to login, then resolves after auth.
+**New helper functions:**
+- `normalize_event_short_code(_raw text) RETURNS text` — trims, replaces whitespace with `-`, strips non `[A-Za-z0-9_-]`, collapses repeated dashes, enforces length 3–32. Returns `NULL` if result is empty.
+- `next_unique_short_code(_desired text, _self_id uuid) RETURNS text` — if `_desired` is free (excluding `_self_id`), returns it. Otherwise appends `-2`, `-3`, … until unique. Caps at `-99` then falls back to `gen_event_short_code()`.
 
-## 3. Routing — `/e/:shortCode`
-New file `src/pages/EventShortLinkRedirect.tsx`:
-- On mount, if no session → save `/e/:code` to `sessionStorage` (so post-login redirect re-runs the resolve), render Login.
-- If session present → `select id from events where short_code = :code` (single row).
-  - Found → `navigate('/events/' + id, { replace: true })`.
-  - Not found / error → `toast.error("Event link invalid.")` and `navigate('/', { replace: true })`.
+**Replace `set_event_short_code()` trigger function** (BEFORE INSERT OR UPDATE):
+```text
+new_norm := normalize_event_short_code(NEW.short_code)
+if TG_OP = 'UPDATE' and new_norm = OLD.short_code → keep as-is
+if new_norm IS NULL → NEW.short_code := gen_event_short_code()
+else                 → NEW.short_code := next_unique_short_code(new_norm, NEW.id)
+```
+Drop & recreate the trigger as `BEFORE INSERT OR UPDATE OF short_code`.
 
-Wire into `AppRoutes.tsx`:
-- Unauth branch: `<Route path="/e/:shortCode" element={<LoginPage />} />` (deep link captured via `useCaptureDeepLink`).
-- Auth branch (inside `StableLayout` non-tab routes): `<Route path="/e/:shortCode" element={<EventShortLinkRedirect />} />`.
+No RLS changes; admin policies already gate `events` writes.
 
-Update `isSafeRedirectPath` to also allow `^/e/[A-Za-z0-9]{4,12}(\?.*)?$` and update `useCaptureDeepLink` (it already uses `isSafeRedirectPath`, so just widening the regex is enough).
+## 2. Form state (`src/components/admin/event-form/types.ts`)
 
-## 4. Share URL — admin "Copy Link" / Share Event
-- Update `src/lib/share-event.ts`:
-  - `getEventShareUrl(event: { id: string; short_code?: string | null })` returns `${origin}/e/${short_code}` if present, else falls back to `/events/${id}`.
-- Update all callers to pass the event object (not just id):
-  - `src/pages/EventDetail.tsx` — already has `event`, pass `event` to `openShare`.
-  - `src/components/ShareEventDialog.tsx` — change `useShareEvent.open(eventOrId, title)` signature to accept the event object (or `{ id, short_code, title }`).
-  - `src/components/admin/EventControlRoom.tsx` — pass the event row when invoking share/copy.
-- Add `short_code` to `EVENT_PUBLIC_COLUMNS` (`src/lib/event-columns.ts`) so list/detail queries hydrate it.
+- Add `short_code: string` to `EventFormState` and `defaultEventForm` (`""`).
+- Add helper `suggestShortCode(title: string, date_time: string): string`:
+  - Take first two words of title, first letter each, uppercase. Strip non-alpha.
+  - If only one usable word, take its first 2 letters uppercased.
+  - Append `DDMM` from `date_time` (local timezone, padded).
+  - Returns `""` if title or date missing.
 
-## 5. QA checklist (after implementation)
-1. Create a new event → confirm `short_code` is auto-set (6 chars, unguessable alphabet).
-2. Existing events have backfilled codes.
-3. Admin "Share Event" copies `https://zawya.app/e/<code>`.
-4. Pasting the link in a fresh browser → login screen, then after auth → lands on `/events/:id`.
-5. Already-logged-in user opening `/e/<code>` → instant redirect to event detail.
-6. Bad code (`/e/zzzzzz`) → toast "Event link invalid." + Home.
+## 3. EventFormTabs (`EventFormTabs.tsx`)
+
+- Hydrate `short_code` from existing `event.short_code` when editing.
+- Track `userEditedShortCodeRef = useRef(false)` — set true when user edits the input AND the value isn't equal to current suggestion.
+  - When editing an existing event, default `userEditedShortCodeRef.current = true` (so we never overwrite the admin's saved code).
+- `useEffect` on `[form.title, form.date_time]`:
+  - If `!userEditedShortCodeRef.current`, set `form.short_code = suggestShortCode(...)`.
+- Submit payload: include `short_code: form.short_code.trim() || null`. Server trigger will handle uniqueness + suffix.
+- After successful insert/update, re-select `short_code` from the returned row and toast `Short link saved: zawya.app/e/<code>` so admins see the final value if a `-N` suffix was added.
+
+## 4. Settings tab UI (`SettingsTab.tsx`)
+
+Add a new field block (placed near the existing Check-in PIN row, since both are admin operational fields):
+
+```text
+Custom Short Link (Optional)
+[ TG1405               ] .copy
+zawya.app/e/<value>
+We'll auto-suggest from title + date. Edit freely; if it's taken, we'll append -2.
+```
+
+- Input: `value={form.short_code}`, on change → set form + mark `userEditedShortCodeRef.current = true` (passed down via callback prop, e.g. `onShortCodeUserEdit`).
+- Inline helper text shows live preview URL using `getEventShareUrl`.
+- Lightweight client validation (zod) on blur: `^[A-Za-z0-9_-]{3,32}$`. Show error message but don't block submit (server normalizes/falls back).
+- Small "↺ Re-suggest" button that resets the manual flag and regenerates from title+date.
+
+## 5. Routing (`/e/:shortCode`)
+
+Already implemented in `src/pages/EventShortLinkRedirect.tsx` — it queries `events.short_code` and redirects, with toast on miss. **No code change needed**, but we'll widen the allowlist regex in `AppRoutes.tsx` `isSafeRedirectPath` from `[A-Za-z0-9]{4,12}` to `[A-Za-z0-9_-]{3,32}` to cover dashes, underscores, and the `-N` suffix.
+
+## 6. QA
+
+1. Type "Thursday Gathering", set date May 14 → field auto-fills `TG1405`. Edit to `Suhba` → suggestion stops overwriting.
+2. Save with `TG1405` already taken → server returns `TG1405-2`, toast shows the final URL.
+3. Edit existing event without touching short_code → unchanged.
+4. Submit empty short_code → server falls back to random 6-char code (existing behavior).
+5. `/e/TG1405-2` resolves to event detail; `/e/notreal` shows toast and redirects home.
 
 ## Out of scope
-- Custom vanity codes (admin-chosen). Codes are auto-only.
-- QR ticket payloads (still use UUID — they're scanned by staff, not shared).
-- Email templates (continue to use full event URLs unless you ask to switch them too).
+- Reserved-word blocklist (e.g. `admin`, `api`).
+- Live "is this taken?" check while typing (we let the server resolve at save).
+- Bulk renaming of legacy random codes.
