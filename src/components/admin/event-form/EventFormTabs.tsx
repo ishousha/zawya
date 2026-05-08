@@ -493,6 +493,9 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
       } else {
         toast.success("Event saved as draft");
       }
+      if (result?.savedShortCode) {
+        toast.info(`Short link: zawya.app/e/${result.savedShortCode}`);
+      }
       onClose();
       // Redirect admin to home so they see the result immediately
       navigate("/");
