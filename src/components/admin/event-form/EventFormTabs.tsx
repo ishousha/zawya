@@ -575,7 +575,7 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
     <>
       {/* Full-screen overlay on mobile, card on desktop */}
       <div
-        className="fixed inset-0 z-[60] bg-background overscroll-none md:flex md:items-center md:justify-center md:bg-black/60"
+        className="fixed inset-0 z-[80] bg-background overscroll-none md:flex md:items-center md:justify-center md:bg-black/60"
         style={{ touchAction: 'none', overscrollBehavior: 'none' }}
       >
         {/* Clickable backdrop — only visible on desktop behind the card */}

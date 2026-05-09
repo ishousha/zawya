@@ -1,40 +1,33 @@
-# Fix: Male users can RSVP to "Sisters Only" events
-
 ## Root cause
 
-DB trigger `enforce_event_gender_audience` and the frontend `genderBlock`/`genderBlocked` guards already block **new** male RSVPs on Sisters-Only events (and vice versa). The remaining loopholes:
+All four bugs are the same problem: **z-index stacking**.
 
-1. **`RSVPModal.tsx`** — `genderBlocked` is `false` when `isEditing` is true. So a mismatched user who already has an RSVP (e.g. event was originally "Everyone" and an admin later changed it to "Sisters Only") can keep editing/confirming via the modal.
-2. **`EventCard.tsx`** — when `isAttending`, the card shows "Edit RSVP" / "View Ticket" with no gender check, so a now-mismatched user sees no warning that they should cancel.
-3. **DB-level audience changes** — when an admin updates `events.audience_gender`, existing mismatched RSVPs are not cleaned up. The `enforce_event_gender_audience` trigger only fires on RSVP INSERT/UPDATE, not on `events` UPDATE.
-4. **Trigger UPDATE skip** — current trigger early-returns on `UPDATE` when `event_id` and `user_id` are unchanged. That's fine for keeping admin-driven check-ins working, but means a mismatched user editing their RSVP via the SDK directly is not re-validated. (UI fix above closes the practical path; trigger stays as is.)
+- `EventFormTabs` modal is at `z-[60]`.
+- `BottomNav` is also at `z-[60]` (`fixed bottom-0`) — same layer, but because BottomNav is mounted earlier/persistently it paints on top of the modal's bottom action bar. → **Publish/Save Draft buttons hidden behind the bottom tab bar**, so they appear "missing" and taps land on the nav instead.
+- `EventPreviewDialog` (shadcn `Dialog`, default `z-50`) and the two `AlertDialog`s (`Unsaved changes`, `Remove items`) all render *below* the `z-[60]` modal. → **Eye icon opens the preview but it's invisible behind the form**, and clicking **X on a dirty form opens the confirm dialog behind the modal, leaving the user stuck (the "freeze")**.
 
-## Plan
+Save Draft itself works in code; it's just unreachable because its row is occluded by BottomNav.
 
-### 1. `src/components/RSVPModal.tsx`
-- Drop the `!isEditing` exemption from `genderBlocked` so the gender block screen always shows for mismatched users. Replace the "Close" button with two buttons:
-  - "Close"
-  - "Cancel my RSVP" (only if `myRSVP` exists and not cancelled) — calls existing `handleCancel()`.
-- Copy: "This gathering is now restricted to {brothers/sisters} only. Please cancel your RSVP."
+## Fix
 
-### 2. `src/components/EventCard.tsx`
-- In the action area (lines ~476–520), when `isAttending && genderBlock` (and not admin/mod), replace the "Edit RSVP / View Ticket" row with:
-  - A small warning chip: `genderBlock.label` + "Your RSVP no longer matches this event's audience."
-  - A single "Cancel RSVP" button that opens `RSVPModal` (existing modal will surface the cancel action from step 1).
-- Admins/mods continue to see the normal Edit/Ticket buttons (already excluded from `genderBlock`).
+1. **`src/components/admin/event-form/EventFormTabs.tsx`**
+   - Bump modal overlay to `z-[80]` (outer `fixed inset-0`) and the inner card / sticky action bar correspondingly.
+   - Pass an elevated `className` (e.g. `z-[100]`) to:
+     - `EventPreviewDialog`'s `DialogContent`
+     - both `AlertDialogContent`s
+     - and their overlays (via the `Dialog`/`AlertDialog` overlay class) so they render above the modal.
+   - Keep `BottomNav` untouched (still `z-[60]`).
 
-### 3. Database trigger on `events` (new migration)
-- Add `BEFORE UPDATE` trigger on `public.events`: when `audience_gender` changes from `Everyone` to `Brothers Only` / `Sisters Only` (or between the two), cancel all mismatched non-cancelled RSVPs:
-  - `UPDATE rsvps SET status='cancelled', is_waitlisted=false WHERE event_id = NEW.id AND user_id IN (SELECT id FROM profiles WHERE gender IS DISTINCT FROM <required_gender>)`.
-  - Insert a `notifications` row for each affected user explaining the cancellation.
-- This guarantees historical RSVPs cannot leak through the UI even if a frontend check is missed.
+2. **`src/components/admin/event-form/EventPreviewDialog.tsx`**
+   - Accept/forward a `className` so the parent can lift it above the modal, or hard-code a higher z on `DialogContent` when used here.
 
-## Out of scope
-- Changing how admins create walk-in RSVPs (admin override is intentional).
-- Auto-removing dependents whose gender mismatches (separate concern; dependents currently have no gender field used in this check).
-- Refactoring `enforce_event_gender_audience`.
+3. Quick polish: when the modal is open on mobile, the action bar should clear the iOS safe area — already handled, just verify it's still above BottomNav after the z-index bump (it will be, since the modal is now `z-[80]` > BottomNav `z-[60]`).
 
-## Files touched
-- `src/components/RSVPModal.tsx` — gender block always shown for mismatched users; add cancel-RSVP action.
-- `src/components/EventCard.tsx` — replace edit/ticket buttons with warning + cancel for mismatched attendees.
-- New Supabase migration — trigger on `events` to cancel mismatched RSVPs and notify users when audience tightens.
+## Verification
+
+- Open Edit Event → Publish/Update and Save Draft buttons visible and tappable above BottomNav.
+- Click eye icon → preview dialog appears on top.
+- Edit a field, click X → "Unsaved changes" confirm dialog appears on top; Discard / Keep Editing both work.
+- Remove a claimed item and Save → destructive confirm dialog appears on top.
+
+No business-logic changes; pure presentation fix.
