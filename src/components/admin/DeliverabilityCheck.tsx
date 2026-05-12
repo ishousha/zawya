@@ -1,10 +1,10 @@
 import { useState } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/runtime-client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, ShieldCheck, ShieldAlert, ShieldX, Mail } from "lucide-react";
+import { Loader2, ShieldCheck, ShieldAlert, ShieldX, Mail, Clock } from "lucide-react";
 
 type Status = "ok" | "warn" | "missing" | "unknown";
 
