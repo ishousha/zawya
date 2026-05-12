@@ -88,13 +88,29 @@ function DomainCard({ d }: { d: DomainResult }) {
 export default function DeliverabilityCheck() {
   const [result, setResult] = useState<CheckResult | null>(null);
 
+  const history = useQuery({
+    queryKey: ["deliverability-history"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("deliverability_checks")
+        .select("checked_at, dmarc_org_present, source")
+        .order("checked_at", { ascending: false })
+        .limit(10);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const lastAuto = history.data?.[0];
+  const dmarcDetected = !!lastAuto?.dmarc_org_present;
+
   const run = useMutation({
     mutationFn: async () => {
-      const { data, error } = await supabase.functions.invoke("check-deliverability", { body: {} });
+      const { data, error } = await supabase.functions.invoke("check-deliverability", { body: { persist: true, source: "manual" } });
       if (error) throw error;
       return data as CheckResult;
     },
-    onSuccess: (d) => setResult(d),
+    onSuccess: (d) => { setResult(d); history.refetch(); },
   });
 
   return (
