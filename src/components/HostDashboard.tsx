@@ -24,9 +24,9 @@ export default function HostDashboard({ eventId, hideGuestList = false }: HostDa
       if (error) throw error;
       if (!rsvpData || rsvpData.length === 0) return [];
 
-      const userIds = [...new Set(rsvpData.map((r) => r.user_id))];
-      const { data: profilesData } = await supabase
+      const { data: profilesData, error: pErr } = await supabase
         .rpc("get_event_attendee_profiles", { _event_id: eventId });
+      if (pErr) console.warn("[HostDashboard] attendee profiles RPC failed", pErr);
 
       const profileMap = new Map(((profilesData ?? []) as Array<{ id: string; name: string | null; family_name: string | null }>).map((p) => [p.id, p]));
       return rsvpData.map((r) => ({ ...r, profiles: profileMap.get(r.user_id) ?? null }));
