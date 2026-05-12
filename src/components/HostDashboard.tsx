@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/runtime-client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, UtensilsCrossed, Baby, UserRound, CheckCircle2 } from "lucide-react";
+import { Users, Baby, UserRound, CheckCircle2 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 
 interface HostDashboardProps {
@@ -10,8 +10,6 @@ interface HostDashboardProps {
 }
 
 export default function HostDashboard({ eventId, hideGuestList = false }: HostDashboardProps) {
-  
-
   const { data: rsvps } = useQuery({
     queryKey: ["host-rsvps", eventId],
     refetchInterval: 30_000,
@@ -32,31 +30,6 @@ export default function HostDashboard({ eventId, hideGuestList = false }: HostDa
       return rsvpData.map((r) => ({ ...r, profiles: profileMap.get(r.user_id) ?? null }));
     },
   });
-
-  const { data: signUpData } = useQuery({
-    queryKey: ["host-signup-items", eventId, (rsvps ?? []).map((r) => r.id).sort().join(",")],
-    enabled: !!rsvps && rsvps.length > 0,
-    queryFn: async () => {
-      const { data: items, error: iErr } = await supabase
-        .from("event_sign_up_items")
-        .select("id, item_name, order_index")
-        .eq("event_id", eventId)
-        .order("order_index");
-      if (iErr) throw iErr;
-      const rsvpIds = (rsvps ?? []).map((r) => r.id);
-      if (rsvpIds.length === 0 || !items || items.length === 0) return { items: items ?? [], selections: [] };
-      const { data: sels, error: sErr } = await supabase
-        .from("rsvp_sign_up_selections")
-        .select("rsvp_id, sign_up_item_id, quantity, description")
-        .in("rsvp_id", rsvpIds);
-      if (sErr) throw sErr;
-      return { items, selections: sels ?? [] };
-    },
-  });
-
-  // Note: Realtime subscription removed for security — RSVP data refreshes via
-  // refetchInterval and on window focus instead. This avoids broadcasting other
-  // attendees' RSVP changes to all subscribers.
 
   if (!rsvps) return null;
 
@@ -80,41 +53,6 @@ export default function HostDashboard({ eventId, hideGuestList = false }: HostDa
   }, 0);
 
   const totalHeadcount = totalAdults + totalChildren;
-
-  const rsvpById = new Map(rsvps.map((r) => [r.id, r]));
-  const itemById = new Map((signUpData?.items ?? []).map((i: any) => [i.id, i]));
-
-  const nameOf = (r: any) => {
-    const p = r?.profiles as any;
-    const name = (p?.name ?? "").trim();
-    const fam = (p?.family_name ?? "").trim();
-    if (name && fam) return `${name} (${fam})`;
-    return name || fam || "Unknown";
-  };
-
-  const structuredPotluck = (signUpData?.selections ?? []).flatMap((s: any) => {
-    const r: any = rsvpById.get(s.rsvp_id);
-    if (!r || r.status === "cancelled") return [];
-    const item: any = itemById.get(s.sign_up_item_id);
-    const itemName = item?.item_name || "Item";
-    const desc = (s.description ?? "").toString().trim();
-    const dish = desc ? `${itemName} — ${desc}` : itemName;
-    return [{
-      dish,
-      family: nameOf(r),
-      order: item?.order_index ?? 9000,
-    }];
-  });
-
-  const legacyPotluck = rsvps
-    .filter((r) => r.specific_food_item?.trim())
-    .map((r) => ({
-      dish: r.specific_food_item!.trim(),
-      family: nameOf(r),
-      order: 9999,
-    }));
-
-  const potluckItems = [...structuredPotluck, ...legacyPotluck].sort((a, b) => a.order - b.order);
 
   const checkedInCount = rsvps.filter((r) => r.checked_in).length;
 
@@ -204,29 +142,6 @@ export default function HostDashboard({ eventId, hideGuestList = false }: HostDa
                   ))}
                 </ul>
               )}
-            </div>
-          </>
-        )}
-
-        {/* Potluck items with names */}
-        {potluckItems.length > 0 && (
-          <>
-            <Separator />
-            <div>
-              <h4 className="flex items-center gap-2 text-sm font-semibold text-foreground mb-2">
-                <UtensilsCrossed className="h-4 w-4 text-primary" />
-                Potluck Menu (Host View)
-              </h4>
-              <ul className="space-y-1.5">
-                {potluckItems.map((item, i) => (
-                  <li key={i} className="text-sm text-foreground flex items-start gap-2">
-                    <span className="text-primary mt-0.5">•</span>
-                    <span>
-                      {item.dish} — <span className="text-muted-foreground">{item.family}</span>
-                    </span>
-                  </li>
-                ))}
-              </ul>
             </div>
           </>
         )}
