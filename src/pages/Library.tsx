@@ -13,6 +13,7 @@ import { format } from "date-fns";
 import EventCard from "@/components/EventCard";
 import ResourceCardSkeleton from "@/components/library/ResourceCardSkeleton";
 import type { Database } from "@/integrations/supabase/types";
+import { EVENT_PUBLIC_COLUMNS } from "@/lib/event-columns";
 
 type Event = Database["public"]["Tables"]["events"]["Row"];
 
