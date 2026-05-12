@@ -171,7 +171,7 @@ export default function Library() {
 
       const { data, error } = await supabase
         .from("events")
-        .select("id, title, date_time, end_date_time, location, address, maps_url, status, cover_photo_url, event_type_id, capacity, has_potluck, virtual_link, zoom_link, online_link, is_hybrid, host_id, description, venue_id, ticket_fee, mureeds_only, age_group, location_hint, etiquette_notes, payment_instructions, waitlist_capacity, created_at, updated_at")
+        .select(EVENT_PUBLIC_COLUMNS)
         .in("status", ["active", "full", "cancelled"])
         .or(`and(end_date_time.not.is.null,end_date_time.lt.${now}),and(end_date_time.is.null,date_time.lt.${fallbackCutoff})`)
         .order("date_time", { ascending: false })
