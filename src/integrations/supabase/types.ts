@@ -126,6 +126,7 @@ export type Database = {
           alignment: Json
           checked_at: string
           dmarc_org_present: boolean
+          dmarc_policy: string | null
           id: string
           root: Json
           sender: Json
@@ -135,6 +136,7 @@ export type Database = {
           alignment: Json
           checked_at?: string
           dmarc_org_present?: boolean
+          dmarc_policy?: string | null
           id?: string
           root: Json
           sender: Json
@@ -144,6 +146,7 @@ export type Database = {
           alignment?: Json
           checked_at?: string
           dmarc_org_present?: boolean
+          dmarc_policy?: string | null
           id?: string
           root?: Json
           sender?: Json
