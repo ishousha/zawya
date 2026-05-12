@@ -226,6 +226,7 @@ export default function AdminDashboard() {
                 <PotluckReclaimReport />
                 <AnnouncementManagement />
                 <EventTypeManagement />
+                <DeliverabilityCheck />
               </div>
             </KeepAliveTab>
             <KeepAliveTab id="activity" active={activeTab === "activity"}><AdminActivityLog /></KeepAliveTab>
