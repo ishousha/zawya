@@ -90,9 +90,14 @@ async function checkDomain(domain: string) {
   }
 }
 
+import { createClient } from 'npm:@supabase/supabase-js@2'
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
   try {
+    let body: { persist?: boolean; source?: string } = {}
+    try { body = await req.json() } catch { /* no body */ }
+
     const [sender, root] = await Promise.all([
       checkDomain(SENDER_DOMAIN),
       checkDomain(ROOT_DOMAIN),
@@ -104,7 +109,39 @@ Deno.serve(async (req) => {
       dmarc_present_org: root.dmarc.status !== 'missing',
       note: 'For strict DMARC alignment, the From: domain should match (or be a subdomain of) the SPF/DKIM signing domain.',
     }
-    return new Response(JSON.stringify({ checkedAt: new Date().toISOString(), sender, root, alignment }, null, 2), {
+
+    let persisted = false
+    let skippedReason: string | null = null
+    if (body.persist) {
+      const admin = createClient(
+        Deno.env.get('SUPABASE_URL')!,
+        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+      )
+      // If the most recent stored check already shows org DMARC present, stop polling.
+      const { data: last } = await admin
+        .from('deliverability_checks')
+        .select('dmarc_org_present')
+        .order('checked_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+
+      if (last?.dmarc_org_present) {
+        skippedReason = 'dmarc_already_detected'
+      } else {
+        const { error } = await admin.from('deliverability_checks').insert({
+          sender, root, alignment,
+          dmarc_org_present: alignment.dmarc_present_org,
+          source: body.source ?? 'manual',
+        })
+        if (error) skippedReason = `insert_failed: ${error.message}`
+        else persisted = true
+      }
+    }
+
+    return new Response(JSON.stringify({
+      checkedAt: new Date().toISOString(),
+      sender, root, alignment, persisted, skippedReason,
+    }, null, 2), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
   } catch (e) {

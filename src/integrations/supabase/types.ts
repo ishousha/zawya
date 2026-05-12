@@ -121,6 +121,36 @@ export type Database = {
         }
         Relationships: []
       }
+      deliverability_checks: {
+        Row: {
+          alignment: Json
+          checked_at: string
+          dmarc_org_present: boolean
+          id: string
+          root: Json
+          sender: Json
+          source: string
+        }
+        Insert: {
+          alignment: Json
+          checked_at?: string
+          dmarc_org_present?: boolean
+          id?: string
+          root: Json
+          sender: Json
+          source?: string
+        }
+        Update: {
+          alignment?: Json
+          checked_at?: string
+          dmarc_org_present?: boolean
+          id?: string
+          root?: Json
+          sender?: Json
+          source?: string
+        }
+        Relationships: []
+      }
       dependents: {
         Row: {
           age_group: string | null

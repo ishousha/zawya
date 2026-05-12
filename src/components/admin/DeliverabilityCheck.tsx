@@ -1,10 +1,10 @@
 import { useState } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/runtime-client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, ShieldCheck, ShieldAlert, ShieldX, Mail } from "lucide-react";
+import { Loader2, ShieldCheck, ShieldAlert, ShieldX, Mail, Clock } from "lucide-react";
 
 type Status = "ok" | "warn" | "missing" | "unknown";
 
@@ -88,13 +88,29 @@ function DomainCard({ d }: { d: DomainResult }) {
 export default function DeliverabilityCheck() {
   const [result, setResult] = useState<CheckResult | null>(null);
 
+  const history = useQuery({
+    queryKey: ["deliverability-history"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("deliverability_checks")
+        .select("checked_at, dmarc_org_present, source")
+        .order("checked_at", { ascending: false })
+        .limit(10);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const lastAuto = history.data?.[0];
+  const dmarcDetected = !!lastAuto?.dmarc_org_present;
+
   const run = useMutation({
     mutationFn: async () => {
-      const { data, error } = await supabase.functions.invoke("check-deliverability", { body: {} });
+      const { data, error } = await supabase.functions.invoke("check-deliverability", { body: { persist: true, source: "manual" } });
       if (error) throw error;
       return data as CheckResult;
     },
-    onSuccess: (d) => setResult(d),
+    onSuccess: (d) => { setResult(d); history.refetch(); },
   });
 
   return (
@@ -110,6 +126,24 @@ export default function DeliverabilityCheck() {
           Verify SPF, DKIM, and DMARC for <code>notify.zawya.app</code> (sender) and <code>zawya.app</code> (organizational domain).
           Helps diagnose Hotmail/Outlook delays.
         </p>
+        <div className="rounded-md border border-border bg-muted/30 p-3 text-xs flex items-start gap-2">
+          <Clock className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />
+          <div className="space-y-1">
+            <div className="font-medium">
+              Auto-check: {dmarcDetected
+                ? "stopped (org DMARC detected ✓)"
+                : "every 24h at 03:00 UTC until DMARC is detected for zawya.app"}
+            </div>
+            {lastAuto && (
+              <div className="text-muted-foreground">
+                Last automated check: {new Date(lastAuto.checked_at).toLocaleString()} ({lastAuto.source})
+              </div>
+            )}
+            {!lastAuto && !history.isLoading && (
+              <div className="text-muted-foreground">No automated checks recorded yet.</div>
+            )}
+          </div>
+        </div>
         <Button onClick={() => run.mutate()} disabled={run.isPending}>
           {run.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
           {result ? "Re-check now" : "Run check"}
