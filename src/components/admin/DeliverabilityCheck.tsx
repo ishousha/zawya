@@ -200,7 +200,70 @@ export default function DeliverabilityCheck() {
               <p className="text-xs text-muted-foreground pt-1">{result.alignment.note}</p>
               <p className="text-[11px] text-muted-foreground">Checked at {new Date(result.checkedAt).toLocaleString()}</p>
             </div>
-          </div>
+
+            {/* Root SPF setup instructions — only shown when missing */}
+            {result.root.spf.status === "missing" && (
+              <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm space-y-2">
+                <div className="font-medium flex items-center gap-2">
+                  <ShieldAlert className="h-4 w-4 text-amber-700" />
+                  Add root SPF for <code>zawya.app</code>
+                </div>
+                <p className="text-xs text-amber-900/80">
+                  Tells receivers that nothing legitimate sends from the bare domain — extra anti-spoofing protection.
+                  Add this TXT record at your domain registrar (host: <code>@</code>):
+                </p>
+                <div className="flex items-center gap-2">
+                  <code className="flex-1 break-all rounded bg-background/70 p-1.5 text-xs">{ROOT_SPF_RECORD}</code>
+                  <CopyButton value={ROOT_SPF_RECORD} label="SPF record copied." />
+                </div>
+                <p className="text-[11px] text-amber-900/70">
+                  This warning will clear automatically on the next check after the record propagates.
+                </p>
+              </div>
+            )}
+
+            {/* DMARC tightening recommendation */}
+            {result.recommendation && result.recommendation.current_policy === "none" && (
+              <div className={`rounded-lg border p-4 text-sm space-y-2 ${
+                result.recommendation.ready_to_tighten
+                  ? "border-emerald-200 bg-emerald-50"
+                  : "border-border bg-muted/30"
+              }`}>
+                <div className="font-medium flex items-center gap-2">
+                  {result.recommendation.ready_to_tighten ? (
+                    <ShieldCheck className="h-4 w-4 text-emerald-700" />
+                  ) : (
+                    <Clock className="h-4 w-4 text-muted-foreground" />
+                  )}
+                  {result.recommendation.ready_to_tighten
+                    ? "Ready to tighten DMARC to p=quarantine"
+                    : "DMARC tightening — monitoring stability"}
+                </div>
+                <p className="text-xs text-muted-foreground">{result.recommendation.reason}</p>
+                <div className="text-xs">
+                  Stability: <strong>{result.recommendation.consecutive_ok}</strong>/{result.recommendation.required_consecutive} clean checks ·{" "}
+                  <strong>{result.recommendation.days_stable}</strong>/{result.recommendation.required_days} days
+                </div>
+                {result.recommendation.ready_to_tighten && (
+                  <>
+                    <p className="text-xs">
+                      Replace your <code>_dmarc.zawya.app</code> TXT record at your registrar with:
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <code className="flex-1 break-all rounded bg-background/70 p-1.5 text-xs">
+                        {result.recommendation.suggested_record}
+                      </code>
+                      <CopyButton value={result.recommendation.suggested_record} label="DMARC record copied." />
+                    </div>
+                    <p className="text-[11px] text-muted-foreground">
+                      After updating, run a re-check. The system will detect <code>p=quarantine</code> and stop monitoring.
+                    </p>
+                  </>
+                )}
+              </div>
+            )}
+
+            <p className="text-[11px] text-muted-foreground">Checked at {new Date(result.checkedAt).toLocaleString()}</p>
         )}
       </CardContent>
     </Card>
