@@ -264,6 +264,7 @@ export default function DeliverabilityCheck() {
             )}
 
             <p className="text-[11px] text-muted-foreground">Checked at {new Date(result.checkedAt).toLocaleString()}</p>
+          </div>
         )}
       </CardContent>
     </Card>
