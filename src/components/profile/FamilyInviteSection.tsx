@@ -71,6 +71,26 @@ export default function FamilyInviteSection() {
     const familyLabel = `${lastName} Family`;
 
     try {
+      // 0. Re-check the latest profile in case the cached auth context is stale.
+      // Without this, a user who already has a family_id would hit the RLS
+      // INSERT policy on `families` and see a confusing error toast.
+      const { data: freshProfile, error: freshErr } = await supabase
+        .from("profiles")
+        .select("family_id")
+        .eq("id", user.id)
+        .single();
+
+      if (freshErr) throw freshErr;
+
+      if (freshProfile?.family_id) {
+        toast.info("You're already in a family group. Refreshing…");
+        queryClient.invalidateQueries({ queryKey: ["my-family-name"] });
+        queryClient.invalidateQueries({ queryKey: ["family-members-list"] });
+        window.dispatchEvent(new Event("profile-updated"));
+        setCreating(false);
+        return;
+      }
+
       // 1. Create the family row
       const { data: newFamily, error: familyError } = await supabase
         .from("families")
