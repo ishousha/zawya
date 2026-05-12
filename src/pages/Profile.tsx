@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { LogOut, User, CalendarIcon, Loader2, ScrollText, Camera, Download, Share, RefreshCw } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/runtime-client";
 import { toast } from "sonner";
 import { format, parse } from "date-fns";
 import { cn } from "@/lib/utils";
