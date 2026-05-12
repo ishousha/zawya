@@ -4,15 +4,27 @@ import { supabase } from "@/integrations/supabase/runtime-client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, ShieldCheck, ShieldAlert, ShieldX, Mail, Clock } from "lucide-react";
+import { Loader2, ShieldCheck, ShieldAlert, ShieldX, Mail, Clock, Copy, ExternalLink } from "lucide-react";
+import { toast } from "@/hooks/use-toast";
 
 type Status = "ok" | "warn" | "missing" | "unknown";
 
 interface DomainResult {
   domain: string;
   spf: { status: Status; value: string | null; note: string };
-  dmarc: { status: Status; value: string | null; policy?: string; note: string };
+  dmarc: { status: Status; value: string | null; policy?: string | null; note: string };
   dkim: { status: Status; selectors: { selector: string; value: string }[]; note: string };
+}
+
+interface Recommendation {
+  ready_to_tighten: boolean;
+  current_policy: string | null;
+  consecutive_ok: number;
+  days_stable: number;
+  required_consecutive: number;
+  required_days: number;
+  suggested_record: string;
+  reason: string;
 }
 
 interface CheckResult {
@@ -26,6 +38,26 @@ interface CheckResult {
     dmarc_present_org: boolean;
     note: string;
   };
+  recommendation?: Recommendation;
+}
+
+const ROOT_SPF_RECORD = "v=spf1 -all";
+
+function CopyButton({ value, label }: { value: string; label?: string }) {
+  return (
+    <Button
+      type="button"
+      variant="outline"
+      size="sm"
+      className="gap-1"
+      onClick={async () => {
+        await navigator.clipboard.writeText(value);
+        toast({ title: "Copied", description: label ?? "Record copied to clipboard." });
+      }}
+    >
+      <Copy className="h-3 w-3" /> Copy
+    </Button>
+  );
 }
 
 function StatusBadge({ status }: { status: Status }) {
