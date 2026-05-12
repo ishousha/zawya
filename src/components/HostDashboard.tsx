@@ -84,6 +84,14 @@ export default function HostDashboard({ eventId, hideGuestList = false }: HostDa
   const rsvpById = new Map(rsvps.map((r) => [r.id, r]));
   const itemById = new Map((signUpData?.items ?? []).map((i: any) => [i.id, i]));
 
+  const nameOf = (r: any) => {
+    const p = r?.profiles as any;
+    const name = (p?.name ?? "").trim();
+    const fam = (p?.family_name ?? "").trim();
+    if (name && fam) return `${name} (${fam})`;
+    return name || fam || "Unknown";
+  };
+
   const structuredPotluck = (signUpData?.selections ?? []).flatMap((s: any) => {
     const r: any = rsvpById.get(s.rsvp_id);
     if (!r || r.status === "cancelled") return [];
@@ -93,7 +101,7 @@ export default function HostDashboard({ eventId, hideGuestList = false }: HostDa
     const dish = desc ? `${itemName} — ${desc}` : itemName;
     return [{
       dish,
-      family: (r.profiles as any)?.family_name || (r.profiles as any)?.name || "Unknown",
+      family: nameOf(r),
       order: item?.order_index ?? 9000,
     }];
   });
@@ -102,7 +110,7 @@ export default function HostDashboard({ eventId, hideGuestList = false }: HostDa
     .filter((r) => r.specific_food_item?.trim())
     .map((r) => ({
       dish: r.specific_food_item!.trim(),
-      family: (r.profiles as any)?.family_name || (r.profiles as any)?.name || "Unknown",
+      family: nameOf(r),
       order: 9999,
     }));
 
