@@ -274,7 +274,7 @@ export default function Library() {
                   return (
                     <Card
                       key={res.id}
-                      className="cursor-pointer transition-shadow hover:shadow-md active:scale-[0.99]"
+                      className="cursor-pointer transition-shadow hover:shadow-md active:scale-[0.99] overflow-hidden"
                       onClick={() => handleResourceClick(res)}
                     >
                       <CardContent className="flex items-start gap-3 p-4">
@@ -282,12 +282,12 @@ export default function Library() {
                           <Icon className="h-6 w-6 text-primary" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <h3 className="font-heading text-base font-semibold text-foreground flex items-center gap-1.5">
-                            <span className="truncate">{res.title}</span>
+                          <h3 className="font-heading text-base font-semibold text-foreground flex items-center gap-1.5 min-w-0">
+                            <span className="truncate min-w-0">{res.title}</span>
                             {isExternal && <ExternalLink className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />}
                           </h3>
                           {res.description && (
-                            <p className="text-sm text-muted-foreground line-clamp-2 mt-0.5">{res.description}</p>
+                            <p className="text-sm text-muted-foreground line-clamp-2 mt-0.5 break-words">{res.description}</p>
                           )}
                           <div className="flex flex-wrap items-center gap-2 mt-2 text-xs text-muted-foreground">
                             <Badge variant="secondary" className="text-[10px] px-1.5 py-0 gap-1">
