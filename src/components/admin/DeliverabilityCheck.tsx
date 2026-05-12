@@ -126,6 +126,24 @@ export default function DeliverabilityCheck() {
           Verify SPF, DKIM, and DMARC for <code>notify.zawya.app</code> (sender) and <code>zawya.app</code> (organizational domain).
           Helps diagnose Hotmail/Outlook delays.
         </p>
+        <div className="rounded-md border border-border bg-muted/30 p-3 text-xs flex items-start gap-2">
+          <Clock className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />
+          <div className="space-y-1">
+            <div className="font-medium">
+              Auto-check: {dmarcDetected
+                ? "stopped (org DMARC detected ✓)"
+                : "every 24h at 03:00 UTC until DMARC is detected for zawya.app"}
+            </div>
+            {lastAuto && (
+              <div className="text-muted-foreground">
+                Last automated check: {new Date(lastAuto.checked_at).toLocaleString()} ({lastAuto.source})
+              </div>
+            )}
+            {!lastAuto && !history.isLoading && (
+              <div className="text-muted-foreground">No automated checks recorded yet.</div>
+            )}
+          </div>
+        </div>
         <Button onClick={() => run.mutate()} disabled={run.isPending}>
           {run.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
           {result ? "Re-check now" : "Run check"}
