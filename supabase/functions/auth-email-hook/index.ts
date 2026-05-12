@@ -39,7 +39,7 @@ const EMAIL_TEMPLATES: Record<string, React.ComponentType<any>> = {
 const SITE_NAME = "zawya"
 const SENDER_DOMAIN = "notify.zawya.app"
 const ROOT_DOMAIN = "zawya.app"
-const FROM_DOMAIN = "zawya.app" // Domain shown in From address (may be root or sender subdomain)
+const FROM_DOMAIN = "notify.zawya.app" // Domain shown in From address — aligned with sender subdomain for strict DMARC
 
 // Sample data for preview mode ONLY (not used in actual email sending).
 // URLs are baked in at scaffold time from the project's real data.

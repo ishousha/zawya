@@ -21,3 +21,5 @@ project_id = "ikzaalswkajtaxejyskw"
     verify_jwt = true
   [functions.notify-guest-rejected]
     verify_jwt = true
+  [functions.check-deliverability]
+    verify_jwt = false

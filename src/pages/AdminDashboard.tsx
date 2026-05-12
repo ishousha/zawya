@@ -20,6 +20,7 @@ const EventTypeManagement = lazy(() => import("@/components/admin/EventTypeManag
 const SpeakerManagement = lazy(() => import("@/components/admin/SpeakerManagement"));
 const ResourceManagement = lazy(() => import("@/components/admin/ResourceManagement"));
 const AnnouncementManagement = lazy(() => import("@/components/admin/AnnouncementManagement"));
+const DeliverabilityCheck = lazy(() => import("@/components/admin/DeliverabilityCheck"));
 const PotluckReclaimReport = lazy(() => import("@/components/admin/PotluckReclaimReport"));
 
 const ADMIN_TABS = ["users", "families", "events", "scanner", "speakers", "resources", "analytics", "settings", "activity"] as const;
@@ -225,6 +226,7 @@ export default function AdminDashboard() {
                 <PotluckReclaimReport />
                 <AnnouncementManagement />
                 <EventTypeManagement />
+                <DeliverabilityCheck />
               </div>
             </KeepAliveTab>
             <KeepAliveTab id="activity" active={activeTab === "activity"}><AdminActivityLog /></KeepAliveTab>
