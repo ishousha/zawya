@@ -1,6 +1,7 @@
 import { createRoot } from "react-dom/client";
 import * as Sentry from "@sentry/react";
 import App from "./App.tsx";
+import { getSupabaseEnv } from "@/integrations/supabase/runtime-client";
 import "./index.css";
 
 Sentry.init({
@@ -12,7 +13,7 @@ Sentry.init({
   tracesSampleRate: import.meta.env.PROD ? 0.1 : 0.3,
   replaysSessionSampleRate: 0,
   replaysOnErrorSampleRate: 1.0,
-  environment: import.meta.env.MODE,
+  environment: getSupabaseEnv(),
   enabled: !window.location.hostname.includes("lovableproject.com"),
 });
 

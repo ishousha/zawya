@@ -1,6 +1,6 @@
 import { useState, lazy, Suspense } from "react";
 import { useEventTypes, type EventType } from "@/hooks/useEventTypes";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/runtime-client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";

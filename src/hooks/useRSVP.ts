@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/runtime-client";
 import { useAuth } from "@/contexts/AuthContext";
 import { generateQRHash } from "@/lib/qr-hash";
 import { notifyRSVPCreated, notifyRSVPUpdated, notifyRSVPCancelled } from "@/lib/webhooks";
