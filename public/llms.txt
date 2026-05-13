@@ -1,0 +1,13 @@
+# Zawya
+
+> Zawya is a private spiritual community PWA for the suhba community — families view gatherings, RSVP, coordinate flexible potlucks, and check in at events.
+
+Most of the application is gated behind authentication and member approval, so the public surface is intentionally limited.
+
+## Pages
+
+- [Home / Sign in](/): Entry point and sign-in for community members.
+
+## Optional
+
+- [Community Guidelines](/guidelines): Community guidelines for members.

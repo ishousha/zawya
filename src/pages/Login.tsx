@@ -148,7 +148,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
+    <main className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="w-full max-w-sm animate-fade-in">
         {/* Header */}
         <div className="mb-8 text-center">
@@ -310,6 +310,6 @@ export default function LoginPage() {
           })()}
         </p>
       </div>
-    </div>
+    </main>
   );
 }
