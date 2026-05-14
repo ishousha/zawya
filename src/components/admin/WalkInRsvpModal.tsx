@@ -19,7 +19,7 @@ interface WalkInRsvpModalProps {
 
 export default function WalkInRsvpModal({ eventId, open, onOpenChange }: WalkInRsvpModalProps) {
   const queryClient = useQueryClient();
-  const [comboOpen, setComboOpen] = useState(false);
+  
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [adultsCount, setAdultsCount] = useState(1);
   const [childrenCount, setChildrenCount] = useState(0);
