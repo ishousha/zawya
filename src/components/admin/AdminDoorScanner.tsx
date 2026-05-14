@@ -388,16 +388,16 @@ export default function AdminDoorScanner() {
                 Check-in Progress
               </div>
               <span className="text-2xl font-bold text-primary">
-                {rsvpCounts.checkedIn}/{rsvpCounts.total}
+                {rsvpCounts.checkedInGuests}/{rsvpCounts.totalGuests}
               </span>
             </div>
             <Progress
-              value={rsvpCounts.total > 0 ? (rsvpCounts.checkedIn / rsvpCounts.total) * 100 : 0}
+              value={rsvpCounts.totalGuests > 0 ? (rsvpCounts.checkedInGuests / rsvpCounts.totalGuests) * 100 : 0}
               className="h-3"
             />
             <div className="flex justify-between text-xs text-muted-foreground">
               <span>{rsvpCounts.checkedInGuests} of {rsvpCounts.totalGuests} total guests arrived</span>
-              <span>{rsvpCounts.total - rsvpCounts.checkedIn} remaining</span>
+              <span>{rsvpCounts.totalGuests - rsvpCounts.checkedInGuests} remaining</span>
             </div>
             <Button
               variant="outline"
