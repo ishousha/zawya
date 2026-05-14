@@ -194,7 +194,7 @@ async function checkWaitlistStatus(
     (sum, r: any) => sum + (r.guests_count ?? 1),
     0
   );
-  if (confirmed < capacity) return false;
+  if (confirmed + requestedGuests <= capacity) return false;
 
   const { count: waitlistedCount, error: wErr } = await supabase
     .from("rsvps")
