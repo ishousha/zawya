@@ -219,6 +219,15 @@ export default function WalkInRsvpModal({ eventId, open, onOpenChange }: WalkInR
             Total headcount: {adultsCount + childrenCount} · Will be auto-checked-in
           </p>
 
+          {isAtCapacity && (
+            <div className="rounded-md border border-yellow-500/40 bg-yellow-50 dark:bg-yellow-950/20 px-3 py-2 text-xs text-yellow-900 dark:text-yellow-200 flex items-start gap-2">
+              <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
+              <span>
+                This event is at capacity ({attendingCount}/{capacity} spots). Adding a walk-in will exceed the limit.
+              </span>
+            </div>
+          )}
+
           <Button
             onClick={() => walkInMutation.mutate()}
             disabled={!selectedUserId || walkInMutation.isPending}
