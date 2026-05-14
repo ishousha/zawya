@@ -312,6 +312,15 @@ export default function RSVPModal({ event, open, onOpenChange }: RSVPModalProps)
       (audienceGender === "Sisters Only" && userGender !== "female"));
   const hasActiveRsvp = !!myRSVP && myRSVP.status !== "cancelled";
 
+  // Capacity status — used both for admin-override banner and forceAttending
+  const _cap = (event as any).capacity as number | null;
+  const _wlCap = ((event as any).waitlist_capacity ?? 0) as number;
+  const _attendingCount = (allRsvps ?? [])
+    .filter((r: any) => r.status === "attending")
+    .reduce((s: number, r: any) => s + (r.guests_count ?? 1), 0);
+  const _waitlistedCount = (allRsvps ?? []).filter((r: any) => r.status === "waitlisted").length;
+  const isOver = !!_cap && _attendingCount >= _cap && (_wlCap === 0 || _waitlistedCount >= _wlCap);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-md">
