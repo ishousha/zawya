@@ -7,8 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { Check, Loader2, UserPlus, X } from "lucide-react";
+import { AlertTriangle, Check, Loader2, UserPlus, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useEventRsvpCounts } from "@/hooks/useRSVP";
 import { toast } from "sonner";
 
 interface WalkInRsvpModalProps {
