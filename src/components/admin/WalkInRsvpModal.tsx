@@ -102,7 +102,6 @@ export default function WalkInRsvpModal({ eventId, open, onOpenChange }: WalkInR
     setSelectedUserId(null);
     setAdultsCount(1);
     setChildrenCount(0);
-    setComboOpen(false);
   };
 
   return (
