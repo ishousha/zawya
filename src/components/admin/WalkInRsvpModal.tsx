@@ -7,8 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Check, ChevronsUpDown, Loader2, UserPlus } from "lucide-react";
+import { Check, Loader2, UserPlus, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -20,7 +19,7 @@ interface WalkInRsvpModalProps {
 
 export default function WalkInRsvpModal({ eventId, open, onOpenChange }: WalkInRsvpModalProps) {
   const queryClient = useQueryClient();
-  const [comboOpen, setComboOpen] = useState(false);
+  
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [adultsCount, setAdultsCount] = useState(1);
   const [childrenCount, setChildrenCount] = useState(0);
@@ -103,7 +102,6 @@ export default function WalkInRsvpModal({ eventId, open, onOpenChange }: WalkInR
     setSelectedUserId(null);
     setAdultsCount(1);
     setChildrenCount(0);
-    setComboOpen(false);
   };
 
   return (
@@ -117,59 +115,58 @@ export default function WalkInRsvpModal({ eventId, open, onOpenChange }: WalkInR
         </DialogHeader>
 
         <div className="space-y-4 pt-2">
-          {/* User search combobox */}
+          {/* User search — inline cmdk list (no Popover, avoids Dialog focus-trap conflicts on mobile) */}
           <div className="space-y-2">
             <Label>Select Member</Label>
-            <Popover open={comboOpen} onOpenChange={setComboOpen}>
-              <PopoverTrigger asChild>
+            {selectedUser ? (
+              <div className="flex items-center justify-between gap-2 rounded-md border border-border bg-muted/40 px-3 py-2">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium truncate">{selectedUser.name || selectedUser.email}</p>
+                  {selectedUser.family_name && (
+                    <p className="text-xs text-muted-foreground truncate">{selectedUser.family_name}</p>
+                  )}
+                </div>
                 <Button
-                  variant="outline"
-                  role="combobox"
-                  aria-expanded={comboOpen}
-                  className="w-full justify-between h-10 font-normal"
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 gap-1 text-xs"
+                  onClick={() => setSelectedUserId(null)}
                 >
-                  {selectedUser
-                    ? `${selectedUser.name || selectedUser.email}${selectedUser.family_name ? ` — ${selectedUser.family_name}` : ""}`
-                    : "Search members..."}
-                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  <X className="h-3.5 w-3.5" /> Change
                 </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-[calc(100vw-4rem)] sm:w-[380px] p-0" align="start">
-                <Command>
-                  <CommandInput placeholder="Search by name..." />
-                  <CommandList>
-                    <CommandEmpty>
-                      {loadingUsers ? "Loading..." : "No members found."}
-                    </CommandEmpty>
-                    <CommandGroup>
-                      {availableUsers.map((user) => (
-                        <CommandItem
-                          key={user.id}
-                          value={`${user.name || ""} ${user.email || ""} ${user.family_name || ""}`}
-                          onSelect={() => {
-                            setSelectedUserId(user.id);
-                            setComboOpen(false);
-                          }}
-                        >
-                          <Check
-                            className={cn(
-                              "mr-2 h-4 w-4",
-                              selectedUserId === user.id ? "opacity-100" : "opacity-0"
-                            )}
-                          />
-                          <div className="min-w-0">
-                            <p className="text-sm font-medium truncate">{user.name || user.email}</p>
-                            {user.family_name && (
-                              <p className="text-xs text-muted-foreground">{user.family_name}</p>
-                            )}
-                          </div>
-                        </CommandItem>
-                      ))}
-                    </CommandGroup>
-                  </CommandList>
-                </Command>
-              </PopoverContent>
-            </Popover>
+              </div>
+            ) : (
+              <Command className="rounded-md border border-border" shouldFilter={true}>
+                <CommandInput placeholder="Search by name..." autoFocus />
+                <CommandList className="max-h-64">
+                  <CommandEmpty>
+                    {loadingUsers ? "Loading..." : "No members found."}
+                  </CommandEmpty>
+                  <CommandGroup>
+                    {availableUsers.map((user) => (
+                      <CommandItem
+                        key={user.id}
+                        value={`${user.name || ""} ${user.email || ""} ${user.family_name || ""}`}
+                        onSelect={() => setSelectedUserId(user.id)}
+                      >
+                        <Check
+                          className={cn(
+                            "mr-2 h-4 w-4",
+                            selectedUserId === user.id ? "opacity-100" : "opacity-0"
+                          )}
+                        />
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium truncate">{user.name || user.email}</p>
+                          {user.family_name && (
+                            <p className="text-xs text-muted-foreground">{user.family_name}</p>
+                          )}
+                        </div>
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                </CommandList>
+              </Command>
+            )}
           </div>
 
           {/* Headcount inputs */}
