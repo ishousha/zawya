@@ -167,7 +167,8 @@ export function useMySelections(rsvpId: string | undefined) {
 
 async function checkWaitlistStatus(
   eventId: string,
-  currentUserId: string
+  currentUserId: string,
+  requestedGuests: number,
 ): Promise<boolean> {
   const { data: event, error: evErr } = await supabase
     .from("events")
@@ -193,7 +194,7 @@ async function checkWaitlistStatus(
     (sum, r: any) => sum + (r.guests_count ?? 1),
     0
   );
-  if (confirmed < capacity) return false;
+  if (confirmed + requestedGuests <= capacity) return false;
 
   const { count: waitlistedCount, error: wErr } = await supabase
     .from("rsvps")
@@ -240,7 +241,7 @@ export function useRSVPConcurrency(eventId: string) {
 
       const isWaitlisted = input.forceAttending
         ? false
-        : await checkWaitlistStatus(eventId, user.id);
+        : await checkWaitlistStatus(eventId, user.id, input.guests_count);
       const rsvpId = crypto.randomUUID();
       const qrHash = await generateQRHash(rsvpId);
 
@@ -402,6 +403,44 @@ export function useRSVPConcurrency(eventId: string) {
       selections?: { sign_up_item_id: number; quantity: number; description?: string | null }[];
     }) => {
       if (!user) throw new Error("Not authenticated");
+
+      // Capacity guard: if increasing guests, ensure new party still fits.
+      const { data: existingRow, error: existingErr } = await supabase
+        .from("rsvps")
+        .select("guests_count, status")
+        .eq("id", input.rsvpId)
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (existingErr) throw existingErr;
+
+      const prevGuests = existingRow?.guests_count ?? 0;
+      const isAttending = existingRow?.status === "attending";
+      if (isAttending && input.guests_count > prevGuests) {
+        const { data: ev, error: evErr } = await supabase
+          .from("events")
+          .select("capacity")
+          .eq("id", eventId)
+          .single();
+        if (evErr) throw evErr;
+        const capacity = (ev as any).capacity as number | null;
+        if (capacity) {
+          const { data: otherRows, error: oErr } = await supabase
+            .from("rsvps")
+            .select("guests_count")
+            .eq("event_id", eventId)
+            .eq("status", "attending")
+            .neq("user_id", user.id);
+          if (oErr) throw oErr;
+          const confirmedOthers = (otherRows ?? []).reduce(
+            (sum, r: any) => sum + (r.guests_count ?? 1),
+            0
+          );
+          const remaining = capacity - confirmedOthers;
+          if (input.guests_count > remaining) {
+            throw new Error(`Not enough seats — only ${Math.max(0, remaining)} spots remaining`);
+          }
+        }
+      }
 
       const { data, error } = await supabase
         .from("rsvps")

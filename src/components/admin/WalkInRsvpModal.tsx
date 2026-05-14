@@ -7,8 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { Check, Loader2, UserPlus, X } from "lucide-react";
+import { AlertTriangle, Check, Loader2, UserPlus, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useEventRsvpCounts } from "@/hooks/useRSVP";
 import { toast } from "sonner";
 
 interface WalkInRsvpModalProps {
@@ -51,6 +52,25 @@ export default function WalkInRsvpModal({ eventId, open, onOpenChange }: WalkInR
     },
     enabled: open,
   });
+
+  const { data: eventRow } = useQuery({
+    queryKey: ["event-capacity", eventId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("events")
+        .select("capacity")
+        .eq("id", eventId)
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    enabled: open,
+  });
+
+  const { data: rsvpCounts } = useEventRsvpCounts(eventId);
+  const capacity = eventRow?.capacity ?? null;
+  const attendingCount = rsvpCounts?.attending_count ?? 0;
+  const isAtCapacity = !!capacity && attendingCount >= capacity;
 
   const availableUsers = useMemo(() => {
     if (!approvedUsers) return [];
@@ -198,6 +218,15 @@ export default function WalkInRsvpModal({ eventId, open, onOpenChange }: WalkInR
           <p className="text-xs text-muted-foreground">
             Total headcount: {adultsCount + childrenCount} · Will be auto-checked-in
           </p>
+
+          {isAtCapacity && (
+            <div className="rounded-md border border-yellow-500/40 bg-yellow-50 dark:bg-yellow-950/20 px-3 py-2 text-xs text-yellow-900 dark:text-yellow-200 flex items-start gap-2">
+              <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
+              <span>
+                This event is at capacity ({attendingCount}/{capacity} spots). Adding a walk-in will exceed the limit.
+              </span>
+            </div>
+          )}
 
           <Button
             onClick={() => walkInMutation.mutate()}
