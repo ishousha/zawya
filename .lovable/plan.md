@@ -1,18 +1,27 @@
-## Plan
+# Fix Walk-In search not opening
 
-1. Remove the duplicate **“Potluck Menu (Host View)”** section from `HostDashboard`.
-   - Keep the host dashboard headcount summary.
-   - Keep the guest list when `hideGuestList` is false.
-   - Stop showing the broken/duplicated potluck list that currently displays `Unknown`.
+## What's broken
+On the Host Dashboard → "Add Walk-In" modal, tapping the **Search members…** field does nothing on mobile. The dropdown either won't open, or opens and won't accept taps reliably.
 
-2. Keep the real potluck management view in the admin event detail modal.
-   - The **Potluck Sign-ups** tab already has the useful admin controls: item, needed, claimed, claimed by, reassign, remove, and assign.
-   - This avoids two separate potluck views with different data logic.
+## Root cause
+`WalkInRsvpModal.tsx` puts a Radix **Popover** (which contains a `cmdk` Command list) **inside** a Radix **Dialog**. The Popover renders in a portal outside the Dialog, and the Dialog's focus trap + `pointer-events: none` body lock intermittently blocks the trigger tap and the list interactions on iOS Safari. This is a known Radix interaction issue and matches the symptom exactly (session replay confirms the popover sometimes opens, sometimes doesn't).
 
-3. Clean up unused potluck-only code/imports in `HostDashboard`.
-   - Remove the `UtensilsCrossed` import.
-   - Remove the sign-up item query and potluck list mapping from that component.
+## Fix
+Drop the Popover entirely and render the `cmdk` Command **inline inside the Dialog** as a permanent searchable list. This is also a better mobile pattern: no nested layer, the search input is always focused, and tapping a member selects immediately.
 
-## Result
+### Changes (single file: `src/components/admin/WalkInRsvpModal.tsx`)
 
-Admins/hosts will no longer see the confusing host potluck list with `Unknown`; they’ll use the dedicated **Potluck Sign-ups** tab for names and assignments.
+1. Remove `Popover`, `PopoverTrigger`, `PopoverContent`, `ChevronsUpDown` imports and the `comboOpen` state.
+2. Replace the `<Popover>…</Popover>` block under "Select Member" with an inline layout:
+   - When **no member selected**: show `<Command>` with `<CommandInput placeholder="Search members…" autoFocus>` and a `<CommandList className="max-h-64">` of `availableUsers` (same items, same `onSelect`).
+   - When a member **is selected**: show a compact summary row (name + family + a "Change" ghost button that clears `selectedUserId` to bring the search back).
+3. Keep the existing query, filter logic, headcount inputs, and Confirm button untouched.
+4. Keep `CommandEmpty` showing "Loading…" / "No members found."
+
+### Why this is safe
+- Pure presentation change, no business logic, no DB changes.
+- Same data flow, same mutation, same `availableUsers` filter (already excludes users with existing RSVP for the event).
+- Removes the Radix Dialog ↔ Popover portal interaction that's causing the dead tap.
+
+### Out of scope
+No changes to the walk-in mutation, RLS, event_sign_up_items, or other admin screens.
