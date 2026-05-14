@@ -241,7 +241,7 @@ export function useRSVPConcurrency(eventId: string) {
 
       const isWaitlisted = input.forceAttending
         ? false
-        : await checkWaitlistStatus(eventId, user.id);
+        : await checkWaitlistStatus(eventId, user.id, input.guests_count);
       const rsvpId = crypto.randomUUID();
       const qrHash = await generateQRHash(rsvpId);
 
