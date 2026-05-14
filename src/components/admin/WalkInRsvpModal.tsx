@@ -53,6 +53,25 @@ export default function WalkInRsvpModal({ eventId, open, onOpenChange }: WalkInR
     enabled: open,
   });
 
+  const { data: eventRow } = useQuery({
+    queryKey: ["event-capacity", eventId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("events")
+        .select("capacity")
+        .eq("id", eventId)
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    enabled: open,
+  });
+
+  const { data: rsvpCounts } = useEventRsvpCounts(eventId);
+  const capacity = eventRow?.capacity ?? null;
+  const attendingCount = rsvpCounts?.attending_count ?? 0;
+  const isAtCapacity = !!capacity && attendingCount >= capacity;
+
   const availableUsers = useMemo(() => {
     if (!approvedUsers) return [];
     if (!existingRsvpUserIds) return approvedUsers;
