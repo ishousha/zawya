@@ -167,7 +167,8 @@ export function useMySelections(rsvpId: string | undefined) {
 
 async function checkWaitlistStatus(
   eventId: string,
-  currentUserId: string
+  currentUserId: string,
+  requestedGuests: number,
 ): Promise<boolean> {
   const { data: event, error: evErr } = await supabase
     .from("events")
