@@ -7,7 +7,13 @@
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "./types";
 
-const STAGING_HOSTNAME = "staging.zawya.app";
+const STAGING_HOSTNAME =
+  typeof window !== "undefined" && (
+    window.location.hostname === "staging.zawya.app" ||
+    window.location.hostname.includes("netlify.app")
+  )
+    ? window.location.hostname
+    : "staging.zawya.app";
 
 const STAGING_SUPABASE_URL = "https://ohlxrhcfrwqtqpeqqcva.supabase.co";
 const STAGING_SUPABASE_PUBLISHABLE_KEY =
