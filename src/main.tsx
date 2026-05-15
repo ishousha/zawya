@@ -37,3 +37,14 @@ if (isPreviewHost || isInIframe) {
 }
 
 createRoot(document.getElementById("root")!).render(<App />);
+
+// Staging environment banner
+if (import.meta.env.VITE_IS_STAGING === "true" || 
+    window.location.hostname.includes("netlify.app") ||
+    window.location.hostname === "staging.zawya.app") {
+  const banner = document.createElement("div");
+  banner.style.cssText = "position:fixed;top:0;left:0;right:0;z-index:99999;background:#f59e0b;color:white;text-align:center;padding:8px;font-size:14px;font-weight:600;";
+  banner.textContent = "⚠️ Staging environment — data is isolated from production";
+  document.body.prepend(banner);
+  document.body.style.paddingTop = "40px";
+}
