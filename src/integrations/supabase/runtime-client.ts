@@ -24,10 +24,11 @@ const PROD_SUPABASE_PUBLISHABLE_KEY = import.meta.env
   .VITE_SUPABASE_PUBLISHABLE_KEY as string;
 
 const isStaging =
-  typeof window !== "undefined" && (
+  import.meta.env.VITE_IS_STAGING === "true" ||
+  (typeof window !== "undefined" && (
     window.location.hostname === "staging.zawya.app" ||
     window.location.hostname.includes("netlify.app")
-  );
+  ));
 
 const SUPABASE_URL = isStaging ? STAGING_SUPABASE_URL : PROD_SUPABASE_URL;
 const SUPABASE_PUBLISHABLE_KEY = isStaging
