@@ -433,17 +433,84 @@ export default function ProfilePage() {
           Community Guidelines
         </Button>
 
-        <Button
-          variant="outline"
-          className="w-full gap-2"
-          onClick={() => {
-            toast.info("Refreshing the app…");
-            forceRefreshApp();
-          }}
-        >
-          <RefreshCw className="h-4 w-4" />
-          Force Refresh App
-        </Button>
+        {(() => {
+          const fmt = (iso: string | null | undefined) => {
+            if (!iso) return "";
+            try {
+              return new Date(iso).toLocaleString(undefined, {
+                year: "2-digit",
+                month: "short",
+                day: "numeric",
+                hour: "2-digit",
+                minute: "2-digit",
+              });
+            } catch {
+              return iso;
+            }
+          };
+          const { status, localBuildTime, serverBuildTime } = appVersion;
+          const isChecking = status === "checking";
+          const isUpdate = status === "update-available";
+          const isCurrent = status === "up-to-date";
+
+          const statusLine = isChecking
+            ? "Checking for updates…"
+            : isUpdate
+            ? `Update available · New build ${fmt(serverBuildTime)}`
+            : isCurrent
+            ? `You're up to date · Build ${fmt(localBuildTime)}`
+            : `Build ${fmt(localBuildTime)}`;
+
+          const StatusIcon = isUpdate
+            ? AlertCircle
+            : isCurrent
+            ? CheckCircle2
+            : RefreshCw;
+
+          const statusColor = isUpdate
+            ? "text-amber-600"
+            : isCurrent
+            ? "text-emerald-600"
+            : "text-muted-foreground";
+
+          const handleClick = async () => {
+            if (isUpdate) {
+              toast.info("Updating to latest version…");
+              forceRefreshApp();
+              return;
+            }
+            const next = await appVersion.recheck();
+            if (next === "update-available") {
+              toast.info("Updating to latest version…");
+              forceRefreshApp();
+            } else if (next === "up-to-date") {
+              toast.success("You're on the latest version");
+            } else {
+              toast.message("Couldn't check — refreshing anyway");
+              forceRefreshApp();
+            }
+          };
+
+          return (
+            <div className="space-y-2">
+              <div className={cn("flex items-center gap-2 text-xs", statusColor)}>
+                <StatusIcon
+                  className={cn("h-3.5 w-3.5 shrink-0", isChecking && "animate-spin")}
+                />
+                <span>{statusLine}</span>
+              </div>
+              <Button
+                variant={isUpdate ? "default" : "outline"}
+                className="w-full gap-2"
+                onClick={handleClick}
+                disabled={isChecking}
+              >
+                <RefreshCw className={cn("h-4 w-4", isChecking && "animate-spin")} />
+                {isChecking ? "Checking…" : isUpdate ? "Update App" : "Check for updates"}
+              </Button>
+            </div>
+          );
+        })()}
 
         {profile?.role === "admin" && (
           <div className="rounded-lg border border-border bg-card p-4 space-y-2">
