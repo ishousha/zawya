@@ -1,21 +1,57 @@
-# Fix: Family/Member dropdowns hidden behind dialog
+# Profile "Update App" button + version status
 
-## Problem
-On Admin → Families → "Assign Member to Family", the Family and Member combobox dropdowns render behind the dialog (and behind the on-screen keyboard accessory bar), making selections nearly invisible and hard to use.
+## Goal
+Replace the existing "Force Refresh App" button on the Profile page with a smarter "Check for updates" button, plus an inline status line so users can see whether their installed build is current.
 
-## Root cause
-`DialogContent` and `DialogOverlay` use `z-[100]`, but `PopoverContent` uses the default `z-50`. The popover portal is layered under the dialog, so the list appears dim/behind.
+## What users will see
+On the Profile page, in place of today's "Force Refresh App" button:
 
-## Fix
-In `src/components/admin/FamilyManagement.tsx`, raise the z-index on the two `PopoverContent` elements inside the "Assign Member to Family" dialog (Family selector + Member selector) to sit above the dialog layer.
+```text
+You're up to date · Build May 14, 22:31           [ ✓ ]
+[ Check for updates ]
+```
 
-- Add `z-[110]` (and a solid background to ensure full opacity) to both `PopoverContent` className props.
-- Keep widths and alignment unchanged.
+When a newer build exists:
 
-No other files, no logic changes, no DB changes.
+```text
+Update available · New build May 18, 10:02        [ • ]
+[ Update App ]
+```
+
+While checking:
+
+```text
+Checking for updates…
+[ Checking… ]   (disabled)
+```
+
+The standalone `Build {timestamp}` line at the bottom of Profile is removed (folded into the status above).
+
+## How it works
+
+1. On build, Vite writes a tiny `public/version.json` containing `{ "buildTime": "<ISO>" }`. This file is served fresh (no SW cache — already in proxy no-store rules).
+2. Profile mounts → fetches `/version.json?ts=<now>` (cache: no-store) and compares `serverBuildTime` vs the bundled `__APP_BUILD_TIME__`.
+3. Status states: `up-to-date`, `update-available`, `checking`, `unknown` (fetch failed → show neutral "Check for updates").
+4. Button behavior:
+   - `update-available` → label "Update App". On tap: toast "Updating to latest version…" then run existing `forceRefreshApp()`.
+   - `up-to-date` → label "Check for updates". On tap: re-fetch `version.json`. If still current → toast "You're on the latest version ✓" (no reload). If newer appeared → flip to update-available state.
+   - `unknown` → label "Check for updates". On tap: same re-check; if still failing → toast "Couldn't check — refreshing anyway" and run `forceRefreshApp()` as fallback.
+5. Auto re-check on tab focus (cheap, mirrors what `PWAUpdatePrompt` already does for the SW path).
+
+## Files to touch
+- `vite.config.ts` — add a tiny plugin (or `writeBundle` hook) that emits `dist/version.json` with the same `buildStamp` already used for `__APP_BUILD_TIME__`. Also emit for dev so the fetch doesn't 404 locally (write `public/version.json` at config load).
+- `src/hooks/useAppVersion.ts` — new hook: returns `{ status, serverBuildTime, localBuildTime, recheck }`.
+- `src/pages/Profile.tsx` — replace the existing Force Refresh button block with the new status row + contextual button. Remove the standalone "Build …" footer line (now shown in status).
+- No DB, no edge functions, no other components.
+
+## Technical notes
+- `__APP_BUILD_TIME__` is already defined in `vite.config.ts` and typed in `src/vite-env.d.ts`. Reuse it as the "local" timestamp.
+- Comparison uses `Date.parse(serverBuildTime) > Date.parse(localBuildTime) + 1000` (1s skew tolerance).
+- Fetch with `{ cache: "no-store" }` and a `?ts=` cache-buster to defeat any intermediate caching.
+- Keep `forceRefreshApp()` as-is — the new button just decides *when* to call it.
+- `PWAUpdatePrompt` continues to handle the service-worker-driven toast independently; the two paths don't conflict (both end up calling reload/forceRefresh).
 
 ## Validation
-- Open Admin → Families → Assign Member to Family.
-- Family dropdown appears fully opaque, above the dialog.
-- Member dropdown same.
-- Selecting a family/member still works and closes the popover.
+- Fresh build deployed → open Profile → status shows "You're up to date". Tap button → toast "You're on the latest version ✓", no reload.
+- Deploy a newer build, keep old tab open → on focus or button tap, status flips to "Update available", button label becomes "Update App", tap reloads to new build.
+- Offline / version.json fetch fails → status hidden or "Couldn't check", button still works as fallback refresh.
