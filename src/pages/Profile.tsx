@@ -62,6 +62,7 @@ function isValidLocalNumber(num: string): boolean {
 export default function ProfilePage() {
   const { profile, user, signOut } = useAuth();
   const navigate = useNavigate();
+  const appVersion = useAppVersion();
 
   const [gender, setGender] = useState("");
   const [whatsappCC, setWhatsappCC] = useState("+971");
