@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { LogOut, User, CalendarIcon, Loader2, ScrollText, Camera, Download, Share, RefreshCw } from "lucide-react";
+import { LogOut, User, CalendarIcon, Loader2, ScrollText, Camera, Download, Share, RefreshCw, CheckCircle2, AlertCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/runtime-client";
@@ -20,6 +20,7 @@ import LinkedAccounts from "@/components/profile/LinkedAccounts";
 import NotificationPreferences from "@/components/profile/NotificationPreferences";
 import UserAvatar from "@/components/UserAvatar";
 import { forceRefreshApp } from "@/components/PWAUpdatePrompt";
+import { useAppVersion } from "@/hooks/useAppVersion";
 
 const COUNTRY_CODES = [
   { code: "+971", label: "🇦🇪 +971", country: "UAE" },
@@ -61,6 +62,7 @@ function isValidLocalNumber(num: string): boolean {
 export default function ProfilePage() {
   const { profile, user, signOut } = useAuth();
   const navigate = useNavigate();
+  const appVersion = useAppVersion();
 
   const [gender, setGender] = useState("");
   const [whatsappCC, setWhatsappCC] = useState("+971");
@@ -431,17 +433,84 @@ export default function ProfilePage() {
           Community Guidelines
         </Button>
 
-        <Button
-          variant="outline"
-          className="w-full gap-2"
-          onClick={() => {
-            toast.info("Refreshing the app…");
-            forceRefreshApp();
-          }}
-        >
-          <RefreshCw className="h-4 w-4" />
-          Force Refresh App
-        </Button>
+        {(() => {
+          const fmt = (iso: string | null | undefined) => {
+            if (!iso) return "";
+            try {
+              return new Date(iso).toLocaleString(undefined, {
+                year: "2-digit",
+                month: "short",
+                day: "numeric",
+                hour: "2-digit",
+                minute: "2-digit",
+              });
+            } catch {
+              return iso;
+            }
+          };
+          const { status, localBuildTime, serverBuildTime } = appVersion;
+          const isChecking = status === "checking";
+          const isUpdate = status === "update-available";
+          const isCurrent = status === "up-to-date";
+
+          const statusLine = isChecking
+            ? "Checking for updates…"
+            : isUpdate
+            ? `Update available · New build ${fmt(serverBuildTime)}`
+            : isCurrent
+            ? `You're up to date · Build ${fmt(localBuildTime)}`
+            : `Build ${fmt(localBuildTime)}`;
+
+          const StatusIcon = isUpdate
+            ? AlertCircle
+            : isCurrent
+            ? CheckCircle2
+            : RefreshCw;
+
+          const statusColor = isUpdate
+            ? "text-amber-600"
+            : isCurrent
+            ? "text-emerald-600"
+            : "text-muted-foreground";
+
+          const handleClick = async () => {
+            if (isUpdate) {
+              toast.info("Updating to latest version…");
+              forceRefreshApp();
+              return;
+            }
+            const next = await appVersion.recheck();
+            if (next === "update-available") {
+              toast.info("Updating to latest version…");
+              forceRefreshApp();
+            } else if (next === "up-to-date") {
+              toast.success("You're on the latest version");
+            } else {
+              toast.message("Couldn't check — refreshing anyway");
+              forceRefreshApp();
+            }
+          };
+
+          return (
+            <div className="space-y-2">
+              <div className={cn("flex items-center gap-2 text-xs", statusColor)}>
+                <StatusIcon
+                  className={cn("h-3.5 w-3.5 shrink-0", isChecking && "animate-spin")}
+                />
+                <span>{statusLine}</span>
+              </div>
+              <Button
+                variant={isUpdate ? "default" : "outline"}
+                className="w-full gap-2"
+                onClick={handleClick}
+                disabled={isChecking}
+              >
+                <RefreshCw className={cn("h-4 w-4", isChecking && "animate-spin")} />
+                {isChecking ? "Checking…" : isUpdate ? "Update App" : "Check for updates"}
+              </Button>
+            </div>
+          );
+        })()}
 
         {profile?.role === "admin" && (
           <div className="rounded-lg border border-border bg-card p-4 space-y-2">
@@ -458,22 +527,6 @@ export default function ProfilePage() {
           <LogOut className="mr-2 h-4 w-4" />
           Sign Out
         </Button>
-
-        <p className="pt-2 text-center text-[11px] text-muted-foreground">
-          Build {(() => {
-            try {
-              return new Date(__APP_BUILD_TIME__).toLocaleString(undefined, {
-                year: "2-digit",
-                month: "short",
-                day: "numeric",
-                hour: "2-digit",
-                minute: "2-digit",
-              });
-            } catch {
-              return __APP_BUILD_TIME__;
-            }
-          })()}
-        </p>
       </main>
     </div>
   );
