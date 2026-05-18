@@ -1,6 +1,7 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
+import fs from "fs";
 import { componentTagger } from "lovable-tagger";
 import { VitePWA } from "vite-plugin-pwa";
 
@@ -8,10 +9,24 @@ export default defineConfig(({ mode }) => {
   // Stamp is evaluated fresh each time the config is loaded (i.e. each build)
   const buildStamp = new Date().toISOString();
 
+  // Write version.json into public/ so it's served at /version.json in dev and
+  // copied into dist/ during build. Fetched at runtime to detect new deploys.
+  try {
+    const publicDir = path.resolve(__dirname, "public");
+    if (!fs.existsSync(publicDir)) fs.mkdirSync(publicDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(publicDir, "version.json"),
+      JSON.stringify({ buildTime: buildStamp }) + "\n",
+    );
+  } catch (e) {
+    console.warn("[vite] could not write public/version.json:", e);
+  }
+
   return {
   define: {
     __APP_BUILD_TIME__: JSON.stringify(buildStamp),
   },
+
   server: {
     host: "::",
     port: 8080,
