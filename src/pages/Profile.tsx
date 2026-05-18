@@ -20,6 +20,7 @@ import LinkedAccounts from "@/components/profile/LinkedAccounts";
 import NotificationPreferences from "@/components/profile/NotificationPreferences";
 import UserAvatar from "@/components/UserAvatar";
 import { forceRefreshApp } from "@/components/PWAUpdatePrompt";
+import { useAppVersion } from "@/hooks/useAppVersion";
 
 const COUNTRY_CODES = [
   { code: "+971", label: "🇦🇪 +971", country: "UAE" },
