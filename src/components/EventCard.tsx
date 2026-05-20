@@ -242,11 +242,18 @@ function EventCardInner({ event, onShowTicket, isPast = false }: EventCardProps)
               💰 Fee: ${Number(event.ticket_fee).toFixed(0)}
             </span>
           )}
-          {!isCancelled && (event as any).age_group && (event as any).age_group !== "All Ages" && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-[hsl(250,60%,95%)] px-2.5 py-0.5 text-xs font-medium text-[hsl(250,40%,35%)]">
-              👥 {(event as any).age_group}
-            </span>
-          )}
+          {!isCancelled && (() => {
+            const groups: string[] = Array.isArray((event as any).age_groups) && (event as any).age_groups.length > 0
+              ? (event as any).age_groups
+              : (event as any).age_group ? [(event as any).age_group] : [];
+            const filtered = groups.filter((g) => g && g !== "All Ages");
+            if (filtered.length === 0) return null;
+            return (
+              <span className="inline-flex items-center gap-1 rounded-full bg-[hsl(250,60%,95%)] px-2.5 py-0.5 text-xs font-medium text-[hsl(250,40%,35%)]">
+                👥 {filtered.join(", ")}
+              </span>
+            );
+          })()}
           {isPhysical && checkedInCount > 0 && isAttending && (
             <span className="inline-flex items-center gap-1 text-xs text-primary font-medium">
               <CheckCircle2 className="h-3 w-3" />
