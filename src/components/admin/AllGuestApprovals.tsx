@@ -103,7 +103,8 @@ export default function AllGuestApprovals() {
       (gr as any).profiles?.name?.toLowerCase().includes(q) ||
       (gr as any).profiles?.email?.toLowerCase().includes(q) ||
       (gr as any).events?.title?.toLowerCase().includes(q) ||
-      gr.guest_phone?.includes(q)
+      gr.guest_phone?.includes(q) ||
+      (gr as any).member_note?.toLowerCase().includes(q)
     );
   }, [guestRequests, search]);
 
