@@ -208,6 +208,23 @@ export default function GuestRequestsSection({ eventId, event }: GuestRequestsSe
               className="h-9"
             />
           </div>
+          <div>
+            <Label className="mb-1 block text-xs font-medium">
+              <MessageSquare className="mr-1 inline h-3 w-3" />
+              Notes for the admin <span className="text-muted-foreground">(optional)</span>
+            </Label>
+            <Textarea
+              value={memberNote}
+              onChange={(e) => setMemberNote(e.target.value.slice(0, NOTE_MAX))}
+              placeholder="e.g. Family friend visiting from Cairo, has attended past gatherings."
+              rows={3}
+              className="text-sm"
+            />
+            <p className="mt-1 flex items-center justify-between text-[10px] text-muted-foreground">
+              <span>Helps the admin decide on approval.</span>
+              <span>{memberNote.length}/{NOTE_MAX}</span>
+            </p>
+          </div>
           <div className="flex gap-2">
             <Button size="sm" onClick={handleSubmit} disabled={createGuest.isPending} className="flex-1">
               {createGuest.isPending && <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />}
