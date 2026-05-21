@@ -268,6 +268,11 @@ function EventCardInner({ event, onShowTicket, isPast = false }: EventCardProps)
           )}
         </div>
 
+        {/* Guest request status — only when user has at least one request */}
+        {!isPast && !isCancelled && isAttending && (
+          <GuestRequestStatusRow eventId={event.id} onOpen={() => setRsvpOpen(true)} />
+        )}
+
         {/* Title */}
         <h3 className="font-heading text-lg font-semibold text-card-foreground">
           {event.title}
