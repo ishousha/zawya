@@ -1,57 +1,63 @@
-# Profile "Update App" button + version status
+# Guest request visibility + context note
 
-## Goal
-Replace the existing "Force Refresh App" button on the Profile page with a smarter "Check for updates" button, plus an inline status line so users can see whether their installed build is current.
+Two improvements to the guest-request flow so members and admins can act faster.
 
-## What users will see
-On the Profile page, in place of today's "Force Refresh App" button:
+## 1. Show guest-request status on the event card
 
-```text
-You're up to date · Build May 14, 22:31           [ ✓ ]
-[ Check for updates ]
-```
+Today, the only place a member can see whether their guest was approved/rejected is by tapping **Edit RSVP** and scrolling to the Guests section. We will surface a compact summary directly on the event card on the home feed.
 
-When a newer build exists:
+**What the member sees on the card (only if they have any guest requests for that event):**
 
-```text
-Update available · New build May 18, 10:02        [ • ]
-[ Update App ]
-```
+- A small row under the existing status chips, e.g.:
+  - `Guests: 1 pending` (amber)
+  - `Guests: 2 approved` (emerald)
+  - `Guests: 1 approved · 1 rejected` (mixed → neutral with colored dots)
+- Tapping the row opens the Edit RSVP modal scrolled to the Guests section, same as today.
 
-While checking:
+**Behavior:**
 
-```text
-Checking for updates…
-[ Checking… ]   (disabled)
-```
+- Hidden entirely when the member has no guest requests for that event.
+- Updates live when status changes (admin approves/rejects).
+- Works on both upcoming and past tabs.
 
-The standalone `Build {timestamp}` line at the bottom of Profile is removed (folded into the status above).
+## 2. Add a "Notes for the admin" field to guest requests
 
-## How it works
+Currently the member only submits name / email / phone. Admins have no context to decide on borderline cases. We'll add an optional free-text note (e.g. *"Family friend visiting from Cairo, has been to two previous gatherings"*).
 
-1. On build, Vite writes a tiny `public/version.json` containing `{ "buildTime": "<ISO>" }`. This file is served fresh (no SW cache — already in proxy no-store rules).
-2. Profile mounts → fetches `/version.json?ts=<now>` (cache: no-store) and compares `serverBuildTime` vs the bundled `__APP_BUILD_TIME__`.
-3. Status states: `up-to-date`, `update-available`, `checking`, `unknown` (fetch failed → show neutral "Check for updates").
-4. Button behavior:
-   - `update-available` → label "Update App". On tap: toast "Updating to latest version…" then run existing `forceRefreshApp()`.
-   - `up-to-date` → label "Check for updates". On tap: re-fetch `version.json`. If still current → toast "You're on the latest version ✓" (no reload). If newer appeared → flip to update-available state.
-   - `unknown` → label "Check for updates". On tap: same re-check; if still failing → toast "Couldn't check — refreshing anyway" and run `forceRefreshApp()` as fallback.
-5. Auto re-check on tab focus (cheap, mirrors what `PWAUpdatePrompt` already does for the SW path).
+**Member side (RSVP modal → Request a Guest form):**
 
-## Files to touch
-- `vite.config.ts` — add a tiny plugin (or `writeBundle` hook) that emits `dist/version.json` with the same `buildStamp` already used for `__APP_BUILD_TIME__`. Also emit for dev so the fetch doesn't 404 locally (write `public/version.json` at config load).
-- `src/hooks/useAppVersion.ts` — new hook: returns `{ status, serverBuildTime, localBuildTime, recheck }`.
-- `src/pages/Profile.tsx` — replace the existing Force Refresh button block with the new status row + contextual button. Remove the standalone "Build …" footer line (now shown in status).
-- No DB, no edge functions, no other components.
+- New optional `Notes for the admin` textarea below the phone field, ~300 char limit, placeholder hint about what's useful (relationship, why they'd like to bring them, etc.).
+- Displayed back to the member in their guest list (collapsed, expandable) so they remember what they wrote.
 
-## Technical notes
-- `__APP_BUILD_TIME__` is already defined in `vite.config.ts` and typed in `src/vite-env.d.ts`. Reuse it as the "local" timestamp.
-- Comparison uses `Date.parse(serverBuildTime) > Date.parse(localBuildTime) + 1000` (1s skew tolerance).
-- Fetch with `{ cache: "no-store" }` and a `?ts=` cache-buster to defeat any intermediate caching.
-- Keep `forceRefreshApp()` as-is — the new button just decides *when* to call it.
-- `PWAUpdatePrompt` continues to handle the service-worker-driven toast independently; the two paths don't conflict (both end up calling reload/forceRefresh).
+**Admin side (Event Control Room → Guest Approvals, and the global All Guest Approvals view):**
 
-## Validation
-- Fresh build deployed → open Profile → status shows "You're up to date". Tap button → toast "You're on the latest version ✓", no reload.
-- Deploy a newer build, keep old tab open → on focus or button tap, status flips to "Update available", button label becomes "Update App", tap reloads to new build.
-- Offline / version.json fetch fails → status hidden or "Couldn't check", button still works as fallback refresh.
+- Show the note inline under the guest's contact details in a softly-bordered block when present.
+- Searchable along with name/email in the global list.
+
+## Technical details
+
+**Database:**
+
+- Add column `member_note text` (nullable) to `public.guest_requests`.
+- No RLS changes needed (existing policies already cover the row).
+
+**Frontend:**
+
+- `useGuestRequests.ts`
+  - `useCreateGuestRequest` accepts `member_note?: string`.
+  - New `useBatchMyGuestRequests(eventIds)` that fetches the current user's guest requests for many events in one call and hydrates each event's per-event cache (mirrors the batch pattern already used in `HomeFeed` for RSVPs/speakers/potluck).
+- `HomeFeed.tsx` — call the new batch hook with `eventIds` so cards render without an extra fetch each.
+- `EventCard.tsx` — read the cached `["my-guest-requests", eventId, userId]` query, compute a `{pending, approved, rejected}` summary, render the new status row. Clicking it triggers the existing "Edit RSVP" handler.
+- `GuestRequestsSection.tsx`
+  - Add `member_note` textarea to the form.
+  - Render the saved note under each existing guest row.
+
+**Admin views:**
+
+- `AdminGuestApprovals.tsx` and `AllGuestApprovals.tsx` — render `member_note` when present.
+
+## Out of scope
+
+- No changes to approval emails or webhooks.
+- No new notification when status changes (existing trigger `on_guest_request_update` already fires).
+- No edit/delete of the note after submission (keeps the audit simple).
