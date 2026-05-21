@@ -157,6 +157,9 @@ export default function HomeFeed() {
     },
   });
 
+  // Batch-fetch the current user's guest requests for visible events
+  useBatchMyGuestRequests(eventIds);
+
   if (ticketEvent) {
     return <TicketView event={ticketEvent} onBack={() => setTicketEvent(null)} />;
   }
