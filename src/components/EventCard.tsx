@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useMyRSVP, useEventRsvpCounts } from "@/hooks/useRSVP";
 import { useEventTypes, getEventTypeIcon } from "@/hooks/useEventTypes";
+import { useMyGuestRequests } from "@/hooks/useGuestRequests";
 import RSVPModal from "@/components/RSVPModal";
 import SelfCheckinModal from "@/components/SelfCheckinModal";
 import AddToCalendarButton from "@/components/AddToCalendarButton";
