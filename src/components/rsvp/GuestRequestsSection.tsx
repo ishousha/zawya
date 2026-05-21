@@ -126,6 +126,14 @@ export default function GuestRequestsSection({ eventId, event }: GuestRequestsSe
                     {g.status}
                   </Badge>
                 </div>
+                {(g as any).member_note && (
+                  <div className="rounded-md border border-border bg-muted/30 p-2">
+                    <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground mb-0.5 flex items-center gap-1">
+                      <MessageSquare className="h-3 w-3" /> Note to admin
+                    </p>
+                    <p className="text-xs text-foreground whitespace-pre-wrap">{(g as any).member_note}</p>
+                  </div>
+                )}
                 {isApproved && event && (
                   <Button
                     type="button"
