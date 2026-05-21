@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useMyRSVP, useEventRsvpCounts } from "@/hooks/useRSVP";
 import { useEventTypes, getEventTypeIcon } from "@/hooks/useEventTypes";
+import { useMyGuestRequests } from "@/hooks/useGuestRequests";
 import RSVPModal from "@/components/RSVPModal";
 import SelfCheckinModal from "@/components/SelfCheckinModal";
 import AddToCalendarButton from "@/components/AddToCalendarButton";
@@ -266,6 +267,11 @@ function EventCardInner({ event, onShowTicket, isPast = false }: EventCardProps)
             </span>
           )}
         </div>
+
+        {/* Guest request status — only when user has at least one request */}
+        {!isPast && !isCancelled && isAttending && (
+          <GuestRequestStatusRow eventId={event.id} onOpen={() => setRsvpOpen(true)} />
+        )}
 
         {/* Title */}
         <h3 className="font-heading text-lg font-semibold text-card-foreground">
@@ -664,3 +670,33 @@ function ReclaimNotice({
 
 const EventCard = memo(EventCardInner);
 export default EventCard;
+
+function GuestRequestStatusRow({ eventId, onOpen }: { eventId: string; onOpen: () => void }) {
+  const { data: guests } = useMyGuestRequests(eventId);
+  if (!guests || guests.length === 0) return null;
+  const pending = guests.filter((g) => g.status === "pending").length;
+  const approved = guests.filter((g) => g.status === "approved").length;
+  const rejected = guests.filter((g) => g.status === "rejected").length;
+
+  const parts: { label: string; cls: string }[] = [];
+  if (pending) parts.push({ label: `${pending} pending`, cls: "bg-amber-500/15 text-amber-700 dark:text-amber-300" });
+  if (approved) parts.push({ label: `${approved} approved`, cls: "bg-primary/15 text-primary" });
+  if (rejected) parts.push({ label: `${rejected} rejected`, cls: "bg-destructive/15 text-destructive" });
+
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      className="mt-2 flex w-full flex-wrap items-center gap-2 rounded-md border border-border bg-muted/30 px-2.5 py-1.5 text-left text-xs hover:bg-muted/60 transition-colors"
+      aria-label="View your guest requests"
+    >
+      <span className="font-medium text-muted-foreground">Guests:</span>
+      {parts.map((p) => (
+        <span key={p.label} className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium ${p.cls}`}>
+          {p.label}
+        </span>
+      ))}
+      <span className="ml-auto text-[10px] text-muted-foreground underline">Manage</span>
+    </button>
+  );
+}

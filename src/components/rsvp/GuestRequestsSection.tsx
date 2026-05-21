@@ -6,7 +6,8 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { useMyGuestRequests, useCreateGuestRequest } from "@/hooks/useGuestRequests";
 import { toast } from "sonner";
-import { Loader2, UserPlus, Phone, User, Mail, Info, Share2 } from "lucide-react";
+import { Loader2, UserPlus, Phone, User, Mail, Info, Share2, MessageSquare } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
 import type { Database } from "@/integrations/supabase/types";
 
 type Event = Database["public"]["Tables"]["events"]["Row"];
@@ -29,6 +30,8 @@ export default function GuestRequestsSection({ eventId, event }: GuestRequestsSe
   const [guestName, setGuestName] = useState("");
   const [guestEmail, setGuestEmail] = useState("");
   const [guestPhone, setGuestPhone] = useState("");
+  const [memberNote, setMemberNote] = useState("");
+  const NOTE_MAX = 300;
 
   const isValidEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
@@ -46,11 +49,13 @@ export default function GuestRequestsSection({ eventId, event }: GuestRequestsSe
         guest_name: guestName.trim(),
         guest_email: guestEmail.trim(),
         guest_phone: guestPhone.trim() || undefined,
+        member_note: memberNote.trim() || undefined,
       });
       toast.success("Guest request submitted for admin approval.");
       setGuestName("");
       setGuestEmail("");
       setGuestPhone("");
+      setMemberNote("");
       setShowForm(false);
     } catch {
       toast.error("Failed to submit guest request.");
@@ -121,6 +126,14 @@ export default function GuestRequestsSection({ eventId, event }: GuestRequestsSe
                     {g.status}
                   </Badge>
                 </div>
+                {(g as any).member_note && (
+                  <div className="rounded-md border border-border bg-muted/30 p-2">
+                    <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground mb-0.5 flex items-center gap-1">
+                      <MessageSquare className="h-3 w-3" /> Note to admin
+                    </p>
+                    <p className="text-xs text-foreground whitespace-pre-wrap">{(g as any).member_note}</p>
+                  </div>
+                )}
                 {isApproved && event && (
                   <Button
                     type="button"
@@ -194,6 +207,23 @@ export default function GuestRequestsSection({ eventId, event }: GuestRequestsSe
               placeholder="+971 XX XXX XXXX"
               className="h-9"
             />
+          </div>
+          <div>
+            <Label className="mb-1 block text-xs font-medium">
+              <MessageSquare className="mr-1 inline h-3 w-3" />
+              Notes for the admin <span className="text-muted-foreground">(optional)</span>
+            </Label>
+            <Textarea
+              value={memberNote}
+              onChange={(e) => setMemberNote(e.target.value.slice(0, NOTE_MAX))}
+              placeholder="e.g. Family friend visiting from Cairo, has attended past gatherings."
+              rows={3}
+              className="text-sm"
+            />
+            <p className="mt-1 flex items-center justify-between text-[10px] text-muted-foreground">
+              <span>Helps the admin decide on approval.</span>
+              <span>{memberNote.length}/{NOTE_MAX}</span>
+            </p>
           </div>
           <div className="flex gap-2">
             <Button size="sm" onClick={handleSubmit} disabled={createGuest.isPending} className="flex-1">

@@ -25,7 +25,7 @@ export function useCreateGuestRequest(eventId: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (input: { guest_name: string; guest_email: string; guest_phone?: string }) => {
+    mutationFn: async (input: { guest_name: string; guest_email: string; guest_phone?: string; member_note?: string }) => {
       if (!user) throw new Error("Not authenticated");
       const { data, error } = await supabase
         .from("guest_requests")
@@ -35,6 +35,7 @@ export function useCreateGuestRequest(eventId: string) {
           guest_name: input.guest_name,
           guest_email: input.guest_email,
           guest_phone: input.guest_phone || null,
+          member_note: input.member_note?.trim() || null,
         } as any)
         .select()
         .single();
@@ -43,6 +44,36 @@ export function useCreateGuestRequest(eventId: string) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["my-guest-requests", eventId, user?.id] });
+      queryClient.invalidateQueries({ queryKey: ["my-guest-requests-batch"] });
+    },
+  });
+}
+
+/** Batch-fetch the current user's guest requests across many events and hydrate per-event caches. */
+export function useBatchMyGuestRequests(eventIds: string[]) {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+  return useQuery({
+    queryKey: ["my-guest-requests-batch", user?.id, eventIds],
+    enabled: !!user && eventIds.length > 0,
+    staleTime: 60 * 1000,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("guest_requests")
+        .select("*")
+        .eq("requesting_user_id", user!.id)
+        .in("event_id", eventIds)
+        .order("created_at", { ascending: true });
+      if (error) throw error;
+      const byEvent: Record<string, typeof data> = {};
+      for (const eid of eventIds) byEvent[eid] = [];
+      for (const r of data) {
+        (byEvent[r.event_id] ||= []).push(r);
+      }
+      for (const eid of eventIds) {
+        queryClient.setQueryData(["my-guest-requests", eid, user!.id], byEvent[eid]);
+      }
+      return data;
     },
   });
 }

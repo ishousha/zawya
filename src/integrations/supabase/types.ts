@@ -666,6 +666,7 @@ export type Database = {
           guest_name: string
           guest_phone: string | null
           id: string
+          member_note: string | null
           requesting_user_id: string
           status: Database["public"]["Enums"]["guest_request_status"]
           updated_at: string
@@ -677,6 +678,7 @@ export type Database = {
           guest_name: string
           guest_phone?: string | null
           id?: string
+          member_note?: string | null
           requesting_user_id: string
           status?: Database["public"]["Enums"]["guest_request_status"]
           updated_at?: string
@@ -688,6 +690,7 @@ export type Database = {
           guest_name?: string
           guest_phone?: string | null
           id?: string
+          member_note?: string | null
           requesting_user_id?: string
           status?: Database["public"]["Enums"]["guest_request_status"]
           updated_at?: string

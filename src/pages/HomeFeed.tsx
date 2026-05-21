@@ -5,6 +5,7 @@ import { EVENT_PUBLIC_COLUMNS } from "@/lib/event-columns";
 import { useAuth } from "@/contexts/AuthContext";
 import { useMyRSVP } from "@/hooks/useRSVP";
 import EventCard from "@/components/EventCard";
+import { useBatchMyGuestRequests } from "@/hooks/useGuestRequests";
 import QRTicketScreen from "@/components/QRTicketScreen";
 import InstallAppBanner from "@/components/InstallAppBanner";
 import { AdminDashboardSummary, MemberDashboardSummary } from "@/components/HomeDashboard";
@@ -155,6 +156,9 @@ export default function HomeFeed() {
       return data;
     },
   });
+
+  // Batch-fetch the current user's guest requests for visible events
+  useBatchMyGuestRequests(eventIds);
 
   if (ticketEvent) {
     return <TicketView event={ticketEvent} onBack={() => setTicketEvent(null)} />;
