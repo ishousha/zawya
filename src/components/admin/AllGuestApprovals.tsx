@@ -149,6 +149,14 @@ export default function AllGuestApprovals() {
                   {gr.guest_phone && (
                     <p className="text-xs text-muted-foreground">{gr.guest_phone}</p>
                   )}
+                  {(gr as any).member_note && (
+                    <div className="mt-1.5 rounded-md border border-border bg-muted/30 p-2">
+                      <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground mb-0.5">
+                        Note from member
+                      </p>
+                      <p className="text-xs text-foreground whitespace-pre-wrap">{(gr as any).member_note}</p>
+                    </div>
+                  )}
                 </div>
                 <div className="ml-3 flex items-center gap-2">
                   <Badge
