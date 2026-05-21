@@ -30,6 +30,8 @@ export default function GuestRequestsSection({ eventId, event }: GuestRequestsSe
   const [guestName, setGuestName] = useState("");
   const [guestEmail, setGuestEmail] = useState("");
   const [guestPhone, setGuestPhone] = useState("");
+  const [memberNote, setMemberNote] = useState("");
+  const NOTE_MAX = 300;
 
   const isValidEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
