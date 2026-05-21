@@ -49,11 +49,13 @@ export default function GuestRequestsSection({ eventId, event }: GuestRequestsSe
         guest_name: guestName.trim(),
         guest_email: guestEmail.trim(),
         guest_phone: guestPhone.trim() || undefined,
+        member_note: memberNote.trim() || undefined,
       });
       toast.success("Guest request submitted for admin approval.");
       setGuestName("");
       setGuestEmail("");
       setGuestPhone("");
+      setMemberNote("");
       setShowForm(false);
     } catch {
       toast.error("Failed to submit guest request.");
