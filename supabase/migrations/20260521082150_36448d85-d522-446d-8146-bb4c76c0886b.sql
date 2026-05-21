@@ -1,0 +1,1 @@
+ALTER TABLE public.guest_requests ADD COLUMN member_note text;
