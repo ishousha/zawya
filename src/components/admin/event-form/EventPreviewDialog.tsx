@@ -82,7 +82,7 @@ export default function EventPreviewDialog({ open, onOpenChange, form }: EventPr
               )}
               {fee > 0 && (
                 <span className="inline-flex items-center gap-1 rounded-full bg-gold/20 px-2.5 py-0.5 text-xs font-semibold text-gold-foreground">
-                  💰 Fee: ${fee.toFixed(0)}
+                  💰 Fee: {fee.toFixed(0)} AED
                 </span>
               )}
               {(form.age_groups ?? []).filter((g) => g !== "All Ages").map((g) => (
