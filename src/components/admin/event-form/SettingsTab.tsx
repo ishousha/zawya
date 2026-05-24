@@ -5,7 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Users, Clock, KeyRound, RefreshCw, UtensilsCrossed, Lock, DollarSign, BellRing, ScrollText, CalendarClock, Info, Film, Link2 } from "lucide-react";
+import { Users, Clock, KeyRound, RefreshCw, UtensilsCrossed, Lock, Coins, BellRing, ScrollText, CalendarClock, Info, Film, Link2 } from "lucide-react";
 import type { EventFormState } from "./types";
 import { generateCheckinPin } from "./types";
 import HostSelector from "./HostSelector";
@@ -95,19 +95,25 @@ export default function SettingsTab({ form, setForm, isEditing, onShortCodeUserE
       {/* Event Fee */}
       <div>
         <div className="flex items-center gap-2 mb-3">
-          <DollarSign className="h-4 w-4 text-primary" />
-          <h3 className="text-sm font-semibold text-foreground">Event Fee</h3>
+          <Coins className="h-4 w-4 text-primary" />
+          <h3 className="text-sm font-semibold text-foreground">Event Fee (AED)</h3>
         </div>
-        <Input
-          type="number"
-          min={0}
-          step="0.01"
-          value={form.ticket_fee}
-          onChange={(e) => update("ticket_fee", e.target.value)}
-          placeholder="0 for free"
-        />
+        <div className="relative">
+          <Input
+            type="number"
+            min={0}
+            step="0.01"
+            value={form.ticket_fee}
+            onChange={(e) => update("ticket_fee", e.target.value)}
+            placeholder="0 for free"
+            className="pr-14"
+          />
+          <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm font-medium text-muted-foreground">
+            AED
+          </span>
+        </div>
         <p className="text-xs text-muted-foreground mt-1">
-          Leave as 0 for free events. Fee is collected offline.
+          Leave as 0 for free events. Fee is collected offline in AED.
         </p>
       </div>
 

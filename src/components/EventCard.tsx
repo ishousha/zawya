@@ -240,7 +240,7 @@ function EventCardInner({ event, onShowTicket, isPast = false }: EventCardProps)
           )}
           {!isCancelled && (event.ticket_fee ?? 0) > 0 && (
             <span className="inline-flex items-center gap-1 rounded-full bg-gold/20 px-2.5 py-0.5 text-xs font-semibold text-gold-foreground">
-              💰 Fee: ${Number(event.ticket_fee).toFixed(0)}
+              💰 Fee: {Number(event.ticket_fee).toFixed(0)} AED
             </span>
           )}
           {!isCancelled && (() => {
