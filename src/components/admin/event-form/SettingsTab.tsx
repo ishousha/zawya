@@ -5,7 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Users, Clock, KeyRound, RefreshCw, UtensilsCrossed, Lock, DollarSign, BellRing, ScrollText, CalendarClock, Info, Film, Link2 } from "lucide-react";
+import { Users, Clock, KeyRound, RefreshCw, UtensilsCrossed, Lock, Coins, BellRing, ScrollText, CalendarClock, Info, Film, Link2 } from "lucide-react";
 import type { EventFormState } from "./types";
 import { generateCheckinPin } from "./types";
 import HostSelector from "./HostSelector";
