@@ -317,7 +317,7 @@ Deno.serve(async (req) => {
       .filter((u: UnclaimedItem) => u.remaining > 0)
 
     const totalAdults = totalRegularAdults + totalElders
-    const totalHeadcount = totalAdults + totalChildren
+    const totalHeadcount = totalAdults + totalInfants + totalChildren + totalYouth
 
     const eventDate = new Date(event.date_time).toLocaleString('en-US', {
       weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
@@ -334,7 +334,9 @@ Deno.serve(async (req) => {
       totalHeadcount,
       totalAdults,
       totalElders,
+      totalInfants,
       totalChildren,
+      totalYouth,
       guestList,
       potluckItems,
       unclaimedItems,
