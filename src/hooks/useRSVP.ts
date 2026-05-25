@@ -182,30 +182,40 @@ async function checkWaitlistStatus(
 
   if (!capacity) return false;
 
-  const { data: confirmedRows, error: cErr } = await supabase
+  // Count ALL attending RSVPs (do not exclude self), then subtract only the
+  // caller's currently-attending seats. Waitlisted/cancelled rows contribute 0.
+  // This prevents a waitlisted user from self-promoting on re-submit.
+  const { data: allAttending, error: cErr } = await supabase
     .from("rsvps")
-    .select("guests_count")
+    .select("user_id, guests_count")
     .eq("event_id", eventId)
-    .eq("status", "attending")
-    .neq("user_id", currentUserId);
+    .eq("status", "attending");
   if (cErr) throw cErr;
 
-  const confirmed = (confirmedRows ?? []).reduce(
+  const totalConfirmed = (allAttending ?? []).reduce(
     (sum, r: any) => sum + (r.guests_count ?? 1),
     0
   );
-  if (confirmed + requestedGuests <= capacity) return false;
+  const mySeats = (allAttending ?? [])
+    .filter((r: any) => r.user_id === currentUserId)
+    .reduce((s: number, r: any) => s + (r.guests_count ?? 1), 0);
+  const othersConfirmed = totalConfirmed - mySeats;
 
-  const { count: waitlistedCount, error: wErr } = await supabase
+  if (othersConfirmed + requestedGuests <= capacity) return false;
+
+  // Count ALL waitlisted rows, subtract 1 if caller is already waitlisted.
+  const { data: allWait, error: wErr } = await supabase
     .from("rsvps")
-    .select("*", { count: "exact", head: true })
+    .select("user_id")
     .eq("event_id", eventId)
-    .eq("status", "waitlisted")
-    .neq("user_id", currentUserId);
+    .eq("status", "waitlisted");
   if (wErr) throw wErr;
 
-  const waitlisted = waitlistedCount ?? 0;
-  if (waitlisted >= waitlistCapacity) {
+  const waitlistedTotal = (allWait ?? []).length;
+  const callerWaitlisted = (allWait ?? []).some((r: any) => r.user_id === currentUserId);
+  const othersWaitlisted = waitlistedTotal - (callerWaitlisted ? 1 : 0);
+
+  if (othersWaitlisted >= waitlistCapacity) {
     throw new Error("FULL");
   }
 
