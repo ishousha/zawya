@@ -1,22 +1,43 @@
-## Diagnosis
+## Goal
 
-Sameera's `profiles.role` is still `admin`, but her row is **missing from the `user_roles` table**. All other admins (Hashim, Islam, Aqil, Shehla) have a matching `user_roles` row with `role = 'admin'`; Sameera does not.
+When dependents (kids/youth/elders) attend an event, show their **age group** everywhere we list them so organizers can plan activities accordingly.
 
-Every admin-gated query and RLS policy in the app uses `has_role(auth.uid(), 'admin')`, which reads from `user_roles` — not `profiles.role`. With no row there, she is treated as a non-admin: counts return 0, admin tabs hide, etc. Re-login won't help because the data is missing server-side.
+## What changes
 
-Editing dependents almost certainly did not cause this; it just happened to be when she noticed. Her `user_roles` row was likely never created (or was deleted) at some earlier point.
+### 1. Capture age group on RSVP (`src/components/RSVPModal.tsx`)
 
-## Fix
+In `buildAttendingDependents()`, include `age_group` (e.g. `infant_0_3`, `child_4_12`, `youth_13_17`, `adult_18_plus`) from the dependent record into each saved entry. No schema change — `attending_dependents` is jsonb.
 
-Insert the missing row:
+### 2. Guest list table (`src/components/admin/EventRsvpDetail.tsx`)
 
-```sql
-INSERT INTO public.user_roles (user_id, role)
-VALUES ('f476aba5-e615-4018-a20b-5ab1e4fd2157', 'admin');
-```
+In `getDepsDisplay`, render each dependent as `Name · [Age Group badge]`, using a small label map:
+- Infant (0-3) · Child (4-12) · Youth (13-17) · Adult (18+) · Elder
 
-After this, she should refresh once and her admin dashboard will return to normal. No code changes are needed.
+Fall back to age in parentheses if `age_group` is missing (older RSVPs without it).
 
-## Optional follow-up (not in this change)
+### 3. CSV export (`handleExportCsv` in same file)
 
-We can later add a safeguard so any profile with `role = 'admin'` automatically has a matching `user_roles` row (trigger or a one-time reconciliation query), to prevent this drift from recurring. Let me know if you want that included.
+Replace the single "Dependents/Guests" column with two columns:
+- **Dependents/Guests** — names
+- **Age Groups** — same order, comma-joined (e.g. `Child, Child, Youth`)
+
+Also add **Kids Count**, **Youth Count**, **Elder Count** columns so the org can pivot easily.
+
+### 4. Next Event Guest List preview + email (`supabase/functions/send-guest-list-reminder/index.ts` + `_shared/transactional-email-templates/guest-list-reminder.tsx`)
+
+Currently shows `X adults, Y elders, Z kids` per family. Split kids into infants / children / youth using `age_group` (with age-based fallback). Per family row becomes e.g. `2 adults, 1 elder, 1 child, 1 youth`. Summary totals at top get the same breakdown.
+
+### 5. Walk-In RSVP (`src/components/admin/WalkInRsvpModal.tsx`)
+
+Briefly check — if it lets admins add anonymous kids, allow picking an age group. (Will confirm during build; if it only stores `childrenCount`, add an "age group" selector per child or a count-by-group field.)
+
+## Out of scope
+
+- No DB schema change. `attending_dependents` is jsonb and already flexible.
+- No change to dependent management UI (already captures age_group).
+- Old RSVPs saved before this change will gracefully fall back to age or no badge.
+
+## Technical notes
+
+- Single source of label map in a shared helper (`src/lib/age-group-labels.ts`) so guest list, CSV, and email function stay consistent. (Edge function gets its own inline copy since it can't import from `src/`.)
+- Age-group derivation when missing: use existing logic from `RSVPModal.tsx` lines 408–411 (age bands → `infant`/`child`/`youth`/`adult`).
