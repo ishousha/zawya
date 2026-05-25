@@ -12,7 +12,9 @@ interface GuestEntry {
   name: string
   family?: string
   adults: number
+  infants: number
   children: number
+  youth: number
   elders: number
 }
 
