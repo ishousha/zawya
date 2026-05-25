@@ -181,6 +181,12 @@ export default function RSVPModal({ event, open, onOpenChange }: RSVPModalProps)
     return claimed >= item.quantity_limit;
   };
 
+  const isItemFull = (item: { id: number | string; quantity_limit: number }) => {
+    if (item.quantity_limit === 0) return false;
+    const claimed = claimedPerItem[Number(item.id)] || 0;
+    return claimed >= item.quantity_limit;
+  };
+
   // Special "Other / Surprise Dish" virtual item ID
   const OTHER_ITEM_ID = -1;
 
