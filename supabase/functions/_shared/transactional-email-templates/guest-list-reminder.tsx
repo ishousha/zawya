@@ -38,7 +38,9 @@ interface GuestListReminderProps {
   totalHeadcount?: number
   totalAdults?: number
   totalElders?: number
+  totalInfants?: number
   totalChildren?: number
+  totalYouth?: number
   guestList?: GuestEntry[]
   potluckItems?: PotluckItem[]
   unclaimedItems?: UnclaimedItem[]
