@@ -45,6 +45,7 @@ interface ItemSelection {
 
 export default function RSVPModal({ event, open, onOpenChange }: RSVPModalProps) {
   const { user, profile } = useAuth();
+  const queryClient = useQueryClient();
   const { data: myRSVP } = useMyRSVP(event.id);
   const { data: signUpItems } = useSignUpItems(event.id);
   const { data: claimsAgg } = useEventSignUpClaims(event.id);
