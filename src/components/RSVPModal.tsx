@@ -323,13 +323,23 @@ export default function RSVPModal({ event, open, onOpenChange }: RSVPModalProps)
       (audienceGender === "Sisters Only" && userGender !== "female"));
   const hasActiveRsvp = !!myRSVP && myRSVP.status !== "cancelled";
 
-  // Capacity status — used both for admin-override banner and forceAttending
+  // Capacity status — used both for admin-override banner, forceAttending, and UI guards
   const _cap = (event as any).capacity as number | null;
   const _wlCap = ((event as any).waitlist_capacity ?? 0) as number;
   const _attendingCount = (allRsvps ?? [])
     .filter((r: any) => r.status === "attending")
     .reduce((s: number, r: any) => s + (r.guests_count ?? 1), 0);
   const _waitlistedCount = (allRsvps ?? []).filter((r: any) => r.status === "waitlisted").length;
+  const _myAttendingSeats = (allRsvps ?? [])
+    .filter((r: any) => r.status === "attending" && r.user_id === user?.id)
+    .reduce((s: number, r: any) => s + (r.guests_count ?? 1), 0);
+  const _myWaitlisted = (allRsvps ?? []).some((r: any) => r.status === "waitlisted" && r.user_id === user?.id);
+  const _othersConfirmed = _attendingCount - _myAttendingSeats;
+  const _remainingSeats = _cap ? Math.max(0, _cap - _othersConfirmed) : Infinity;
+  const _othersWaitlisted = _waitlistedCount - (_myWaitlisted ? 1 : 0);
+  const _waitlistRoom = Math.max(0, _wlCap - _othersWaitlisted);
+  const _wouldBeWaitlisted = !!_cap && guestsCount > _remainingSeats;
+  const _fullyClosed = _wouldBeWaitlisted && _waitlistRoom <= 0;
   const isOver = !!_cap && _attendingCount >= _cap && (_wlCap === 0 || _waitlistedCount >= _wlCap);
 
   return (
