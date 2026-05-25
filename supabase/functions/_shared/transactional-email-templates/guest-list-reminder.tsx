@@ -214,10 +214,12 @@ export const template = {
     totalHeadcount: 42,
     totalAdults: 25,
     totalElders: 5,
-    totalChildren: 12,
+    totalInfants: 2,
+    totalChildren: 8,
+    totalYouth: 2,
     guestList: [
-      { name: 'Ahmed', family: 'Abushousha', adults: 2, children: 3, elders: 1 },
-      { name: 'Fatima', family: 'Al-Hassan', adults: 1, children: 0, elders: 0 },
+      { name: 'Ahmed', family: 'Abushousha', adults: 2, infants: 1, children: 2, youth: 0, elders: 1 },
+      { name: 'Fatima', family: 'Al-Hassan', adults: 1, infants: 0, children: 0, youth: 0, elders: 0 },
     ],
     potluckItems: [
       { category: 'Appetizers', dish: 'Hummus', family: 'Abushousha', quantity: 1 },
