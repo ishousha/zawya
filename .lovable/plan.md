@@ -1,13 +1,22 @@
-Replace the "$" currency symbol with "AED" in all event fee displays across the app.
+## Diagnosis
 
-## Files to change
-1. `src/components/admin/event-form/SettingsTab.tsx` — Replace `DollarSign` icon with `Coins` icon (more currency-neutral) and add "AED" context to the Event Fee section.
-2. `src/components/admin/event-form/EventPreviewDialog.tsx` — Change `💰 Fee: ${fee.toFixed(0)}` to `💰 Fee: ${fee.toFixed(0)} AED`.
-3. `src/components/EventCard.tsx` — Change `💰 Fee: ${Number(event.ticket_fee).toFixed(0)}` to `💰 Fee: ${Number(event.ticket_fee).toFixed(0)} AED`.
+Sameera's `profiles.role` is still `admin`, but her row is **missing from the `user_roles` table**. All other admins (Hashim, Islam, Aqil, Shehla) have a matching `user_roles` row with `role = 'admin'`; Sameera does not.
 
-The `RSVPModal.tsx` already uses AED and does not need changes.
+Every admin-gated query and RLS policy in the app uses `has_role(auth.uid(), 'admin')`, which reads from `user_roles` — not `profiles.role`. With no row there, she is treated as a non-admin: counts return 0, admin tabs hide, etc. Re-login won't help because the data is missing server-side.
 
-## Technical notes
-- No database changes needed.
-- No new dependencies.
-- Keep the same emoji (💰) and badge styling. Simply append " AED" after the numeric value.
+Editing dependents almost certainly did not cause this; it just happened to be when she noticed. Her `user_roles` row was likely never created (or was deleted) at some earlier point.
+
+## Fix
+
+Insert the missing row:
+
+```sql
+INSERT INTO public.user_roles (user_id, role)
+VALUES ('f476aba5-e615-4018-a20b-5ab1e4fd2157', 'admin');
+```
+
+After this, she should refresh once and her admin dashboard will return to normal. No code changes are needed.
+
+## Optional follow-up (not in this change)
+
+We can later add a safeguard so any profile with `role = 'admin'` automatically has a matching `user_roles` row (trigger or a one-time reconciliation query), to prevent this drift from recurring. Let me know if you want that included.
