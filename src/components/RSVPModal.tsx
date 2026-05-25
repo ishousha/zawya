@@ -261,6 +261,57 @@ export default function RSVPModal({ event, open, onOpenChange }: RSVPModalProps)
         description: val.description || null,
       }));
 
+    // Pre-submission validation: re-check sign-up item availability against latest claims.
+    if (showSignUpItems && selArray.length > 0) {
+      try {
+        await queryClient.invalidateQueries({ queryKey: ["signup-claims", event.id] });
+        const fresh = await queryClient.fetchQuery({
+          queryKey: ["signup-claims", event.id],
+          queryFn: async () => {
+            const { data, error } = await supabase.rpc("get_event_signup_claims", { _event_id: event.id });
+            if (error) throw error;
+            return (data as { sign_up_item_id: number; total_quantity: number }[]) ?? [];
+          },
+        });
+        const freshMap: Record<number, number> = {};
+        for (const row of fresh) freshMap[Number(row.sign_up_item_id)] = row.total_quantity;
+        // Subtract user's previously persisted selections (not in-flight ones)
+        if (mySelections) {
+          for (const sel of mySelections) {
+            const id = Number(sel.sign_up_item_id);
+            freshMap[id] = Math.max(0, (freshMap[id] ?? 0) - sel.quantity);
+          }
+        }
+        const previouslyPersistedIds = new Set((mySelections ?? []).map((s) => Number(s.sign_up_item_id)));
+        const itemsById = new Map((signUpItems ?? []).map((i) => [Number(i.id), i]));
+        const nowFull: { id: number; name: string }[] = [];
+        for (const s of selArray) {
+          if (previouslyPersistedIds.has(s.sign_up_item_id)) continue;
+          const item = itemsById.get(s.sign_up_item_id);
+          if (!item || item.quantity_limit === 0) continue;
+          const claimedNow = freshMap[s.sign_up_item_id] ?? 0;
+          if (claimedNow >= item.quantity_limit) {
+            nowFull.push({ id: s.sign_up_item_id, name: item.item_name });
+          }
+        }
+        if (nowFull.length > 0) {
+          setSelections((prev) => {
+            const next = { ...prev };
+            for (const f of nowFull) delete next[f.id];
+            return next;
+          });
+          toast.error("Sorry, one of your selected items just filled up. Please choose another.", {
+            description: nowFull.map((f) => f.name).join(", "),
+          });
+          return;
+        }
+      } catch (e) {
+        console.error("Pre-submit sign-up validation failed:", e);
+        // Fall through and let the submit attempt proceed rather than blocking.
+      }
+    }
+
+
     // Combine potluckDish and "Other" item description into specific_food_item
     const foodItem = potluckChoice === "bringing"
       ? [potluckDish.trim(), otherDish].filter(Boolean).join(", ") || null
