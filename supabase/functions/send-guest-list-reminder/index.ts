@@ -206,28 +206,63 @@ Deno.serve(async (req) => {
 
     let totalRegularAdults = 0
     let totalElders = 0
+    let totalInfants = 0
     let totalChildren = 0
+    let totalYouth = 0
 
     const guestList: GuestEntry[] = []
     const potluckItems: PotluckItem[] = []
 
+    // Derive age group key from a dependent entry (mirrors src/lib/age-group-labels.ts)
+    const deriveGroup = (d: any): 'infant_0_3' | 'child_4_12' | 'youth_13_17' | 'adult_18_plus' | 'elder' | null => {
+      const ag = d?.age_group
+      if (ag === 'infant_0_3' || ag === 'child_4_12' || ag === 'youth_13_17' || ag === 'adult_18_plus' || ag === 'elder') return ag
+      if (d?.dependent_type === 'elder') return 'elder'
+      const age = d?.age
+      if (age != null) {
+        if (age <= 3) return 'infant_0_3'
+        if (age <= 12) return 'child_4_12'
+        if (age <= 17) return 'youth_13_17'
+        return 'adult_18_plus'
+      }
+      return null
+    }
+
     for (const r of activeRsvps) {
       const profile = profileMap.get(r.user_id)
       const deps: any[] = (r.attending_dependents as any[]) || []
-      const childDeps = deps.filter((d: any) => d.type === 'dependent' && d.dependent_type !== 'elder')
-      const elderDeps = deps.filter((d: any) => d.type === 'dependent' && d.dependent_type === 'elder')
+      const depsOnly = deps.filter((d: any) => d.type === 'dependent')
 
-      const adults = r.guests_count - childDeps.length - elderDeps.length + elderDeps.length
-      totalRegularAdults += r.guests_count - childDeps.length - elderDeps.length
-      totalElders += elderDeps.length
-      totalChildren += childDeps.length
+      let famInfants = 0, famChildren = 0, famYouth = 0, famElders = 0, famAdultDeps = 0
+      for (const d of depsOnly) {
+        const g = deriveGroup(d)
+        if (g === 'infant_0_3') famInfants++
+        else if (g === 'child_4_12') famChildren++
+        else if (g === 'youth_13_17') famYouth++
+        else if (g === 'elder') famElders++
+        else if (g === 'adult_18_plus') famAdultDeps++
+        else famChildren++ // unknown dependent — default to child bucket (legacy)
+      }
+
+      // Adults = total guests minus all categorized dependents (infants/children/youth/elders)
+      // Adult-classified dependents still count as adults.
+      const adults = Math.max(r.guests_count - famInfants - famChildren - famYouth - famElders, 0)
+
+      totalRegularAdults += adults - famAdultDeps // primary + family_member adults
+      totalRegularAdults += famAdultDeps // adult dependents
+      totalInfants += famInfants
+      totalChildren += famChildren
+      totalYouth += famYouth
+      totalElders += famElders
 
       guestList.push({
         name: profile?.name || 'Unknown',
         family: profile?.family_name || undefined,
         adults,
-        children: childDeps.length,
-        elders: elderDeps.length,
+        infants: famInfants,
+        children: famChildren,
+        youth: famYouth,
+        elders: famElders,
       })
 
       // Legacy single-field potluck (still used for some events)
