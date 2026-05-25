@@ -516,36 +516,48 @@ export default function RSVPModal({ event, open, onOpenChange }: RSVPModalProps)
                     const isSelected = sel?.selected ?? false;
                     const claimed = claimedPerItem[itemId] || 0;
                     const atTarget = isItemAtTarget(item);
+                    const isFull = isItemFull(item);
+                    const locked = isFull && !isSelected;
+                    const displayClaimed = item.quantity_limit > 0
+                      ? Math.min(claimed + (isSelected ? 1 : 0), item.quantity_limit)
+                      : claimed + (isSelected ? 1 : 0);
 
                     return (
                       <div key={item.id} className="min-h-[3.5rem]">
                         <label
-                          className={`flex items-center gap-3 rounded-lg border p-3 cursor-pointer transition-colors min-h-[3rem] ${
-                            isSelected
-                              ? "border-primary bg-primary/5"
-                              : "border-border bg-card hover:bg-muted/30"
+                          className={`flex items-center gap-3 rounded-lg border p-3 transition-colors min-h-[3rem] ${
+                            locked
+                              ? "border-border bg-muted/40 opacity-60 cursor-not-allowed"
+                              : isSelected
+                                ? "border-primary bg-primary/5 cursor-pointer"
+                                : "border-border bg-card hover:bg-muted/30 cursor-pointer"
                           }`}
                         >
                           <Checkbox
                             checked={isSelected}
-                            onCheckedChange={() => toggleItem(itemId)}
+                            disabled={locked}
+                            onCheckedChange={() => { if (!locked) toggleItem(itemId); }}
                           />
                           <div className="flex-1 min-w-0">
-                            <span className="text-sm font-medium text-foreground">
+                            <span className="text-sm font-medium text-foreground inline-flex items-center gap-1.5">
                               {item.item_name}
-                              {atTarget && (
-                                <span className="ml-1.5 text-xs font-normal text-muted-foreground">(Target Reached)</span>
-                              )}
+                              {locked ? (
+                                <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+                                  <Lock className="h-3 w-3" /> Full
+                                </span>
+                              ) : atTarget ? (
+                                <span className="text-xs font-normal text-muted-foreground">(Target Reached)</span>
+                              ) : null}
                             </span>
                             <p className="text-xs text-muted-foreground">
                               {item.quantity_limit === 0
                                 ? "No limit"
-                                : `${claimed + (isSelected ? 1 : 0)}/${item.quantity_limit} claimed`}
+                                : `${displayClaimed}/${item.quantity_limit} claimed${locked ? " — full" : ""}`}
                             </p>
                           </div>
                         </label>
 
-                        {isSelected && atTarget && (
+                        {isSelected && atTarget && !isFull && (
                           <p className="ml-8 mt-1 text-xs text-muted-foreground italic">
                             We already have enough items in this category, but extra contributions are always welcome!
                           </p>
