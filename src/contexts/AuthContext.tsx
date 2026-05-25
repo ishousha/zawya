@@ -61,6 +61,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         if (newSession?.user) {
           if (newUserId !== prevUserId) {
+            // Different user signed in — discard previous user's cached queries
+            // to prevent stale counts/dashboards leaking across sessions.
+            if (prevUserId) queryClient.clear();
             setLoading(true);
             // Defer async DB call to avoid deadlocking the Supabase auth lock,
             // which causes the first save/update after auth events to hang.
