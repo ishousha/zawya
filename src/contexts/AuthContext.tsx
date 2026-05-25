@@ -1,7 +1,9 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/runtime-client";
+import { useQueryClient } from "@tanstack/react-query";
 import type { Database } from "@/integrations/supabase/types";
+
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
@@ -27,6 +29,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
 
   const fetchProfile = async (userId: string) => {
     const { data } = await supabase
@@ -112,6 +115,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await supabase.auth.signOut();
     setSession(null);
     setProfile(null);
+    // Clear all cached query data so a different user (or fresh login)
+    // never sees stale counts/dashboards from the previous session.
+    queryClient.clear();
   };
 
   return (
