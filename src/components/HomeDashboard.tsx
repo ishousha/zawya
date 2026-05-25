@@ -5,11 +5,12 @@ import { CalendarDays, Users, UserCheck, Clock } from "lucide-react";
 import { format } from "date-fns";
 import { useNavigate } from "react-router-dom";
 
-function StatCard({ icon: Icon, label, value, onClick }: {
+function StatCard({ icon: Icon, label, value, onClick, error }: {
   icon: React.ElementType;
   label: string;
   value: string | number;
   onClick?: () => void;
+  error?: boolean;
 }) {
   return (
     <button
@@ -17,9 +18,9 @@ function StatCard({ icon: Icon, label, value, onClick }: {
       disabled={!onClick}
       className="rounded-lg border border-border bg-card p-4 text-center transition-colors hover:bg-muted/50 disabled:hover:bg-card"
     >
-      <Icon className="mx-auto mb-1.5 h-5 w-5 text-primary" />
-      <p className="text-2xl font-bold text-foreground">{value}</p>
-      <p className="text-xs text-muted-foreground">{label}</p>
+      <Icon className={`mx-auto mb-1.5 h-5 w-5 ${error ? "text-destructive" : "text-primary"}`} />
+      <p className={`text-2xl font-bold ${error ? "text-destructive" : "text-foreground"}`}>{error ? "!" : value}</p>
+      <p className="text-xs text-muted-foreground">{error ? "Couldn't load" : label}</p>
     </button>
   );
 }
@@ -27,7 +28,7 @@ function StatCard({ icon: Icon, label, value, onClick }: {
 function AdminDashboardSummary() {
   const navigate = useNavigate();
 
-  const { data: activeEventsCount } = useQuery({
+  const { data: activeEventsCount, error: activeEventsErr } = useQuery({
     queryKey: ["dashboard-active-events"],
     staleTime: 60_000,
     queryFn: async () => {
@@ -42,7 +43,7 @@ function AdminDashboardSummary() {
     },
   });
 
-  const { data: pendingCount } = useQuery({
+  const { data: pendingCount, error: pendingErr } = useQuery({
     queryKey: ["pending-users-count"],
     staleTime: 60_000,
     queryFn: async () => {
@@ -55,7 +56,7 @@ function AdminDashboardSummary() {
     },
   });
 
-  const { data: memberCount } = useQuery({
+  const { data: memberCount, error: memberErr } = useQuery({
     queryKey: ["dashboard-member-count"],
     staleTime: 5 * 60_000,
     queryFn: async () => {
@@ -78,18 +79,21 @@ function AdminDashboardSummary() {
           icon={CalendarDays}
           label="Upcoming Events"
           value={activeEventsCount ?? "–"}
+          error={!!activeEventsErr}
           onClick={() => navigate("/admin")}
         />
         <StatCard
           icon={Clock}
           label="Pending Approvals"
           value={pendingCount ?? "–"}
+          error={!!pendingErr}
           onClick={() => navigate("/admin")}
         />
         <StatCard
           icon={Users}
           label="Members"
           value={memberCount ?? "–"}
+          error={!!memberErr}
         />
       </div>
     </div>

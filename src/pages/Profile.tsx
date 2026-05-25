@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { LogOut, User, CalendarIcon, Loader2, ScrollText, Camera, Download, Share, RefreshCw, CheckCircle2, AlertCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/runtime-client";
 import { toast } from "sonner";
 import { format, parse } from "date-fns";
@@ -62,6 +63,7 @@ function isValidLocalNumber(num: string): boolean {
 export default function ProfilePage() {
   const { profile, user, signOut } = useAuth();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const appVersion = useAppVersion();
 
   const [gender, setGender] = useState("");
@@ -162,6 +164,10 @@ export default function ProfilePage() {
       toast.error("Failed to update profile.");
     } else {
       toast.success("Profile updated successfully.");
+      // Force AuthContext to refetch profile and clear any stale dashboard
+      // queries so the home view doesn't briefly show zeros after a save.
+      window.dispatchEvent(new Event("profile-updated"));
+      await queryClient.invalidateQueries();
       navigate("/");
     }
   };
