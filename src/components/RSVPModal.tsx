@@ -728,9 +728,20 @@ export default function RSVPModal({ event, open, onOpenChange }: RSVPModalProps)
 
         {/* Actions */}
         <div className="flex flex-col gap-2 pt-2">
-          <Button onClick={handleSubmit} disabled={isPending || guestsCount === 0}>
+          <Button
+            onClick={handleSubmit}
+            disabled={isPending || guestsCount === 0 || (!isAdminOrMod && !isEditing && _fullyClosed)}
+          >
             {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-            {isEditing ? "Update RSVP" : (event as any).ticket_fee > 0 ? "Acknowledge & Confirm RSVP" : "Confirm RSVP"}
+            {!isAdminOrMod && !isEditing && _fullyClosed
+              ? "Event & Waitlist Full"
+              : isEditing
+              ? "Update RSVP"
+              : (event as any).ticket_fee > 0
+              ? "Acknowledge & Confirm RSVP"
+              : _wouldBeWaitlisted
+              ? "Join Waitlist"
+              : "Confirm RSVP"}
           </Button>
           {isEditing && (
             <AlertDialog>
