@@ -21,6 +21,7 @@ import HostDashboard from "@/components/HostDashboard";
 import AdminGuestApprovals from "./AdminGuestApprovals";
 import CheckinPoster from "./CheckinPoster";
 import WalkInRsvpModal from "./WalkInRsvpModal";
+import { ageGroupLabel, ageGroupShort, deriveAgeGroup } from "@/lib/age-group-labels";
 
 interface Props {
   eventId: string;
@@ -244,7 +245,13 @@ export default function EventRsvpDetail({ eventId, eventTitle, eventDate, checki
     }
 
     const rows = rsvps.map((r) => {
-      const deps: { name: string }[] = (r.attending_dependents as any[]) ?? [];
+      const deps: any[] = (r.attending_dependents as any[]) ?? [];
+      const depsOnly = deps.filter((d) => d.type === "dependent");
+      const groupCounts = { infant_0_3: 0, child_4_12: 0, youth_13_17: 0, elder: 0 };
+      for (const d of depsOnly) {
+        const k = deriveAgeGroup(d);
+        if (k && k in groupCounts) (groupCounts as any)[k]++;
+      }
       const potluckFromSignUp = rsvpPotluckMap.get(r.id)?.join("; ") ?? "";
       const potluckLegacy = r.specific_food_item?.trim() ?? "";
       const potluckCombined = [potluckFromSignUp, potluckLegacy].filter(Boolean).join("; ");
@@ -253,6 +260,11 @@ export default function EventRsvpDetail({ eventId, eventTitle, eventDate, checki
         "Member Name": (r.profile as any)?.name || "",
         Email: (r.profile as any)?.email || "",
         "Dependents/Guests": deps.map((d) => d.name).join("; "),
+        "Age Groups": deps.map((d) => ageGroupShort(d)).join("; "),
+        "Infants (0-3)": groupCounts.infant_0_3,
+        "Kids (4-12)": groupCounts.child_4_12,
+        "Youth (13-17)": groupCounts.youth_13_17,
+        "Elders": groupCounts.elder,
         "Total Party Size": r.guests_count,
         Status: r.is_waitlisted ? "Waitlisted" : r.status === "cancelled" ? "Cancelled" : "Attending",
         "Checked In": r.checked_in ? "Yes" : "No",
@@ -277,19 +289,31 @@ export default function EventRsvpDetail({ eventId, eventTitle, eventDate, checki
   }
 
   const getDepsDisplay = (r: any) => {
-    const deps: { name: string; age?: number | null; type?: string; dependent_type?: string }[] = r.attending_dependents ?? [];
+    const deps: any[] = r.attending_dependents ?? [];
     if (deps.length === 0) return <span className="text-muted-foreground">—</span>;
     return (
       <div className="space-y-0.5">
-        {deps.map((d, i) => (
-          <p key={i} className="text-xs">
-            {d.name}
-            {d.age != null && <span className="text-muted-foreground ml-1">({d.age})</span>}
-          </p>
-        ))}
+        {deps.map((d, i) => {
+          const groupKey = deriveAgeGroup(d);
+          const isDependent = d.type === "dependent";
+          return (
+            <p key={i} className="text-xs flex items-center gap-1.5 flex-wrap">
+              <span>{d.name}</span>
+              {isDependent && groupKey && (
+                <Badge variant="secondary" className="px-1.5 py-0 text-[10px] font-normal">
+                  {ageGroupShort(d)}
+                </Badge>
+              )}
+              {isDependent && !groupKey && d.age != null && (
+                <span className="text-muted-foreground">({d.age})</span>
+              )}
+            </p>
+          );
+        })}
       </div>
     );
   };
+
 
   return (
     <>

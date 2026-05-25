@@ -10,7 +10,9 @@ interface GuestEntry {
   name: string
   family?: string
   adults: number
+  infants?: number
   children: number
+  youth?: number
   elders: number
 }
 
@@ -36,7 +38,9 @@ interface GuestListReminderProps {
   totalHeadcount?: number
   totalAdults?: number
   totalElders?: number
+  totalInfants?: number
   totalChildren?: number
+  totalYouth?: number
   guestList?: GuestEntry[]
   potluckItems?: PotluckItem[]
   unclaimedItems?: UnclaimedItem[]
@@ -50,7 +54,9 @@ const GuestListReminderEmail = ({
   totalHeadcount = 0,
   totalAdults = 0,
   totalElders = 0,
+  totalInfants = 0,
   totalChildren = 0,
+  totalYouth = 0,
   guestList = [],
   potluckItems = [],
   unclaimedItems = [],
@@ -87,7 +93,11 @@ const GuestListReminderEmail = ({
                 <td style={summaryCell}><strong style={summaryNum}>{totalHeadcount}</strong><br /><span style={summaryLabel}>Total</span></td>
                 <td style={summaryCell}><strong style={summaryNum}>{totalAdults}</strong><br /><span style={summaryLabel}>Adults</span></td>
                 <td style={summaryCell}><strong style={summaryNum}>{totalElders}</strong><br /><span style={summaryLabel}>Elders</span></td>
-                <td style={summaryCell}><strong style={summaryNum}>{totalChildren}</strong><br /><span style={summaryLabel}>Children</span></td>
+              </tr>
+              <tr>
+                <td style={summaryCell}><strong style={summaryNum}>{totalInfants}</strong><br /><span style={summaryLabel}>Infants (0-3)</span></td>
+                <td style={summaryCell}><strong style={summaryNum}>{totalChildren}</strong><br /><span style={summaryLabel}>Kids (4-12)</span></td>
+                <td style={summaryCell}><strong style={summaryNum}>{totalYouth}</strong><br /><span style={summaryLabel}>Youth (13-17)</span></td>
               </tr>
             </tbody>
           </table>
@@ -103,20 +113,26 @@ const GuestListReminderEmail = ({
           ) : (
             <table style={listTable}>
               <tbody>
-                {guestList.map((g, i) => (
-                  <tr key={i}>
-                    <td style={listCell}>
-                      <strong>{g.name}</strong>
-                      {g.family ? <span style={{ color: '#6b7280' }}> — {g.family}</span> : null}
-                      <br />
-                      <span style={{ fontSize: '12px', color: '#9ca3af' }}>
-                        {g.adults} adult{g.adults !== 1 ? 's' : ''}
-                        {g.elders > 0 ? `, ${g.elders} elder${g.elders !== 1 ? 's' : ''}` : ''}
-                        {g.children > 0 ? `, ${g.children} kid${g.children !== 1 ? 's' : ''}` : ''}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
+                {guestList.map((g, i) => {
+                  const parts: string[] = []
+                  if (g.adults > 0) parts.push(`${g.adults} adult${g.adults !== 1 ? 's' : ''}`)
+                  if (g.elders > 0) parts.push(`${g.elders} elder${g.elders !== 1 ? 's' : ''}`)
+                  if ((g.infants ?? 0) > 0) parts.push(`${g.infants} infant${g.infants !== 1 ? 's' : ''} (0-3)`)
+                  if (g.children > 0) parts.push(`${g.children} kid${g.children !== 1 ? 's' : ''} (4-12)`)
+                  if ((g.youth ?? 0) > 0) parts.push(`${g.youth} youth (13-17)`)
+                  return (
+                    <tr key={i}>
+                      <td style={listCell}>
+                        <strong>{g.name}</strong>
+                        {g.family ? <span style={{ color: '#6b7280' }}> — {g.family}</span> : null}
+                        <br />
+                        <span style={{ fontSize: '12px', color: '#9ca3af' }}>
+                          {parts.join(', ')}
+                        </span>
+                      </td>
+                    </tr>
+                  )
+                })}
               </tbody>
             </table>
           )}
@@ -198,10 +214,12 @@ export const template = {
     totalHeadcount: 42,
     totalAdults: 25,
     totalElders: 5,
-    totalChildren: 12,
+    totalInfants: 2,
+    totalChildren: 8,
+    totalYouth: 2,
     guestList: [
-      { name: 'Ahmed', family: 'Abushousha', adults: 2, children: 3, elders: 1 },
-      { name: 'Fatima', family: 'Al-Hassan', adults: 1, children: 0, elders: 0 },
+      { name: 'Ahmed', family: 'Abushousha', adults: 2, infants: 1, children: 2, youth: 0, elders: 1 },
+      { name: 'Fatima', family: 'Al-Hassan', adults: 1, infants: 0, children: 0, youth: 0, elders: 0 },
     ],
     potluckItems: [
       { category: 'Appetizers', dish: 'Hummus', family: 'Abushousha', quantity: 1 },

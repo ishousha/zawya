@@ -182,12 +182,12 @@ export default function RSVPModal({ event, open, onOpenChange }: RSVPModalProps)
   const OTHER_ITEM_ID = -1;
 
   const buildAttendingDependents = () => {
-    const entries: { type: string; id: string; name: string; age?: number | null; dependent_type?: string }[] = [];
+    const entries: { type: string; id: string; name: string; age?: number | null; dependent_type?: string; age_group?: string | null }[] = [];
 
     if (familyMembers) {
       for (const member of familyMembers) {
         if (selectedMemberIds.has(member.id)) {
-          entries.push({ type: "family_member", id: member.id, name: member.name || "Unknown" });
+          entries.push({ type: "family_member", id: member.id, name: member.name || "Unknown", age_group: "adult_18_plus" });
         }
       }
     }
@@ -202,7 +202,18 @@ export default function RSVPModal({ event, open, onOpenChange }: RSVPModalProps)
             age = Math.floor((now.getTime() - dob.getTime()) / (365.25 * 24 * 60 * 60 * 1000));
           }
           const depType = (dep as any).type || "child";
-          entries.push({ type: "dependent", id: dep.id, name: dep.first_name, age, dependent_type: depType });
+          // Prefer stored age_group; otherwise derive from age; elders get 'elder'
+          let ageGroup: string | null = (dep as any).age_group ?? null;
+          if (!ageGroup) {
+            if (depType === "elder") ageGroup = "elder";
+            else if (age != null) {
+              if (age <= 3) ageGroup = "infant_0_3";
+              else if (age <= 12) ageGroup = "child_4_12";
+              else if (age <= 17) ageGroup = "youth_13_17";
+              else ageGroup = "adult_18_plus";
+            }
+          }
+          entries.push({ type: "dependent", id: dep.id, name: dep.first_name, age, dependent_type: depType, age_group: ageGroup });
         }
       }
     }
