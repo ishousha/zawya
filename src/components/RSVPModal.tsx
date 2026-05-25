@@ -17,8 +17,10 @@ import { useDependents } from "@/components/profile/DependentsSection";
 import { useFamilyMembers } from "@/hooks/useFamilyMembers";
 import { useDuplicateFoodCheck } from "@/hooks/useDuplicateFoodCheck";
 import { useAuth } from "@/contexts/AuthContext";
+import { useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2, Video, ExternalLink, AlertTriangle } from "lucide-react";
+import { Loader2, Video, ExternalLink, AlertTriangle, Lock } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -43,6 +45,7 @@ interface ItemSelection {
 
 export default function RSVPModal({ event, open, onOpenChange }: RSVPModalProps) {
   const { user, profile } = useAuth();
+  const queryClient = useQueryClient();
   const { data: myRSVP } = useMyRSVP(event.id);
   const { data: signUpItems } = useSignUpItems(event.id);
   const { data: claimsAgg } = useEventSignUpClaims(event.id);
@@ -178,6 +181,12 @@ export default function RSVPModal({ event, open, onOpenChange }: RSVPModalProps)
     return claimed >= item.quantity_limit;
   };
 
+  const isItemFull = (item: { id: number | string; quantity_limit: number }) => {
+    if (item.quantity_limit === 0) return false;
+    const claimed = claimedPerItem[Number(item.id)] || 0;
+    return claimed >= item.quantity_limit;
+  };
+
   // Special "Other / Surprise Dish" virtual item ID
   const OTHER_ITEM_ID = -1;
 
@@ -251,6 +260,57 @@ export default function RSVPModal({ event, open, onOpenChange }: RSVPModalProps)
         quantity: 1,
         description: val.description || null,
       }));
+
+    // Pre-submission validation: re-check sign-up item availability against latest claims.
+    if (showSignUpItems && selArray.length > 0) {
+      try {
+        await queryClient.invalidateQueries({ queryKey: ["signup-claims", event.id] });
+        const fresh = await queryClient.fetchQuery({
+          queryKey: ["signup-claims", event.id],
+          queryFn: async () => {
+            const { data, error } = await supabase.rpc("get_event_signup_claims", { _event_id: event.id });
+            if (error) throw error;
+            return (data as { sign_up_item_id: number; total_quantity: number }[]) ?? [];
+          },
+        });
+        const freshMap: Record<number, number> = {};
+        for (const row of fresh) freshMap[Number(row.sign_up_item_id)] = row.total_quantity;
+        // Subtract user's previously persisted selections (not in-flight ones)
+        if (mySelections) {
+          for (const sel of mySelections) {
+            const id = Number(sel.sign_up_item_id);
+            freshMap[id] = Math.max(0, (freshMap[id] ?? 0) - sel.quantity);
+          }
+        }
+        const previouslyPersistedIds = new Set((mySelections ?? []).map((s) => Number(s.sign_up_item_id)));
+        const itemsById = new Map((signUpItems ?? []).map((i) => [Number(i.id), i]));
+        const nowFull: { id: number; name: string }[] = [];
+        for (const s of selArray) {
+          if (previouslyPersistedIds.has(s.sign_up_item_id)) continue;
+          const item = itemsById.get(s.sign_up_item_id);
+          if (!item || item.quantity_limit === 0) continue;
+          const claimedNow = freshMap[s.sign_up_item_id] ?? 0;
+          if (claimedNow >= item.quantity_limit) {
+            nowFull.push({ id: s.sign_up_item_id, name: item.item_name });
+          }
+        }
+        if (nowFull.length > 0) {
+          setSelections((prev) => {
+            const next = { ...prev };
+            for (const f of nowFull) delete next[f.id];
+            return next;
+          });
+          toast.error("Sorry, one of your selected items just filled up. Please choose another.", {
+            description: nowFull.map((f) => f.name).join(", "),
+          });
+          return;
+        }
+      } catch (e) {
+        console.error("Pre-submit sign-up validation failed:", e);
+        // Fall through and let the submit attempt proceed rather than blocking.
+      }
+    }
+
 
     // Combine potluckDish and "Other" item description into specific_food_item
     const foodItem = potluckChoice === "bringing"
@@ -507,36 +567,48 @@ export default function RSVPModal({ event, open, onOpenChange }: RSVPModalProps)
                     const isSelected = sel?.selected ?? false;
                     const claimed = claimedPerItem[itemId] || 0;
                     const atTarget = isItemAtTarget(item);
+                    const isFull = isItemFull(item);
+                    const locked = isFull && !isSelected;
+                    const displayClaimed = item.quantity_limit > 0
+                      ? Math.min(claimed + (isSelected ? 1 : 0), item.quantity_limit)
+                      : claimed + (isSelected ? 1 : 0);
 
                     return (
                       <div key={item.id} className="min-h-[3.5rem]">
                         <label
-                          className={`flex items-center gap-3 rounded-lg border p-3 cursor-pointer transition-colors min-h-[3rem] ${
-                            isSelected
-                              ? "border-primary bg-primary/5"
-                              : "border-border bg-card hover:bg-muted/30"
+                          className={`flex items-center gap-3 rounded-lg border p-3 transition-colors min-h-[3rem] ${
+                            locked
+                              ? "border-border bg-muted/40 opacity-60 cursor-not-allowed"
+                              : isSelected
+                                ? "border-primary bg-primary/5 cursor-pointer"
+                                : "border-border bg-card hover:bg-muted/30 cursor-pointer"
                           }`}
                         >
                           <Checkbox
                             checked={isSelected}
-                            onCheckedChange={() => toggleItem(itemId)}
+                            disabled={locked}
+                            onCheckedChange={() => { if (!locked) toggleItem(itemId); }}
                           />
                           <div className="flex-1 min-w-0">
-                            <span className="text-sm font-medium text-foreground">
+                            <span className="text-sm font-medium text-foreground inline-flex items-center gap-1.5">
                               {item.item_name}
-                              {atTarget && (
-                                <span className="ml-1.5 text-xs font-normal text-muted-foreground">(Target Reached)</span>
-                              )}
+                              {locked ? (
+                                <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+                                  <Lock className="h-3 w-3" /> Full
+                                </span>
+                              ) : atTarget ? (
+                                <span className="text-xs font-normal text-muted-foreground">(Target Reached)</span>
+                              ) : null}
                             </span>
                             <p className="text-xs text-muted-foreground">
                               {item.quantity_limit === 0
                                 ? "No limit"
-                                : `${claimed + (isSelected ? 1 : 0)}/${item.quantity_limit} claimed`}
+                                : `${displayClaimed}/${item.quantity_limit} claimed${locked ? " — full" : ""}`}
                             </p>
                           </div>
                         </label>
 
-                        {isSelected && atTarget && (
+                        {isSelected && atTarget && !isFull && (
                           <p className="ml-8 mt-1 text-xs text-muted-foreground italic">
                             We already have enough items in this category, but extra contributions are always welcome!
                           </p>
@@ -648,36 +720,48 @@ export default function RSVPModal({ event, open, onOpenChange }: RSVPModalProps)
                   const isSelected = sel?.selected ?? false;
                   const claimed = claimedPerItem[itemId] || 0;
                   const atTarget = isItemAtTarget(item);
+                  const isFull = isItemFull(item);
+                  const locked = isFull && !isSelected;
+                  const displayClaimed = item.quantity_limit > 0
+                    ? Math.min(claimed + (isSelected ? 1 : 0), item.quantity_limit)
+                    : claimed + (isSelected ? 1 : 0);
 
                   return (
                     <div key={item.id}>
                       <label
-                        className={`flex items-center gap-3 rounded-lg border p-3 cursor-pointer transition-colors ${
-                          isSelected
-                            ? "border-primary bg-primary/5"
-                            : "border-border bg-card hover:bg-muted/30"
+                        className={`flex items-center gap-3 rounded-lg border p-3 transition-colors ${
+                          locked
+                            ? "border-border bg-muted/40 opacity-60 cursor-not-allowed"
+                            : isSelected
+                              ? "border-primary bg-primary/5 cursor-pointer"
+                              : "border-border bg-card hover:bg-muted/30 cursor-pointer"
                         }`}
                       >
                         <Checkbox
                           checked={isSelected}
-                          onCheckedChange={() => toggleItem(itemId)}
+                          disabled={locked}
+                          onCheckedChange={() => { if (!locked) toggleItem(itemId); }}
                         />
                         <div className="flex-1 min-w-0">
-                          <span className="text-sm font-medium text-foreground">
+                          <span className="text-sm font-medium text-foreground inline-flex items-center gap-1.5">
                             {item.item_name}
-                            {atTarget && (
-                              <span className="ml-1.5 text-xs font-normal text-muted-foreground">(Target Reached)</span>
-                            )}
+                            {locked ? (
+                              <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+                                <Lock className="h-3 w-3" /> Full
+                              </span>
+                            ) : atTarget ? (
+                              <span className="text-xs font-normal text-muted-foreground">(Target Reached)</span>
+                            ) : null}
                           </span>
                           <p className="text-xs text-muted-foreground">
                             {item.quantity_limit === 0
                               ? "No limit"
-                              : `${claimed + (isSelected ? 1 : 0)}/${item.quantity_limit} claimed`}
+                              : `${displayClaimed}/${item.quantity_limit} claimed${locked ? " — full" : ""}`}
                           </p>
                         </div>
                       </label>
 
-                      {isSelected && atTarget && (
+                      {isSelected && atTarget && !isFull && (
                         <p className="ml-8 mt-1 text-xs text-muted-foreground italic">
                           We already have enough items in this category, but extra contributions are always welcome!
                         </p>
