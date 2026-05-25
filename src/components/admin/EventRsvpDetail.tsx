@@ -289,19 +289,31 @@ export default function EventRsvpDetail({ eventId, eventTitle, eventDate, checki
   }
 
   const getDepsDisplay = (r: any) => {
-    const deps: { name: string; age?: number | null; type?: string; dependent_type?: string }[] = r.attending_dependents ?? [];
+    const deps: any[] = r.attending_dependents ?? [];
     if (deps.length === 0) return <span className="text-muted-foreground">—</span>;
     return (
       <div className="space-y-0.5">
-        {deps.map((d, i) => (
-          <p key={i} className="text-xs">
-            {d.name}
-            {d.age != null && <span className="text-muted-foreground ml-1">({d.age})</span>}
-          </p>
-        ))}
+        {deps.map((d, i) => {
+          const groupKey = deriveAgeGroup(d);
+          const isDependent = d.type === "dependent";
+          return (
+            <p key={i} className="text-xs flex items-center gap-1.5 flex-wrap">
+              <span>{d.name}</span>
+              {isDependent && groupKey && (
+                <Badge variant="secondary" className="px-1.5 py-0 text-[10px] font-normal">
+                  {ageGroupShort(d)}
+                </Badge>
+              )}
+              {isDependent && !groupKey && d.age != null && (
+                <span className="text-muted-foreground">({d.age})</span>
+              )}
+            </p>
+          );
+        })}
       </div>
     );
   };
+
 
   return (
     <>
