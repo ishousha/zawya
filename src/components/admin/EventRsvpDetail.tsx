@@ -353,6 +353,9 @@ export default function EventRsvpDetail({ eventId, eventTitle, eventDate, checki
               <Button size="sm" variant="outline" className="h-8 gap-1.5 text-xs" onClick={handleExportCsv} disabled={!rsvps || rsvps.length === 0}>
                 <Download className="h-3.5 w-3.5" /> Export CSV
               </Button>
+              <Button size="sm" variant="outline" className="h-8 gap-1.5 text-xs text-emerald-700 border-emerald-200 hover:bg-emerald-50" onClick={handleShareWhatsApp} disabled={attending.length === 0}>
+                <MessageCircle className="h-3.5 w-3.5" /> WhatsApp
+              </Button>
               <Button size="sm" variant="outline" className="h-8 gap-1.5 text-xs" onClick={handlePreviewGuestList} disabled={previewLoading}>
                 {previewLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Eye className="h-3.5 w-3.5" />}
                 Preview
