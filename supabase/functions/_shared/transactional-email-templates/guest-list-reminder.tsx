@@ -44,6 +44,8 @@ interface GuestListReminderProps {
   guestList?: GuestEntry[]
   potluckItems?: PotluckItem[]
   unclaimedItems?: UnclaimedItem[]
+  posterUrl?: string
+  reminderLabel?: string
 }
 
 const GuestListReminderEmail = ({
@@ -60,6 +62,8 @@ const GuestListReminderEmail = ({
   guestList = [],
   potluckItems = [],
   unclaimedItems = [],
+  posterUrl,
+  reminderLabel,
 }: GuestListReminderProps) => {
   // Group potluck items by category for display
   const potluckByCategory = potluckItems.reduce<Record<string, PotluckItem[]>>((acc, item) => {
@@ -74,7 +78,7 @@ const GuestListReminderEmail = ({
     <Preview>Guest list for {eventTitle || 'your event'} — {totalHeadcount} attending</Preview>
     <Body style={main}>
       <Container style={container}>
-        <Heading style={h1}>Guest List Reminder</Heading>
+        <Heading style={h1}>Guest List {reminderLabel ? `— ${reminderLabel}` : 'Reminder'}</Heading>
         <Text style={text}>
           {recipientName ? `Assalamu Alaikum ${recipientName},` : 'Assalamu Alaikum,'}
         </Text>
@@ -83,6 +87,18 @@ const GuestListReminderEmail = ({
           {eventDate ? ` on ${eventDate}` : ''}.
           {eventLocation ? ` Location: ${eventLocation}.` : ''}
         </Text>
+
+        {posterUrl && (
+          <Section style={{ textAlign: 'center', margin: '16px 0 8px' }}>
+            <Button href={posterUrl} style={posterButton}>
+              Open Check-in Poster &amp; QR
+            </Button>
+            <Text style={{ ...textMuted, marginTop: '6px' }}>
+              Share this link with door volunteers to scan tickets and check guests in.
+            </Text>
+          </Section>
+        )}
+
 
         {/* Headcount Summary */}
         <Section style={summarySection}>
