@@ -352,6 +352,16 @@ Deno.serve(async (req) => {
       ? `${event.location}${event.address ? ` — ${event.address}` : ''}`
       : ''
 
+    // Direct link to the check-in poster / QR page for door volunteers.
+    const posterUrl = event.checkin_pin
+      ? `${APP_URL}/events/${event.id}?action=checkin&pin=${event.checkin_pin}`
+      : `${APP_URL}/events/${event.id}`
+
+    const reminderLabel =
+      triggerType === '5_hour' ? '5-hour reminder'
+      : triggerType === '1_hour' ? '1-hour reminder'
+      : 'Manual send'
+
     const templateData = {
       eventTitle: event.title,
       eventDate,
@@ -365,7 +375,11 @@ Deno.serve(async (req) => {
       guestList,
       potluckItems,
       unclaimedItems,
+      posterUrl,
+      reminderLabel,
+      triggerType,
     }
+
 
     // Collect recipients: host + admins + moderators
     const recipientIds = new Set<string>()
