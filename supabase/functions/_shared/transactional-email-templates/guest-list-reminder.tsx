@@ -268,3 +268,4 @@ const summaryLabel = { fontSize: '11px', color: '#9ca3af', textTransform: 'upper
 const listTable = { width: '100%', borderCollapse: 'collapse' as const }
 const listCell = { padding: '8px 12px', borderBottom: '1px solid #f3f4f6', fontSize: '14px', color: '#374151' }
 const categoryLabel = { fontSize: '12px', fontWeight: '600' as const, color: '#166534', textTransform: 'uppercase' as const, letterSpacing: '0.5px', margin: '0 0 4px' }
+const posterButton = { backgroundColor: '#166534', color: '#ffffff', padding: '12px 20px', borderRadius: '6px', fontSize: '14px', fontWeight: '600' as const, textDecoration: 'none', display: 'inline-block', fontFamily: "'Inter', Arial, sans-serif" }
