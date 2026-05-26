@@ -217,16 +217,20 @@ const GuestListReminderEmail = ({
 
 export const template = {
   component: GuestListReminderEmail,
-  subject: (data: Record<string, any>) =>
-    data.eventTitle
-      ? `Guest List: ${data.eventTitle} — ${data.totalHeadcount || 0} attending`
-      : 'Guest List Reminder',
-  displayName: 'Guest list reminder (2h before event)',
+  subject: (data: Record<string, any>) => {
+    const label = data.reminderLabel ? ` (${data.reminderLabel})` : ''
+    return data.eventTitle
+      ? `Guest List${label}: ${data.eventTitle} — ${data.totalHeadcount || 0} attending`
+      : `Guest List Reminder${label}`
+  },
+  displayName: 'Guest list reminder (5h & 1h before event)',
   previewData: {
     recipientName: 'Ahmed',
     eventTitle: 'Friday Gathering',
     eventDate: 'Friday, January 15, 2026 at 7:00 PM',
     eventLocation: 'Community Hall',
+    reminderLabel: '1-hour reminder',
+    posterUrl: 'https://zawya.app/events/example?action=checkin&pin=1234',
     totalHeadcount: 42,
     totalAdults: 25,
     totalElders: 5,
@@ -245,6 +249,7 @@ export const template = {
       { name: 'Dessert', claimed: 1, limit: 3, remaining: 2 },
     ],
   },
+
 } satisfies TemplateEntry
 
 const main = { backgroundColor: '#ffffff', fontFamily: "'Inter', Arial, sans-serif" }
