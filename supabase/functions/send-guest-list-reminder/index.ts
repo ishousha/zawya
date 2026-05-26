@@ -448,7 +448,7 @@ Deno.serve(async (req) => {
           body: JSON.stringify({
             templateName: 'guest-list-reminder',
             recipientEmail: recipient.email,
-            idempotencyKey: `guest-list-${event.id}-${recipient.id}-${mode}-${Date.now()}`,
+            idempotencyKey: `guest-list-${event.id}-${recipient.id}-${triggerType}`,
             templateData: {
               ...templateData,
               recipientName: recipient.name || undefined,
@@ -460,7 +460,7 @@ Deno.serve(async (req) => {
           console.error(`send-transactional-email ${resp.status} for ${recipient.email}: ${txt}`)
         } else {
           totalSent++
-          console.log(`Sent guest list to ${recipient.email} for event ${event.title}`)
+          console.log(`Sent guest list (${triggerType}) to ${recipient.email} for event ${event.title}`)
         }
       } catch (e) {
         console.error(`Failed to send guest list to ${recipient.email}:`, e)
@@ -469,8 +469,9 @@ Deno.serve(async (req) => {
 
     await supabase.from('guest_list_reminders_sent').insert({
       event_id: event.id,
-      trigger_type: mode,
+      trigger_type: triggerType,
     })
+
   }
 
   console.log(`Guest list reminder complete: ${totalSent} emails sent`)
