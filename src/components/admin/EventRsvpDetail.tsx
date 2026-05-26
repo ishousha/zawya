@@ -227,6 +227,26 @@ export default function EventRsvpDetail({ eventId, eventTitle, eventDate, checki
     }
   };
 
+  const handleShareWhatsApp = () => {
+    if (!attending || attending.length === 0) {
+      toast.warning("No confirmed attendees to share yet.");
+      return;
+    }
+    const totalGuests = attending.reduce((sum, r) => sum + (r.guests_count || 0), 0);
+    const lines = attending.map((r, i) => {
+      const name = (r.profile as any)?.name || "Unknown";
+      const tix = r.guests_count || 1;
+      return `${i + 1}. ${name} (x${tix})`;
+    });
+    const text =
+      `Event: ${eventTitle}\n` +
+      `Date: ${eventDate ? new Date(eventDate).toLocaleString() : ""}\n` +
+      `Total Confirmed: ${totalGuests} (${attending.length} families)\n\n` +
+      lines.join("\n");
+    const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
+    window.open(url, "_blank", "noopener,noreferrer");
+  };
+
   const handleExportCsv = () => {
     if (!rsvps || rsvps.length === 0) return;
 
