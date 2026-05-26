@@ -1,6 +1,6 @@
 import * as React from 'npm:react@18.3.1'
 import {
-  Body, Container, Head, Heading, Html, Preview, Text, Hr, Section,
+  Body, Button, Container, Head, Heading, Html, Preview, Text, Hr, Section,
 } from 'npm:@react-email/components@0.0.22'
 import type { TemplateEntry } from './registry.ts'
 
@@ -44,6 +44,8 @@ interface GuestListReminderProps {
   guestList?: GuestEntry[]
   potluckItems?: PotluckItem[]
   unclaimedItems?: UnclaimedItem[]
+  posterUrl?: string
+  reminderLabel?: string
 }
 
 const GuestListReminderEmail = ({
@@ -60,6 +62,8 @@ const GuestListReminderEmail = ({
   guestList = [],
   potluckItems = [],
   unclaimedItems = [],
+  posterUrl,
+  reminderLabel,
 }: GuestListReminderProps) => {
   // Group potluck items by category for display
   const potluckByCategory = potluckItems.reduce<Record<string, PotluckItem[]>>((acc, item) => {
@@ -74,7 +78,7 @@ const GuestListReminderEmail = ({
     <Preview>Guest list for {eventTitle || 'your event'} — {totalHeadcount} attending</Preview>
     <Body style={main}>
       <Container style={container}>
-        <Heading style={h1}>Guest List Reminder</Heading>
+        <Heading style={h1}>Guest List {reminderLabel ? `— ${reminderLabel}` : 'Reminder'}</Heading>
         <Text style={text}>
           {recipientName ? `Assalamu Alaikum ${recipientName},` : 'Assalamu Alaikum,'}
         </Text>
@@ -83,6 +87,18 @@ const GuestListReminderEmail = ({
           {eventDate ? ` on ${eventDate}` : ''}.
           {eventLocation ? ` Location: ${eventLocation}.` : ''}
         </Text>
+
+        {posterUrl && (
+          <Section style={{ textAlign: 'center', margin: '16px 0 8px' }}>
+            <Button href={posterUrl} style={posterButton}>
+              Open Check-in Poster &amp; QR
+            </Button>
+            <Text style={{ ...textMuted, marginTop: '6px' }}>
+              Share this link with door volunteers to scan tickets and check guests in.
+            </Text>
+          </Section>
+        )}
+
 
         {/* Headcount Summary */}
         <Section style={summarySection}>
@@ -201,16 +217,20 @@ const GuestListReminderEmail = ({
 
 export const template = {
   component: GuestListReminderEmail,
-  subject: (data: Record<string, any>) =>
-    data.eventTitle
-      ? `Guest List: ${data.eventTitle} — ${data.totalHeadcount || 0} attending`
-      : 'Guest List Reminder',
-  displayName: 'Guest list reminder (2h before event)',
+  subject: (data: Record<string, any>) => {
+    const label = data.reminderLabel ? ` (${data.reminderLabel})` : ''
+    return data.eventTitle
+      ? `Guest List${label}: ${data.eventTitle} — ${data.totalHeadcount || 0} attending`
+      : `Guest List Reminder${label}`
+  },
+  displayName: 'Guest list reminder (5h & 1h before event)',
   previewData: {
     recipientName: 'Ahmed',
     eventTitle: 'Friday Gathering',
     eventDate: 'Friday, January 15, 2026 at 7:00 PM',
     eventLocation: 'Community Hall',
+    reminderLabel: '1-hour reminder',
+    posterUrl: 'https://zawya.app/events/example?action=checkin&pin=1234',
     totalHeadcount: 42,
     totalAdults: 25,
     totalElders: 5,
@@ -229,6 +249,7 @@ export const template = {
       { name: 'Dessert', claimed: 1, limit: 3, remaining: 2 },
     ],
   },
+
 } satisfies TemplateEntry
 
 const main = { backgroundColor: '#ffffff', fontFamily: "'Inter', Arial, sans-serif" }
@@ -247,3 +268,4 @@ const summaryLabel = { fontSize: '11px', color: '#9ca3af', textTransform: 'upper
 const listTable = { width: '100%', borderCollapse: 'collapse' as const }
 const listCell = { padding: '8px 12px', borderBottom: '1px solid #f3f4f6', fontSize: '14px', color: '#374151' }
 const categoryLabel = { fontSize: '12px', fontWeight: '600' as const, color: '#166534', textTransform: 'uppercase' as const, letterSpacing: '0.5px', margin: '0 0 4px' }
+const posterButton = { backgroundColor: '#166534', color: '#ffffff', padding: '12px 20px', borderRadius: '6px', fontSize: '14px', fontWeight: '600' as const, textDecoration: 'none', display: 'inline-block', fontFamily: "'Inter', Arial, sans-serif" }

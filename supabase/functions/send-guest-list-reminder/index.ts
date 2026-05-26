@@ -102,33 +102,56 @@ Deno.serve(async (req) => {
 
   console.log(`Guest list reminder: mode=${mode}, preview=${preview}, targetEventId=${targetEventId}`)
 
-  // Find events to send reminders for
-  let events: any[] = []
+  // App origin for building shareable check-in poster links inside the email.
+  const APP_URL = 'https://zawya.app'
+
+  // Find events to send reminders for. Each item also carries the trigger_type
+  // that we'll persist in guest_list_reminders_sent ('5_hour' | '1_hour' | 'manual').
+  type EventWithTrigger = { event: any; triggerType: '5_hour' | '1_hour' | 'manual' }
+  let eventTasks: EventWithTrigger[] = []
+
+  const selectCols = 'id, title, date_time, location, address, host_id, status, checkin_pin'
 
   if (mode === 'manual' && targetEventId) {
     const { data } = await supabase
       .from('events')
-      .select('id, title, date_time, location, address, host_id, status')
+      .select(selectCols)
       .eq('id', targetEventId)
       .in('status', ['active', 'full'])
       .single()
-    if (data) events = [data]
+    if (data) eventTasks = [{ event: data, triggerType: 'manual' }]
   } else {
     const now = new Date()
-    const twoHoursLater = new Date(now.getTime() + 2 * 60 * 60 * 1000)
-    const buffer = new Date(now.getTime() + 2 * 60 * 60 * 1000 + 10 * 60 * 1000)
+    const bufferMs = 10 * 60 * 1000 // 10-minute window aligned with cron cadence
 
-    const { data } = await supabase
-      .from('events')
-      .select('id, title, date_time, location, address, host_id, status')
-      .in('status', ['active', 'full'])
-      .gte('date_time', twoHoursLater.toISOString())
-      .lte('date_time', buffer.toISOString())
+    // 5-hour reminder window: events starting between now+5h and now+5h10m
+    const fiveHrStart = new Date(now.getTime() + 5 * 60 * 60 * 1000)
+    const fiveHrEnd = new Date(fiveHrStart.getTime() + bufferMs)
 
-    events = data ?? []
+    // 1-hour reminder window: events starting between now+1h and now+1h10m
+    const oneHrStart = new Date(now.getTime() + 1 * 60 * 60 * 1000)
+    const oneHrEnd = new Date(oneHrStart.getTime() + bufferMs)
+
+    const [{ data: fiveHr }, { data: oneHr }] = await Promise.all([
+      supabase
+        .from('events')
+        .select(selectCols)
+        .in('status', ['active', 'full'])
+        .gte('date_time', fiveHrStart.toISOString())
+        .lte('date_time', fiveHrEnd.toISOString()),
+      supabase
+        .from('events')
+        .select(selectCols)
+        .in('status', ['active', 'full'])
+        .gte('date_time', oneHrStart.toISOString())
+        .lte('date_time', oneHrEnd.toISOString()),
+    ])
+
+    for (const e of fiveHr ?? []) eventTasks.push({ event: e, triggerType: '5_hour' })
+    for (const e of oneHr ?? []) eventTasks.push({ event: e, triggerType: '1_hour' })
   }
 
-  if (events.length === 0) {
+  if (eventTasks.length === 0) {
     console.log('No events to send reminders for')
     if (preview) {
       return new Response(JSON.stringify({ error: 'Event not found or not active' }), {
@@ -142,19 +165,21 @@ Deno.serve(async (req) => {
 
   let totalSent = 0
 
-  for (const event of events) {
-    if (mode === 'auto' && !preview) {
+  for (const { event, triggerType } of eventTasks) {
+    // Dedupe per (event, triggerType) so each window only fires once.
+    if (!preview) {
       const { data: existing } = await supabase
         .from('guest_list_reminders_sent')
         .select('id')
         .eq('event_id', event.id)
-        .eq('trigger_type', 'auto')
+        .eq('trigger_type', triggerType)
         .limit(1)
       if (existing && existing.length > 0) {
-        console.log(`Already sent auto reminder for event ${event.id}`)
+        console.log(`Already sent ${triggerType} reminder for event ${event.id}`)
         continue
       }
     }
+
 
     const { data: rsvps } = await supabase
       .from('rsvps')
@@ -327,6 +352,16 @@ Deno.serve(async (req) => {
       ? `${event.location}${event.address ? ` — ${event.address}` : ''}`
       : ''
 
+    // Direct link to the check-in poster / QR page for door volunteers.
+    const posterUrl = event.checkin_pin
+      ? `${APP_URL}/events/${event.id}?action=checkin&pin=${event.checkin_pin}`
+      : `${APP_URL}/events/${event.id}`
+
+    const reminderLabel =
+      triggerType === '5_hour' ? '5-hour reminder'
+      : triggerType === '1_hour' ? '1-hour reminder'
+      : 'Manual send'
+
     const templateData = {
       eventTitle: event.title,
       eventDate,
@@ -340,7 +375,11 @@ Deno.serve(async (req) => {
       guestList,
       potluckItems,
       unclaimedItems,
+      posterUrl,
+      reminderLabel,
+      triggerType,
     }
+
 
     // Collect recipients: host + admins + moderators
     const recipientIds = new Set<string>()
@@ -409,7 +448,7 @@ Deno.serve(async (req) => {
           body: JSON.stringify({
             templateName: 'guest-list-reminder',
             recipientEmail: recipient.email,
-            idempotencyKey: `guest-list-${event.id}-${recipient.id}-${mode}-${Date.now()}`,
+            idempotencyKey: `guest-list-${event.id}-${recipient.id}-${triggerType}`,
             templateData: {
               ...templateData,
               recipientName: recipient.name || undefined,
@@ -421,7 +460,7 @@ Deno.serve(async (req) => {
           console.error(`send-transactional-email ${resp.status} for ${recipient.email}: ${txt}`)
         } else {
           totalSent++
-          console.log(`Sent guest list to ${recipient.email} for event ${event.title}`)
+          console.log(`Sent guest list (${triggerType}) to ${recipient.email} for event ${event.title}`)
         }
       } catch (e) {
         console.error(`Failed to send guest list to ${recipient.email}:`, e)
@@ -430,8 +469,9 @@ Deno.serve(async (req) => {
 
     await supabase.from('guest_list_reminders_sent').insert({
       event_id: event.id,
-      trigger_type: mode,
+      trigger_type: triggerType,
     })
+
   }
 
   console.log(`Guest list reminder complete: ${totalSent} emails sent`)

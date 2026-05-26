@@ -14,7 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
-import { Loader2, X, Download, UserPlus, Mail, Printer, Users, UtensilsCrossed, CheckCircle2, Eye, Plus, Trash2 } from "lucide-react";
+import { Loader2, X, Download, UserPlus, Mail, Printer, Users, UtensilsCrossed, CheckCircle2, Eye, Plus, Trash2, MessageCircle } from "lucide-react";
 import { downloadCsv, zawyaFilename } from "@/lib/csv-export";
 import { toast } from "sonner";
 import HostDashboard from "@/components/HostDashboard";
@@ -227,6 +227,26 @@ export default function EventRsvpDetail({ eventId, eventTitle, eventDate, checki
     }
   };
 
+  const handleShareWhatsApp = () => {
+    if (!attending || attending.length === 0) {
+      toast.warning("No confirmed attendees to share yet.");
+      return;
+    }
+    const totalGuests = attending.reduce((sum, r) => sum + (r.guests_count || 0), 0);
+    const lines = attending.map((r, i) => {
+      const name = (r.profile as any)?.name || "Unknown";
+      const tix = r.guests_count || 1;
+      return `${i + 1}. ${name} (x${tix})`;
+    });
+    const text =
+      `Event: ${eventTitle}\n` +
+      `Date: ${eventDate ? new Date(eventDate).toLocaleString() : ""}\n` +
+      `Total Confirmed: ${totalGuests} (${attending.length} families)\n\n` +
+      lines.join("\n");
+    const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
+    window.open(url, "_blank", "noopener,noreferrer");
+  };
+
   const handleExportCsv = () => {
     if (!rsvps || rsvps.length === 0) return;
 
@@ -332,6 +352,9 @@ export default function EventRsvpDetail({ eventId, eventTitle, eventDate, checki
               </Button>
               <Button size="sm" variant="outline" className="h-8 gap-1.5 text-xs" onClick={handleExportCsv} disabled={!rsvps || rsvps.length === 0}>
                 <Download className="h-3.5 w-3.5" /> Export CSV
+              </Button>
+              <Button size="sm" variant="outline" className="h-8 gap-1.5 text-xs text-emerald-700 border-emerald-200 hover:bg-emerald-50" onClick={handleShareWhatsApp} disabled={attending.length === 0}>
+                <MessageCircle className="h-3.5 w-3.5" /> WhatsApp
               </Button>
               <Button size="sm" variant="outline" className="h-8 gap-1.5 text-xs" onClick={handlePreviewGuestList} disabled={previewLoading}>
                 {previewLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Eye className="h-3.5 w-3.5" />}
