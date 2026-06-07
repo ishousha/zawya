@@ -113,7 +113,7 @@ export default function EventControlRoom() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("events")
-        .select("*, rsvps(id, status), host:host_id(name)")
+        .select(`${EVENT_PUBLIC_COLUMNS}, rsvps(id, status), host:host_id(name)` as "*, rsvps(id, status), host:host_id(name)")
         .order("date_time", { ascending: true })
         .limit(50);
       if (error) throw error;
