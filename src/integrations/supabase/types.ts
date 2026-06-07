@@ -1119,6 +1119,19 @@ export type Database = {
           name: string
         }[]
       }
+      get_event_host_rsvps: {
+        Args: { _event_id: string }
+        Returns: {
+          attending_dependents: Json
+          checked_in: boolean
+          created_at: string
+          guests_count: number
+          id: string
+          is_waitlisted: boolean
+          status: Database["public"]["Enums"]["rsvp_status"]
+          user_id: string
+        }[]
+      }
       get_event_potluck_menu: {
         Args: { _event_id: string }
         Returns: {
@@ -1152,6 +1165,7 @@ export type Database = {
         }[]
       }
       get_my_family_id: { Args: never; Returns: string }
+      get_my_rsvp_qr: { Args: { _rsvp_id: string }; Returns: string }
       guest_has_rsvp: {
         Args: { _event_id: string; _user_id: string }
         Returns: boolean
@@ -1162,6 +1176,18 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      lookup_rsvp_by_qr: {
+        Args: { _qr_hash: string }
+        Returns: {
+          attending_dependents: Json
+          checked_in: boolean
+          event_id: string
+          guests_count: number
+          id: string
+          status: Database["public"]["Enums"]["rsvp_status"]
+          user_id: string
+        }[]
       }
       move_to_dlq: {
         Args: {

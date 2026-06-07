@@ -182,6 +182,40 @@ async function computeRecommendation(
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
   try {
+    // Admin-only: validate JWT and ensure the caller has the admin role.
+    const authHeader = req.headers.get('Authorization')
+    if (!authHeader?.startsWith('Bearer ')) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+    const userClient = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_ANON_KEY')!,
+      { global: { headers: { Authorization: authHeader } } },
+    )
+    const token = authHeader.replace('Bearer ', '')
+    const { data: claimsData, error: claimsError } = await userClient.auth.getClaims(token)
+    if (claimsError || !claimsData?.claims) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+    const callerRole = claimsData.claims.role
+    const callerSub = claimsData.claims.sub
+    let allowed = callerRole === 'service_role'
+    if (!allowed && callerSub) {
+      const { data: isAdmin } = await userClient.rpc('has_role', {
+        _user_id: callerSub, _role: 'admin',
+      })
+      allowed = !!isAdmin
+    }
+    if (!allowed) {
+      return new Response(JSON.stringify({ error: 'Forbidden' }), {
+        status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
     let body: { persist?: boolean; source?: string } = {}
     try { body = await req.json() } catch { /* no body */ }
 

@@ -58,6 +58,9 @@ Deno.serve(async (req) => {
   const internalSecret = req.headers.get('x-internal-secret')
   const isInternalCall = !!supabaseServiceKey && internalSecret === supabaseServiceKey
 
+  // Templates that pending/guest users are allowed to trigger (e.g., during onboarding)
+  const PENDING_ALLOWED_TEMPLATES = new Set(['new-member-pending', 'contact-organizer'])
+
   if (!isInternalCall) {
     const tempClient = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: authHeader } },
@@ -69,7 +72,36 @@ Deno.serve(async (req) => {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
+    // Role gate: prevent any-authenticated-user abuse. Approved members and
+    // higher may trigger any template; pending/guest can only trigger a small
+    // allowlist needed for onboarding/contact flows.
+    const callerSub = claimsData.claims.sub as string | undefined
+    const callerRole = claimsData.claims.role as string | undefined
+    if (callerRole !== 'service_role' && callerSub) {
+      const adminClient = createClient(supabaseUrl, supabaseServiceKey!)
+      const [{ data: isApproved }, { data: isAdmin }, { data: isMod }, { data: isHost }] = await Promise.all([
+        adminClient.rpc('has_role', { _user_id: callerSub, _role: 'approved' }),
+        adminClient.rpc('has_role', { _user_id: callerSub, _role: 'admin' }),
+        adminClient.rpc('has_role', { _user_id: callerSub, _role: 'moderator' }),
+        adminClient.rpc('has_role', { _user_id: callerSub, _role: 'host' }),
+      ])
+      const elevated = !!(isApproved || isAdmin || isMod || isHost)
+      // We need to read templateName early for the gate; parse a copy of the body.
+      let pendingTemplateName: string | undefined
+      try {
+        const cloned = req.clone()
+        const peek = await cloned.json()
+        pendingTemplateName = peek?.templateName || peek?.template_name
+      } catch { /* will fail later in main parse */ }
+      if (!elevated && !(pendingTemplateName && PENDING_ALLOWED_TEMPLATES.has(pendingTemplateName))) {
+        return new Response(JSON.stringify({ error: 'Forbidden' }), {
+          status: 403,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
+    }
   }
+
 
   if (!supabaseUrl || !supabaseServiceKey) {
     console.error('Missing required environment variables')

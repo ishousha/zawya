@@ -1,5 +1,6 @@
 import { QueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/runtime-client";
+import { EVENT_PUBLIC_COLUMNS } from "@/lib/event-columns";
 
 /**
  * Prefetch data for the Home tab.
@@ -52,7 +53,7 @@ export function prefetchAdmin(queryClient: QueryClient) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("events")
-        .select("*")
+        .select(EVENT_PUBLIC_COLUMNS)
         .order("date_time", { ascending: true });
       if (error) throw error;
       return data;
