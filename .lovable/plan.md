@@ -1,50 +1,47 @@
-## Goal
-Stop users from claiming sign-up items that have hit their `quantity_limit`. Frontend-only — no DB changes, existing overbooked rows stay intact.
+## 1. Progressive Unlock for the "Other / Surprise Dish"
 
-## Scope
-Single file: `src/components/RSVPModal.tsx`. The two rendering blocks (potluck list ~L502 and non-potluck sign-up list ~L641) and the submit handler (~L224).
+**File:** `src/components/RSVPModal.tsx`
 
-## Changes
+The wildcard is a frontend-only virtual item rendered with `OTHER_ITEM_ID = -1` (no DB row). Today it's always selectable. We'll gate it behind essential-item fill.
 
-### 1. Replace `isItemAtTarget` with a hard "isFull" check
-- Today `isItemAtTarget` returns true at `claimed >= quantity_limit` but the UI only shows a soft "(Target Reached)" label — checkbox still works.
-- Add a helper:
-  - `getRemaining(item)` → `quantity_limit === 0 ? Infinity : max(0, quantity_limit - claimed)` (handles the 9/8 overbook case by clamping at 0).
-  - `isItemFull(item)` → `getRemaining(item) <= 0 && quantity_limit > 0`.
-- Keep `claimedPerItem` math as-is (it already excludes the user's own existing selections, so editing your own RSVP won't lock you out of your existing item).
+- Compute `essentialsFull` inside the modal:
+  - Iterate `signUpItems` excluding any item where `quantity_limit === 0` (those are "unlimited" and cannot be "filled", so they're excluded from the check — otherwise the wildcard would never unlock).
+  - For each, sum `quantity_limit` into `totalEssentialCapacity` and `min(claimed + (isSelectedByMe ? 1 : 0), quantity_limit)` into `totalEssentialClaimed` so the user's own pending picks count toward the unlock in real time.
+  - `essentialsFull = totalEssentialCapacity > 0 && totalEssentialClaimed >= totalEssentialCapacity`.
+  - Edge case: if there are zero limited items (only "no limit" items or no items at all), treat as `essentialsFull = true` so we don't permanently lock the wildcard on events without quotas.
+- Apply to the "Other / Surprise Dish" block (~L631-660):
+  - `const otherLocked = !essentialsFull && !(selections[OTHER_ITEM_ID]?.selected)` — never trap an existing selection.
+  - When locked: render the row with `opacity-60 cursor-not-allowed`, disable the `Checkbox`, swap the helper copy for a small badge `🔒 Unlocks once essential items are covered` using the existing `Lock` icon and the same muted pill styling already used for "Full".
+  - Hide the description input while locked.
 
-### 2. Hard-lock the UI in both list blocks (potluck + non-potluck)
-For each item where `isItemFull(item) && !isSelected`:
-- Render the `<label>` as a non-interactive `<div>` (no `cursor-pointer`, add `opacity-60 pointer-events-none` plus muted background).
-- Render `<Checkbox disabled checked={false}>`.
-- Replace the "(Target Reached)" hint with a **"Full"** badge (small pill, muted/destructive styling, lock icon from `lucide-react`).
-- Quantity line shows `{quantity_limit}/{quantity_limit} claimed — full` (never display negatives; clamp display claimed at `quantity_limit`).
-- Drop the "extra contributions are always welcome" italic line for full items.
+No DB / schema / RLS changes. No edits to `useRSVP.ts`.
 
-If `isSelected` (user already had it selected in this session or from their existing RSVP), keep it interactive so they can uncheck — never trap a selection.
+## 2. Door Verification — Promised Items in Check-in
 
-### 3. Pre-submission validation in `handleSubmit`
-Before calling `createRSVP` / `updateRSVP`:
-1. Refetch the latest claims via `queryClient.invalidateQueries({ queryKey: ["signup-claims", event.id] })` then `await refetch` of `useEventSignUpClaims` (expose `refetch` from the hook call, or read fresh data through `queryClient.fetchQuery`).
-2. Recompute `claimedPerItem` from the fresh data (still subtracting the user's *previously persisted* selections from `mySelections`, not the in-flight ones).
-3. For each currently-selected item (excluding `OTHER_ITEM_ID` and items already in `mySelections`), check if it is now full.
-4. If any newly-selected item is full:
-   - Uncheck those item ids in `selections` state.
-   - `toast.error("Sorry, one of your selected items just filled up. Please choose another.")` (include item names in the description).
-   - Return early — do not submit.
+**File:** `src/components/admin/AdminDoorScanner.tsx`
 
-### 4. Small polish
-- Import `Lock` from `lucide-react` for the lock icon.
-- No copy changes elsewhere; no changes to `useRSVP.ts`, the admin views, or any SQL.
+Today the attendees query only fetches `id, checked_in, guests_count, user_id` + names. We'll extend it to fetch each RSVP's promised sign-up selections and render them prominently.
 
-## Out of scope
-- No backend constraints, no migrations, no edits to overbooked rows.
-- Waitlist/capacity logic untouched.
-- Admin event edit / reclaim flows untouched.
+- Extend the `door-scanner-attendees` query:
+  - After loading rsvps + profiles, run a single `supabase.from("rsvp_sign_up_selections").select("rsvp_id, quantity, description, sign_up_item_id, event_sign_up_items(item_name)").in("rsvp_id", rsvpIds)`.
+    - If the implicit FK join isn't available, fall back to two queries: selections then `event_sign_up_items` filtered by the collected ids, joined in JS.
+  - Build a `promisedByRsvp: Map<rsvp_id, { name: string; quantity: number; description: string | null }[]>`.
+  - Add `promised` to each `AttendeeRow`.
+- Extend `AttendeeRow` type with `promised: { name; quantity; description }[]`.
+- **Manual list row (~L437-486):** below the name, render a prominent "Promised" alert box (amber/gold accent, e.g. `border-accent bg-accent/10`, bold text) listing each item as `{quantity}× {name}{description ? ` — ${description}` : ""}`. If none promised, show a muted `No potluck item promised`. Use existing semantic tokens (`text-foreground`, `border-accent`) — no raw colors.
+- **QR scan-success result (~mutation `checkIn.onSuccess` and the `lastResult` Card):**
+  - Inside `checkIn.mutationFn`, after we find the rsvp, fetch its selections the same way and attach `promised` to the success payload.
+  - Extend `lastResult` shape to optionally include `promised` items + attendee name; the success Card (~L568-580) renders an additional prominent block: `Promised: 2× Samosas, 1× Drinks` styled like an alert so the volunteer is forced to read it before tapping "Scan Next Ticket".
+- No changes to scan flow, RLS, or check-in mutation logic itself — admins already have `SELECT` on `rsvp_sign_up_selections` and `event_sign_up_items` via existing policies.
 
-## Test checklist
-- Open RSVP on an event with a full item → checkbox disabled, "Full" badge, can't select.
-- Overbooked item (9/8) → renders as full, no negatives, no crash.
-- Editing your own RSVP that includes a full item → you can still uncheck it; if you uncheck and try to re-check, it locks.
-- Two tabs: select last spot in tab A, submit; in tab B (still showing it available) click submit → toast appears, item auto-unchecks, no DB write.
-- Items with `quantity_limit = 0` (no limit) continue to behave as before.
+## What we explicitly do NOT touch
+
+- No SQL migrations, no schema/column/RLS changes.
+- No edits to `useRSVP.ts`, capacity/waitlist logic, or email functions.
+- Wildcard remains purely a frontend virtual item; existing RSVPs with `OTHER_ITEM_ID` selections continue to behave identically (description is appended to `specific_food_item`).
+
+## Files to edit
+
+- `src/components/RSVPModal.tsx`
+- `src/components/admin/AdminDoorScanner.tsx`
+- `public/version.json` (bump build time)
