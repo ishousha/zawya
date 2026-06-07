@@ -190,6 +190,27 @@ export default function RSVPModal({ event, open, onOpenChange }: RSVPModalProps)
   // Special "Other / Surprise Dish" virtual item ID
   const OTHER_ITEM_ID = -1;
 
+  // Progressive Unlock: the wildcard ("Other / Surprise Dish") only unlocks once
+  // every essential (limited) sign-up item has been fully claimed. Unlimited items
+  // (quantity_limit === 0) are excluded — they can never be "filled" so we don't
+  // count them, otherwise the wildcard would be permanently locked.
+  const { totalEssentialCapacity, totalEssentialClaimed } = useMemo(() => {
+    let cap = 0;
+    let claimedSum = 0;
+    for (const item of signUpItems ?? []) {
+      if (!item.quantity_limit || item.quantity_limit === 0) continue;
+      const id = Number(item.id);
+      const claimedNow = claimedPerItem[id] || 0;
+      const mineSelected = selections[id]?.selected ? 1 : 0;
+      cap += item.quantity_limit;
+      claimedSum += Math.min(claimedNow + mineSelected, item.quantity_limit);
+    }
+    return { totalEssentialCapacity: cap, totalEssentialClaimed: claimedSum };
+  }, [signUpItems, claimedPerItem, selections]);
+
+  // If there are no limited items at all, treat as unlocked (event has no quotas to fill).
+  const essentialsFull = totalEssentialCapacity === 0 || totalEssentialClaimed >= totalEssentialCapacity;
+
   const buildAttendingDependents = () => {
     const entries: { type: string; id: string; name: string; age?: number | null; dependent_type?: string; age_group?: string | null }[] = [];
 
