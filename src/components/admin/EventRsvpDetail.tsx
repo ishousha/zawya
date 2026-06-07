@@ -32,9 +32,22 @@ interface Props {
   onClose: () => void;
 }
 
-export default function EventRsvpDetail({ eventId, eventTitle, eventDate, checkinPin, hasPotluck, onClose }: Props) {
+export default function EventRsvpDetail({ eventId, eventTitle, eventDate, checkinPin: checkinPinProp, hasPotluck, onClose }: Props) {
   const queryClient = useQueryClient();
   const [showPoster, setShowPoster] = useState(false);
+
+  // Fetch admin-only secrets (checkin_pin) via gated RPC so the events table
+  // never exposes them through a direct SELECT.
+  const { data: adminSecrets } = useQuery({
+    queryKey: ["admin-event-secrets", eventId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .rpc("get_event_admin_secrets", { _event_id: eventId });
+      if (error) throw error;
+      return (data && data[0]) || null;
+    },
+  });
+  const checkinPin = (adminSecrets?.checkin_pin as string | undefined) || checkinPinProp || "";
   const [assignSelections, setAssignSelections] = useState<Record<number, string>>({});
   const [showWalkIn, setShowWalkIn] = useState(false);
   const [sendingGuestList, setSendingGuestList] = useState(false);
