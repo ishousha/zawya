@@ -21,6 +21,7 @@ import type { SignUpItem } from "./event-form/ItemsTab";
 import { useEventTypes } from "@/hooks/useEventTypes";
 import EventBroadcastModal from "./EventBroadcastModal";
 import EventRsvpDetail from "./EventRsvpDetail";
+import { EVENT_PUBLIC_COLUMNS } from "@/lib/event-columns";
 
 type EventRow = Database["public"]["Tables"]["events"]["Row"];
 
