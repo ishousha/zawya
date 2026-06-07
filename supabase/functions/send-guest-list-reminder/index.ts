@@ -353,9 +353,9 @@ Deno.serve(async (req) => {
       : ''
 
     // Direct link to the check-in poster / QR page for door volunteers.
-    const posterUrl = event.checkin_pin
-      ? `${APP_URL}/events/${event.id}?action=checkin&pin=${event.checkin_pin}`
-      : `${APP_URL}/events/${event.id}`
+    // The pin is intentionally NOT embedded in the URL — recipients enter it
+    // manually so it never lands in email inboxes, server logs, or referrers.
+    const posterUrl = `${APP_URL}/events/${event.id}?action=checkin`
 
     const reminderLabel =
       triggerType === '5_hour' ? '5-hour reminder'
