@@ -649,36 +649,56 @@ export default function RSVPModal({ event, open, onOpenChange }: RSVPModalProps)
                     );
                   })}
 
-                  {/* Other / Surprise Dish option */}
-                  <div>
-                    <label
-                      className={`flex items-center gap-3 rounded-lg border p-3 cursor-pointer transition-colors ${
-                        selections[OTHER_ITEM_ID]?.selected
-                          ? "border-primary bg-primary/5"
-                          : "border-border bg-card hover:bg-muted/30"
-                      }`}
-                    >
-                      <Checkbox
-                        checked={selections[OTHER_ITEM_ID]?.selected ?? false}
-                        onCheckedChange={() => toggleItem(OTHER_ITEM_ID)}
-                      />
-                      <div className="flex-1 min-w-0">
-                        <span className="text-sm font-medium text-foreground">Other / Surprise Dish</span>
-                        <p className="text-xs text-muted-foreground">Doesn't fit the categories above? Bring anything!</p>
-                      </div>
-                    </label>
+                  {/* Other / Surprise Dish option — locked until essential items are covered */}
+                  {(() => {
+                    const otherSelected = selections[OTHER_ITEM_ID]?.selected ?? false;
+                    const otherLocked = !essentialsFull && !otherSelected;
+                    return (
+                      <div>
+                        <label
+                          className={`flex items-center gap-3 rounded-lg border p-3 transition-colors ${
+                            otherLocked
+                              ? "border-border bg-muted/40 opacity-60 cursor-not-allowed"
+                              : otherSelected
+                                ? "border-primary bg-primary/5 cursor-pointer"
+                                : "border-border bg-card hover:bg-muted/30 cursor-pointer"
+                          }`}
+                        >
+                          <Checkbox
+                            checked={otherSelected}
+                            disabled={otherLocked}
+                            onCheckedChange={() => { if (!otherLocked) toggleItem(OTHER_ITEM_ID); }}
+                          />
+                          <div className="flex-1 min-w-0">
+                            <span className="text-sm font-medium text-foreground inline-flex items-center gap-1.5">
+                              Other / Surprise Dish
+                              {otherLocked && (
+                                <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+                                  <Lock className="h-3 w-3" /> Locked
+                                </span>
+                              )}
+                            </span>
+                            <p className="text-xs text-muted-foreground">
+                              {otherLocked
+                                ? "🔒 Unlocks once essential items are covered."
+                                : "Doesn't fit the categories above? Bring anything!"}
+                            </p>
+                          </div>
+                        </label>
 
-                    {selections[OTHER_ITEM_ID]?.selected && (
-                      <div className="animate-fade-in ml-8 mt-2">
-                        <Input
-                          placeholder="What are you bringing?"
-                          value={selections[OTHER_ITEM_ID]?.description || ""}
-                          onChange={(e) => updateItemDescription(OTHER_ITEM_ID, e.target.value)}
-                          className="text-sm"
-                        />
+                        {otherSelected && !otherLocked && (
+                          <div className="animate-fade-in ml-8 mt-2">
+                            <Input
+                              placeholder="What are you bringing?"
+                              value={selections[OTHER_ITEM_ID]?.description || ""}
+                              onChange={(e) => updateItemDescription(OTHER_ITEM_ID, e.target.value)}
+                              className="text-sm"
+                            />
+                          </div>
+                        )}
                       </div>
-                    )}
-                  </div>
+                    );
+                  })()}
                 </div>
               )}
 
