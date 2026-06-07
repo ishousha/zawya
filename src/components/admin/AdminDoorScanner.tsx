@@ -136,14 +136,30 @@ export default function AdminDoorScanner() {
         .eq("event_id", selectedEventId);
       if (error) throw error;
 
-      // Fetch profile names
       const userIds = data.map((r) => r.user_id);
-      const { data: profiles } = await supabase
-        .from("profiles")
-        .select("id, name")
-        .in("id", userIds);
+      const rsvpIds = data.map((r) => r.id);
+
+      const [{ data: profiles }, { data: selections }] = await Promise.all([
+        supabase.from("profiles").select("id, name").in("id", userIds),
+        rsvpIds.length > 0
+          ? supabase
+              .from("rsvp_sign_up_selections")
+              .select("rsvp_id, quantity, description, event_sign_up_items(item_name)")
+              .in("rsvp_id", rsvpIds)
+          : Promise.resolve({ data: [] as any[] }),
+      ]);
 
       const profileMap = new Map(profiles?.map((p) => [p.id, p.name]) ?? []);
+      const promisedMap = new Map<string, PromisedItem[]>();
+      for (const s of (selections ?? []) as any[]) {
+        const list = promisedMap.get(s.rsvp_id) ?? [];
+        list.push({
+          name: s.event_sign_up_items?.item_name ?? "Item",
+          quantity: s.quantity ?? 1,
+          description: s.description ?? null,
+        });
+        promisedMap.set(s.rsvp_id, list);
+      }
 
       return data.map((r) => ({
         rsvp_id: r.id,
@@ -151,6 +167,7 @@ export default function AdminDoorScanner() {
         guests_count: r.guests_count,
         name: profileMap.get(r.user_id) || "Unknown",
         user_id: r.user_id,
+        promised: promisedMap.get(r.id) ?? [],
       })) as AttendeeRow[];
     },
     enabled: !!selectedEventId,
