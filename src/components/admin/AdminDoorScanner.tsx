@@ -527,44 +527,47 @@ export default function AdminDoorScanner() {
                 filteredAttendees.map((attendee) => (
                   <div
                     key={attendee.rsvp_id}
-                    className="flex items-center justify-between rounded-lg border border-border p-3"
+                    className="rounded-lg border border-border p-3 space-y-2"
                   >
-                    <div className="flex items-center gap-2 min-w-0">
-                      {attendee.checked_in ? (
-                        <UserCheck className="h-4 w-4 shrink-0 text-primary" />
-                      ) : (
-                        <UserX className="h-4 w-4 shrink-0 text-muted-foreground" />
-                      )}
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium text-card-foreground truncate">{attendee.name}</p>
-                        {attendee.guests_count > 1 && (
-                          <p className="text-xs text-muted-foreground">+{attendee.guests_count - 1} guests</p>
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2 min-w-0">
+                        {attendee.checked_in ? (
+                          <UserCheck className="h-4 w-4 shrink-0 text-primary" />
+                        ) : (
+                          <UserX className="h-4 w-4 shrink-0 text-muted-foreground" />
                         )}
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-card-foreground truncate">{attendee.name}</p>
+                          {attendee.guests_count > 1 && (
+                            <p className="text-xs text-muted-foreground">+{attendee.guests_count - 1} guests</p>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                    {attendee.checked_in ? (
-                      <div className="flex items-center gap-1.5 shrink-0">
-                        <Badge variant="secondary" className="text-xs">Checked in</Badge>
+                      {attendee.checked_in ? (
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <Badge variant="secondary" className="text-xs">Checked in</Badge>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-7 px-2 text-xs text-muted-foreground hover:text-destructive"
+                            onClick={() => undoCheckIn.mutate(attendee)}
+                            disabled={undoCheckIn.isPending}
+                          >
+                            Undo
+                          </Button>
+                        </div>
+                      ) : (
                         <Button
                           size="sm"
-                          variant="ghost"
-                          className="h-7 px-2 text-xs text-muted-foreground hover:text-destructive"
-                          onClick={() => undoCheckIn.mutate(attendee)}
-                          disabled={undoCheckIn.isPending}
+                          onClick={() => manualCheckIn.mutate(attendee)}
+                          disabled={manualCheckIn.isPending}
+                          className="shrink-0"
                         >
-                          Undo
+                          Check in
                         </Button>
-                      </div>
-                    ) : (
-                      <Button
-                        size="sm"
-                        onClick={() => manualCheckIn.mutate(attendee)}
-                        disabled={manualCheckIn.isPending}
-                        className="shrink-0"
-                      >
-                        Check in
-                      </Button>
-                    )}
+                      )}
+                    </div>
+                    <PromisedItemsBlock items={attendee.promised} />
                   </div>
                 ))
               )}
