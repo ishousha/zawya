@@ -52,7 +52,7 @@ export function prefetchAdmin(queryClient: QueryClient) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("events")
-        .select("*")
+        .select(EVENT_PUBLIC_COLUMNS)
         .order("date_time", { ascending: true });
       if (error) throw error;
       return data;
