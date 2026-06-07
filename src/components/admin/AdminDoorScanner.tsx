@@ -579,15 +579,20 @@ export default function AdminDoorScanner() {
       {/* Result display */}
       {lastResult && (
         <Card className={lastResult.success ? "border-primary" : "border-destructive"}>
-          <CardContent className="flex items-center gap-3 p-4">
-            {lastResult.success ? (
-              <CheckCircle2 className="h-8 w-8 shrink-0 text-primary" />
-            ) : (
-              <XOctagon className="h-8 w-8 shrink-0 text-destructive" />
+          <CardContent className="space-y-3 p-4">
+            <div className="flex items-center gap-3">
+              {lastResult.success ? (
+                <CheckCircle2 className="h-8 w-8 shrink-0 text-primary" />
+              ) : (
+                <XOctagon className="h-8 w-8 shrink-0 text-destructive" />
+              )}
+              <p className={`text-sm font-medium ${lastResult.success ? "text-primary" : "text-destructive"}`}>
+                {lastResult.message}
+              </p>
+            </div>
+            {lastResult.success && lastResult.promised !== undefined && (
+              <PromisedItemsBlock items={lastResult.promised} prominent name={lastResult.name} />
             )}
-            <p className={`text-sm font-medium ${lastResult.success ? "text-primary" : "text-destructive"}`}>
-              {lastResult.message}
-            </p>
           </CardContent>
         </Card>
       )}
