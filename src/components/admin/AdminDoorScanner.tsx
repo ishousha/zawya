@@ -204,7 +204,12 @@ export default function AdminDoorScanner() {
     },
     onSuccess: (attendee) => {
       const guestText = attendee.guests_count > 1 ? ` +${attendee.guests_count - 1} guests` : "";
-      setLastResult({ success: true, message: `✓ ${attendee.name} checked in${guestText}` });
+      setLastResult({
+        success: true,
+        message: `✓ ${attendee.name} checked in${guestText}`,
+        promised: attendee.promised,
+        name: attendee.name,
+      });
       toast.success(`${attendee.name} checked in!`);
       playTone(800, 200);
       invalidateAll();
