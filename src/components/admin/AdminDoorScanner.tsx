@@ -21,12 +21,19 @@ interface QRPayload {
   event_id: string;
 }
 
+interface PromisedItem {
+  name: string;
+  quantity: number;
+  description: string | null;
+}
+
 interface AttendeeRow {
   rsvp_id: string;
   checked_in: boolean;
   guests_count: number;
   name: string;
   user_id: string;
+  promised: PromisedItem[];
 }
 
 export default function AdminDoorScanner() {
