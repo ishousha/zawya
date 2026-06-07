@@ -196,15 +196,21 @@ Deno.serve(async (req) => {
     )
     const token = authHeader.replace('Bearer ', '')
     const { data: claimsData, error: claimsError } = await userClient.auth.getClaims(token)
-    if (claimsError || !claimsData?.claims?.sub) {
+    if (claimsError || !claimsData?.claims) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
-    const { data: isAdmin } = await userClient.rpc('has_role', {
-      _user_id: claimsData.claims.sub, _role: 'admin',
-    })
-    if (!isAdmin) {
+    const callerRole = claimsData.claims.role
+    const callerSub = claimsData.claims.sub
+    let allowed = callerRole === 'service_role'
+    if (!allowed && callerSub) {
+      const { data: isAdmin } = await userClient.rpc('has_role', {
+        _user_id: callerSub, _role: 'admin',
+      })
+      allowed = !!isAdmin
+    }
+    if (!allowed) {
       return new Response(JSON.stringify({ error: 'Forbidden' }), {
         status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
