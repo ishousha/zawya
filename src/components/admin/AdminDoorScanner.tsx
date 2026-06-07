@@ -611,6 +611,31 @@ export default function AdminDoorScanner() {
   );
 }
 
+/** Promised potluck items block — forces volunteers to verify what each guest committed to bring. */
+function PromisedItemsBlock({ items, prominent = false, name }: { items: PromisedItem[]; prominent?: boolean; name?: string }) {
+  if (!items || items.length === 0) {
+    return (
+      <p className="text-xs italic text-muted-foreground">No potluck item promised</p>
+    );
+  }
+  const label = name ? `Ask ${name}: did you bring…` : "Promised";
+  return (
+    <div className={`rounded-md border-2 border-accent bg-accent/15 ${prominent ? "p-3" : "px-3 py-2"}`}>
+      <p className={`font-bold uppercase tracking-wide text-accent-foreground ${prominent ? "text-xs" : "text-[10px]"}`}>
+        {label}
+      </p>
+      <ul className={`mt-1 space-y-0.5 ${prominent ? "text-lg" : "text-sm"} font-semibold text-foreground`}>
+        {items.map((it, i) => (
+          <li key={i}>
+            {it.quantity}× {it.name}
+            {it.description ? <span className="font-normal text-muted-foreground"> — {it.description}</span> : null}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 /** Simple beep using Web Audio API */
 function playTone(frequency: number, duration: number) {
   try {
