@@ -15,10 +15,10 @@ export default function HostDashboard({ eventId, hideGuestList = false }: HostDa
     refetchInterval: 30_000,
     refetchOnWindowFocus: true,
     queryFn: async () => {
+      // Use a security-definer RPC that returns host-safe RSVP rows
+      // (no qr_hash, scoped to admins/moderators/host of this event).
       const { data: rsvpData, error } = await supabase
-        .from("rsvps")
-        .select("*")
-        .eq("event_id", eventId);
+        .rpc("get_event_host_rsvps", { _event_id: eventId });
       if (error) throw error;
       if (!rsvpData || rsvpData.length === 0) return [];
 
@@ -27,7 +27,7 @@ export default function HostDashboard({ eventId, hideGuestList = false }: HostDa
       if (pErr) console.warn("[HostDashboard] attendee profiles RPC failed", pErr);
 
       const profileMap = new Map(((profilesData ?? []) as Array<{ id: string; name: string | null; family_name: string | null }>).map((p) => [p.id, p]));
-      return rsvpData.map((r) => ({ ...r, profiles: profileMap.get(r.user_id) ?? null }));
+      return (rsvpData as any[]).map((r) => ({ ...r, profiles: profileMap.get(r.user_id) ?? null }));
     },
   });
 
