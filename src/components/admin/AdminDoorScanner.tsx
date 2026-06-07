@@ -40,7 +40,7 @@ export default function AdminDoorScanner() {
   const queryClient = useQueryClient();
   const [selectedEventId, setSelectedEventId] = useState<string>("");
   const [scanning, setScanning] = useState(false);
-  const [lastResult, setLastResult] = useState<{ success: boolean; message: string } | null>(null);
+  const [lastResult, setLastResult] = useState<{ success: boolean; message: string; promised?: PromisedItem[]; name?: string } | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [showManual, setShowManual] = useState(false);
 
