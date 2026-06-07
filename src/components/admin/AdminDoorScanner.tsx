@@ -21,19 +21,26 @@ interface QRPayload {
   event_id: string;
 }
 
+interface PromisedItem {
+  name: string;
+  quantity: number;
+  description: string | null;
+}
+
 interface AttendeeRow {
   rsvp_id: string;
   checked_in: boolean;
   guests_count: number;
   name: string;
   user_id: string;
+  promised: PromisedItem[];
 }
 
 export default function AdminDoorScanner() {
   const queryClient = useQueryClient();
   const [selectedEventId, setSelectedEventId] = useState<string>("");
   const [scanning, setScanning] = useState(false);
-  const [lastResult, setLastResult] = useState<{ success: boolean; message: string } | null>(null);
+  const [lastResult, setLastResult] = useState<{ success: boolean; message: string; promised?: PromisedItem[]; name?: string } | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [showManual, setShowManual] = useState(false);
 
@@ -129,14 +136,30 @@ export default function AdminDoorScanner() {
         .eq("event_id", selectedEventId);
       if (error) throw error;
 
-      // Fetch profile names
       const userIds = data.map((r) => r.user_id);
-      const { data: profiles } = await supabase
-        .from("profiles")
-        .select("id, name")
-        .in("id", userIds);
+      const rsvpIds = data.map((r) => r.id);
+
+      const [{ data: profiles }, { data: selections }] = await Promise.all([
+        supabase.from("profiles").select("id, name").in("id", userIds),
+        rsvpIds.length > 0
+          ? supabase
+              .from("rsvp_sign_up_selections")
+              .select("rsvp_id, quantity, description, event_sign_up_items(item_name)")
+              .in("rsvp_id", rsvpIds)
+          : Promise.resolve({ data: [] as any[] }),
+      ]);
 
       const profileMap = new Map(profiles?.map((p) => [p.id, p.name]) ?? []);
+      const promisedMap = new Map<string, PromisedItem[]>();
+      for (const s of (selections ?? []) as any[]) {
+        const list = promisedMap.get(s.rsvp_id) ?? [];
+        list.push({
+          name: s.event_sign_up_items?.item_name ?? "Item",
+          quantity: s.quantity ?? 1,
+          description: s.description ?? null,
+        });
+        promisedMap.set(s.rsvp_id, list);
+      }
 
       return data.map((r) => ({
         rsvp_id: r.id,
@@ -144,6 +167,7 @@ export default function AdminDoorScanner() {
         guests_count: r.guests_count,
         name: profileMap.get(r.user_id) || "Unknown",
         user_id: r.user_id,
+        promised: promisedMap.get(r.id) ?? [],
       })) as AttendeeRow[];
     },
     enabled: !!selectedEventId,
@@ -180,7 +204,12 @@ export default function AdminDoorScanner() {
     },
     onSuccess: (attendee) => {
       const guestText = attendee.guests_count > 1 ? ` +${attendee.guests_count - 1} guests` : "";
-      setLastResult({ success: true, message: `✓ ${attendee.name} checked in${guestText}` });
+      setLastResult({
+        success: true,
+        message: `✓ ${attendee.name} checked in${guestText}`,
+        promised: attendee.promised,
+        name: attendee.name,
+      });
       toast.success(`${attendee.name} checked in!`);
       playTone(800, 200);
       invalidateAll();
@@ -232,12 +261,28 @@ export default function AdminDoorScanner() {
       const { error: updateError } = await supabase.from("rsvps").update({ checked_in: true }).eq("id", rsvp.id);
       if (updateError) throw updateError;
 
-      const { data: profile } = await supabase.from("profiles").select("name").eq("id", rsvp.user_id).maybeSingle();
-      return { ...rsvp, profileName: profile?.name || "Attendee" };
+      const [{ data: profile }, { data: sels }] = await Promise.all([
+        supabase.from("profiles").select("name").eq("id", rsvp.user_id).maybeSingle(),
+        supabase
+          .from("rsvp_sign_up_selections")
+          .select("quantity, description, event_sign_up_items(item_name)")
+          .eq("rsvp_id", rsvp.id),
+      ]);
+      const promised: PromisedItem[] = ((sels ?? []) as any[]).map((s) => ({
+        name: s.event_sign_up_items?.item_name ?? "Item",
+        quantity: s.quantity ?? 1,
+        description: s.description ?? null,
+      }));
+      return { ...rsvp, profileName: profile?.name || "Attendee", promised };
     },
     onSuccess: (rsvp) => {
       const guestText = rsvp.guests_count > 1 ? ` +${rsvp.guests_count - 1} guests` : "";
-      setLastResult({ success: true, message: `✓ ${rsvp.profileName} checked in${guestText}` });
+      setLastResult({
+        success: true,
+        message: `✓ ${rsvp.profileName} checked in${guestText}`,
+        promised: rsvp.promised,
+        name: rsvp.profileName,
+      });
       toast.success(`${rsvp.profileName} checked in!`);
       playTone(800, 200);
       invalidateAll();
@@ -482,44 +527,47 @@ export default function AdminDoorScanner() {
                 filteredAttendees.map((attendee) => (
                   <div
                     key={attendee.rsvp_id}
-                    className="flex items-center justify-between rounded-lg border border-border p-3"
+                    className="rounded-lg border border-border p-3 space-y-2"
                   >
-                    <div className="flex items-center gap-2 min-w-0">
-                      {attendee.checked_in ? (
-                        <UserCheck className="h-4 w-4 shrink-0 text-primary" />
-                      ) : (
-                        <UserX className="h-4 w-4 shrink-0 text-muted-foreground" />
-                      )}
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium text-card-foreground truncate">{attendee.name}</p>
-                        {attendee.guests_count > 1 && (
-                          <p className="text-xs text-muted-foreground">+{attendee.guests_count - 1} guests</p>
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2 min-w-0">
+                        {attendee.checked_in ? (
+                          <UserCheck className="h-4 w-4 shrink-0 text-primary" />
+                        ) : (
+                          <UserX className="h-4 w-4 shrink-0 text-muted-foreground" />
                         )}
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-card-foreground truncate">{attendee.name}</p>
+                          {attendee.guests_count > 1 && (
+                            <p className="text-xs text-muted-foreground">+{attendee.guests_count - 1} guests</p>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                    {attendee.checked_in ? (
-                      <div className="flex items-center gap-1.5 shrink-0">
-                        <Badge variant="secondary" className="text-xs">Checked in</Badge>
+                      {attendee.checked_in ? (
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <Badge variant="secondary" className="text-xs">Checked in</Badge>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-7 px-2 text-xs text-muted-foreground hover:text-destructive"
+                            onClick={() => undoCheckIn.mutate(attendee)}
+                            disabled={undoCheckIn.isPending}
+                          >
+                            Undo
+                          </Button>
+                        </div>
+                      ) : (
                         <Button
                           size="sm"
-                          variant="ghost"
-                          className="h-7 px-2 text-xs text-muted-foreground hover:text-destructive"
-                          onClick={() => undoCheckIn.mutate(attendee)}
-                          disabled={undoCheckIn.isPending}
+                          onClick={() => manualCheckIn.mutate(attendee)}
+                          disabled={manualCheckIn.isPending}
+                          className="shrink-0"
                         >
-                          Undo
+                          Check in
                         </Button>
-                      </div>
-                    ) : (
-                      <Button
-                        size="sm"
-                        onClick={() => manualCheckIn.mutate(attendee)}
-                        disabled={manualCheckIn.isPending}
-                        className="shrink-0"
-                      >
-                        Check in
-                      </Button>
-                    )}
+                      )}
+                    </div>
+                    <PromisedItemsBlock items={attendee.promised} />
                   </div>
                 ))
               )}
@@ -531,15 +579,20 @@ export default function AdminDoorScanner() {
       {/* Result display */}
       {lastResult && (
         <Card className={lastResult.success ? "border-primary" : "border-destructive"}>
-          <CardContent className="flex items-center gap-3 p-4">
-            {lastResult.success ? (
-              <CheckCircle2 className="h-8 w-8 shrink-0 text-primary" />
-            ) : (
-              <XOctagon className="h-8 w-8 shrink-0 text-destructive" />
+          <CardContent className="space-y-3 p-4">
+            <div className="flex items-center gap-3">
+              {lastResult.success ? (
+                <CheckCircle2 className="h-8 w-8 shrink-0 text-primary" />
+              ) : (
+                <XOctagon className="h-8 w-8 shrink-0 text-destructive" />
+              )}
+              <p className={`text-sm font-medium ${lastResult.success ? "text-primary" : "text-destructive"}`}>
+                {lastResult.message}
+              </p>
+            </div>
+            {lastResult.success && lastResult.promised !== undefined && (
+              <PromisedItemsBlock items={lastResult.promised} prominent name={lastResult.name} />
             )}
-            <p className={`text-sm font-medium ${lastResult.success ? "text-primary" : "text-destructive"}`}>
-              {lastResult.message}
-            </p>
           </CardContent>
         </Card>
       )}
@@ -554,6 +607,31 @@ export default function AdminDoorScanner() {
           Scan Next Ticket
         </Button>
       )}
+    </div>
+  );
+}
+
+/** Promised potluck items block — forces volunteers to verify what each guest committed to bring. */
+function PromisedItemsBlock({ items, prominent = false, name }: { items: PromisedItem[]; prominent?: boolean; name?: string }) {
+  if (!items || items.length === 0) {
+    return (
+      <p className="text-xs italic text-muted-foreground">No potluck item promised</p>
+    );
+  }
+  const label = name ? `Ask ${name}: did you bring…` : "Promised";
+  return (
+    <div className={`rounded-md border-2 border-accent bg-accent/15 ${prominent ? "p-3" : "px-3 py-2"}`}>
+      <p className={`font-bold uppercase tracking-wide text-accent-foreground ${prominent ? "text-xs" : "text-[10px]"}`}>
+        {label}
+      </p>
+      <ul className={`mt-1 space-y-0.5 ${prominent ? "text-lg" : "text-sm"} font-semibold text-foreground`}>
+        {items.map((it, i) => (
+          <li key={i}>
+            {it.quantity}× {it.name}
+            {it.description ? <span className="font-normal text-muted-foreground"> — {it.description}</span> : null}
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }
