@@ -261,12 +261,28 @@ export default function AdminDoorScanner() {
       const { error: updateError } = await supabase.from("rsvps").update({ checked_in: true }).eq("id", rsvp.id);
       if (updateError) throw updateError;
 
-      const { data: profile } = await supabase.from("profiles").select("name").eq("id", rsvp.user_id).maybeSingle();
-      return { ...rsvp, profileName: profile?.name || "Attendee" };
+      const [{ data: profile }, { data: sels }] = await Promise.all([
+        supabase.from("profiles").select("name").eq("id", rsvp.user_id).maybeSingle(),
+        supabase
+          .from("rsvp_sign_up_selections")
+          .select("quantity, description, event_sign_up_items(item_name)")
+          .eq("rsvp_id", rsvp.id),
+      ]);
+      const promised: PromisedItem[] = ((sels ?? []) as any[]).map((s) => ({
+        name: s.event_sign_up_items?.item_name ?? "Item",
+        quantity: s.quantity ?? 1,
+        description: s.description ?? null,
+      }));
+      return { ...rsvp, profileName: profile?.name || "Attendee", promised };
     },
     onSuccess: (rsvp) => {
       const guestText = rsvp.guests_count > 1 ? ` +${rsvp.guests_count - 1} guests` : "";
-      setLastResult({ success: true, message: `✓ ${rsvp.profileName} checked in${guestText}` });
+      setLastResult({
+        success: true,
+        message: `✓ ${rsvp.profileName} checked in${guestText}`,
+        promised: rsvp.promised,
+        name: rsvp.profileName,
+      });
       toast.success(`${rsvp.profileName} checked in!`);
       playTone(800, 200);
       invalidateAll();
