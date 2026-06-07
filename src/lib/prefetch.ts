@@ -1,5 +1,6 @@
 import { QueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/runtime-client";
+import { EVENT_PUBLIC_COLUMNS } from "@/lib/event-columns";
 
 /**
  * Prefetch data for the Home tab.
