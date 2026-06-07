@@ -34,7 +34,7 @@ function AdminDashboardSummary() {
     queryFn: async () => {
       const { count, error } = await supabase
         .from("events")
-        .select("*", { count: "exact", head: true })
+        .select("id", { count: "exact", head: true })
         .in("status", ["active", "full"])
         .eq("published", true)
         .gte("date_time", new Date().toISOString());
