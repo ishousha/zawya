@@ -5,7 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { CountryCodeCombobox } from "@/components/CountryCodeCombobox";
+import { extractCountryAndNumber } from "@/lib/country-codes";
 import { LogOut, User, CalendarIcon, Loader2, ScrollText, Camera, Download, Share, RefreshCw, CheckCircle2, AlertCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";
@@ -23,31 +24,6 @@ import UserAvatar from "@/components/UserAvatar";
 import { forceRefreshApp } from "@/components/PWAUpdatePrompt";
 import { useAppVersion } from "@/hooks/useAppVersion";
 
-const COUNTRY_CODES = [
-  { code: "+971", label: "🇦🇪 +971", country: "UAE" },
-  { code: "+966", label: "🇸🇦 +966", country: "Saudi" },
-  { code: "+973", label: "🇧🇭 +973", country: "Bahrain" },
-  { code: "+974", label: "🇶🇦 +974", country: "Qatar" },
-  { code: "+968", label: "🇴🇲 +968", country: "Oman" },
-  { code: "+965", label: "🇰🇼 +965", country: "Kuwait" },
-  { code: "+20", label: "🇪🇬 +20", country: "Egypt" },
-  { code: "+91", label: "🇮🇳 +91", country: "India" },
-  { code: "+92", label: "🇵🇰 +92", country: "Pakistan" },
-  { code: "+44", label: "🇬🇧 +44", country: "UK" },
-  { code: "+1", label: "🇺🇸 +1", country: "US" },
-];
-
-function extractCountryAndNumber(e164: string | null): { countryCode: string; localNumber: string } {
-  if (!e164) return { countryCode: "+971", localNumber: "" };
-  // Try matching longest country codes first
-  const sorted = [...COUNTRY_CODES].sort((a, b) => b.code.length - a.code.length);
-  for (const cc of sorted) {
-    if (e164.startsWith(cc.code)) {
-      return { countryCode: cc.code, localNumber: e164.slice(cc.code.length) };
-    }
-  }
-  return { countryCode: "+971", localNumber: e164.replace(/^\+/, "") };
-}
 
 function toE164(countryCode: string, localNumber: string): string {
   // Strip spaces, dashes, parens, leading zeros
@@ -293,18 +269,7 @@ export default function ProfilePage() {
               WhatsApp Number <span className="text-destructive">*</span>
             </Label>
             <div className="flex gap-2">
-              <Select value={whatsappCC} onValueChange={setWhatsappCC}>
-                <SelectTrigger className="w-[120px] shrink-0">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {COUNTRY_CODES.map((cc) => (
-                    <SelectItem key={cc.code} value={cc.code}>
-                      {cc.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <CountryCodeCombobox value={whatsappCC} onChange={setWhatsappCC} />
               <Input
                 type="tel"
                 placeholder="501234567"
@@ -321,18 +286,7 @@ export default function ProfilePage() {
             </Label>
             <p className="text-xs text-muted-foreground -mt-1">(If different from WhatsApp)</p>
             <div className="flex gap-2">
-              <Select value={altCC} onValueChange={setAltCC}>
-                <SelectTrigger className="w-[120px] shrink-0">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {COUNTRY_CODES.map((cc) => (
-                    <SelectItem key={cc.code} value={cc.code}>
-                      {cc.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <CountryCodeCombobox value={altCC} onChange={setAltCC} />
               <Input
                 type="tel"
                 placeholder="501234567"
