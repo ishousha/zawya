@@ -8,20 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-
-const COUNTRY_CODES = [
-  { code: "+971", label: "🇦🇪 +971" },
-  { code: "+966", label: "🇸🇦 +966" },
-  { code: "+973", label: "🇧🇭 +973" },
-  { code: "+974", label: "🇶🇦 +974" },
-  { code: "+968", label: "🇴🇲 +968" },
-  { code: "+965", label: "🇰🇼 +965" },
-  { code: "+20", label: "🇪🇬 +20" },
-  { code: "+91", label: "🇮🇳 +91" },
-  { code: "+92", label: "🇵🇰 +92" },
-  { code: "+44", label: "🇬🇧 +44" },
-  { code: "+1", label: "🇺🇸 +1" },
-];
+import { CountryCodeCombobox } from "@/components/CountryCodeCombobox";
 
 function toE164(countryCode: string, localNumber: string): string {
   const cleaned = localNumber.replace(/[\s\-()]/g, "").replace(/^0+/, "");
