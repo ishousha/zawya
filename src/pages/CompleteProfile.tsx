@@ -200,18 +200,7 @@ export default function CompleteProfile() {
               WhatsApp Number <span className="text-destructive">*</span>
             </Label>
             <div className="flex gap-2">
-              <Select value={whatsappCC} onValueChange={setWhatsappCC}>
-                <SelectTrigger className="w-[120px] shrink-0">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {COUNTRY_CODES.map((cc) => (
-                    <SelectItem key={cc.code} value={cc.code}>
-                      {cc.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <CountryCodeCombobox value={whatsappCC} onChange={setWhatsappCC} />
               <Input
                 type="tel"
                 placeholder="501234567"
