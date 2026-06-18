@@ -665,6 +665,33 @@ export default function AdminDoorScanner() {
                 ))
               )}
             </div>
+
+            {/* External Guests (approved guest_requests + walk-ins) */}
+            {externalGuests && externalGuests.length > 0 && (
+              <div className="pt-3 border-t border-border space-y-1">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  External Guests ({externalGuests.length})
+                </p>
+                {externalGuests
+                  .filter((g) => !searchQuery.trim() || g.guest_name.toLowerCase().includes(searchQuery.toLowerCase()))
+                  .map((g) => (
+                    <div key={g.id} className="rounded-lg border border-border p-3">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <p className="text-sm font-medium text-card-foreground">{g.guest_name}</p>
+                        <Badge variant="secondary" className="text-[10px] px-1 py-0">Guest</Badge>
+                        {g.is_walk_in ? (
+                          <Badge variant="outline" className="text-[10px] px-1 py-0 border-primary/40 text-primary">Walk-in</Badge>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">· sponsor: {g.sponsor_name || "—"}</span>
+                        )}
+                      </div>
+                      {g.guest_phone && (
+                        <p className="text-xs text-muted-foreground mt-0.5">{g.guest_phone}</p>
+                      )}
+                    </div>
+                  ))}
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
