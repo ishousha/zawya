@@ -5,13 +5,23 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Loader2, CheckCircle, XCircle, Clock, Search } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Loader2, CheckCircle, XCircle, Clock, Search, ChevronDown, CalendarDays } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
+
+interface GroupedEvent {
+  eventId: string;
+  title: string;
+  dateTime: string | null;
+  requests: any[];
+  pendingCount: number;
+}
 
 export default function AllGuestApprovals() {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
+  const [openEventIds, setOpenEventIds] = useState<Record<string, boolean>>({});
 
   const { data: guestRequests, isLoading } = useQuery({
     queryKey: ["all-guest-requests"],
@@ -24,11 +34,7 @@ export default function AllGuestApprovals() {
         .select("*, events:event_id(title, date_time, location, address, virtual_link, online_link, event_type_id), profiles:requesting_user_id(name, email)")
         .order("created_at", { ascending: false });
       if (error) throw error;
-      return (data ?? []).sort((a, b) => {
-        if (a.status === "pending" && b.status !== "pending") return -1;
-        if (a.status !== "pending" && b.status === "pending") return 1;
-        return 0;
-      });
+      return data ?? [];
     },
   });
 
@@ -40,7 +46,6 @@ export default function AllGuestApprovals() {
         .eq("id", gr.id);
       if (error) throw error;
 
-      // Send email on approval
       if (status === "approved" && gr.guest_email) {
         const evt = gr.events;
         const eventDate = evt?.date_time
@@ -50,7 +55,6 @@ export default function AllGuestApprovals() {
         const eventLocation = evt?.location
           ? `${evt.location}${evt.address ? ` — ${evt.address}` : ""}`
           : "";
-
         try {
           await supabase.functions.invoke("send-transactional-email", {
             body: {
@@ -71,7 +75,6 @@ export default function AllGuestApprovals() {
         }
       }
 
-      // Fire webhook on rejection (deliberately excludes guest_email)
       if (status === "rejected") {
         try {
           await supabase.functions.invoke("notify-guest-rejected", {
@@ -94,19 +97,66 @@ export default function AllGuestApprovals() {
     onError: () => toast.error("Failed to update guest request"),
   });
 
-  const filtered = useMemo(() => {
+  // Filter, then group by event
+  const grouped = useMemo<GroupedEvent[]>(() => {
     if (!guestRequests) return [];
-    const q = search.toLowerCase();
-    if (!q) return guestRequests;
-    return guestRequests.filter((gr) =>
-      gr.guest_name.toLowerCase().includes(q) ||
-      (gr as any).profiles?.name?.toLowerCase().includes(q) ||
-      (gr as any).profiles?.email?.toLowerCase().includes(q) ||
-      (gr as any).events?.title?.toLowerCase().includes(q) ||
-      gr.guest_phone?.includes(q) ||
-      (gr as any).member_note?.toLowerCase().includes(q)
-    );
+    const q = search.toLowerCase().trim();
+    const filtered = q
+      ? guestRequests.filter((gr) =>
+          gr.guest_name.toLowerCase().includes(q) ||
+          (gr as any).profiles?.name?.toLowerCase().includes(q) ||
+          (gr as any).profiles?.email?.toLowerCase().includes(q) ||
+          (gr as any).events?.title?.toLowerCase().includes(q) ||
+          gr.guest_phone?.includes(q) ||
+          (gr as any).member_note?.toLowerCase().includes(q)
+        )
+      : guestRequests;
+
+    const byEvent = new Map<string, GroupedEvent>();
+    for (const gr of filtered) {
+      const eventId = (gr as any).event_id ?? "unknown";
+      const evt = (gr as any).events;
+      if (!byEvent.has(eventId)) {
+        byEvent.set(eventId, {
+          eventId,
+          title: evt?.title || "Unknown event",
+          dateTime: evt?.date_time ?? null,
+          requests: [],
+          pendingCount: 0,
+        });
+      }
+      const bucket = byEvent.get(eventId)!;
+      bucket.requests.push(gr);
+      if (gr.status === "pending") bucket.pendingCount += 1;
+    }
+
+    // Sort requests within group: pending first, newest first
+    for (const g of byEvent.values()) {
+      g.requests.sort((a, b) => {
+        if (a.status === "pending" && b.status !== "pending") return -1;
+        if (a.status !== "pending" && b.status === "pending") return 1;
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      });
+    }
+
+    // Sort events: any pending first, then by upcoming date
+    return Array.from(byEvent.values()).sort((a, b) => {
+      if (a.pendingCount > 0 && b.pendingCount === 0) return -1;
+      if (a.pendingCount === 0 && b.pendingCount > 0) return 1;
+      const aT = a.dateTime ? new Date(a.dateTime).getTime() : Infinity;
+      const bT = b.dateTime ? new Date(b.dateTime).getTime() : Infinity;
+      return aT - bT;
+    });
   }, [guestRequests, search]);
+
+  const totalPending = grouped.reduce((s, g) => s + g.pendingCount, 0);
+  const totalShown = grouped.reduce((s, g) => s + g.requests.length, 0);
+
+  const isOpen = (eventId: string, pendingCount: number) => {
+    if (eventId in openEventIds) return openEventIds[eventId];
+    // Default: open when there's pending activity OR when filtering
+    return pendingCount > 0 || search.trim().length > 0;
+  };
 
   if (isLoading) {
     return (
@@ -120,82 +170,128 @@ export default function AllGuestApprovals() {
     <div className="space-y-4 py-4">
       <h3 className="font-heading text-base font-semibold text-foreground flex items-center gap-2">
         <Clock className="h-4 w-4 text-accent-foreground" />
-        Guest Requests ({filtered.length}{filtered.length !== (guestRequests?.length ?? 0) ? ` / ${guestRequests?.length}` : ""})
+        Guest Requests
+        <span className="text-sm font-normal text-muted-foreground">
+          ({grouped.length} event{grouped.length !== 1 ? "s" : ""} · {totalShown} request{totalShown !== 1 ? "s" : ""}
+          {totalPending > 0 ? ` · ${totalPending} pending` : ""})
+        </span>
       </h3>
       <div className="relative">
         <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
         <Input
-          placeholder="Search by guest name, requester, event…"
+          placeholder="Search by guest, requester, event…"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="pl-9 h-9"
         />
       </div>
-      {filtered.length > 0 ? (
-        <div className="space-y-2">
-          {filtered.map((gr) => (
-            <Card key={gr.id} className={gr.status === "pending" ? "border-accent" : ""}>
-              <CardContent className="flex items-center justify-between p-4">
-                <div className="min-w-0 flex-1">
-                  <p className="truncate font-medium text-card-foreground">{gr.guest_name}</p>
-                  {(gr as any).profiles?.name && (
-                    <p className="text-xs text-muted-foreground">Requested by {(gr as any).profiles.name}</p>
-                  )}
-                  {(gr as any).events?.title && (
-                    <p className="text-xs text-primary font-medium">
-                      For: {(gr as any).events.title}
-                      {(gr as any).events.date_time && ` — ${format(new Date((gr as any).events.date_time), "EEE, MMM d")}`}
-                    </p>
-                  )}
-                  {gr.guest_phone && (
-                    <p className="text-xs text-muted-foreground">{gr.guest_phone}</p>
-                  )}
-                  {(gr as any).member_note && (
-                    <div className="mt-1.5 rounded-md border border-border bg-muted/30 p-2">
-                      <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground mb-0.5">
-                        Note from member
-                      </p>
-                      <p className="text-xs text-foreground whitespace-pre-wrap">{(gr as any).member_note}</p>
-                    </div>
-                  )}
-                </div>
-                <div className="ml-3 flex items-center gap-2">
-                  <Badge
-                    variant={gr.status === "pending" ? "outline" : gr.status === "approved" ? "default" : "destructive"}
-                    className="capitalize"
-                  >
-                    {gr.status}
-                  </Badge>
-                  {gr.status !== "approved" && (
-                    <Button
-                      size="icon"
-                      className="h-10 w-10"
-                      onClick={() => updateStatus.mutate({ gr, status: "approved" })}
-                      disabled={updateStatus.isPending}
-                      title="Approve"
-                    >
-                      <CheckCircle className="h-5 w-5" />
-                    </Button>
-                  )}
-                  {gr.status !== "rejected" && (
-                    <Button
-                      size="icon"
-                      variant="destructive"
-                      className="h-10 w-10"
-                      onClick={() => updateStatus.mutate({ gr, status: "rejected" })}
-                      disabled={updateStatus.isPending}
-                      title="Reject"
-                    >
-                      <XCircle className="h-5 w-5" />
-                    </Button>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      ) : (
+
+      {grouped.length === 0 ? (
         <p className="text-sm text-muted-foreground">No guest requests yet.</p>
+      ) : (
+        <div className="space-y-3">
+          {grouped.map((g) => {
+            const open = isOpen(g.eventId, g.pendingCount);
+            return (
+              <Collapsible
+                key={g.eventId}
+                open={open}
+                onOpenChange={(v) => setOpenEventIds((prev) => ({ ...prev, [g.eventId]: v }))}
+                className="rounded-lg border border-border bg-card"
+              >
+                <CollapsibleTrigger asChild>
+                  <button
+                    type="button"
+                    className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left hover:bg-muted/40 rounded-lg"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <CalendarDays className="h-4 w-4 text-primary shrink-0" />
+                        <p className="font-medium text-card-foreground truncate">{g.title}</p>
+                      </div>
+                      {g.dateTime && (
+                        <p className="text-xs text-muted-foreground ml-6">
+                          {format(new Date(g.dateTime), "EEE, MMM d, yyyy · h:mm a")}
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      {g.pendingCount > 0 && (
+                        <Badge variant="default" className="h-6 px-2 text-xs">
+                          {g.pendingCount} pending
+                        </Badge>
+                      )}
+                      <Badge variant="secondary" className="h-6 px-2 text-xs">
+                        {g.requests.length} total
+                      </Badge>
+                      <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`} />
+                    </div>
+                  </button>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <div className="space-y-2 px-3 pb-3">
+                    {g.requests.map((gr) => (
+                      <Card key={gr.id} className={gr.status === "pending" ? "border-accent" : ""}>
+                        <CardContent className="flex items-center justify-between p-3">
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate font-medium text-card-foreground">{gr.guest_name}</p>
+                            {(gr as any).profiles?.name && (
+                              <p className="text-xs text-muted-foreground">
+                                Requested by {(gr as any).profiles.name}
+                              </p>
+                            )}
+                            {gr.guest_phone && (
+                              <p className="text-xs text-muted-foreground">{gr.guest_phone}</p>
+                            )}
+                            {(gr as any).member_note && (
+                              <div className="mt-1.5 rounded-md border border-border bg-muted/30 p-2">
+                                <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground mb-0.5">
+                                  Note from member
+                                </p>
+                                <p className="text-xs text-foreground whitespace-pre-wrap">{(gr as any).member_note}</p>
+                              </div>
+                            )}
+                          </div>
+                          <div className="ml-3 flex items-center gap-2">
+                            <Badge
+                              variant={gr.status === "pending" ? "outline" : gr.status === "approved" ? "default" : "destructive"}
+                              className="capitalize"
+                            >
+                              {gr.status}
+                            </Badge>
+                            {gr.status !== "approved" && (
+                              <Button
+                                size="icon"
+                                className="h-10 w-10"
+                                onClick={() => updateStatus.mutate({ gr, status: "approved" })}
+                                disabled={updateStatus.isPending}
+                                title="Approve"
+                              >
+                                <CheckCircle className="h-5 w-5" />
+                              </Button>
+                            )}
+                            {gr.status !== "rejected" && (
+                              <Button
+                                size="icon"
+                                variant="destructive"
+                                className="h-10 w-10"
+                                onClick={() => updateStatus.mutate({ gr, status: "rejected" })}
+                                disabled={updateStatus.isPending}
+                                title="Reject"
+                              >
+                                <XCircle className="h-5 w-5" />
+                              </Button>
+                            )}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
+            );
+          })}
+        </div>
       )}
     </div>
   );
