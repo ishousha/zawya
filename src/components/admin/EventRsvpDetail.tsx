@@ -157,26 +157,33 @@ export default function EventRsvpDetail({ eventId, eventTitle, eventDate, checki
   });
 
   const toggleCheckin = useMutation({
-    mutationFn: async ({
-      rsvpId,
-      next,
-    }: {
+    mutationFn: async (vars: {
       rsvpId: string;
       next: boolean;
       name: string;
       userId: string;
       email: string | null;
     }) => {
-      const { error } = await supabase.from("rsvps").update({ checked_in: next }).eq("id", rsvpId);
+      const { error } = await supabase
+        .from("rsvps")
+        .update({ checked_in: vars.next })
+        .eq("id", vars.rsvpId);
       if (error) throw error;
       const { data: userData } = await supabase.auth.getUser();
       const actorId = userData.user?.id;
       if (actorId) {
         await supabase.from("admin_activity_log").insert({
           actor_id: actorId,
-          action: next ? "checkin_rsvp" : "undo_checkin",
-          target_user_id: arguments_target_user_id_placeholder,
-        } as never);
+          action: vars.next ? "checkin_rsvp" : "undo_checkin",
+          target_user_id: vars.userId,
+          target_user_name: vars.name,
+          target_user_email: vars.email,
+          details: {
+            event_id: eventId,
+            event_title: eventTitle,
+            rsvp_id: vars.rsvpId,
+          },
+        });
       }
     },
     onSuccess: (_d, vars) => {
