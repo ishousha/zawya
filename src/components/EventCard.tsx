@@ -266,6 +266,7 @@ function EventCardInner({ event, onShowTicket, isPast = false }: EventCardProps)
               {confirmedCount}/{event.capacity} spots
             </span>
           )}
+          {isAdminOrMod && <AdminGuestCountPill eventId={event.id} memberCount={confirmedCount} />}
         </div>
 
         {/* Guest request status — only when user has at least one request */}
