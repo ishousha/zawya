@@ -14,7 +14,17 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
-import { Loader2, X, Download, UserPlus, Mail, Printer, Users, UtensilsCrossed, CheckCircle2, Eye, Plus, Trash2, MessageCircle } from "lucide-react";
+import { Loader2, X, Download, UserPlus, Mail, Printer, Users, UtensilsCrossed, CheckCircle2, Circle, Eye, Plus, Trash2, MessageCircle } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { downloadCsv, zawyaFilename } from "@/lib/csv-export";
 import { toast } from "sonner";
 import HostDashboard from "@/components/HostDashboard";
@@ -145,6 +155,22 @@ export default function EventRsvpDetail({ eventId, eventTitle, eventDate, checki
     },
     onError: (e: any) => toast.error(e?.message || "Failed to remove"),
   });
+
+  const toggleCheckin = useMutation({
+    mutationFn: async ({ rsvpId, next }: { rsvpId: string; next: boolean; name: string }) => {
+      const { error } = await supabase.from("rsvps").update({ checked_in: next }).eq("id", rsvpId);
+      if (error) throw error;
+    },
+    onSuccess: (_d, vars) => {
+      queryClient.invalidateQueries({ queryKey: ["admin-rsvps", eventId] });
+      queryClient.invalidateQueries({ queryKey: ["host-rsvps", eventId] });
+      queryClient.invalidateQueries({ queryKey: ["door-attendees", eventId] });
+      toast.success(vars.next ? `Checked in ${vars.name}` : `Undid check-in for ${vars.name}`);
+    },
+    onError: (e: any) => toast.error(e?.message || "Failed to update check-in"),
+  });
+
+  const [undoTarget, setUndoTarget] = useState<{ rsvpId: string; name: string } | null>(null);
 
   const reassignItem = useMutation({
     mutationFn: async ({ selectionId, rsvpId }: { selectionId: number; rsvpId: string }) => {
@@ -434,12 +460,36 @@ export default function EventRsvpDetail({ eventId, eventTitle, eventDate, checki
                                 <TableCell className="py-2">{getDepsDisplay(r)}</TableCell>
                                 <TableCell className="py-2 text-center text-sm">{r.guests_count}</TableCell>
                                 <TableCell className="py-2 text-center">
-                                  {r.checked_in ? (
-                                    <CheckCircle2 className="h-4 w-4 text-emerald-600 mx-auto" />
-                                  ) : (
-                                    <span className="text-muted-foreground/40">○</span>
-                                  )}
+                                  {(() => {
+                                    const name = (r.profile as any)?.name || "guest";
+                                    const isPending = toggleCheckin.isPending && toggleCheckin.variables?.rsvpId === r.id;
+                                    return (
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          if (isPending) return;
+                                          if (r.checked_in) {
+                                            setUndoTarget({ rsvpId: r.id, name });
+                                          } else {
+                                            toggleCheckin.mutate({ rsvpId: r.id, next: true, name });
+                                          }
+                                        }}
+                                        disabled={isPending}
+                                        aria-label={r.checked_in ? `Undo check-in for ${name}` : `Mark ${name} as checked in`}
+                                        className="inline-flex h-11 w-11 items-center justify-center rounded-full hover:bg-muted/60 disabled:opacity-50 transition-colors"
+                                      >
+                                        {isPending ? (
+                                          <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                                        ) : r.checked_in ? (
+                                          <CheckCircle2 className="h-5 w-5 text-emerald-600" />
+                                        ) : (
+                                          <Circle className="h-5 w-5 text-muted-foreground/40" />
+                                        )}
+                                      </button>
+                                    );
+                                  })()}
                                 </TableCell>
+
                               </TableRow>
                             ))}
                           </TableBody>
@@ -700,6 +750,30 @@ export default function EventRsvpDetail({ eventId, eventTitle, eventDate, checki
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={!!undoTarget} onOpenChange={(o) => !o && setUndoTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Undo check-in?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will mark {undoTarget?.name} as not checked in.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (undoTarget) {
+                  toggleCheckin.mutate({ rsvpId: undoTarget.rsvpId, next: false, name: undoTarget.name });
+                  setUndoTarget(null);
+                }
+              }}
+            >
+              Undo check-in
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
