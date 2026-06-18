@@ -68,6 +68,7 @@ export interface EventFormState {
   checkin_pin: string;
   host_id: string | null;
   mureeds_only: boolean;
+  allow_guests: boolean;
   speaker_ids: string[];
   notify_members: boolean;
   notify_attendees: boolean;
@@ -115,6 +116,7 @@ export const defaultEventForm: EventFormState = {
   checkin_pin: generateCheckinPin(),
   host_id: null,
   mureeds_only: false,
+  allow_guests: true,
   speaker_ids: [],
   notify_members: false,
   notify_attendees: false,

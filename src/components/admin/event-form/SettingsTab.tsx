@@ -90,6 +90,18 @@ export default function SettingsTab({ form, setForm, isEditing, onShortCodeUserE
             onCheckedChange={(v) => update("mureeds_only", v)}
           />
         </div>
+        <div className="flex items-center justify-between rounded-lg border border-border p-3 mt-2">
+          <div>
+            <p className="text-sm font-medium text-foreground">Allow Guest Requests</p>
+            <p className="text-xs text-muted-foreground">
+              When off, members can't add guests during RSVP. Admins can still add walk-in guests at the door.
+            </p>
+          </div>
+          <Switch
+            checked={form.allow_guests !== false}
+            onCheckedChange={(v) => update("allow_guests", v)}
+          />
+        </div>
       </div>
 
       {/* Event Fee */}

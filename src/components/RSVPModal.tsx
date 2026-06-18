@@ -825,8 +825,10 @@ export default function RSVPModal({ event, open, onOpenChange }: RSVPModalProps)
             </div>
           )}
 
-          {/* Guest Requests — only shown when editing */}
-          {isEditing && <GuestRequestsSection eventId={event.id} event={event} />}
+          {/* Guest Requests — only shown when editing and guests are allowed */}
+          {isEditing && (event as any).allow_guests !== false && (
+            <GuestRequestsSection eventId={event.id} event={event} />
+          )}
         </div>
 
         {/* Payment Required callout */}
