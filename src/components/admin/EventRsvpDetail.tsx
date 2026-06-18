@@ -86,7 +86,7 @@ export default function EventRsvpDetail({ eventId, eventTitle, eventDate, checki
       const userIds = [...new Set(rsvpData.map((r) => r.user_id))];
       const { data: profilesData } = await supabase
         .from("profiles")
-        .select("id, name, email, role, family_name")
+        .select("id, name, email, role, family_name, is_mureed")
         .in("id", userIds);
 
       const profileMap = new Map((profilesData ?? []).map((p) => [p.id, p]));
