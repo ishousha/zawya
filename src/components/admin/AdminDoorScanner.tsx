@@ -624,7 +624,13 @@ export default function AdminDoorScanner() {
                           <UserX className="h-4 w-4 shrink-0 text-muted-foreground" />
                         )}
                         <div className="min-w-0">
-                          <p className="text-sm font-medium text-card-foreground truncate">{attendee.name}</p>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <p className="text-sm font-medium text-card-foreground truncate">{attendee.name}</p>
+                            <Badge variant="outline" className="text-[10px] px-1 py-0 border-primary/40 text-primary">Member</Badge>
+                            {attendee.is_mureed && (
+                              <Badge variant="outline" className="text-[10px] px-1 py-0 border-accent text-accent-foreground bg-accent/10">Mureed</Badge>
+                            )}
+                          </div>
                           {attendee.guests_count > 1 && (
                             <p className="text-xs text-muted-foreground">+{attendee.guests_count - 1} guests</p>
                           )}
