@@ -34,7 +34,17 @@ interface AttendeeRow {
   guests_count: number;
   name: string;
   user_id: string;
+  is_mureed: boolean;
   promised: PromisedItem[];
+}
+
+interface ExternalGuestRow {
+  id: string;
+  guest_name: string;
+  guest_phone: string | null;
+  requesting_user_id: string | null;
+  sponsor_name: string | null;
+  is_walk_in: boolean;
 }
 
 export default function AdminDoorScanner() {
