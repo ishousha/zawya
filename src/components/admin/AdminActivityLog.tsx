@@ -154,6 +154,8 @@ export default function AdminActivityLog() {
               <SelectItem value="role_change">Role changes</SelectItem>
               <SelectItem value="suspend_user">Suspensions</SelectItem>
               <SelectItem value="delete_user">Deletions</SelectItem>
+              <SelectItem value="checkin_rsvp">Check-ins</SelectItem>
+              <SelectItem value="undo_checkin">Check-in undos</SelectItem>
             </SelectContent>
           </Select>
           <Popover>
