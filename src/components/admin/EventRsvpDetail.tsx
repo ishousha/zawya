@@ -924,3 +924,117 @@ function GuestRequestsSection({ eventId }: { eventId: string }) {
     </Collapsible>
   );
 }
+
+function ExternalGuestsSection({ eventId }: { eventId: string }) {
+  const { data: requests } = useEventGuestRequests(eventId);
+  const { data: requesterRoles } = useQuery({
+    queryKey: ["guest-requester-roles", eventId, (requests ?? []).map((r: any) => r.requesting_user_id).join(",")],
+    enabled: !!requests && requests.length > 0,
+    queryFn: async () => {
+      const ids = [...new Set((requests ?? []).map((r: any) => r.requesting_user_id).filter(Boolean))] as string[];
+      if (ids.length === 0) return new Map<string, string>();
+      const { data } = await supabase.from("user_roles").select("user_id, role").in("user_id", ids);
+      const m = new Map<string, string>();
+      for (const row of (data ?? []) as any[]) {
+        // prefer admin/moderator label if present
+        const existing = m.get(row.user_id);
+        if (!existing || row.role === "admin" || row.role === "moderator") m.set(row.user_id, row.role);
+      }
+      return m;
+    },
+  });
+
+  const approved = (requests ?? []).filter((r: any) => r.status === "approved");
+
+  return (
+    <div className="pt-2 border-t border-border">
+      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-2">
+        <span>External Guests ({approved.length})</span>
+        <Badge variant="outline" className="h-5 px-1.5 text-[10px]">
+          approved
+        </Badge>
+      </p>
+      {approved.length === 0 ? (
+        <p className="text-xs text-muted-foreground italic">No approved external guests.</p>
+      ) : (
+        <div className="overflow-x-auto -mx-4 px-4">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="text-xs">Guest</TableHead>
+                <TableHead className="text-xs">Sponsor</TableHead>
+                <TableHead className="text-xs">Phone</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {approved.map((g: any) => {
+                const requesterId = g.requesting_user_id;
+                const role = requesterId ? requesterRoles?.get(requesterId) : undefined;
+                const isWalkIn = !requesterId || role === "admin" || role === "moderator";
+                const sponsorName = g.profiles?.name || "—";
+                return (
+                  <TableRow key={g.id}>
+                    <TableCell className="py-2">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="text-sm font-medium">{g.guest_name}</span>
+                        <Badge variant="secondary" className="text-[10px] px-1 py-0">Guest</Badge>
+                        {isWalkIn && (
+                          <Badge variant="outline" className="text-[10px] px-1 py-0 border-primary/40 text-primary">
+                            Walk-in
+                          </Badge>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell className="py-2 text-sm text-muted-foreground">
+                      {isWalkIn ? "Admin (walk-in)" : sponsorName}
+                    </TableCell>
+                    <TableCell className="py-2 text-sm text-muted-foreground">
+                      {g.guest_phone || "—"}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function RsvpTotalsLine({
+  eventId,
+  memberHeadcount,
+  memberCount,
+  mureedCount,
+  waitlistedHeadcount,
+  waitlistedCount,
+}: {
+  eventId: string;
+  memberHeadcount: number;
+  memberCount: number;
+  mureedCount: number;
+  waitlistedHeadcount: number;
+  waitlistedCount: number;
+}) {
+  const { data: requests } = useEventGuestRequests(eventId);
+  const guestCount = (requests ?? []).filter((r: any) => r.status === "approved").length;
+  const totalHeadcount = memberHeadcount + guestCount;
+  return (
+    <p className="text-xs text-muted-foreground text-center pt-2 leading-relaxed">
+      <span className="font-medium text-foreground">Members:</span> {memberCount}
+      {mureedCount > 0 && ` (${mureedCount} mureed${mureedCount !== 1 ? "s" : ""})`}
+      {" · "}
+      <span className="font-medium text-foreground">External guests:</span> {guestCount}
+      {" · "}
+      <span className="font-medium text-foreground">Total headcount:</span> {totalHeadcount}
+      {waitlistedCount > 0 && (
+        <>
+          <br />
+          <span className="text-amber-600">Waitlisted:</span> {waitlistedHeadcount} ({waitlistedCount} families)
+        </>
+      )}
+    </p>
+  );
+}
+
