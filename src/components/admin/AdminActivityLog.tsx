@@ -33,6 +33,8 @@ const ACTION_CONFIG: Record<string, { label: string; icon: typeof UserCog; varia
   suspend_user: { label: "Suspended", icon: ShieldAlert, variant: "destructive" },
   delete_user: { label: "Deleted", icon: UserMinus, variant: "destructive" },
   create_user: { label: "Created", icon: UserPlus, variant: "default" },
+  checkin_rsvp: { label: "Checked In", icon: CheckCircle2, variant: "default" },
+  undo_checkin: { label: "Check-in Undone", icon: RotateCcw, variant: "outline" },
 };
 
 export default function AdminActivityLog() {
