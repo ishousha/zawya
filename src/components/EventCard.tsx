@@ -17,8 +17,6 @@ import { AlertTriangle } from "lucide-react";
 import SpeakerBadge from "@/components/SpeakerBadge";
 import LazyImage from "@/components/LazyImage";
 import { useShareEvent } from "@/components/ShareEventDialog";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/runtime-client";
 import type { Database } from "@/integrations/supabase/types";
 
 type Event = Database["public"]["Tables"]["events"]["Row"];
