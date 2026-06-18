@@ -620,11 +620,9 @@ export default function EventRsvpDetail({ eventId, eventTitle, eventDate, checki
                     </div>
                   )}
 
-                  {/* Guest Requests */}
-                  <div className="pt-2 border-t border-border">
-                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Guest Requests</p>
-                    <AdminGuestApprovals eventId={eventId} />
-                  </div>
+                  {/* Guest Requests (collapsible, scoped to this event) */}
+                  <GuestRequestsSection eventId={eventId} />
+
 
                   <p className="text-xs text-muted-foreground text-center pt-2">
                     Total: {attending.reduce((s, r) => s + r.guests_count, 0)} attending
