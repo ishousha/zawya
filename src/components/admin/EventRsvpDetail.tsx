@@ -156,6 +156,22 @@ export default function EventRsvpDetail({ eventId, eventTitle, eventDate, checki
     onError: (e: any) => toast.error(e?.message || "Failed to remove"),
   });
 
+  const toggleCheckin = useMutation({
+    mutationFn: async ({ rsvpId, next }: { rsvpId: string; next: boolean; name: string }) => {
+      const { error } = await supabase.from("rsvps").update({ checked_in: next }).eq("id", rsvpId);
+      if (error) throw error;
+    },
+    onSuccess: (_d, vars) => {
+      queryClient.invalidateQueries({ queryKey: ["admin-rsvps", eventId] });
+      queryClient.invalidateQueries({ queryKey: ["host-rsvps", eventId] });
+      queryClient.invalidateQueries({ queryKey: ["door-attendees", eventId] });
+      toast.success(vars.next ? `Checked in ${vars.name}` : `Undid check-in for ${vars.name}`);
+    },
+    onError: (e: any) => toast.error(e?.message || "Failed to update check-in"),
+  });
+
+  const [undoTarget, setUndoTarget] = useState<{ rsvpId: string; name: string } | null>(null);
+
   const reassignItem = useMutation({
     mutationFn: async ({ selectionId, rsvpId }: { selectionId: number; rsvpId: string }) => {
       const { error } = await supabase
