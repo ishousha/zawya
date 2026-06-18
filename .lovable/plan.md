@@ -1,27 +1,39 @@
-# Tappable Check-in in Admin Guest List
+# Easier event finding in Admin → Events
 
-Currently the Check-in column in the admin event's Guest List (Events → event → Guests tab) only displays status as a read-only icon. Add the ability to toggle check-in by tapping the circle/check directly in the row.
+Reorganize the admin event list so upcoming events are front and center, past events stay out of the way, and admins can stack filters + search.
 
-## Changes
+## Behavior
 
-**File: `src/components/admin/EventRsvpDetail.tsx`**
+**Default view (no filters, no search):**
+- **Upcoming Events** section at top — chronological (soonest first).
+- **Past Events** section below, collapsed by default, with count badge. When expanded, ordered most-recent-first (reverse chronological).
+- Cancelled events keep their existing collapsed section at the bottom.
 
-1. Add a mutation (TanStack Query) that updates `rsvps.checked_in` for a given rsvp id:
-   - On toggle on: `update({ checked_in: true })`
-   - On toggle off: `update({ checked_in: false })` (matches Door Scanner's undo behavior)
-   - On success: invalidate the event-rsvps query so the list refreshes, plus the door-scanner / host queries.
-   - Toast success ("Checked in {name}" / "Undid check-in for {name}") and error.
+**Filter chips become multi-select.** Each chip toggles independently and chips combine with AND for time-bucket / OR within the status group:
+- Time: `Upcoming` (default on), `Past`
+- Status: `Published`, `Scheduled`, `Draft`
+- Selecting any chip switches off the auto-split layout and renders a single filtered list (no collapsed Past section), still ordered by date_time (asc for upcoming-only, desc when Past is included).
+- An `All` / `Clear filters` reset button restores the default split view.
 
-2. Replace the read-only cell at lines 436–442 with a `<button>` (≥44px tap target, accessible label) that:
-   - Renders the green `CheckCircle2` when `checked_in === true`.
-   - Renders an empty circle (`Circle` from lucide-react, muted) when false.
-   - Calls the mutation with optimistic UI (disabled while pending).
-   - Includes `aria-label="Mark {name} as checked in"` / "Undo check-in for {name}".
+**Search input** above the chips: filters by event title (case-insensitive, debounced). Works alongside chips.
 
-3. Add a brief confirmation (AlertDialog) only when **undoing** a check-in (to prevent accidental taps); direct check-in is a single tap with toast.
+**Counts** stay on each chip and reflect what's currently selectable (independent of search).
+
+## Files
+
+- `src/components/admin/EventControlRoom.tsx`
+  - Replace single `statusFilter` state with `Set<Filter>` plus a `search` string.
+  - Compute `upcomingEvents` / `pastEvents` from the existing query (already orders by date_time asc). Sort `past` descending for display.
+  - Replace the single-select chip row with multi-select chips + clear button + a search `<Input>` with a leading `Search` icon.
+  - Render either the split layout (default) or the combined filtered list (when any filter/search active).
+  - Add a `<Collapsible>` wrapper for the Past Events section, default closed.
+
+## Data
+
+- Bump the events query `.limit(50)` to `.limit(500)` so past events are reachable when expanded. No schema or RLS changes.
 
 ## Out of scope
-- Waitlisted rows (no check-in column there).
-- Bulk check-in.
-- Changing the Door Scanner, Host Dashboard, or RPCs.
-- No DB/RLS changes — admins already have UPDATE on `rsvps` (same path used by Door Scanner and Walk-in modal).
+
+- Server-side pagination / infinite scroll for past events.
+- Date-range pickers, host/type filters (can be added later if needed).
+- Cancelled events section (unchanged).
