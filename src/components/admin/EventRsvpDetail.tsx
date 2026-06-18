@@ -538,31 +538,44 @@ export default function EventRsvpDetail({ eventId, eventTitle, eventDate, checki
                                 <TableCell className="py-2 text-center text-sm">{r.guests_count}</TableCell>
                                 <TableCell className="py-2 text-center">
                                   {(() => {
-                                    const name = (r.profile as any)?.name || "guest";
+                                    const profile = (r.profile as any) || {};
+                                    const name = profile.name || "guest";
+                                    const email = profile.email ?? null;
+                                    const userId = r.user_id as string;
                                     const isPending = toggleCheckin.isPending && toggleCheckin.variables?.rsvpId === r.id;
+                                    const audit = latestAuditByRsvp.get(r.id);
                                     return (
-                                      <button
-                                        type="button"
-                                        onClick={() => {
-                                          if (isPending) return;
-                                          if (r.checked_in) {
-                                            setUndoTarget({ rsvpId: r.id, name });
-                                          } else {
-                                            toggleCheckin.mutate({ rsvpId: r.id, next: true, name });
-                                          }
-                                        }}
-                                        disabled={isPending}
-                                        aria-label={r.checked_in ? `Undo check-in for ${name}` : `Mark ${name} as checked in`}
-                                        className="inline-flex h-11 w-11 items-center justify-center rounded-full hover:bg-muted/60 disabled:opacity-50 transition-colors"
-                                      >
-                                        {isPending ? (
-                                          <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                                        ) : r.checked_in ? (
-                                          <CheckCircle2 className="h-5 w-5 text-emerald-600" />
-                                        ) : (
-                                          <Circle className="h-5 w-5 text-muted-foreground/40" />
+                                      <div className="flex flex-col items-center gap-0.5">
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            if (isPending) return;
+                                            if (r.checked_in) {
+                                              setUndoTarget({ rsvpId: r.id, name, userId, email });
+                                            } else {
+                                              toggleCheckin.mutate({ rsvpId: r.id, next: true, name, userId, email });
+                                            }
+                                          }}
+                                          disabled={isPending}
+                                          aria-label={r.checked_in ? `Undo check-in for ${name}` : `Mark ${name} as checked in`}
+                                          className="inline-flex h-11 w-11 items-center justify-center rounded-full hover:bg-muted/60 disabled:opacity-50 transition-colors"
+                                        >
+                                          {isPending ? (
+                                            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                                          ) : r.checked_in ? (
+                                            <CheckCircle2 className="h-5 w-5 text-emerald-600" />
+                                          ) : (
+                                            <Circle className="h-5 w-5 text-muted-foreground/40" />
+                                          )}
+                                        </button>
+                                        {audit && (
+                                          <span className="text-[10px] leading-tight text-muted-foreground">
+                                            {audit.action === "undo_checkin" ? "undone" : "by"} {actorMap.get(audit.actor_id) || "Admin"}
+                                            {" · "}
+                                            {format(new Date(audit.created_at), "MMM d, h:mma")}
+                                          </span>
                                         )}
-                                      </button>
+                                      </div>
                                     );
                                   })()}
                                 </TableCell>
