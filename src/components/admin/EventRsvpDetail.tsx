@@ -157,20 +157,90 @@ export default function EventRsvpDetail({ eventId, eventTitle, eventDate, checki
   });
 
   const toggleCheckin = useMutation({
-    mutationFn: async ({ rsvpId, next }: { rsvpId: string; next: boolean; name: string }) => {
+    mutationFn: async ({
+      rsvpId,
+      next,
+    }: {
+      rsvpId: string;
+      next: boolean;
+      name: string;
+      userId: string;
+      email: string | null;
+    }) => {
       const { error } = await supabase.from("rsvps").update({ checked_in: next }).eq("id", rsvpId);
       if (error) throw error;
+      const { data: userData } = await supabase.auth.getUser();
+      const actorId = userData.user?.id;
+      if (actorId) {
+        await supabase.from("admin_activity_log").insert({
+          actor_id: actorId,
+          action: next ? "checkin_rsvp" : "undo_checkin",
+          target_user_id: arguments_target_user_id_placeholder,
+        } as never);
+      }
     },
     onSuccess: (_d, vars) => {
       queryClient.invalidateQueries({ queryKey: ["admin-rsvps", eventId] });
       queryClient.invalidateQueries({ queryKey: ["host-rsvps", eventId] });
       queryClient.invalidateQueries({ queryKey: ["door-attendees", eventId] });
+      queryClient.invalidateQueries({ queryKey: ["event-checkin-log", eventId] });
+      queryClient.invalidateQueries({ queryKey: ["admin-activity-log"] });
       toast.success(vars.next ? `Checked in ${vars.name}` : `Undid check-in for ${vars.name}`);
     },
     onError: (e: any) => toast.error(e?.message || "Failed to update check-in"),
   });
 
-  const [undoTarget, setUndoTarget] = useState<{ rsvpId: string; name: string } | null>(null);
+  const [undoTarget, setUndoTarget] = useState<{
+    rsvpId: string;
+    name: string;
+    userId: string;
+    email: string | null;
+  } | null>(null);
+
+  // Per-event check-in audit trail (latest entry per rsvp shown inline)
+  const { data: checkinAudit } = useQuery({
+    queryKey: ["event-checkin-log", eventId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("admin_activity_log")
+        .select("id, action, actor_id, created_at, details")
+        .in("action", ["checkin_rsvp", "undo_checkin"])
+        .contains("details", { event_id: eventId })
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const actorIds = useMemo(
+    () => [...new Set((checkinAudit ?? []).map((l) => l.actor_id))],
+    [checkinAudit],
+  );
+  const { data: actorProfiles } = useQuery({
+    queryKey: ["checkin-actors", actorIds.sort().join(",")],
+    enabled: actorIds.length > 0,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("id, name")
+        .in("id", actorIds);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+  const actorMap = useMemo(() => {
+    const m = new Map<string, string>();
+    (actorProfiles ?? []).forEach((p: any) => m.set(p.id, p.name || "Admin"));
+    return m;
+  }, [actorProfiles]);
+  const latestAuditByRsvp = useMemo(() => {
+    const m = new Map<string, { action: string; actor_id: string; created_at: string }>();
+    (checkinAudit ?? []).forEach((row: any) => {
+      const rsvpId = (row.details as any)?.rsvp_id as string | undefined;
+      if (rsvpId && !m.has(rsvpId)) m.set(rsvpId, row);
+    });
+    return m;
+  }, [checkinAudit]);
 
   const reassignItem = useMutation({
     mutationFn: async ({ selectionId, rsvpId }: { selectionId: number; rsvpId: string }) => {
