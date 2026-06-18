@@ -188,6 +188,7 @@ export default function EventControlRoom() {
       checkin_pin: event.checkin_pin ?? "",
       host_id: (event as any).host_id ?? null,
       mureeds_only: (event as any).mureeds_only ?? false,
+      allow_guests: (event as any).allow_guests ?? true,
       speaker_ids: [],
       notify_members: false,
       notify_attendees: false,

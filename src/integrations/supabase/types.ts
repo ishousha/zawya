@@ -436,6 +436,7 @@ export type Database = {
           address: string | null
           age_group: string
           age_groups: string[]
+          allow_guests: boolean
           announcement_send_at: string | null
           announcement_sent_at: string | null
           audience_gender: string
@@ -481,6 +482,7 @@ export type Database = {
           address?: string | null
           age_group?: string
           age_groups?: string[]
+          allow_guests?: boolean
           announcement_send_at?: string | null
           announcement_sent_at?: string | null
           audience_gender?: string
@@ -526,6 +528,7 @@ export type Database = {
           address?: string | null
           age_group?: string
           age_groups?: string[]
+          allow_guests?: boolean
           announcement_send_at?: string | null
           announcement_sent_at?: string | null
           audience_gender?: string

@@ -211,6 +211,17 @@ function EventCardInner({ event, onShowTicket, isPast = false }: EventCardProps)
               ♀ Sisters Only
             </span>
           )}
+          {(event as any).allow_guests === false ? (
+            <span className="inline-flex items-center gap-1 rounded-full bg-destructive/15 px-2.5 py-0.5 text-xs font-semibold text-destructive">
+              <Ban className="h-3 w-3" />
+              No guests allowed
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-1 rounded-full bg-accent/15 px-2.5 py-0.5 text-xs font-medium text-accent-foreground/80">
+              <Users className="h-3 w-3" />
+              Guests allowed
+            </span>
+          )}
           {isLiveNow && !isCancelled && (
             <span className="inline-flex items-center gap-1 rounded-full bg-accent px-2.5 py-0.5 text-xs font-bold text-accent-foreground">
               <span className="relative flex h-2 w-2">
