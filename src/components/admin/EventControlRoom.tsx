@@ -410,26 +410,57 @@ export default function EventControlRoom() {
               </CollapsibleContent>
             </Collapsible>
           )}
-          {/* Status filter tabs */}
-          <div className="flex gap-1.5 overflow-x-auto pb-1">
-            {(["all", "published", "scheduled", "draft", "past"] as const).map((f) => (
+          {/* Search */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search events by title"
+              className="pl-9 h-10"
+            />
+            {search && (
               <button
-                key={f}
-                onClick={() => setStatusFilter(f)}
-                className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
-                  statusFilter === f
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-muted text-muted-foreground hover:bg-muted/80"
-                }`}
+                onClick={() => setSearch("")}
+                aria-label="Clear search"
+                className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-muted-foreground hover:bg-muted"
               >
-                {f === "all" ? "All" : f.charAt(0).toUpperCase() + f.slice(1)}
-                <span className="ml-1 opacity-70">({filterCounts[f]})</span>
+                <X className="h-4 w-4" />
               </button>
-            ))}
+            )}
           </div>
 
-          <div className="space-y-2">
-            {activeEvents.map((event) => (
+          {/* Multi-select filter chips */}
+          <div className="flex flex-wrap items-center gap-1.5 pb-1">
+            {(["upcoming", "past", "published", "scheduled", "draft"] as const).map((f) => {
+              const active = selectedFilters.has(f);
+              return (
+                <button
+                  key={f}
+                  onClick={() => toggleFilter(f)}
+                  className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
+                    active
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-muted text-muted-foreground hover:bg-muted/80"
+                  }`}
+                >
+                  {f.charAt(0).toUpperCase() + f.slice(1)}
+                  <span className="ml-1 opacity-70">({filterCounts[f]})</span>
+                </button>
+              );
+            })}
+            {anyFilterActive && (
+              <button
+                onClick={clearAll}
+                className="shrink-0 rounded-full px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted"
+              >
+                <X className="inline h-3 w-3 mr-1" />Clear
+              </button>
+            )}
+          </div>
+
+          {(() => {
+            const renderEventCard = (event: any) => (
               <Card key={event.id}>
                 <CardContent className="p-4">
                   <div className="space-y-3">
@@ -487,7 +518,6 @@ export default function EventControlRoom() {
                       <Button size="sm" variant="ghost" className="h-9 gap-1.5 text-xs" onClick={() => setEditing(event)}>
                         <Edit2 className="h-3.5 w-3.5" /> Edit
                       </Button>
-                      {/* Recording button */}
                       {(() => {
                         const hasRecording = !!(event as any).recording_url;
                         return (
@@ -502,7 +532,6 @@ export default function EventControlRoom() {
                           </Button>
                         );
                       })()}
-                      {/* Hide unpublish for past events */}
                       {(event as any).published && !isEventPast(event) && (
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
@@ -584,11 +613,55 @@ export default function EventControlRoom() {
                   </div>
                 </CardContent>
               </Card>
-            ))}
-            {activeEvents.length === 0 && (
-              <p className="text-sm text-muted-foreground text-center py-4">No active events.</p>
-            )}
-          </div>
+            );
+
+            // Default split view: no filters and no search
+            if (!anyFilterActive) {
+              const upcomingFiltered = upcomingAll.filter(matchesSearch);
+              const pastFiltered = pastAll.filter(matchesSearch);
+              return (
+                <>
+                  <div className="space-y-2">
+                    <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                      Upcoming Events ({upcomingFiltered.length})
+                    </h3>
+                    {upcomingFiltered.length > 0 ? (
+                      upcomingFiltered.map(renderEventCard)
+                    ) : (
+                      <p className="text-sm text-muted-foreground text-center py-4">No upcoming events.</p>
+                    )}
+                  </div>
+
+                  {pastFiltered.length > 0 && (
+                    <Collapsible>
+                      <CollapsibleTrigger asChild>
+                        <button className="flex w-full items-center justify-between rounded-md border border-border bg-muted/50 px-4 py-2.5 text-sm font-medium text-muted-foreground hover:bg-muted transition-colors">
+                          <span className="flex items-center gap-1.5">
+                            Past Events ({pastFiltered.length})
+                          </span>
+                          <ChevronDown className="h-4 w-4" />
+                        </button>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent className="space-y-2 pt-2">
+                        {pastFiltered.map(renderEventCard)}
+                      </CollapsibleContent>
+                    </Collapsible>
+                  )}
+                </>
+              );
+            }
+
+            // Combined filtered view
+            return (
+              <div className="space-y-2">
+                {combinedFiltered.length > 0 ? (
+                  combinedFiltered.map(renderEventCard)
+                ) : (
+                  <p className="text-sm text-muted-foreground text-center py-4">No events match your filters.</p>
+                )}
+              </div>
+            );
+          })()}
 
           {/* Cancelled / Past Events */}
           {cancelledEvents.length > 0 && (
