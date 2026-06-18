@@ -468,13 +468,51 @@ export default function EventControlRoom() {
               </CollapsibleContent>
             </Collapsible>
           )}
+          {/* Jump to event picker */}
+          <Popover open={jumpOpen} onOpenChange={setJumpOpen}>
+            <PopoverTrigger asChild>
+              <Button variant="outline" className="w-full justify-start gap-2 h-10 font-normal text-muted-foreground">
+                <ListChecks className="h-4 w-4" />
+                Jump to event…
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="p-0 w-[--radix-popover-trigger-width] max-w-[calc(100vw-2rem)]" align="start">
+              <Command>
+                <CommandInput placeholder="Type an event title…" />
+                <CommandList>
+                  <CommandEmpty>No events found.</CommandEmpty>
+                  <CommandGroup>
+                    {jumpEvents.map((ev: any) => (
+                      <CommandItem
+                        key={ev.id}
+                        value={`${ev.title} ${ev.date_time}`}
+                        onSelect={() => {
+                          setJumpOpen(false);
+                          setEditing(ev);
+                        }}
+                      >
+                        <div className="flex flex-col">
+                          <span className="font-medium">{ev.title}</span>
+                          <span className="text-xs text-muted-foreground">
+                            {format(new Date(ev.date_time), "PPP")}
+                            {isEventPast(ev) ? " · Past" : ""}
+                          </span>
+                        </div>
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                </CommandList>
+              </Command>
+            </PopoverContent>
+          </Popover>
+
           {/* Search */}
           <div className="relative">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search events by title"
+              placeholder="Search title, type, location, host…"
               className="pl-9 h-10"
             />
             {search && (
@@ -488,7 +526,7 @@ export default function EventControlRoom() {
             )}
           </div>
 
-          {/* Multi-select filter chips */}
+          {/* Multi-select filter chips + sort + date range + save */}
           <div className="flex flex-wrap items-center gap-1.5 pb-1">
             {(["upcoming", "past", "published", "scheduled", "draft"] as const).map((f) => {
               const active = selectedFilters.has(f);
@@ -507,15 +545,129 @@ export default function EventControlRoom() {
                 </button>
               );
             })}
-            {anyFilterActive && (
+
+            {/* Sort toggle */}
+            <button
+              onClick={() => setSortOrder((s) => (s === "newest" ? "oldest" : "newest"))}
+              className="shrink-0 rounded-full px-3 py-1.5 text-xs font-medium bg-muted text-muted-foreground hover:bg-muted/80 inline-flex items-center gap-1"
+              aria-label="Toggle sort order"
+            >
+              {sortOrder === "newest" ? (
+                <ArrowDownNarrowWide className="h-3 w-3" />
+              ) : (
+                <ArrowUpNarrowWide className="h-3 w-3" />
+              )}
+              {sortOrder === "newest" ? "Newest" : "Oldest"}
+            </button>
+
+            {/* Date range popover (upcoming) */}
+            <Popover>
+              <PopoverTrigger asChild>
+                <button
+                  className={cn(
+                    "shrink-0 rounded-full px-3 py-1.5 text-xs font-medium inline-flex items-center gap-1",
+                    dateRangeActive
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-muted text-muted-foreground hover:bg-muted/80",
+                  )}
+                >
+                  <CalendarIcon className="h-3 w-3" />
+                  {dateRangeActive
+                    ? `${dateRange?.from ? format(new Date(dateRange.from), "MMM d") : "…"} – ${dateRange?.to ? format(new Date(dateRange.to), "MMM d") : "…"}`
+                    : "Date range"}
+                </button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="range"
+                  selected={{
+                    from: dateRange?.from ? new Date(dateRange.from) : undefined,
+                    to: dateRange?.to ? new Date(dateRange.to) : undefined,
+                  }}
+                  onSelect={(range) => {
+                    setDateRange(
+                      range && (range.from || range.to)
+                        ? {
+                            from: range.from ? range.from.toISOString() : null,
+                            to: range.to ? range.to.toISOString() : null,
+                          }
+                        : null,
+                    );
+                  }}
+                  numberOfMonths={1}
+                  className={cn("p-3 pointer-events-auto")}
+                />
+                {dateRangeActive && (
+                  <div className="border-t p-2 flex justify-end">
+                    <Button variant="ghost" size="sm" onClick={() => setDateRange(null)}>
+                      Clear range
+                    </Button>
+                  </div>
+                )}
+              </PopoverContent>
+            </Popover>
+
+            {/* Save current view */}
+            <Popover open={saveDialogOpen} onOpenChange={setSaveDialogOpen}>
+              <PopoverTrigger asChild>
+                <button
+                  disabled={!anyFilterActive && sortOrder === "oldest"}
+                  className="shrink-0 rounded-full px-3 py-1.5 text-xs font-medium bg-muted text-muted-foreground hover:bg-muted/80 inline-flex items-center gap-1 disabled:opacity-50"
+                >
+                  <Save className="h-3 w-3" /> Save view
+                </button>
+              </PopoverTrigger>
+              <PopoverContent align="end" className="w-64 space-y-2">
+                <Label htmlFor="save-view-name" className="text-xs">Name this view</Label>
+                <Input
+                  id="save-view-name"
+                  value={saveName}
+                  onChange={(e) => setSaveName(e.target.value)}
+                  placeholder="e.g. Upcoming drafts"
+                  onKeyDown={(e) => e.key === "Enter" && handleSaveView()}
+                />
+                <Button size="sm" onClick={handleSaveView} className="w-full">Save</Button>
+              </PopoverContent>
+            </Popover>
+
+            {(anyFilterActive || sortOrder !== "oldest") && (
               <button
-                onClick={clearAll}
+                onClick={() => { clearAll(); setSortOrder("oldest"); }}
                 className="shrink-0 rounded-full px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted"
               >
                 <X className="inline h-3 w-3 mr-1" />Clear
               </button>
             )}
           </div>
+
+          {/* Saved views */}
+          {savedViews.length > 0 && (
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="text-xs text-muted-foreground inline-flex items-center gap-1">
+                <Bookmark className="h-3 w-3" /> Saved:
+              </span>
+              {savedViews.map((v) => (
+                <span
+                  key={v.id}
+                  className="inline-flex items-center gap-1 rounded-full bg-accent/40 px-2 py-1 text-xs"
+                >
+                  <button
+                    onClick={() => applySavedView(v.id)}
+                    className="font-medium hover:underline"
+                  >
+                    {v.name}
+                  </button>
+                  <button
+                    onClick={() => deleteView(v.id)}
+                    aria-label={`Delete ${v.name}`}
+                    className="rounded p-0.5 hover:bg-muted text-muted-foreground"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
 
           {(() => {
             const renderEventCard = (event: any) => (
