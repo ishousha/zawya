@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { downloadCsv, zawyaFilename } from "@/lib/csv-export";
 import { toast } from "sonner";
+import { format } from "date-fns";
 import HostDashboard from "@/components/HostDashboard";
 import AdminGuestApprovals from "./AdminGuestApprovals";
 import CheckinPoster from "./CheckinPoster";
@@ -157,20 +158,97 @@ export default function EventRsvpDetail({ eventId, eventTitle, eventDate, checki
   });
 
   const toggleCheckin = useMutation({
-    mutationFn: async ({ rsvpId, next }: { rsvpId: string; next: boolean; name: string }) => {
-      const { error } = await supabase.from("rsvps").update({ checked_in: next }).eq("id", rsvpId);
+    mutationFn: async (vars: {
+      rsvpId: string;
+      next: boolean;
+      name: string;
+      userId: string;
+      email: string | null;
+    }) => {
+      const { error } = await supabase
+        .from("rsvps")
+        .update({ checked_in: vars.next })
+        .eq("id", vars.rsvpId);
       if (error) throw error;
+      const { data: userData } = await supabase.auth.getUser();
+      const actorId = userData.user?.id;
+      if (actorId) {
+        await supabase.from("admin_activity_log").insert({
+          actor_id: actorId,
+          action: vars.next ? "checkin_rsvp" : "undo_checkin",
+          target_user_id: vars.userId,
+          target_user_name: vars.name,
+          target_user_email: vars.email,
+          details: {
+            event_id: eventId,
+            event_title: eventTitle,
+            rsvp_id: vars.rsvpId,
+          },
+        });
+      }
     },
     onSuccess: (_d, vars) => {
       queryClient.invalidateQueries({ queryKey: ["admin-rsvps", eventId] });
       queryClient.invalidateQueries({ queryKey: ["host-rsvps", eventId] });
       queryClient.invalidateQueries({ queryKey: ["door-attendees", eventId] });
+      queryClient.invalidateQueries({ queryKey: ["event-checkin-log", eventId] });
+      queryClient.invalidateQueries({ queryKey: ["admin-activity-log"] });
       toast.success(vars.next ? `Checked in ${vars.name}` : `Undid check-in for ${vars.name}`);
     },
     onError: (e: any) => toast.error(e?.message || "Failed to update check-in"),
   });
 
-  const [undoTarget, setUndoTarget] = useState<{ rsvpId: string; name: string } | null>(null);
+  const [undoTarget, setUndoTarget] = useState<{
+    rsvpId: string;
+    name: string;
+    userId: string;
+    email: string | null;
+  } | null>(null);
+
+  // Per-event check-in audit trail (latest entry per rsvp shown inline)
+  const { data: checkinAudit } = useQuery({
+    queryKey: ["event-checkin-log", eventId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("admin_activity_log")
+        .select("id, action, actor_id, created_at, details")
+        .in("action", ["checkin_rsvp", "undo_checkin"])
+        .contains("details", { event_id: eventId })
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const actorIds = useMemo(
+    () => [...new Set((checkinAudit ?? []).map((l) => l.actor_id))],
+    [checkinAudit],
+  );
+  const { data: actorProfiles } = useQuery({
+    queryKey: ["checkin-actors", actorIds.sort().join(",")],
+    enabled: actorIds.length > 0,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("id, name")
+        .in("id", actorIds);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+  const actorMap = useMemo(() => {
+    const m = new Map<string, string>();
+    (actorProfiles ?? []).forEach((p: any) => m.set(p.id, p.name || "Admin"));
+    return m;
+  }, [actorProfiles]);
+  const latestAuditByRsvp = useMemo(() => {
+    const m = new Map<string, { action: string; actor_id: string; created_at: string }>();
+    (checkinAudit ?? []).forEach((row: any) => {
+      const rsvpId = (row.details as any)?.rsvp_id as string | undefined;
+      if (rsvpId && !m.has(rsvpId)) m.set(rsvpId, row);
+    });
+    return m;
+  }, [checkinAudit]);
 
   const reassignItem = useMutation({
     mutationFn: async ({ selectionId, rsvpId }: { selectionId: number; rsvpId: string }) => {
@@ -461,31 +539,44 @@ export default function EventRsvpDetail({ eventId, eventTitle, eventDate, checki
                                 <TableCell className="py-2 text-center text-sm">{r.guests_count}</TableCell>
                                 <TableCell className="py-2 text-center">
                                   {(() => {
-                                    const name = (r.profile as any)?.name || "guest";
+                                    const profile = (r.profile as any) || {};
+                                    const name = profile.name || "guest";
+                                    const email = profile.email ?? null;
+                                    const userId = r.user_id as string;
                                     const isPending = toggleCheckin.isPending && toggleCheckin.variables?.rsvpId === r.id;
+                                    const audit = latestAuditByRsvp.get(r.id);
                                     return (
-                                      <button
-                                        type="button"
-                                        onClick={() => {
-                                          if (isPending) return;
-                                          if (r.checked_in) {
-                                            setUndoTarget({ rsvpId: r.id, name });
-                                          } else {
-                                            toggleCheckin.mutate({ rsvpId: r.id, next: true, name });
-                                          }
-                                        }}
-                                        disabled={isPending}
-                                        aria-label={r.checked_in ? `Undo check-in for ${name}` : `Mark ${name} as checked in`}
-                                        className="inline-flex h-11 w-11 items-center justify-center rounded-full hover:bg-muted/60 disabled:opacity-50 transition-colors"
-                                      >
-                                        {isPending ? (
-                                          <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                                        ) : r.checked_in ? (
-                                          <CheckCircle2 className="h-5 w-5 text-emerald-600" />
-                                        ) : (
-                                          <Circle className="h-5 w-5 text-muted-foreground/40" />
+                                      <div className="flex flex-col items-center gap-0.5">
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            if (isPending) return;
+                                            if (r.checked_in) {
+                                              setUndoTarget({ rsvpId: r.id, name, userId, email });
+                                            } else {
+                                              toggleCheckin.mutate({ rsvpId: r.id, next: true, name, userId, email });
+                                            }
+                                          }}
+                                          disabled={isPending}
+                                          aria-label={r.checked_in ? `Undo check-in for ${name}` : `Mark ${name} as checked in`}
+                                          className="inline-flex h-11 w-11 items-center justify-center rounded-full hover:bg-muted/60 disabled:opacity-50 transition-colors"
+                                        >
+                                          {isPending ? (
+                                            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                                          ) : r.checked_in ? (
+                                            <CheckCircle2 className="h-5 w-5 text-emerald-600" />
+                                          ) : (
+                                            <Circle className="h-5 w-5 text-muted-foreground/40" />
+                                          )}
+                                        </button>
+                                        {audit && (
+                                          <span className="text-[10px] leading-tight text-muted-foreground">
+                                            {audit.action === "undo_checkin" ? "undone" : "by"} {actorMap.get(audit.actor_id) || "Admin"}
+                                            {" · "}
+                                            {format(new Date(audit.created_at), "MMM d, h:mma")}
+                                          </span>
                                         )}
-                                      </button>
+                                      </div>
                                     );
                                   })()}
                                 </TableCell>
@@ -764,7 +855,7 @@ export default function EventRsvpDetail({ eventId, eventTitle, eventDate, checki
             <AlertDialogAction
               onClick={() => {
                 if (undoTarget) {
-                  toggleCheckin.mutate({ rsvpId: undoTarget.rsvpId, next: false, name: undoTarget.name });
+                  toggleCheckin.mutate({ rsvpId: undoTarget.rsvpId, next: false, name: undoTarget.name, userId: undoTarget.userId, email: undoTarget.email });
                   setUndoTarget(null);
                 }
               }}

@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/runtime-client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, ShieldAlert, UserMinus, UserCog, UserPlus, RefreshCw, Download, CalendarIcon, X } from "lucide-react";
+import { Loader2, ShieldAlert, UserMinus, UserCog, UserPlus, RefreshCw, Download, CalendarIcon, X, CheckCircle2, RotateCcw } from "lucide-react";
 import { format, startOfDay, endOfDay } from "date-fns";
 import { useState, useMemo } from "react";
 import {
@@ -33,6 +33,8 @@ const ACTION_CONFIG: Record<string, { label: string; icon: typeof UserCog; varia
   suspend_user: { label: "Suspended", icon: ShieldAlert, variant: "destructive" },
   delete_user: { label: "Deleted", icon: UserMinus, variant: "destructive" },
   create_user: { label: "Created", icon: UserPlus, variant: "default" },
+  checkin_rsvp: { label: "Checked In", icon: CheckCircle2, variant: "default" },
+  undo_checkin: { label: "Check-in Undone", icon: RotateCcw, variant: "outline" },
 };
 
 export default function AdminActivityLog() {
@@ -152,6 +154,8 @@ export default function AdminActivityLog() {
               <SelectItem value="role_change">Role changes</SelectItem>
               <SelectItem value="suspend_user">Suspensions</SelectItem>
               <SelectItem value="delete_user">Deletions</SelectItem>
+              <SelectItem value="checkin_rsvp">Check-ins</SelectItem>
+              <SelectItem value="undo_checkin">Check-in undos</SelectItem>
             </SelectContent>
           </Select>
           <Popover>
@@ -222,6 +226,11 @@ export default function AdminActivityLog() {
                     {details && log.action === "suspend_user" && (
                       <p className="text-xs text-muted-foreground">
                         Previously: {String(details.previous_role || "?")}
+                      </p>
+                    )}
+                    {details && (log.action === "checkin_rsvp" || log.action === "undo_checkin") && details.event_title && (
+                      <p className="text-xs text-muted-foreground">
+                        Event: {String(details.event_title)}
                       </p>
                     )}
                   </div>
