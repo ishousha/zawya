@@ -645,10 +645,14 @@ export default function EventRsvpDetail({ eventId, eventTitle, eventDate, checki
                   <GuestRequestsSection eventId={eventId} />
 
 
-                  <p className="text-xs text-muted-foreground text-center pt-2">
-                    Total: {attending.reduce((s, r) => s + r.guests_count, 0)} attending
-                    {waitlisted.length > 0 && ` · ${waitlisted.reduce((s, r) => s + r.guests_count, 0)} waitlisted`}
-                  </p>
+                  <RsvpTotalsLine
+                    eventId={eventId}
+                    memberHeadcount={attending.reduce((s, r) => s + r.guests_count, 0)}
+                    memberCount={attending.length}
+                    mureedCount={attending.filter((r) => (r.profile as any)?.is_mureed).length}
+                    waitlistedHeadcount={waitlisted.reduce((s, r) => s + r.guests_count, 0)}
+                    waitlistedCount={waitlisted.length}
+                  />
                 </TabsContent>
 
                 {/* Potluck Tab */}
