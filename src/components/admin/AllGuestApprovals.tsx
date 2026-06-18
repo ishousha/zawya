@@ -16,6 +16,7 @@ interface GroupedEvent {
   dateTime: string | null;
   requests: any[];
   pendingCount: number;
+  memberCount: number;
 }
 
 export default function AllGuestApprovals() {
