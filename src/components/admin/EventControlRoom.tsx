@@ -391,7 +391,7 @@ export default function EventControlRoom() {
   );
 
   const jumpEvents = useMemo(
-    () => sortEvents(nonCancelled as any, "oldest"),
+    () => sortEvents(nonCancelled as any, "newest"),
     [nonCancelled],
   );
 
