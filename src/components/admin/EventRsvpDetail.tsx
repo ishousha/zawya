@@ -750,6 +750,30 @@ export default function EventRsvpDetail({ eventId, eventTitle, eventDate, checki
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={!!undoTarget} onOpenChange={(o) => !o && setUndoTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Undo check-in?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will mark {undoTarget?.name} as not checked in.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (undoTarget) {
+                  toggleCheckin.mutate({ rsvpId: undoTarget.rsvpId, next: false, name: undoTarget.name });
+                  setUndoTarget(null);
+                }
+              }}
+            >
+              Undo check-in
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
