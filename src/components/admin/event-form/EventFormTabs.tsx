@@ -279,6 +279,8 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
       if (!form.date_time) throw new Error("Start date and time is required");
       if (!form.event_type_id) throw new Error("Event type is required");
 
+      const mapCoords = parseGoogleMapsCoords(form.maps_url);
+
       const payload: any = {
         title: form.title,
         description: form.description || null,
@@ -288,8 +290,8 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
         location: form.location || null,
         address: form.address || null,
         maps_url: form.maps_url || null,
-        latitude: (() => { try { return parseGoogleMapsCoords(form.maps_url)?.lat ?? null; } catch { return null; } })(),
-        longitude: (() => { try { return parseGoogleMapsCoords(form.maps_url)?.lng ?? null; } catch { return null; } })(),
+        latitude: mapCoords?.lat ?? null,
+        longitude: mapCoords?.lng ?? null,
         venue_id: form.venue_id || null,
         virtual_link: form.virtual_link || null,
         zoom_link: form.virtual_link || null,
