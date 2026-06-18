@@ -12,7 +12,7 @@ interface EventReminderProps {
   eventTitle?: string
   eventDate?: string
   eventLocation?: string
-  reminderType?: '24h' | '2h'
+  reminderType?: '24h' | '12h' | '2h'
 }
 
 const EventReminderEmail = ({
@@ -22,7 +22,7 @@ const EventReminderEmail = ({
   eventLocation = '',
   reminderType = '24h',
 }: EventReminderProps) => {
-  const timeLabel = reminderType === '2h' ? '2 hours' : '24 hours'
+  const timeLabel = reminderType === '2h' ? '2 hours' : reminderType === '12h' ? '12 hours' : '24 hours'
   return (
     <Html lang="en" dir="ltr">
       <Head />
