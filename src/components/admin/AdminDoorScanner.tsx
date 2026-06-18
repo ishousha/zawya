@@ -503,6 +503,14 @@ export default function AdminDoorScanner() {
               <span>{rsvpCounts.checkedInGuests} of {rsvpCounts.totalGuests} total guests arrived</span>
               <span>{rsvpCounts.totalGuests - rsvpCounts.checkedInGuests} remaining</span>
             </div>
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
+              <span className="text-muted-foreground">
+                <span className="font-medium text-foreground">Members:</span> {rsvpCounts.checkedIn}/{rsvpCounts.total}
+              </span>
+              <span className="text-muted-foreground">
+                <span className="font-medium text-foreground">External guests:</span> {externalGuests?.length ?? 0}
+              </span>
+            </div>
             <Button
               variant="outline"
               size="sm"
