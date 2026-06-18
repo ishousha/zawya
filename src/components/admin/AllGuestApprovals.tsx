@@ -226,7 +226,10 @@ export default function AllGuestApprovals() {
                         </Badge>
                       )}
                       <Badge variant="secondary" className="h-6 px-2 text-xs">
-                        {g.requests.length} total
+                        {g.requests.length} guest{g.requests.length !== 1 ? "s" : ""}
+                      </Badge>
+                      <Badge variant="outline" className="h-6 px-2 text-xs hidden sm:inline-flex">
+                        {g.memberCount} member{g.memberCount !== 1 ? "s" : ""} RSVP'd
                       </Badge>
                       <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`} />
                     </div>
