@@ -152,7 +152,7 @@ export default function AdminDoorScanner() {
       const rsvpIds = data.map((r) => r.id);
 
       const [{ data: profiles }, { data: selections }] = await Promise.all([
-        supabase.from("profiles").select("id, name").in("id", userIds),
+        supabase.from("profiles").select("id, name, is_mureed").in("id", userIds),
         rsvpIds.length > 0
           ? supabase
               .from("rsvp_sign_up_selections")
