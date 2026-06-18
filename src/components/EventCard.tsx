@@ -702,6 +702,21 @@ function GuestRequestStatusRow({ eventId, onOpen }: { eventId: string; onOpen: (
   );
 }
 
+function useAdminEventGuestCount(eventId: string) {
+  return useQuery({
+    queryKey: ["admin-event-guest-count", eventId],
+    staleTime: 60 * 1000,
+    queryFn: async () => {
+      const { count } = await supabase
+        .from("guest_requests")
+        .select("id", { count: "exact", head: true })
+        .eq("event_id", eventId)
+        .eq("status", "approved");
+      return count ?? 0;
+    },
+  });
+}
+
 function AdminGuestCountPill({ eventId, memberCount }: { eventId: string; memberCount: number }) {
   const { data } = useAdminEventGuestCount(eventId);
   const guests = data ?? 0;
