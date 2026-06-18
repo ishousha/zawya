@@ -4,8 +4,6 @@ import { MapPin, Video, Users, Calendar, Clock, CheckCircle2, Ticket, Edit, Buil
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useMyRSVP, useEventRsvpCounts } from "@/hooks/useRSVP";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/runtime-client";
 import { useEventTypes, getEventTypeIcon } from "@/hooks/useEventTypes";
 import { useMyGuestRequests } from "@/hooks/useGuestRequests";
 import RSVPModal from "@/components/RSVPModal";
