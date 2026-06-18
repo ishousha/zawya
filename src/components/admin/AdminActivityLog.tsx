@@ -228,6 +228,11 @@ export default function AdminActivityLog() {
                         Previously: {String(details.previous_role || "?")}
                       </p>
                     )}
+                    {details && (log.action === "checkin_rsvp" || log.action === "undo_checkin") && details.event_title && (
+                      <p className="text-xs text-muted-foreground">
+                        Event: {String(details.event_title)}
+                      </p>
+                    )}
                   </div>
                 </CardContent>
               </Card>
