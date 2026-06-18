@@ -490,6 +490,9 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
       queryClient.invalidateQueries({ queryKey: ["events"] });
       queryClient.invalidateQueries({ queryKey: ["sign-up-items"] });
       queryClient.invalidateQueries({ queryKey: ["event-speakers"] });
+      queryClient.invalidateQueries({ queryKey: ["event-detail", result.eventId] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-active-events"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-my-next-event"] });
 
       // Auto-sync Zoom meeting time if start_time changed + virtual + zoom link
       const timeChanged = originalDateTime.current && form.date_time !== originalDateTime.current;
