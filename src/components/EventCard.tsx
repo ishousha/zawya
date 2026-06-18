@@ -701,3 +701,29 @@ function GuestRequestStatusRow({ eventId, onOpen }: { eventId: string; onOpen: (
     </button>
   );
 }
+
+function AdminGuestCountPill({ eventId, memberCount }: { eventId: string; memberCount: number }) {
+  // Admin-only: show "N members · G guests" using approved guest_requests.
+  // Lazy import to keep tree-shake friendly.
+  const { useQuery } = require("@tanstack/react-query") as typeof import("@tanstack/react-query");
+  const { supabase } = require("@/integrations/supabase/runtime-client") as typeof import("@/integrations/supabase/runtime-client");
+  const { data } = useQuery({
+    queryKey: ["admin-event-guest-count", eventId],
+    staleTime: 60 * 1000,
+    queryFn: async () => {
+      const { count } = await supabase
+        .from("guest_requests")
+        .select("id", { count: "exact", head: true })
+        .eq("event_id", eventId)
+        .eq("status", "approved");
+      return count ?? 0;
+    },
+  });
+  const guests = data ?? 0;
+  return (
+    <span className="text-[10px] text-muted-foreground">
+      · {memberCount} member{memberCount !== 1 ? "s" : ""} · {guests} guest{guests !== 1 ? "s" : ""}
+    </span>
+  );
+}
+
