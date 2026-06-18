@@ -436,6 +436,8 @@ export type Database = {
           address: string | null
           age_group: string
           age_groups: string[]
+          announcement_send_at: string | null
+          announcement_sent_at: string | null
           audience_gender: string
           capacity: number | null
           checkin_pin: string | null
@@ -479,6 +481,8 @@ export type Database = {
           address?: string | null
           age_group?: string
           age_groups?: string[]
+          announcement_send_at?: string | null
+          announcement_sent_at?: string | null
           audience_gender?: string
           capacity?: number | null
           checkin_pin?: string | null
@@ -522,6 +526,8 @@ export type Database = {
           address?: string | null
           age_group?: string
           age_groups?: string[]
+          announcement_send_at?: string | null
+          announcement_sent_at?: string | null
           audience_gender?: string
           capacity?: number | null
           checkin_pin?: string | null

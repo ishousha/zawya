@@ -78,7 +78,13 @@ Deno.serve(async (req) => {
     // Publish them
     const { error: updateError } = await supabase
       .from("events")
-      .update({ published: true, scheduled_publish_at: null, last_published_at: new Date().toISOString() })
+      .update({
+        published: true,
+        scheduled_publish_at: null,
+        last_published_at: new Date().toISOString(),
+        announcement_send_at: new Date(Date.now() + 20 * 60 * 1000).toISOString(),
+        announcement_sent_at: null,
+      })
       .in("id", eventIds);
 
     if (updateError) throw updateError;

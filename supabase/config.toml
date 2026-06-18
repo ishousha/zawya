@@ -23,3 +23,5 @@ project_id = "ikzaalswkajtaxejyskw"
     verify_jwt = true
   [functions.check-deliverability]
     verify_jwt = false
+  [functions.send-event-announcements]
+    verify_jwt = true
