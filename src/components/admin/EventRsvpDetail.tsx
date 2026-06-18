@@ -855,7 +855,7 @@ export default function EventRsvpDetail({ eventId, eventTitle, eventDate, checki
             <AlertDialogAction
               onClick={() => {
                 if (undoTarget) {
-                  toggleCheckin.mutate({ rsvpId: undoTarget.rsvpId, next: false, name: undoTarget.name });
+                  toggleCheckin.mutate({ rsvpId: undoTarget.rsvpId, next: false, name: undoTarget.name, userId: undoTarget.userId, email: undoTarget.email });
                   setUndoTarget(null);
                 }
               }}
