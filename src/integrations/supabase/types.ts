@@ -439,6 +439,7 @@ export type Database = {
           audience_gender: string
           capacity: number | null
           checkin_pin: string | null
+          checkin_radius_meters: number
           cover_photo_url: string | null
           created_at: string
           date_time: string
@@ -451,8 +452,10 @@ export type Database = {
           id: string
           is_hybrid: boolean
           last_published_at: string | null
+          latitude: number | null
           location: string | null
           location_hint: string | null
+          longitude: number | null
           maps_url: string | null
           mureeds_only: boolean
           online_link: string | null
@@ -479,6 +482,7 @@ export type Database = {
           audience_gender?: string
           capacity?: number | null
           checkin_pin?: string | null
+          checkin_radius_meters?: number
           cover_photo_url?: string | null
           created_at?: string
           date_time: string
@@ -491,8 +495,10 @@ export type Database = {
           id?: string
           is_hybrid?: boolean
           last_published_at?: string | null
+          latitude?: number | null
           location?: string | null
           location_hint?: string | null
+          longitude?: number | null
           maps_url?: string | null
           mureeds_only?: boolean
           online_link?: string | null
@@ -519,6 +525,7 @@ export type Database = {
           audience_gender?: string
           capacity?: number | null
           checkin_pin?: string | null
+          checkin_radius_meters?: number
           cover_photo_url?: string | null
           created_at?: string
           date_time?: string
@@ -531,8 +538,10 @@ export type Database = {
           id?: string
           is_hybrid?: boolean
           last_published_at?: string | null
+          latitude?: number | null
           location?: string | null
           location_hint?: string | null
+          longitude?: number | null
           maps_url?: string | null
           mureeds_only?: boolean
           online_link?: string | null

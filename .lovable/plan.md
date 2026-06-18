@@ -1,57 +1,48 @@
-# Admin Event Finder Enhancements
+# Extract coordinates from Google Maps URL on event save
 
-Build on the existing `EventControlRoom.tsx` filter UI to give admins fast, precise control over event discovery.
+Add lat/lng + check-in radius columns to `events`, and parse them client-side from `maps_url` before insert/update. No UI changes, no other field behavior changes.
 
-## 1. Expanded search
-- Search input filters across **title, event type name, location, address, and host name** (case-insensitive, debounced via existing `useDebounce`).
-- Placeholder updates to "Search title, type, location, host…".
+## 1. Database migration
 
-## 2. Sort toggle
-- New `sortOrder` state: `"newest" | "oldest"`.
-- Small toggle button next to the filter chips (icon + label, e.g. `↓ Newest` / `↑ Oldest`).
-- Applies to **both** the upcoming and past sections (default view) and the combined filtered list.
-  - Default remains: upcoming = soonest first (oldest), past = most recent first (newest). The toggle inverts both consistently.
+Add to `public.events`:
+- `latitude numeric` (nullable)
+- `longitude numeric` (nullable)
+- `checkin_radius_meters integer NOT NULL DEFAULT 100`
 
-## 3. Date-range filter (upcoming only)
-- Two date pickers (shadcn Calendar in Popover) labeled "From" / "To", placed under the chip row inside a collapsible "Date range" section.
-- Filters `upcomingAll` to events whose `date_time` falls within the inclusive range.
-- Clear-range button; "Clear filters" also resets the range.
-- Range is ignored for past events.
+No RLS changes (table policies already cover these columns). After migration runs, the regenerated `types.ts` exposes the new fields.
 
-## 4. Jump-to-event picker
-- A `Command` combobox (shadcn `Command` + `Popover`) above the chips, trigger button "Jump to event…".
-- Lists all non-cancelled events (title + date), type-ahead by title.
-- Selecting an event opens it directly in the edit form (`setEditing(event)`), the same flow as clicking Edit.
+## 2. URL parser
 
-## 5. Saved filter sets
-- New "Saved views" row of chips beside a `Save current` button.
-- A saved set stores: `{ name, filters: FilterKey[], search, sortOrder, dateRange }`.
-- Persistence: `localStorage` key `zawya.admin.eventFilters.v1` (per-browser; no schema change). Each admin keeps their own list.
-- Actions: Save (prompts for a name), Apply (click chip), Delete (×  on chip).
-- Empty state hint: "Save current view to reuse it later".
+New `src/lib/maps-url.ts`:
+- `parseGoogleMapsCoords(url: string): { lat: number; lng: number } | null`
+- Tries, in order:
+  1. `/@<lat>,<lng>` (standard Maps link)
+  2. `!3d<lat>!4d<lng>` (embed/place format)
+  3. `?q=<lat>,<lng>` / `&q=<lat>,<lng>` / `&query=<lat>,<lng>` / `&ll=<lat>,<lng>` / `&destination=<lat>,<lng>`
+- Validates `-90 ≤ lat ≤ 90`, `-180 ≤ lng ≤ 180`. Returns `null` on any failure (never throws).
+- Short links (`goo.gl/maps`, `maps.app.goo.gl`): no client-side resolution (CORS blocks it). Return `null` and let the admin paste the expanded URL — extraction is best-effort per the requirement ("if extraction fails, store null and continue").
+- Small Vitest unit test (`maps-url.test.ts`) covering each pattern, invalid bounds, empty input, short-link null.
 
-## 6. Testing
-- Add a Vitest unit test for the filter/sort helpers (extract `applyFilters({events, filters, search, sort, dateRange})` into `src/lib/event-filters.ts`) covering:
-  - search across title/type/location/host
-  - sort newest vs oldest for upcoming & past
-  - date-range inclusion bounds
-  - status chip combinations
-- Add a smoke test for the localStorage save/load of filter presets.
-- Run `bunx vitest run` after implementation.
+## 3. Wire into save
+
+In `src/components/admin/event-form/EventFormTabs.tsx` where the payload is built (~line 289):
+- Compute `const coords = form.maps_url ? parseGoogleMapsCoords(form.maps_url) : null;`
+- Add to payload: `latitude: coords?.lat ?? null`, `longitude: coords?.lng ?? null`.
+- Leave `checkin_radius_meters` alone on save (uses DB default; not in the form).
+- Wrap the parse in try/catch so a malformed URL never blocks save.
 
 ## Files
-
-- `src/lib/event-filters.ts` — new, pure helpers (filter/sort/range, preset (de)serialize).
-- `src/lib/event-filters.test.ts` — new, unit tests.
-- `src/components/admin/EventControlRoom.tsx` — wire in sort toggle, expanded search match, date-range popover, jump-to combobox, saved-views chips; pipe events through new helper.
-- `src/hooks/useSavedEventFilters.ts` — new, localStorage hook for presets.
+- `supabase/migrations/<timestamp>_event_coords.sql` — adds the 3 columns.
+- `src/lib/maps-url.ts` — new parser.
+- `src/lib/maps-url.test.ts` — new unit tests.
+- `src/components/admin/event-form/EventFormTabs.tsx` — add coords to payload.
 
 ## Out of scope
-- Server-side persistence of saved views (kept local for now; can move to a `admin_event_views` table later if requested).
-- Filtering by host, speaker, or type as separate chips (search already covers them).
-- Changes to Cancelled section behavior.
+- UI to display, edit, or visualize lat/lng or radius.
+- Backfilling coords for existing events.
+- Server-side short-link expansion (would need an edge function; not requested).
+- Using the coordinates for geofenced check-in (column is added per request; consumers come later).
 
-## Technical notes
-- Query still fetches up to 500 events; no schema/RLS changes.
-- Host name already loaded via `host:host_id(name)`; event type name resolved via existing `useEventTypes()` map.
-- Date pickers use `pointer-events-auto` on Calendar wrapper per shadcn datepicker guidance.
+## Verify
+- Run `bunx vitest run src/lib/maps-url.test.ts`.
+- Check preview health after migration + edits.
