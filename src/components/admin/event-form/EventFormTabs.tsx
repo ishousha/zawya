@@ -16,6 +16,7 @@ import { EventFormState, defaultEventForm, generateCheckinPin, suggestShortCode 
 import EventPreviewDialog from "./EventPreviewDialog";
 import type { EventType } from "./types";
 import type { Database } from "@/integrations/supabase/types";
+import { parseGoogleMapsCoords } from "@/lib/maps-url";
 import {
   AlertDialog,
   AlertDialogAction,
