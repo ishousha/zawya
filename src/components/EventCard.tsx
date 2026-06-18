@@ -4,6 +4,8 @@ import { MapPin, Video, Users, Calendar, Clock, CheckCircle2, Ticket, Edit, Buil
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useMyRSVP, useEventRsvpCounts } from "@/hooks/useRSVP";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/runtime-client";
 import { useEventTypes, getEventTypeIcon } from "@/hooks/useEventTypes";
 import { useMyGuestRequests } from "@/hooks/useGuestRequests";
 import RSVPModal from "@/components/RSVPModal";
@@ -15,8 +17,6 @@ import { AlertTriangle } from "lucide-react";
 import SpeakerBadge from "@/components/SpeakerBadge";
 import LazyImage from "@/components/LazyImage";
 import { useShareEvent } from "@/components/ShareEventDialog";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/runtime-client";
 import type { Database } from "@/integrations/supabase/types";
 
 type Event = Database["public"]["Tables"]["events"]["Row"];
@@ -266,6 +266,7 @@ function EventCardInner({ event, onShowTicket, isPast = false }: EventCardProps)
               {confirmedCount}/{event.capacity} spots
             </span>
           )}
+          {isAdminOrMod && <AdminGuestCountPill eventId={event.id} memberCount={confirmedCount} />}
         </div>
 
         {/* Guest request status — only when user has at least one request */}
@@ -700,3 +701,29 @@ function GuestRequestStatusRow({ eventId, onOpen }: { eventId: string; onOpen: (
     </button>
   );
 }
+
+function useAdminEventGuestCount(eventId: string) {
+  return useQuery({
+    queryKey: ["admin-event-guest-count", eventId],
+    staleTime: 60 * 1000,
+    queryFn: async () => {
+      const { count } = await supabase
+        .from("guest_requests")
+        .select("id", { count: "exact", head: true })
+        .eq("event_id", eventId)
+        .eq("status", "approved");
+      return count ?? 0;
+    },
+  });
+}
+
+function AdminGuestCountPill({ eventId, memberCount }: { eventId: string; memberCount: number }) {
+  const { data } = useAdminEventGuestCount(eventId);
+  const guests = data ?? 0;
+  return (
+    <span className="text-[10px] text-muted-foreground">
+      · {memberCount} member{memberCount !== 1 ? "s" : ""} · {guests} guest{guests !== 1 ? "s" : ""}
+    </span>
+  );
+}
+

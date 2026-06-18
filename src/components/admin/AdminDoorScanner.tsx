@@ -34,7 +34,17 @@ interface AttendeeRow {
   guests_count: number;
   name: string;
   user_id: string;
+  is_mureed: boolean;
   promised: PromisedItem[];
+}
+
+interface ExternalGuestRow {
+  id: string;
+  guest_name: string;
+  guest_phone: string | null;
+  requesting_user_id: string | null;
+  sponsor_name: string | null;
+  is_walk_in: boolean;
 }
 
 export default function AdminDoorScanner() {
@@ -142,7 +152,7 @@ export default function AdminDoorScanner() {
       const rsvpIds = data.map((r) => r.id);
 
       const [{ data: profiles }, { data: selections }] = await Promise.all([
-        supabase.from("profiles").select("id, name").in("id", userIds),
+        supabase.from("profiles").select("id, name, is_mureed").in("id", userIds),
         rsvpIds.length > 0
           ? supabase
               .from("rsvp_sign_up_selections")
@@ -151,7 +161,7 @@ export default function AdminDoorScanner() {
           : Promise.resolve({ data: [] as any[] }),
       ]);
 
-      const profileMap = new Map(profiles?.map((p) => [p.id, p.name]) ?? []);
+      const profileMap = new Map(profiles?.map((p) => [p.id, p]) ?? []);
       const promisedMap = new Map<string, PromisedItem[]>();
       for (const s of (selections ?? []) as any[]) {
         const list = promisedMap.get(s.rsvp_id) ?? [];
@@ -163,17 +173,64 @@ export default function AdminDoorScanner() {
         promisedMap.set(s.rsvp_id, list);
       }
 
-      return data.map((r) => ({
-        rsvp_id: r.id,
-        checked_in: r.checked_in,
-        guests_count: r.guests_count,
-        name: profileMap.get(r.user_id) || "Unknown",
-        user_id: r.user_id,
-        promised: promisedMap.get(r.id) ?? [],
-      })) as AttendeeRow[];
+      return data.map((r) => {
+        const p = profileMap.get(r.user_id) as any;
+        return {
+          rsvp_id: r.id,
+          checked_in: r.checked_in,
+          guests_count: r.guests_count,
+          name: p?.name || "Unknown",
+          user_id: r.user_id,
+          is_mureed: !!p?.is_mureed,
+          promised: promisedMap.get(r.id) ?? [],
+        };
+      }) as AttendeeRow[];
     },
     enabled: !!selectedEventId,
     refetchInterval: 5000,
+  });
+
+  // External guests (approved guest_requests) for this event
+  const { data: externalGuests } = useQuery({
+    queryKey: ["door-scanner-guests", selectedEventId],
+    enabled: !!selectedEventId,
+    refetchInterval: 5000,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("guest_requests")
+        .select("id, guest_name, guest_phone, requesting_user_id, status")
+        .eq("event_id", selectedEventId)
+        .eq("status", "approved");
+      if (error) throw error;
+      const rows = (data ?? []) as any[];
+      const requesterIds = [...new Set(rows.map((r) => r.requesting_user_id).filter(Boolean))] as string[];
+      const [{ data: sponsors }, { data: roles }] = await Promise.all([
+        requesterIds.length
+          ? supabase.from("profiles").select("id, name").in("id", requesterIds)
+          : Promise.resolve({ data: [] as any[] }),
+        requesterIds.length
+          ? supabase.from("user_roles").select("user_id, role").in("user_id", requesterIds)
+          : Promise.resolve({ data: [] as any[] }),
+      ]);
+      const nameMap = new Map((sponsors ?? []).map((p: any) => [p.id, p.name]));
+      const roleMap = new Map<string, string>();
+      for (const r of (roles ?? []) as any[]) {
+        const existing = roleMap.get(r.user_id);
+        if (!existing || r.role === "admin" || r.role === "moderator") roleMap.set(r.user_id, r.role);
+      }
+      return rows.map<ExternalGuestRow>((r) => {
+        const role = r.requesting_user_id ? roleMap.get(r.requesting_user_id) : undefined;
+        const isWalkIn = !r.requesting_user_id || role === "admin" || role === "moderator";
+        return {
+          id: r.id,
+          guest_name: r.guest_name,
+          guest_phone: r.guest_phone ?? null,
+          requesting_user_id: r.requesting_user_id ?? null,
+          sponsor_name: r.requesting_user_id ? (nameMap.get(r.requesting_user_id) as string | undefined) ?? null : null,
+          is_walk_in: isWalkIn,
+        };
+      });
+    },
   });
 
   const rsvpCounts = useMemo(() => {
@@ -446,6 +503,14 @@ export default function AdminDoorScanner() {
               <span>{rsvpCounts.checkedInGuests} of {rsvpCounts.totalGuests} total guests arrived</span>
               <span>{rsvpCounts.totalGuests - rsvpCounts.checkedInGuests} remaining</span>
             </div>
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
+              <span className="text-muted-foreground">
+                <span className="font-medium text-foreground">Members:</span> {rsvpCounts.checkedIn}/{rsvpCounts.total}
+              </span>
+              <span className="text-muted-foreground">
+                <span className="font-medium text-foreground">External guests:</span> {externalGuests?.length ?? 0}
+              </span>
+            </div>
             <Button
               variant="outline"
               size="sm"
@@ -559,7 +624,13 @@ export default function AdminDoorScanner() {
                           <UserX className="h-4 w-4 shrink-0 text-muted-foreground" />
                         )}
                         <div className="min-w-0">
-                          <p className="text-sm font-medium text-card-foreground truncate">{attendee.name}</p>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <p className="text-sm font-medium text-card-foreground truncate">{attendee.name}</p>
+                            <Badge variant="outline" className="text-[10px] px-1 py-0 border-primary/40 text-primary">Member</Badge>
+                            {attendee.is_mureed && (
+                              <Badge variant="outline" className="text-[10px] px-1 py-0 border-accent text-accent-foreground bg-accent/10">Mureed</Badge>
+                            )}
+                          </div>
                           {attendee.guests_count > 1 && (
                             <p className="text-xs text-muted-foreground">+{attendee.guests_count - 1} guests</p>
                           )}
@@ -594,6 +665,33 @@ export default function AdminDoorScanner() {
                 ))
               )}
             </div>
+
+            {/* External Guests (approved guest_requests + walk-ins) */}
+            {externalGuests && externalGuests.length > 0 && (
+              <div className="pt-3 border-t border-border space-y-1">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  External Guests ({externalGuests.length})
+                </p>
+                {externalGuests
+                  .filter((g) => !searchQuery.trim() || g.guest_name.toLowerCase().includes(searchQuery.toLowerCase()))
+                  .map((g) => (
+                    <div key={g.id} className="rounded-lg border border-border p-3">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <p className="text-sm font-medium text-card-foreground">{g.guest_name}</p>
+                        <Badge variant="secondary" className="text-[10px] px-1 py-0">Guest</Badge>
+                        {g.is_walk_in ? (
+                          <Badge variant="outline" className="text-[10px] px-1 py-0 border-primary/40 text-primary">Walk-in</Badge>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">· sponsor: {g.sponsor_name || "—"}</span>
+                        )}
+                      </div>
+                      {g.guest_phone && (
+                        <p className="text-xs text-muted-foreground mt-0.5">{g.guest_phone}</p>
+                      )}
+                    </div>
+                  ))}
+              </div>
+            )}
           </CardContent>
         </Card>
       )}

@@ -16,6 +16,7 @@ interface GroupedEvent {
   dateTime: string | null;
   requests: any[];
   pendingCount: number;
+  memberCount: number;
 }
 
 export default function AllGuestApprovals() {
@@ -31,7 +32,7 @@ export default function AllGuestApprovals() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("guest_requests")
-        .select("*, events:event_id(title, date_time, location, address, virtual_link, online_link, event_type_id), profiles:requesting_user_id(name, email)")
+        .select("*, events:event_id(title, date_time, location, address, virtual_link, online_link, event_type_id, rsvps(id, status)), profiles:requesting_user_id(name, email)")
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data ?? [];
@@ -117,12 +118,15 @@ export default function AllGuestApprovals() {
       const eventId = (gr as any).event_id ?? "unknown";
       const evt = (gr as any).events;
       if (!byEvent.has(eventId)) {
+        const rsvpsArr = Array.isArray(evt?.rsvps) ? evt.rsvps : [];
+        const memberCount = rsvpsArr.filter((r: any) => r.status === "attending").length;
         byEvent.set(eventId, {
           eventId,
           title: evt?.title || "Unknown event",
           dateTime: evt?.date_time ?? null,
           requests: [],
           pendingCount: 0,
+          memberCount,
         });
       }
       const bucket = byEvent.get(eventId)!;
@@ -222,7 +226,10 @@ export default function AllGuestApprovals() {
                         </Badge>
                       )}
                       <Badge variant="secondary" className="h-6 px-2 text-xs">
-                        {g.requests.length} total
+                        {g.requests.length} guest{g.requests.length !== 1 ? "s" : ""}
+                      </Badge>
+                      <Badge variant="outline" className="h-6 px-2 text-xs hidden sm:inline-flex">
+                        {g.memberCount} member{g.memberCount !== 1 ? "s" : ""} RSVP'd
                       </Badge>
                       <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`} />
                     </div>
