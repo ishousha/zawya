@@ -287,6 +287,8 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
         location: form.location || null,
         address: form.address || null,
         maps_url: form.maps_url || null,
+        latitude: (() => { try { return parseGoogleMapsCoords(form.maps_url)?.lat ?? null; } catch { return null; } })(),
+        longitude: (() => { try { return parseGoogleMapsCoords(form.maps_url)?.lng ?? null; } catch { return null; } })(),
         venue_id: form.venue_id || null,
         virtual_link: form.virtual_link || null,
         zoom_link: form.virtual_link || null,
