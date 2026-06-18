@@ -510,11 +510,21 @@ export default function EventRsvpDetail({ eventId, eventTitle, eventDate, checki
 
                 {/* Guest List Tab */}
                 <TabsContent value="guests" className="space-y-4">
-                  {/* Attending */}
+                  {/* Members & Mureeds Attending */}
                   <div>
-                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-                      Attending ({attending.length})
-                    </p>
+                    {(() => {
+                      const mureedCount = attending.filter((r) => (r.profile as any)?.is_mureed).length;
+                      return (
+                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-2">
+                          <span>Members &amp; Mureeds ({attending.length})</span>
+                          {mureedCount > 0 && (
+                            <Badge variant="outline" className="h-5 px-1.5 text-[10px] border-accent text-accent-foreground bg-accent/10">
+                              {mureedCount} mureed{mureedCount !== 1 ? "s" : ""}
+                            </Badge>
+                          )}
+                        </p>
+                      );
+                    })()}
                     {attending.length > 0 ? (
                       <div className="overflow-x-auto -mx-4 px-4">
                         <Table>
@@ -530,8 +540,13 @@ export default function EventRsvpDetail({ eventId, eventTitle, eventDate, checki
                             {attending.map((r) => (
                               <TableRow key={r.id}>
                                 <TableCell className="py-2">
-                                  <div className="flex items-center gap-1.5">
+                                  <div className="flex items-center gap-1.5 flex-wrap">
                                     <span className="text-sm font-medium">{(r.profile as any)?.name || "Unknown"}</span>
+                                    {(r.profile as any)?.is_mureed && (
+                                      <Badge variant="outline" className="text-[10px] px-1 py-0 border-accent text-accent-foreground bg-accent/10">
+                                        Mureed
+                                      </Badge>
+                                    )}
                                     {(r.profile as any)?.role === "guest" && (
                                       <Badge variant="secondary" className="text-[10px] px-1 py-0">Guest</Badge>
                                     )}
@@ -589,9 +604,13 @@ export default function EventRsvpDetail({ eventId, eventTitle, eventDate, checki
                         </Table>
                       </div>
                     ) : (
-                      <p className="text-xs text-muted-foreground italic">No confirmed attendees yet.</p>
+                      <p className="text-xs text-muted-foreground italic">No confirmed members yet.</p>
                     )}
                   </div>
+
+                  {/* External Guests (approved guest_requests) */}
+                  <ExternalGuestsSection eventId={eventId} />
+
 
                   {/* Waitlisted */}
                   {waitlisted.length > 0 && (
