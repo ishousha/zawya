@@ -118,12 +118,15 @@ export default function AllGuestApprovals() {
       const eventId = (gr as any).event_id ?? "unknown";
       const evt = (gr as any).events;
       if (!byEvent.has(eventId)) {
+        const rsvpsArr = Array.isArray(evt?.rsvps) ? evt.rsvps : [];
+        const memberCount = rsvpsArr.filter((r: any) => r.status === "attending").length;
         byEvent.set(eventId, {
           eventId,
           title: evt?.title || "Unknown event",
           dateTime: evt?.date_time ?? null,
           requests: [],
           pendingCount: 0,
+          memberCount,
         });
       }
       const bucket = byEvent.get(eventId)!;
