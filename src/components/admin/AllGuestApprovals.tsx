@@ -31,7 +31,7 @@ export default function AllGuestApprovals() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("guest_requests")
-        .select("*, events:event_id(title, date_time, location, address, virtual_link, online_link, event_type_id), profiles:requesting_user_id(name, email)")
+        .select("*, events:event_id(title, date_time, location, address, virtual_link, online_link, event_type_id, rsvps(id, status)), profiles:requesting_user_id(name, email)")
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data ?? [];
