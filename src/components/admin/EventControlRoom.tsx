@@ -300,6 +300,13 @@ export default function EventControlRoom() {
   type FilterKey = "upcoming" | "past" | "published" | "scheduled" | "draft";
   const [selectedFilters, setSelectedFilters] = useState<Set<FilterKey>>(new Set());
   const [search, setSearch] = useState("");
+  const debouncedSearch = useDebounce(search, 200);
+  const [sortOrder, setSortOrder] = useState<SortOrder>("oldest");
+  const [dateRange, setDateRange] = useState<DateRange | null>(null);
+  const [jumpOpen, setJumpOpen] = useState(false);
+  const [saveDialogOpen, setSaveDialogOpen] = useState(false);
+  const [saveName, setSaveName] = useState("");
+  const { views: savedViews, saveView, deleteView } = useSavedEventFilters();
 
   const toggleFilter = (f: FilterKey) =>
     setSelectedFilters((prev) => {
@@ -310,57 +317,61 @@ export default function EventControlRoom() {
   const clearAll = () => {
     setSelectedFilters(new Set());
     setSearch("");
+    setDateRange(null);
   };
+
+  const typeNameById = useCallback(
+    (id?: string | null) => (id ? eventTypes?.find((t) => t.id === id)?.name ?? "Event" : "Event"),
+    [eventTypes],
+  );
 
   const nonCancelled = useMemo(
     () => events?.filter((e) => e.status !== "cancelled") ?? [],
     [events],
   );
 
-  const upcomingAll = useMemo(
+  const upcomingBase = useMemo(
     () => nonCancelled.filter((e) => !isEventPast(e)),
     [nonCancelled],
   );
-  const pastAll = useMemo(
-    () =>
-      [...nonCancelled.filter((e) => isEventPast(e))].sort((a, b) =>
-        b.date_time.localeCompare(a.date_time),
-      ),
+  const pastBase = useMemo(
+    () => nonCancelled.filter((e) => isEventPast(e)),
     [nonCancelled],
   );
 
-  const matchesSearch = (e: any) =>
-    !search.trim() || (e.title ?? "").toLowerCase().includes(search.trim().toLowerCase());
+  // Apply user sort. Default presentation when toggle = "oldest":
+  //   upcoming soonest-first, past most-recent-first (the original behavior).
+  // Toggle to "newest" inverts both.
+  const upcomingAll = useMemo(
+    () => sortEvents(upcomingBase as any, sortOrder === "newest" ? "newest" : "oldest"),
+    [upcomingBase, sortOrder],
+  );
+  const pastAll = useMemo(
+    () => sortEvents(pastBase as any, sortOrder === "newest" ? "newest" : "oldest"),
+    [pastBase, sortOrder],
+  );
 
-  const matchesStatusFilters = (e: any) => {
-    const statusKeys: FilterKey[] = ["published", "scheduled", "draft"];
-    const activeStatuses = statusKeys.filter((k) => selectedFilters.has(k));
-    if (activeStatuses.length === 0) return true;
-    return activeStatuses.some((k) => {
-      if (k === "published") return !!e.published;
-      if (k === "scheduled") return !e.published && !!e.scheduled_publish_at;
-      if (k === "draft") return !e.published && !e.scheduled_publish_at;
-      return false;
-    });
-  };
+  const matchesSearch = (e: any) => matchesSearchHelper(e, debouncedSearch, typeNameById);
+  const matchesStatusFilters = (e: any) => matchesStatusHelper(e, selectedFilters);
 
   const timeFilterActive = selectedFilters.has("upcoming") || selectedFilters.has("past");
-  const anyFilterActive = selectedFilters.size > 0 || !!search.trim();
+  const dateRangeActive = !!(dateRange && (dateRange.from || dateRange.to));
+  const anyFilterActive =
+    selectedFilters.size > 0 || !!debouncedSearch.trim() || dateRangeActive;
 
   const combinedFiltered = useMemo(() => {
-    let pool: typeof nonCancelled = [];
+    let pool: any[] = [];
     const wantUpcoming = selectedFilters.has("upcoming");
     const wantPast = selectedFilters.has("past");
     if (timeFilterActive) {
-      if (wantUpcoming) pool = pool.concat(upcomingAll);
+      if (wantUpcoming) pool = pool.concat(upcomingAll.filter((e) => inDateRange(e as any, dateRange)));
       if (wantPast) pool = pool.concat(pastAll);
     } else {
-      // Status-only or search-only → search across everything, upcoming first
-      pool = [...upcomingAll, ...pastAll];
+      pool = [...upcomingAll.filter((e) => inDateRange(e as any, dateRange)), ...pastAll];
     }
     return pool.filter((e) => matchesStatusFilters(e) && matchesSearch(e));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedFilters, search, upcomingAll, pastAll]);
+  }, [selectedFilters, debouncedSearch, upcomingAll, pastAll, dateRange]);
 
   const cancelledEvents = events?.filter((e) => e.status === "cancelled") ?? [];
 
@@ -378,6 +389,39 @@ export default function EventControlRoom() {
     }),
     [nonCancelled, upcomingAll, pastAll],
   );
+
+  const jumpEvents = useMemo(
+    () => sortEvents(nonCancelled as any, "oldest"),
+    [nonCancelled],
+  );
+
+  const applySavedView = (id: string) => {
+    const v = savedViews.find((x) => x.id === id);
+    if (!v) return;
+    setSelectedFilters(new Set(v.filters));
+    setSearch(v.search);
+    setSortOrder(v.sortOrder);
+    setDateRange(v.dateRange);
+    toast.success(`Applied "${v.name}"`);
+  };
+
+  const handleSaveView = () => {
+    const name = saveName.trim();
+    if (!name) {
+      toast.error("Name your view first");
+      return;
+    }
+    saveView({
+      name,
+      filters: Array.from(selectedFilters),
+      search: debouncedSearch,
+      sortOrder,
+      dateRange,
+    });
+    toast.success(`Saved "${name}"`);
+    setSaveName("");
+    setSaveDialogOpen(false);
+  };
 
   if (isLoading) {
     return (
