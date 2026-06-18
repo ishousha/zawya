@@ -283,35 +283,87 @@ export default function EventControlRoom() {
     onError: (err) => toast.error(getErrorMessage(err, "Failed to unpublish event")),
   });
 
-  const [statusFilter, setStatusFilter] = useState<"all" | "published" | "scheduled" | "draft" | "past">("all");
+  type FilterKey = "upcoming" | "past" | "published" | "scheduled" | "draft";
+  const [selectedFilters, setSelectedFilters] = useState<Set<FilterKey>>(new Set());
+  const [search, setSearch] = useState("");
 
-  const activeEvents = useMemo(() => {
-    const nonCancelled = events?.filter(e => e.status !== "cancelled") ?? [];
-    switch (statusFilter) {
-      case "published":
-        return nonCancelled.filter(e => (e as any).published && !isEventPast(e));
-      case "scheduled":
-        return nonCancelled.filter(e => !(e as any).published && (e as any).scheduled_publish_at && !isEventPast(e));
-      case "draft":
-        return nonCancelled.filter(e => !(e as any).published && !(e as any).scheduled_publish_at && !isEventPast(e));
-      case "past":
-        return nonCancelled.filter(e => isEventPast(e));
-      default:
-        return nonCancelled;
+  const toggleFilter = (f: FilterKey) =>
+    setSelectedFilters((prev) => {
+      const next = new Set(prev);
+      next.has(f) ? next.delete(f) : next.add(f);
+      return next;
+    });
+  const clearAll = () => {
+    setSelectedFilters(new Set());
+    setSearch("");
+  };
+
+  const nonCancelled = useMemo(
+    () => events?.filter((e) => e.status !== "cancelled") ?? [],
+    [events],
+  );
+
+  const upcomingAll = useMemo(
+    () => nonCancelled.filter((e) => !isEventPast(e)),
+    [nonCancelled],
+  );
+  const pastAll = useMemo(
+    () =>
+      [...nonCancelled.filter((e) => isEventPast(e))].sort((a, b) =>
+        b.date_time.localeCompare(a.date_time),
+      ),
+    [nonCancelled],
+  );
+
+  const matchesSearch = (e: any) =>
+    !search.trim() || (e.title ?? "").toLowerCase().includes(search.trim().toLowerCase());
+
+  const matchesStatusFilters = (e: any) => {
+    const statusKeys: FilterKey[] = ["published", "scheduled", "draft"];
+    const activeStatuses = statusKeys.filter((k) => selectedFilters.has(k));
+    if (activeStatuses.length === 0) return true;
+    return activeStatuses.some((k) => {
+      if (k === "published") return !!e.published;
+      if (k === "scheduled") return !e.published && !!e.scheduled_publish_at;
+      if (k === "draft") return !e.published && !e.scheduled_publish_at;
+      return false;
+    });
+  };
+
+  const timeFilterActive = selectedFilters.has("upcoming") || selectedFilters.has("past");
+  const anyFilterActive = selectedFilters.size > 0 || !!search.trim();
+
+  const combinedFiltered = useMemo(() => {
+    let pool: typeof nonCancelled = [];
+    const wantUpcoming = selectedFilters.has("upcoming");
+    const wantPast = selectedFilters.has("past");
+    if (timeFilterActive) {
+      if (wantUpcoming) pool = pool.concat(upcomingAll);
+      if (wantPast) pool = pool.concat(pastAll);
+    } else {
+      // Status-only or search-only → search across everything, upcoming first
+      pool = [...upcomingAll, ...pastAll];
     }
-  }, [events, statusFilter]);
-  const cancelledEvents = events?.filter(e => e.status === "cancelled") ?? [];
+    return pool.filter((e) => matchesStatusFilters(e) && matchesSearch(e));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedFilters, search, upcomingAll, pastAll]);
 
-  const filterCounts = useMemo(() => {
-    const nonCancelled = events?.filter(e => e.status !== "cancelled") ?? [];
-    return {
-      all: nonCancelled.length,
-      published: nonCancelled.filter(e => (e as any).published && !isEventPast(e)).length,
-      scheduled: nonCancelled.filter(e => !(e as any).published && (e as any).scheduled_publish_at && !isEventPast(e)).length,
-      draft: nonCancelled.filter(e => !(e as any).published && !(e as any).scheduled_publish_at && !isEventPast(e)).length,
-      past: nonCancelled.filter(e => isEventPast(e)).length,
-    };
-  }, [events]);
+  const cancelledEvents = events?.filter((e) => e.status === "cancelled") ?? [];
+
+  const filterCounts = useMemo(
+    () => ({
+      upcoming: upcomingAll.length,
+      past: pastAll.length,
+      published: nonCancelled.filter((e: any) => e.published && !isEventPast(e)).length,
+      scheduled: nonCancelled.filter(
+        (e: any) => !e.published && e.scheduled_publish_at && !isEventPast(e),
+      ).length,
+      draft: nonCancelled.filter(
+        (e: any) => !e.published && !e.scheduled_publish_at && !isEventPast(e),
+      ).length,
+    }),
+    [nonCancelled, upcomingAll, pastAll],
+  );
 
   if (isLoading) {
     return (
