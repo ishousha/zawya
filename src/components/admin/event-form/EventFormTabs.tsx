@@ -315,6 +315,9 @@ export default function EventFormTabs({ event, initialForm, initialItems, onClos
         audience_gender: form.audience_gender || "Everyone",
         published: shouldPublish,
         ...(shouldPublish ? { last_published_at: new Date().toISOString() } : {}),
+        ...(shouldPublish && !wasAlreadyPublished.current
+          ? { announcement_send_at: new Date(Date.now() + 20 * 60 * 1000).toISOString(), announcement_sent_at: null }
+          : {}),
         scheduled_publish_at: !shouldPublish && form.scheduled_publish_at
           ? new Date(form.scheduled_publish_at).toISOString()
           : null,
