@@ -14,7 +14,9 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
-import { Loader2, X, Download, UserPlus, Mail, Printer, Users, UtensilsCrossed, CheckCircle2, Circle, Eye, Plus, Trash2, MessageCircle } from "lucide-react";
+import { Loader2, X, Download, UserPlus, Mail, Printer, Users, UtensilsCrossed, CheckCircle2, Circle, Eye, Plus, Trash2, MessageCircle, ChevronDown } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { useEventGuestRequests } from "@/hooks/useGuestRequests";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -864,5 +866,38 @@ export default function EventRsvpDetail({ eventId, eventTitle, eventDate, checki
         </AlertDialogContent>
       </AlertDialog>
     </>
+  );
+}
+
+function GuestRequestsSection({ eventId }: { eventId: string }) {
+  const { data: requests } = useEventGuestRequests(eventId);
+  const total = requests?.length ?? 0;
+  const pending = (requests ?? []).filter((r: any) => r.status === "pending").length;
+  const [open, setOpen] = useState(pending > 0);
+
+  return (
+    <Collapsible open={open} onOpenChange={setOpen} className="pt-2 border-t border-border">
+      <CollapsibleTrigger asChild>
+        <button
+          type="button"
+          className="flex w-full items-center justify-between py-2 text-left hover:bg-muted/40 rounded-md px-2 -mx-2"
+        >
+          <span className="flex items-center gap-2">
+            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              Guest Requests
+            </span>
+            {total > 0 && (
+              <Badge variant={pending > 0 ? "default" : "secondary"} className="h-5 px-1.5 text-[10px]">
+                {pending > 0 ? `${pending} pending` : `${total}`}
+              </Badge>
+            )}
+          </span>
+          <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`} />
+        </button>
+      </CollapsibleTrigger>
+      <CollapsibleContent className="pt-2">
+        <AdminGuestApprovals eventId={eventId} />
+      </CollapsibleContent>
+    </Collapsible>
   );
 }
