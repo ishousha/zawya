@@ -9,10 +9,13 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Loader2, Plus, Edit2, X, Users, ChevronDown, Copy, Trash2, Ban, RotateCcw, Check, Mail, EyeOff, Video, Link2, Search } from "lucide-react";
+import { Loader2, Plus, Edit2, X, Users, ChevronDown, Copy, Trash2, Ban, RotateCcw, Check, Mail, EyeOff, Video, Link2, Search, ArrowDownNarrowWide, ArrowUpNarrowWide, CalendarIcon, ListChecks, Bookmark, Save } from "lucide-react";
 import { useShareEvent } from "@/components/ShareEventDialog";
 import { toast } from "sonner";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { format } from "date-fns";
 import type { Database } from "@/integrations/supabase/types";
 import EventFormTabs from "./event-form/EventFormTabs";
@@ -22,6 +25,17 @@ import { useEventTypes } from "@/hooks/useEventTypes";
 import EventBroadcastModal from "./EventBroadcastModal";
 import EventRsvpDetail from "./EventRsvpDetail";
 import { EVENT_PUBLIC_COLUMNS } from "@/lib/event-columns";
+import { useDebounce } from "@/hooks/useDebounce";
+import {
+  matchesSearch as matchesSearchHelper,
+  matchesStatusFilters as matchesStatusHelper,
+  inDateRange,
+  sortEvents,
+  type DateRange,
+  type SortOrder,
+} from "@/lib/event-filters";
+import { useSavedEventFilters } from "@/hooks/useSavedEventFilters";
+import { cn } from "@/lib/utils";
 
 type EventRow = Database["public"]["Tables"]["events"]["Row"];
 
