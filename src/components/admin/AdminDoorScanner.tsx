@@ -10,9 +10,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { ScanLine, CheckCircle2, XOctagon, Users, Search, UserCheck, UserX, Radio, ClipboardList, CalendarClock } from "lucide-react";
+import { ScanLine, CheckCircle2, XOctagon, Users, Search, UserCheck, UserX, Radio, ClipboardList, CalendarClock, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 import { Scanner } from "@yudiel/react-qr-scanner";
+import WalkInGuestDialog from "./WalkInGuestDialog";
 
 interface QRPayload {
   rsvp_id: string;
@@ -43,6 +44,7 @@ export default function AdminDoorScanner() {
   const [lastResult, setLastResult] = useState<{ success: boolean; message: string; promised?: PromisedItem[]; name?: string } | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [showManual, setShowManual] = useState(false);
+  const [showWalkInGuest, setShowWalkInGuest] = useState(false);
 
   const { data: events } = useQuery({
     queryKey: ["admin-events-active"],
@@ -498,6 +500,26 @@ export default function AdminDoorScanner() {
             </Button>
           )}
         </div>
+      )}
+
+      {/* Add Walk-in Guest */}
+      {selectedEventId && !scanning && (
+        <Button
+          variant="outline"
+          className="w-full h-12 gap-2"
+          onClick={() => setShowWalkInGuest(true)}
+        >
+          <UserPlus className="h-4 w-4" />
+          Add Walk-in Guest
+        </Button>
+      )}
+
+      {selectedEventId && (
+        <WalkInGuestDialog
+          eventId={selectedEventId}
+          open={showWalkInGuest}
+          onOpenChange={setShowWalkInGuest}
+        />
       )}
 
       {/* Manual search panel */}
