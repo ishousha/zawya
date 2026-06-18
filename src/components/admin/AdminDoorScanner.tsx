@@ -161,7 +161,7 @@ export default function AdminDoorScanner() {
           : Promise.resolve({ data: [] as any[] }),
       ]);
 
-      const profileMap = new Map(profiles?.map((p) => [p.id, p.name]) ?? []);
+      const profileMap = new Map(profiles?.map((p) => [p.id, p]) ?? []);
       const promisedMap = new Map<string, PromisedItem[]>();
       for (const s of (selections ?? []) as any[]) {
         const list = promisedMap.get(s.rsvp_id) ?? [];
@@ -173,17 +173,64 @@ export default function AdminDoorScanner() {
         promisedMap.set(s.rsvp_id, list);
       }
 
-      return data.map((r) => ({
-        rsvp_id: r.id,
-        checked_in: r.checked_in,
-        guests_count: r.guests_count,
-        name: profileMap.get(r.user_id) || "Unknown",
-        user_id: r.user_id,
-        promised: promisedMap.get(r.id) ?? [],
-      })) as AttendeeRow[];
+      return data.map((r) => {
+        const p = profileMap.get(r.user_id) as any;
+        return {
+          rsvp_id: r.id,
+          checked_in: r.checked_in,
+          guests_count: r.guests_count,
+          name: p?.name || "Unknown",
+          user_id: r.user_id,
+          is_mureed: !!p?.is_mureed,
+          promised: promisedMap.get(r.id) ?? [],
+        };
+      }) as AttendeeRow[];
     },
     enabled: !!selectedEventId,
     refetchInterval: 5000,
+  });
+
+  // External guests (approved guest_requests) for this event
+  const { data: externalGuests } = useQuery({
+    queryKey: ["door-scanner-guests", selectedEventId],
+    enabled: !!selectedEventId,
+    refetchInterval: 5000,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("guest_requests")
+        .select("id, guest_name, guest_phone, requesting_user_id, status")
+        .eq("event_id", selectedEventId)
+        .eq("status", "approved");
+      if (error) throw error;
+      const rows = (data ?? []) as any[];
+      const requesterIds = [...new Set(rows.map((r) => r.requesting_user_id).filter(Boolean))] as string[];
+      const [{ data: sponsors }, { data: roles }] = await Promise.all([
+        requesterIds.length
+          ? supabase.from("profiles").select("id, name").in("id", requesterIds)
+          : Promise.resolve({ data: [] as any[] }),
+        requesterIds.length
+          ? supabase.from("user_roles").select("user_id, role").in("user_id", requesterIds)
+          : Promise.resolve({ data: [] as any[] }),
+      ]);
+      const nameMap = new Map((sponsors ?? []).map((p: any) => [p.id, p.name]));
+      const roleMap = new Map<string, string>();
+      for (const r of (roles ?? []) as any[]) {
+        const existing = roleMap.get(r.user_id);
+        if (!existing || r.role === "admin" || r.role === "moderator") roleMap.set(r.user_id, r.role);
+      }
+      return rows.map<ExternalGuestRow>((r) => {
+        const role = r.requesting_user_id ? roleMap.get(r.requesting_user_id) : undefined;
+        const isWalkIn = !r.requesting_user_id || role === "admin" || role === "moderator";
+        return {
+          id: r.id,
+          guest_name: r.guest_name,
+          guest_phone: r.guest_phone ?? null,
+          requesting_user_id: r.requesting_user_id ?? null,
+          sponsor_name: r.requesting_user_id ? (nameMap.get(r.requesting_user_id) as string | undefined) ?? null : null,
+          is_walk_in: isWalkIn,
+        };
+      });
+    },
   });
 
   const rsvpCounts = useMemo(() => {
