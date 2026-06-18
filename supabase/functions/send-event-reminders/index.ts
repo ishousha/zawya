@@ -59,6 +59,7 @@ Deno.serve(async (req) => {
   // Check for events starting in ~24 hours and ~2 hours
   const windows = [
     { type: '24h' as const, hoursAhead: 24, bufferMinutes: 10 },
+    { type: '12h' as const, hoursAhead: 12, bufferMinutes: 10 },
     { type: '2h' as const, hoursAhead: 2, bufferMinutes: 10 },
   ]
 
