@@ -115,7 +115,7 @@ export default function EventControlRoom() {
         .from("events")
         .select(`${EVENT_PUBLIC_COLUMNS}, rsvps(id, status), host:host_id(name)` as "*, rsvps(id, status), host:host_id(name)")
         .order("date_time", { ascending: true })
-        .limit(50);
+        .limit(500);
       if (error) throw error;
       return data;
     },
