@@ -1,0 +1,1 @@
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS announcement_send_at timestamptz, ADD COLUMN IF NOT EXISTS announcement_sent_at timestamptz;
