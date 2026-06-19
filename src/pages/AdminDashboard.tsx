@@ -220,6 +220,7 @@ export default function AdminDashboard() {
             <TabsTrigger value="resources" className={tabTriggerBase}><BookOpen className="h-4 w-4" /> Resources</TabsTrigger>
             <TabsTrigger value="analytics" className={tabTriggerBase}><BarChart3 className="h-4 w-4" /> Analytics</TabsTrigger>
             <TabsTrigger value="reports" className={tabTriggerBase}><FileSpreadsheet className="h-4 w-4" /> Reports</TabsTrigger>
+            <TabsTrigger value="reports" className={tabTriggerBase}><FileSpreadsheet className="h-4 w-4" /> Reports</TabsTrigger>
             <TabsTrigger value="settings" className={tabTriggerBase}><Settings className="h-4 w-4" /> Settings</TabsTrigger>
             <TabsTrigger value="activity" className={tabTriggerBase}><ScrollText className="h-4 w-4" /> Log</TabsTrigger>
           </TabsList>
