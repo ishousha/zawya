@@ -676,44 +676,7 @@ export default function UserManagement() {
         </div>
       </div>
 
-      {/* Guest Requests Section */}
-      <div>
-        <h3 className="mb-3 font-heading text-base font-semibold text-foreground flex items-center gap-2">
-          <Clock className="h-4 w-4 text-accent-foreground" /> Guest Requests ({guestRequests?.length ?? 0})
-        </h3>
-        {guestRequests && guestRequests.length > 0 ? (
-          <div className="space-y-2">
-            {guestRequests.map((gr) => (
-              <Card key={gr.id} className={gr.status === "pending" ? "border-accent" : ""}>
-                <CardContent className="flex flex-col p-4 sm:flex-row sm:items-center sm:justify-between">
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate font-medium text-card-foreground">{gr.guest_name}</p>
-                    {(gr as any).profiles?.name && <p className="text-xs text-muted-foreground">Requested by {(gr as any).profiles.name}</p>}
-                    {(gr as any).events?.title && (
-                      <p className="text-xs text-primary font-medium">
-                        For: {(gr as any).events.title}
-                        {(gr as any).events.date_time && ` — ${format(new Date((gr as any).events.date_time), "EEE, MMM d")}`}
-                      </p>
-                    )}
-                    {gr.guest_phone && <p className="text-xs text-muted-foreground">{gr.guest_phone}</p>}
-                  </div>
-                  <div className="mt-3 flex items-center gap-2 sm:mt-0 sm:ml-3">
-                    <Badge variant={gr.status === "pending" ? "outline" : gr.status === "approved" ? "default" : "destructive"} className="capitalize">{gr.status}</Badge>
-                    {gr.status !== "approved" && (
-                      <Button size="icon" className="h-10 w-10" onClick={() => updateGuestStatus.mutate({ id: gr.id, status: "approved" })} disabled={updateGuestStatus.isPending} title="Approve"><CheckCircle className="h-5 w-5" /></Button>
-                    )}
-                    {gr.status !== "rejected" && (
-                      <Button size="icon" variant="destructive" className="h-10 w-10" onClick={() => updateGuestStatus.mutate({ id: gr.id, status: "rejected" })} disabled={updateGuestStatus.isPending} title="Reject"><XCircle className="h-5 w-5" /></Button>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        ) : (
-          <p className="text-sm text-muted-foreground">No guest requests yet.</p>
-        )}
-      </div>
+      {/* Guest Requests are now in their own admin tab — see AllGuestApprovals */}
 
       {/* Modals */}
       <EditUserModal profile={editProfile} open={editOpen} onOpenChange={setEditOpen} />

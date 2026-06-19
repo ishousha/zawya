@@ -6,9 +6,10 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Loader2, CheckCircle, XCircle, Clock, Search, ChevronDown, CalendarDays } from "lucide-react";
+import { Loader2, CheckCircle, XCircle, Clock, Search, ChevronDown, CalendarDays, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { buildGuestWhatsAppUrl } from "@/lib/share-event";
 
 interface GroupedEvent {
   eventId: string;
@@ -272,6 +273,27 @@ export default function AllGuestApprovals() {
                             >
                               {gr.status}
                             </Badge>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-10 w-10 text-green-600 hover:bg-green-50 hover:text-green-700"
+                              title="Share event details on WhatsApp"
+                              onClick={() => {
+                                const evt = (gr as any).events;
+                                const url = buildGuestWhatsAppUrl({
+                                  guestName: gr.guest_name,
+                                  guestPhone: gr.guest_phone,
+                                  eventTitle: evt?.title || "our gathering",
+                                  eventDateISO: evt?.date_time,
+                                  location: evt?.location,
+                                  address: evt?.address,
+                                  onlineLink: evt?.online_link || evt?.virtual_link,
+                                });
+                                window.open(url, "_blank", "noopener");
+                              }}
+                            >
+                              <MessageCircle className="h-5 w-5" />
+                            </Button>
                             {gr.status !== "approved" && (
                               <Button
                                 size="icon"

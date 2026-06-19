@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo, memo } from "react";
 import { format } from "date-fns";
-import { MapPin, Video, Users, Calendar, Clock, CheckCircle2, Ticket, Edit, Building2, ExternalLink, Ban, BookOpen, Mountain, Handshake, ClockIcon, ScanLine, Lock, Play, Share2 } from "lucide-react";
+import { MapPin, Video, Users, Calendar, Clock, CheckCircle2, Ticket, Edit, Building2, ExternalLink, Ban, BookOpen, Mountain, Handshake, ClockIcon, ScanLine, Lock, Play, Share2, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useMyRSVP, useEventRsvpCounts } from "@/hooks/useRSVP";
@@ -275,10 +275,7 @@ function EventCardInner({ event, onShowTicket, isPast = false }: EventCardProps)
           {isAdminOrMod && <AdminGuestCountPill eventId={event.id} memberCount={confirmedCount} />}
         </div>
 
-        {/* Guest request status — only when user has at least one request */}
-        {!isPast && !isCancelled && isAttending && (
-          <GuestRequestStatusRow eventId={event.id} onOpen={() => setRsvpOpen(true)} />
-        )}
+        {/* Guest request status — moved below the action row; see render after RSVP buttons */}
 
         {/* Title */}
         <h3 className="font-heading text-lg font-semibold text-card-foreground">
@@ -591,6 +588,12 @@ function EventCardInner({ event, onShowTicket, isPast = false }: EventCardProps)
           )}
         </div>
 
+        {/* Guest requests for this user — discreet, below the RSVP actions */}
+        {!isPast && !isCancelled && isAttending && (
+          <GuestRequestStatusRow eventId={event.id} onOpen={() => setRsvpOpen(true)} />
+        )}
+
+
         {/* Potluck reclaim notice — shows when this user's potluck claims were wiped */}
         {!isPast && !isCancelled && event.has_potluck && isAttending && (
           <ReclaimNotice eventId={event.id} hasPotluck={event.has_potluck} onReclaim={() => setRsvpOpen(true)} />
@@ -684,26 +687,26 @@ function GuestRequestStatusRow({ eventId, onOpen }: { eventId: string; onOpen: (
   const pending = guests.filter((g) => g.status === "pending").length;
   const approved = guests.filter((g) => g.status === "approved").length;
   const rejected = guests.filter((g) => g.status === "rejected").length;
+  const total = guests.length;
 
-  const parts: { label: string; cls: string }[] = [];
-  if (pending) parts.push({ label: `${pending} pending`, cls: "bg-amber-500/15 text-amber-700 dark:text-amber-300" });
-  if (approved) parts.push({ label: `${approved} approved`, cls: "bg-primary/15 text-primary" });
-  if (rejected) parts.push({ label: `${rejected} rejected`, cls: "bg-destructive/15 text-destructive" });
+  const summary: string[] = [];
+  if (approved) summary.push(`${approved} approved`);
+  if (pending) summary.push(`${pending} pending`);
+  if (rejected) summary.push(`${rejected} declined`);
 
   return (
     <button
       type="button"
       onClick={onOpen}
-      className="mt-2 flex w-full flex-wrap items-center gap-2 rounded-md border border-border bg-muted/30 px-2.5 py-1.5 text-left text-xs hover:bg-muted/60 transition-colors"
-      aria-label="View your guest requests"
+      className="mt-2 flex w-full items-center gap-2 rounded-md border border-border/60 bg-muted/20 px-3 py-2 text-left text-xs text-muted-foreground hover:bg-muted/40 hover:text-foreground transition-colors"
+      aria-label="Manage your guest requests"
     >
-      <span className="font-medium text-muted-foreground">Guests:</span>
-      {parts.map((p) => (
-        <span key={p.label} className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium ${p.cls}`}>
-          {p.label}
-        </span>
-      ))}
-      <span className="ml-auto text-[10px] text-muted-foreground underline">Manage</span>
+      <UserPlus className="h-3.5 w-3.5 shrink-0 text-primary" />
+      <span className="font-medium text-foreground">
+        My Guests <span className="text-muted-foreground">({total})</span>
+      </span>
+      <span className="truncate">· {summary.join(" · ")}</span>
+      <span className="ml-auto text-[11px] font-medium text-primary">Manage</span>
     </button>
   );
 }

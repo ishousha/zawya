@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/runtime-client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
 import { formatDistanceToNow, format } from "date-fns";
 import { Bell, Check, CheckCheck, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -13,6 +14,7 @@ const NOTIFICATION_TYPES = [
   { value: "rsvp", label: "RSVPs" },
   { value: "event", label: "Events" },
   { value: "guest", label: "Guest Requests" },
+  { value: "guest_request", label: "New Guests" },
   { value: "family", label: "Family" },
   { value: "info", label: "General" },
 ] as const;
@@ -21,6 +23,7 @@ type FilterType = (typeof NOTIFICATION_TYPES)[number]["value"];
 
 export default function NotificationsPage() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [filter, setFilter] = useState<FilterType>("all");
 
@@ -95,8 +98,25 @@ export default function NotificationsPage() {
       case "rsvp": return "📋";
       case "event": return "📅";
       case "guest": return "👤";
+      case "guest_request": return "🙋";
       case "family": return "👨‍👩‍👧‍👦";
       default: return "ℹ️";
+    }
+  };
+
+  const handleNotificationClick = (n: any) => {
+    if (!n.is_read) markAsRead.mutate(n.id);
+    const meta = n.metadata || {};
+    if (n.type === "guest_request") {
+      navigate("/admin", { state: { tab: "guests" } });
+      return;
+    }
+    if (n.type === "guest" && meta.event_id) {
+      navigate(`/events/${meta.event_id}`);
+      return;
+    }
+    if ((n.type === "rsvp" || n.type === "event") && meta.event_id) {
+      navigate(`/events/${meta.event_id}`);
     }
   };
 
@@ -229,9 +249,7 @@ export default function NotificationsPage() {
                   {(items as any[]).map((n: any) => (
                     <button
                       key={n.id}
-                      onClick={() => {
-                        if (!n.is_read) markAsRead.mutate(n.id);
-                      }}
+                      onClick={() => handleNotificationClick(n)}
                       className={cn(
                         "w-full text-left px-4 py-3.5 hover:bg-accent/50 transition-colors flex items-start gap-3",
                         !n.is_read && "bg-primary/5"

@@ -3,9 +3,10 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/runtime-client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Check, X } from "lucide-react";
+import { Loader2, Check, X, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { buildGuestWhatsAppUrl } from "@/lib/share-event";
 
 export default function AdminGuestApprovals({ eventId }: { eventId: string }) {
   const { data: requests, isLoading } = useEventGuestRequests(eventId);
@@ -105,6 +106,26 @@ export default function AdminGuestApprovals({ eventId }: { eventId: string }) {
                   )}
                 </div>
                 <div className="flex gap-1 shrink-0">
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-8 w-8 text-green-600 hover:bg-green-50 hover:text-green-700"
+                    title="Share event details on WhatsApp"
+                    onClick={() => {
+                      const url = buildGuestWhatsAppUrl({
+                        guestName: r.guest_name,
+                        guestPhone: r.guest_phone,
+                        eventTitle: eventData?.title || "our gathering",
+                        eventDateISO: eventData?.date_time,
+                        location: eventData?.location,
+                        address: eventData?.address,
+                        onlineLink: eventData?.online_link || eventData?.virtual_link,
+                      });
+                      window.open(url, "_blank", "noopener");
+                    }}
+                  >
+                    <MessageCircle className="h-4 w-4" />
+                  </Button>
                   <Button
                     size="icon"
                     variant="ghost"

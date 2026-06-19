@@ -4,9 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { useMyGuestRequests, useCreateGuestRequest } from "@/hooks/useGuestRequests";
+import { useMyGuestRequests, useCreateGuestRequest, useCancelGuestRequest } from "@/hooks/useGuestRequests";
 import { toast } from "sonner";
-import { Loader2, UserPlus, Phone, User, Mail, Info, Share2, MessageSquare } from "lucide-react";
+import { Loader2, UserPlus, Phone, User, Mail, Info, Share2, MessageSquare, Trash2 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -26,6 +26,7 @@ interface GuestRequestsSectionProps {
 export default function GuestRequestsSection({ eventId, event }: GuestRequestsSectionProps) {
   const { data: guests, isLoading } = useMyGuestRequests(eventId);
   const createGuest = useCreateGuestRequest(eventId);
+  const cancelGuest = useCancelGuestRequest(eventId);
   const [showForm, setShowForm] = useState(false);
   const [guestName, setGuestName] = useState("");
   const [guestEmail, setGuestEmail] = useState("");
@@ -113,7 +114,7 @@ export default function GuestRequestsSection({ eventId, event }: GuestRequestsSe
                 key={g.id}
                 className="rounded-lg border border-border bg-card p-3 space-y-2"
               >
-                <div className="flex items-center justify-between">
+                <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium text-foreground">{g.guest_name}</p>
                     {(g as any).guest_email && (
@@ -123,9 +124,32 @@ export default function GuestRequestsSection({ eventId, event }: GuestRequestsSe
                       <p className="text-xs text-muted-foreground">{g.guest_phone}</p>
                     )}
                   </div>
-                  <Badge variant={statusVariant[g.status] || "secondary"} className="text-xs capitalize">
-                    {g.status}
-                  </Badge>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <Badge variant={statusVariant[g.status] || "secondary"} className="text-xs capitalize">
+                      {g.status}
+                    </Badge>
+                    {g.status !== "rejected" && (
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="ghost"
+                        className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                        title="Cancel guest request"
+                        disabled={cancelGuest.isPending}
+                        onClick={async () => {
+                          if (!window.confirm(`Cancel guest request for ${g.guest_name}?`)) return;
+                          try {
+                            await cancelGuest.mutateAsync(g.id);
+                            toast.success("Guest request cancelled.");
+                          } catch {
+                            toast.error("Failed to cancel guest request.");
+                          }
+                        }}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    )}
+                  </div>
                 </div>
                 {(g as any).member_note && (
                   <div className="rounded-md border border-border bg-muted/30 p-2">
