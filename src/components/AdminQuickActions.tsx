@@ -1,12 +1,13 @@
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
-import { PlusCircle, ClipboardList, UserPlus, Video, X, ExternalLink, ScanLine } from "lucide-react";
+import { PlusCircle, ClipboardList, UserPlus, Video, X, ExternalLink, ScanLine, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/runtime-client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import { usePendingGuestRequestsCount } from "@/hooks/usePendingGuestRequestsCount";
 import type { Database } from "@/integrations/supabase/types";
 
 type Event = Database["public"]["Tables"]["events"]["Row"];
@@ -53,6 +54,7 @@ function QuickActionCard({
 export default function AdminQuickActions() {
   const navigate = useNavigate();
   const [recordingModalOpen, setRecordingModalOpen] = useState(false);
+  const { data: pendingGuestCount } = usePendingGuestRequestsCount();
 
   const { data: pendingCount } = useQuery({
     queryKey: ["pending-users-count"],
@@ -154,6 +156,12 @@ export default function AdminQuickActions() {
             icon={Video}
             label="Add Recording"
             onClick={() => setRecordingModalOpen(true)}
+          />
+          <QuickActionCard
+            icon={Users}
+            label="Guest Requests"
+            badge={pendingGuestCount ?? 0}
+            onClick={() => navigate("/admin", { state: { tab: "guests" } })}
           />
         </div>
       </div>
