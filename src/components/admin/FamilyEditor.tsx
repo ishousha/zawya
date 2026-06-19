@@ -102,7 +102,7 @@ export default function FamilyEditor({ family, onBack, onDeleted }: Props) {
     queryFn: async () => {
       let query = supabase
         .from("dependents")
-        .select("id, first_name, parent_id, family_id, type, date_of_birth, gender");
+        .select("id, first_name, parent_id, family_id, type, type_other, date_of_birth, gender");
       if (memberIds.length > 0) {
         query = query.or(`family_id.eq.${family.id},parent_id.in.(${memberIds.join(",")})`);
       } else {
