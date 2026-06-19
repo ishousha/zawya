@@ -17,11 +17,19 @@ interface Venue {
   address: string | null;
   area_hint: string | null;
   maps_url: string | null;
+  default_host_id: string | null;
 }
 
 interface VenueSelectorProps {
   value: string | null;
-  onChange: (venueId: string | null, name: string, address: string, areaHint: string, mapsUrl: string) => void;
+  onChange: (
+    venueId: string | null,
+    name: string,
+    address: string,
+    areaHint: string,
+    mapsUrl: string,
+    defaultHostId: string | null,
+  ) => void;
 }
 
 type ViewMode = "list" | "form";
