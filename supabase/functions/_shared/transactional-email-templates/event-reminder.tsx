@@ -67,6 +67,22 @@ const EventReminderEmail = ({
             ) : null}
           </Section>
 
+          {hasBringList ? (
+            <Section style={bringBox}>
+              <Text style={bringLabel}>Don't forget to bring</Text>
+              {signUpItems.length > 0 ? (
+                signUpItems.map((item, i) => (
+                  <Text key={i} style={bringItem}>
+                    • {item.itemName}{item.quantity > 1 ? ` ×${item.quantity}` : ''}
+                    {item.description ? ` — ${item.description}` : ''}
+                  </Text>
+                ))
+              ) : (
+                <Text style={bringItem}>• {potluckItem}</Text>
+              )}
+            </Section>
+          ) : null}
+
           <Hr style={hr} />
           <Text style={footer}>— The {SITE_NAME} Team</Text>
         </Container>
