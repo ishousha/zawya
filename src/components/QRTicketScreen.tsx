@@ -264,19 +264,19 @@ export default function QRTicketScreen({ event, rsvp, profileName, isOffline, on
               </span>
             </div>
             {signUpItems && signUpItems.length > 0 ? (
-              <div className="mt-3 rounded-md border border-primary/30 bg-primary/5 p-3">
-                <p className="text-xs font-semibold uppercase tracking-wider text-primary">
+              <div className="mt-3 rounded-md border-l-4 border-amber-500 bg-amber-50 p-3 shadow-sm">
+                <p className="text-xs font-bold uppercase tracking-wider text-amber-700">
                   Don't forget to bring
                 </p>
                 <ul className="mt-1.5 space-y-1">
                   {signUpItems.map((item, i) => (
                     <li key={i} className="flex justify-between gap-2 text-sm">
-                      <span className="font-medium text-card-foreground">
+                      <span className="font-bold text-gray-900">
                         {item.itemName}
                         {item.quantity > 1 ? ` ×${item.quantity}` : ""}
                       </span>
                       {item.description && (
-                        <span className="text-muted-foreground text-right">{item.description}</span>
+                        <span className="text-amber-900 text-right">{item.description}</span>
                       )}
                     </li>
                   ))}
