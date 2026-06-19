@@ -16,6 +16,7 @@ import { toast } from "sonner";
 import { format, parse } from "date-fns";
 import { cn } from "@/lib/utils";
 import DependentsSection from "@/components/profile/DependentsSection";
+import ChangeEmailSection from "@/components/profile/ChangeEmailSection";
 import { GenderToggle } from "@/pages/CompleteProfile";
 import FamilyInviteSection from "@/components/profile/FamilyInviteSection";
 import LinkedAccounts from "@/components/profile/LinkedAccounts";
