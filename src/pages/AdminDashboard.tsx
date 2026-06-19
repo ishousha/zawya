@@ -234,6 +234,7 @@ export default function AdminDashboard() {
             <KeepAliveTab id="speakers" active={activeTab === "speakers"}><SpeakerManagement /></KeepAliveTab>
             <KeepAliveTab id="resources" active={activeTab === "resources"}><ResourceManagement /></KeepAliveTab>
             <KeepAliveTab id="analytics" active={activeTab === "analytics"}><AdminAnalytics /></KeepAliveTab>
+            <KeepAliveTab id="reports" active={activeTab === "reports"}><AnalyticsExports /></KeepAliveTab>
             <KeepAliveTab id="settings" active={activeTab === "settings"}>
               <div className="space-y-6">
                 <PotluckReclaimReport />
