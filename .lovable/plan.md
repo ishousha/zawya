@@ -1,50 +1,37 @@
-# Enrich Admin Activity Log
+# Enrich Admin Activity Log Filters
 
-Today the log only records user-management actions (role change, suspend, delete, create) and check-ins. We'll auto-capture admin actions across all major content tables via database triggers — nothing for app code to remember to call, and impossible to bypass.
+Add a complete set of filters on top of the existing date range + single-action filter in the Activity Log tab. All changes are UI-only in `src/components/admin/AdminActivityLog.tsx` — no schema or trigger changes needed (the triggers already store `actor_id`, `target_user_id`/`target_user_name` (which holds the event id/title for event-scoped actions), `action`, and `details`).
 
-## What will be tracked
+## New filters
 
-For each table below, every INSERT / UPDATE / DELETE performed by an admin (or moderator) is recorded with the actor, the target object's name, and a `details` JSON containing the changed fields:
+1. **Category** (Users / Events / Content / Guests / Check-ins) — quick group filter that narrows the action dropdown to that group. Selecting a category shows only its actions; the existing per-action select stays as a finer second filter.
+2. **Action** — keep current grouped dropdown, but auto-filtered by the selected category.
+3. **Event** — dropdown listing every distinct event title found in logs (built from entries whose action group is Events or Guests, using `target_user_name` as the title and `target_user_id` as the stable key). Picking one filters all logs touching that event.
+4. **Admin (actor)** — dropdown of every distinct actor that appears in the current log set, showing name (fallback email). Built from `actorMap`.
+5. **Target user** — dropdown of distinct member targets for Users-group actions (role change, suspend, delete, create), keyed by `target_user_id`.
+6. **Search** — free-text input that matches against action label, actor name/email, target name/email, and serialized `details` (case-insensitive).
+7. **Date From / To** — keep existing calendar pickers.
 
-- **events** — create, publish/unpublish, edit (title, date/time, location, capacity, status, etc.), cancel, reactivate, delete
-- **venues** — add, edit (name, address, maps_url), delete
-- **event_types** — add, edit, delete
-- **speakers** — add, edit, delete
-- **event_speakers** — assign / unassign speaker from event
-- **event_sign_up_items** — add, edit, delete sign-up items on an event
-- **resources** — add, edit, delete
-- **announcements** — create, edit, delete
-- **guest_requests** — approve / reject / delete (currently no log entry)
-- **families** — create, rename, delete
+## UI layout
 
-Existing logged actions (role_change, suspend_user, delete_user, create_user, checkin_rsvp, undo_checkin, broadcast) stay as they are.
+- Top row: title + result count + Refresh + Export (unchanged).
+- Second row: Search input (flex-grow) + Category select + Action select + Event select + Admin select + Target select + From + To.
+- Third row (only when any filter is active): chips showing the active filters with an "×" each, plus a single **Clear all** button.
 
-## How it works (technical)
+Filters compose with AND. Empty/`all` values are ignored. The result count and CSV export both use the filtered list.
 
-1. **One SECURITY DEFINER helper** `public.log_admin_change(action text, target_id uuid, target_label text, details jsonb)` that:
-   - Returns immediately if `auth.uid()` is null or service_role (lets seed/edge writes skip logging when desired).
-   - Skips logging if the actor doesn't have `admin` or `moderator` role (so member-level inserts on e.g. `guest_requests` aren't logged).
-   - Inserts a row into `admin_activity_log` with `actor_id = auth.uid()`, the action, and details. We reuse `target_user_name` to store the object's display label (e.g. event title, venue name) so the existing UI keeps working.
+## Implementation notes (technical)
 
-2. **Per-table AFTER trigger functions** (one per table) that call the helper. For UPDATEs they diff OLD/NEW and only include changed fields in `details` (plus a `before`/`after` snapshot for important ones like `status`, `published`, `capacity`, `date_time`). For DELETEs they snapshot the old row.
-
-3. **No schema change to `admin_activity_log`** is required — `target_user_id` is nullable and we already have a JSONB `details` column.
-
-## UI changes (`AdminActivityLog.tsx`)
-
-- Extend `ACTION_CONFIG` with all new action keys, icons (Calendar, MapPin, Tag, Mic, FileText, Megaphone, UserCheck, Users, Package), labels, and badge variants.
-- Group the action filter `<Select>` into sections: Users, Events, Content, Guests, Check-ins.
-- Replace the hard-coded "Target user" column heading with "Target" — the trigger writes the object's label into `target_user_name`, so the existing row template already renders it.
-- Add a generic details renderer that pretty-prints the `details` JSON's `changed` fields (key: old → new) for any update action, so we don't need a custom switch per action.
-- CSV export updated to include the same generic details string.
+- All filter state lives in `useState` in the component; no URL sync.
+- Derive option lists with `useMemo` from `logs` + `actorMap` so they update when data refreshes.
+- For the Event filter, dedupe by `target_user_id` for rows where `ACTION_CONFIG[action]?.group` is `"Events"` or `"Guests"`, displaying `target_user_name` (fallback to id slice).
+- For Target user filter, dedupe by `target_user_id` for rows where group is `"Users"`.
+- When Category changes, reset Action to `all` if the previous action does not belong to that group.
+- Search is a simple lowercase `includes` over a string built per row.
+- No changes to queries, hooks, triggers, RLS, or types.
 
 ## Out of scope
 
-- Backfilling history for actions that happened before the triggers exist.
-- Logging RSVP edits made by members on their own RSVPs (still only admin walk-in edits, captured via the rsvps trigger gated on admin role).
-- A "revert" button — read-only log only.
-
-## Files touched
-
-- New migration: `supabase/migrations/<ts>_admin_activity_log_triggers.sql` — helper function + per-table trigger functions + triggers.
-- `src/components/admin/AdminActivityLog.tsx` — new action configs, grouped filter, generic details renderer, CSV update.
+- Server-side pagination / search (still client-side over the latest 500 rows).
+- Saving filter presets.
+- Filtering by IP / session.
