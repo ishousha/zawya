@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/runtime-client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
 import { formatDistanceToNow, format } from "date-fns";
 import { Bell, Check, CheckCheck, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -13,6 +14,7 @@ const NOTIFICATION_TYPES = [
   { value: "rsvp", label: "RSVPs" },
   { value: "event", label: "Events" },
   { value: "guest", label: "Guest Requests" },
+  { value: "guest_request", label: "New Guests" },
   { value: "family", label: "Family" },
   { value: "info", label: "General" },
 ] as const;

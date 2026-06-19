@@ -49,6 +49,27 @@ export function useCreateGuestRequest(eventId: string) {
   });
 }
 
+/** Member: cancel (delete) their own guest request */
+export function useCancelGuestRequest(eventId: string) {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from("guest_requests")
+        .delete()
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["my-guest-requests", eventId, user?.id] });
+      queryClient.invalidateQueries({ queryKey: ["my-guest-requests-batch"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-guest-requests"] });
+      queryClient.invalidateQueries({ queryKey: ["all-guest-requests"] });
+      queryClient.invalidateQueries({ queryKey: ["pending-guest-requests-count"] });
+    },
+  });
+
 /** Batch-fetch the current user's guest requests across many events and hydrate per-event caches. */
 export function useBatchMyGuestRequests(eventIds: string[]) {
   const { user } = useAuth();
