@@ -182,23 +182,6 @@ export default function GuestRequestsSection({ eventId, event }: GuestRequestsSe
           </div>
           <div>
             <Label className="mb-1 block text-xs font-medium">
-              <Mail className="mr-1 inline h-3 w-3" />
-              Guest Email <span className="text-destructive">*</span>
-            </Label>
-            <Input
-              type="email"
-              value={guestEmail}
-              onChange={(e) => setGuestEmail(e.target.value)}
-              placeholder="guest@example.com"
-              className="h-9"
-            />
-            <p className="mt-1 flex items-start gap-1 text-[10px] text-muted-foreground">
-              <Info className="h-3 w-3 mt-0.5 shrink-0 text-primary" />
-              This email will be used to send the guest their ticket and event details once approved.
-            </p>
-          </div>
-          <div>
-            <Label className="mb-1 block text-xs font-medium">
               <Phone className="mr-1 inline h-3 w-3" />
               Guest Phone <span className="text-muted-foreground">(optional)</span>
             </Label>
@@ -209,6 +192,24 @@ export default function GuestRequestsSection({ eventId, event }: GuestRequestsSe
               className="h-9"
             />
           </div>
+          <div>
+            <Label className="mb-1 block text-xs font-medium">
+              <Mail className="mr-1 inline h-3 w-3" />
+              Guest Email <span className="text-muted-foreground">(optional)</span>
+            </Label>
+            <Input
+              type="email"
+              value={guestEmail}
+              onChange={(e) => setGuestEmail(e.target.value)}
+              placeholder="guest@example.com"
+              className="h-9"
+            />
+            <p className="mt-1 flex items-start gap-1 text-[10px] text-muted-foreground">
+              <Info className="h-3 w-3 mt-0.5 shrink-0 text-primary" />
+              Optional. If provided, we'll email the guest their invite once approved. Otherwise, use the <strong>Share Details</strong> button after approval to send the info via WhatsApp.
+            </p>
+          </div>
+
           <div>
             <Label className="mb-1 block text-xs font-medium">
               <MessageSquare className="mr-1 inline h-3 w-3" />
