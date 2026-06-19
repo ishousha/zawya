@@ -106,6 +106,8 @@ export function useUpdateGuestRequestStatus() {
       eventTitle,
       eventDate,
       eventLocation,
+      eventAddress,
+      mapUrl,
       eventLink,
       requestedByName,
       requestedByEmail,
@@ -117,6 +119,8 @@ export function useUpdateGuestRequestStatus() {
       eventTitle?: string;
       eventDate?: string;
       eventLocation?: string;
+      eventAddress?: string;
+      mapUrl?: string;
       eventLink?: string;
       requestedByName?: string;
       requestedByEmail?: string;
@@ -139,6 +143,8 @@ export function useUpdateGuestRequestStatus() {
                 eventTitle: eventTitle || "Event",
                 eventDate: eventDate || "",
                 eventLocation: eventLocation || "",
+                eventAddress: eventAddress || "",
+                mapUrl: mapUrl || "",
                 eventLink: eventLink || "",
                 requestedBy: requestedByName || "",
               },
@@ -148,6 +154,7 @@ export function useUpdateGuestRequestStatus() {
           console.error("Failed to send guest approved email:", emailErr);
         }
       }
+
 
       // Fire webhook on rejection (deliberately excludes guest_email)
       if (status === "rejected") {
