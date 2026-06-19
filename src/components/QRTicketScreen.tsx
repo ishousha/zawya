@@ -4,10 +4,15 @@ import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, CheckCircle2, Download, Loader2, WifiOff, ScanLine } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/runtime-client";
 import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
+import {
+  cacheRsvpSignUpItems,
+  getCachedRsvpSignUpItems,
+  type CachedSignUpItem,
+} from "@/lib/offline-ticket-cache";
 
 type RSVP = Database["public"]["Tables"]["rsvps"]["Row"];
 type Event = Database["public"]["Tables"]["events"]["Row"];
