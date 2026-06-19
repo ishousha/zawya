@@ -3,8 +3,9 @@ import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { useRef, useEffect, useCallback, useState, lazy, Suspense, type ReactNode } from "react";
 import { useSwipeable } from "react-swipeable";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Users, CalendarPlus, ScanLine, Home, ScrollText, Settings, BarChart3, BookOpen, Mic } from "lucide-react";
+import { Users, CalendarPlus, ScanLine, Home, ScrollText, Settings, BarChart3, BookOpen, Mic, UserPlus } from "lucide-react";
 import { usePendingUsersCount } from "@/hooks/usePendingUsersCount";
+import { usePendingGuestRequestsCount } from "@/hooks/usePendingGuestRequestsCount";
 import { Loader2 } from "lucide-react";
 
 const TabFallback = <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>;
@@ -23,7 +24,7 @@ const AnnouncementManagement = lazy(() => import("@/components/admin/Announcemen
 const DeliverabilityCheck = lazy(() => import("@/components/admin/DeliverabilityCheck"));
 const PotluckReclaimReport = lazy(() => import("@/components/admin/PotluckReclaimReport"));
 
-const ADMIN_TABS = ["users", "families", "events", "scanner", "speakers", "resources", "analytics", "settings", "activity"] as const;
+const ADMIN_TABS = ["users", "guests", "families", "events", "scanner", "speakers", "resources", "analytics", "settings", "activity"] as const;
 type AdminTab = typeof ADMIN_TABS[number];
 
 const MODERATOR_TABS = ["events", "guests", "scanner"] as const;
@@ -63,6 +64,7 @@ function KeepAliveTab({ id, active, children }: { id: string; active: boolean; c
 export default function AdminDashboard() {
   const { profile } = useAuth();
   const { data: pendingCount } = usePendingUsersCount();
+  const { data: pendingGuestCount } = usePendingGuestRequestsCount();
   const tabsListRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
   const navigate = useNavigate();
@@ -155,6 +157,12 @@ export default function AdminDashboard() {
     </span>
   ) : null;
 
+  const pendingGuestBadge = !!pendingGuestCount && pendingGuestCount > 0 ? (
+    <span className="ml-1 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold text-destructive-foreground animate-pulse">
+      {pendingGuestCount > 99 ? "99+" : pendingGuestCount}
+    </span>
+  ) : null;
+
   const tabTriggerBase =
     "flex-shrink-0 gap-1.5 px-3 py-1.5 text-xs sm:text-sm rounded-md font-medium transition-colors text-muted-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm";
 
@@ -174,7 +182,7 @@ export default function AdminDashboard() {
           <Tabs value={modTab} onValueChange={(v) => { setSlideDir(null); setSlideKey((k) => k + 1); setModTab(v as ModeratorTab); }} className="w-full">
             <TabsList ref={tabsListRef} className="grid w-full grid-cols-3 bg-muted">
               <TabsTrigger value="events" className="gap-1.5 text-xs sm:text-sm"><CalendarPlus className="h-4 w-4" /> Events</TabsTrigger>
-              <TabsTrigger value="guests" className="gap-1.5 text-xs sm:text-sm"><Users className="h-4 w-4" /> Guests</TabsTrigger>
+              <TabsTrigger value="guests" className="gap-1.5 text-xs sm:text-sm"><UserPlus className="h-4 w-4" /> Guests{pendingGuestBadge}</TabsTrigger>
               <TabsTrigger value="scanner" className="gap-1.5 text-xs sm:text-sm"><ScanLine className="h-4 w-4" /> Check-in</TabsTrigger>
             </TabsList>
 
