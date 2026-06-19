@@ -320,6 +320,24 @@ export default function AllGuestApprovals() {
                                 <XCircle className="h-5 w-5" />
                               </Button>
                             )}
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-10 w-10 text-destructive hover:bg-red-50"
+                              title="Delete guest request"
+                              disabled={deleteRequest.isPending}
+                              onClick={async () => {
+                                if (!window.confirm(`Delete guest request for ${gr.guest_name}? This cannot be undone.`)) return;
+                                try {
+                                  await deleteRequest.mutateAsync(gr.id);
+                                  toast.success("Guest request deleted.");
+                                } catch {
+                                  toast.error("Failed to delete guest request.");
+                                }
+                              }}
+                            >
+                              <Trash2 className="h-5 w-5" />
+                            </Button>
                           </div>
                         </CardContent>
                       </Card>
