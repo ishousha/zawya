@@ -38,20 +38,34 @@ interface DependentRow {
   parent_id: string | null;
   family_id: string | null;
   type: string;
+  type_other: string | null;
   date_of_birth: string | null;
   gender: string | null;
 }
 
 const TYPE_OPTIONS = [
-  { value: "child", label: "Child", icon: Baby },
-  { value: "elder", label: "Elder", icon: UserRound },
-  { value: "helper", label: "House Helper", icon: HeartHandshake },
+  { value: "son", label: "Son", icon: Baby },
+  { value: "daughter", label: "Daughter", icon: Baby },
+  { value: "father", label: "Father", icon: UserRound },
+  { value: "mother", label: "Mother", icon: UserRound },
+  { value: "maid", label: "Maid", icon: HeartHandshake },
+  { value: "nanny", label: "Nanny", icon: HeartHandshake },
   { value: "driver", label: "Driver", icon: Car },
-  { value: "other", label: "Other", icon: Users },
+  { value: "househelper", label: "House Helper", icon: HeartHandshake },
+  { value: "other", label: "Other (please specify)", icon: Users },
 ] as const;
 
+const LEGACY_TYPE_LABELS: Record<string, string> = {
+  child: "Child",
+  elder: "Elder",
+  helper: "House Helper",
+};
+
 function typeMeta(t: string) {
-  return TYPE_OPTIONS.find((o) => o.value === t) ?? TYPE_OPTIONS[4];
+  return (
+    TYPE_OPTIONS.find((o) => o.value === t) ??
+    { value: t, label: LEGACY_TYPE_LABELS[t] ?? "Other", icon: Users }
+  );
 }
 
 interface Props {
