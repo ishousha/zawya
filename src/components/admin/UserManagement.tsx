@@ -278,6 +278,77 @@ export default function UserManagement() {
     onError: () => toast.error("Failed to update Mureed status"),
   });
 
+  const bulkUpdateRole = useMutation({
+    mutationFn: async ({ ids, role }: { ids: string[]; role: AppRole }) => {
+      let updated = 0;
+      let skipped = 0;
+      let failed = 0;
+      const results = await Promise.allSettled(
+        ids.map(async (id) => {
+          const p = profiles?.find((pr) => pr.id === id);
+          if (!p) { failed++; return; }
+          if (p.role === role) { skipped++; return; }
+          const previousRole = p.role as AppRole | undefined;
+          const { error } = await supabase.from("profiles").update({ role }).eq("id", id);
+          if (error) throw error;
+          const { error: roleError } = await supabase.from("user_roles")
+            .upsert({ user_id: id, role }, { onConflict: "user_id,role" });
+          if (roleError) console.warn("user_roles upsert:", roleError);
+          await supabase.from("user_roles").delete().eq("user_id", id).neq("role", role);
+          notifyUserApproval(id, role);
+          if (p.email) {
+            const templateMap: Record<string, string> = {
+              approved: "user-approved",
+              rejected: "user-rejected",
+              suspended: "user-suspended",
+            };
+            let templateName = templateMap[role];
+            if (role === "approved" && previousRole === "suspended") {
+              templateName = "user-reinstated";
+            }
+            if (templateName) {
+              supabase.functions.invoke("send-transactional-email", {
+                body: {
+                  templateName,
+                  recipientEmail: p.email,
+                  idempotencyKey: `${templateName}-${id}-${Date.now()}`,
+                  templateData: { memberName: p.name || undefined },
+                },
+              }).catch((err) => console.warn("Failed to send role change email:", err));
+            }
+          }
+          if (user) {
+            logActivity(
+              user.id,
+              role === "suspended" ? "suspend_user" : "role_change",
+              { id, name: p.name, email: p.email } as Profile,
+              { previous_role: previousRole, new_role: role, bulk: true },
+            );
+          }
+          updated++;
+        }),
+      );
+      results.forEach((r) => { if (r.status === "rejected") failed++; });
+      return { updated, skipped, failed };
+    },
+    onSuccess: ({ updated, skipped, failed }) => {
+      queryClient.invalidateQueries({ queryKey: ["admin-profiles"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-user-roles"] });
+      setSelectedIds(new Set());
+      const parts: string[] = [];
+      if (updated) parts.push(`${updated} updated`);
+      if (skipped) parts.push(`${skipped} skipped`);
+      if (failed) parts.push(`${failed} failed`);
+      if (failed && !updated) {
+        toast.error(parts.join(", "));
+      } else {
+        toast.success(parts.join(", ") || "No changes");
+      }
+    },
+    onError: () => toast.error("Bulk update failed"),
+  });
+
+
   const debouncedSearch = useDebounce(search, 300);
 
   const filteredProfiles = useMemo(() => {
