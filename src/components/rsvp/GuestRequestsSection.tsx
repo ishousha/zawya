@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { useMyGuestRequests, useCreateGuestRequest, useCancelGuestRequest } from "@/hooks/useGuestRequests";
 import { toast } from "sonner";
 import { Loader2, UserPlus, Phone, User, Mail, Info, Share2, MessageSquare, Trash2 } from "lucide-react";
+import { buildGuestWhatsAppUrl } from "@/lib/share-event";
 import { Textarea } from "@/components/ui/textarea";
 import type { Database } from "@/integrations/supabase/types";
 
