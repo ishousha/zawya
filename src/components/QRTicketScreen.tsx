@@ -35,6 +35,29 @@ export default function QRTicketScreen({ event, rsvp, profileName, isOffline, on
   const localDate = new Date(event.date_time);
   const displayName = profileName || profile?.name || "Member";
 
+  // Fetch this RSVP's sign-up item selections so the ticket can remind the member
+  // what they committed to bring. Cached to localStorage for offline access.
+  const { data: signUpItems } = useQuery<CachedSignUpItem[]>({
+    queryKey: ["rsvp-signup-items", rsvp.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("rsvp_sign_up_selections")
+        .select("quantity, description, event_sign_up_items(item_name)")
+        .eq("rsvp_id", rsvp.id);
+      if (error) throw error;
+      const items: CachedSignUpItem[] = (data ?? []).map((row: any) => ({
+        itemName: row.event_sign_up_items?.item_name ?? "Item",
+        quantity: row.quantity ?? 1,
+        description: row.description ?? null,
+      }));
+      cacheRsvpSignUpItems(rsvp.id, items);
+      return items;
+    },
+    initialData: () => getCachedRsvpSignUpItems(rsvp.id) ?? undefined,
+    enabled: !isOffline,
+    staleTime: 60_000,
+  });
+
   const qrData = JSON.stringify({
     rsvp_id: rsvp.id,
     user_id: rsvp.user_id,
