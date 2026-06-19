@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/runtime-client";
 import { Button } from "@/components/ui/button";
@@ -621,18 +621,16 @@ function DependentDialog({
   const [gender, setGender] = useState<string>("");
   const [dob, setDob] = useState<string>("");
 
-  useState(() => 0); // noop
-
-  // Reset on open
   const open = !!value;
   const id = value?.id;
-  // Sync once when value changes
-  useMemoSync(value, () => {
-    setFirstName(value?.first_name ?? "");
-    setType(value?.type ?? "child");
-    setGender(value?.gender ?? "");
-    setDob(value?.date_of_birth ?? "");
-  });
+
+  useEffect(() => {
+    if (!value) return;
+    setFirstName(value.first_name ?? "");
+    setType(value.type ?? "child");
+    setGender(value.gender ?? "");
+    setDob(value.date_of_birth ?? "");
+  }, [value]);
 
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
@@ -687,9 +685,3 @@ function DependentDialog({
   );
 }
 
-// Tiny helper: run an effect when `key` changes (using deep-ish dep on id+open)
-function useMemoSync<T>(value: T, run: () => void) {
-  const key = JSON.stringify(value ?? null);
-  // eslint-disable-next-line react-hooks/rules-of-hooks
-  useMemo(() => { run(); }, [key]);
-}
