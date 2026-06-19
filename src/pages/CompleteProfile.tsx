@@ -185,26 +185,30 @@ export default function CompleteProfile() {
         </div>
 
         <div className="rounded-lg border border-border bg-card p-6 space-y-5">
-          <div className="space-y-2">
-            <Label className="text-sm font-medium text-foreground">
-              Full Name <span className="text-destructive">*</span>
-            </Label>
-            <Input
-              placeholder="e.g. Ahmed Hassan"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-            />
-          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-2">
+              <Label className="text-sm font-medium text-foreground">
+                First Name <span className="text-destructive">*</span>
+              </Label>
+              <Input
+                placeholder="e.g. Ahmed"
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+                autoComplete="given-name"
+              />
+            </div>
 
-          <div className="space-y-2">
-            <Label className="text-sm font-medium text-foreground">
-              Family Name <span className="text-xs text-muted-foreground">(optional)</span>
-            </Label>
-            <Input
-              placeholder="e.g. Hassan"
-              value={familyName}
-              onChange={(e) => setFamilyName(e.target.value)}
-            />
+            <div className="space-y-2">
+              <Label className="text-sm font-medium text-foreground">
+                Last Name <span className="text-destructive">*</span>
+              </Label>
+              <Input
+                placeholder="e.g. Hassan"
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
+                autoComplete="family-name"
+              />
+            </div>
           </div>
 
           <div className="space-y-2">
