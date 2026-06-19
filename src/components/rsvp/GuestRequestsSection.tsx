@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { useMyGuestRequests, useCreateGuestRequest, useCancelGuestRequest } from "@/hooks/useGuestRequests";
 import { toast } from "sonner";
 import { Loader2, UserPlus, Phone, User, Mail, Info, Share2, MessageSquare, Trash2 } from "lucide-react";
+import { buildGuestWhatsAppUrl } from "@/lib/share-event";
 import { Textarea } from "@/components/ui/textarea";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -77,22 +78,40 @@ export default function GuestRequestsSection({ eventId, event }: GuestRequestsSe
           {guests.map((g) => {
             const isApproved = g.status === "approved";
 
-            const buildShareMessage = () => {
-              if (!event) return "";
-              const date = format(new Date(event.date_time), "EEEE, MMMM d 'at' h:mm a");
-              const locationPart = event.location
-                  ? `Location: ${event.location}${event.address ? ` — ${event.address}` : ""}`
-                  : "Details will be shared closer to the event.";
-              return `Assalamu Alaikum ${g.guest_name}! Great news — your guest request for *${event.title}* on ${date} has been approved! 🎉\n\n${locationPart}\n\nLooking forward to seeing you there inshaAllah!`;
-            };
-
             const handleShare = async () => {
-              const message = buildShareMessage();
-              if (!message) {
+              if (!event) {
                 toast.error("Event details unavailable.");
                 return;
               }
+              const waUrl = buildGuestWhatsAppUrl({
+                guestName: g.guest_name,
+                guestPhone: g.guest_phone,
+                eventTitle: event.title,
+                eventDateISO: event.date_time,
+                location: event.location,
+                address: event.address,
+                onlineLink: event.online_link || event.virtual_link,
+              });
+
               if (navigator.share) {
+                const date = format(new Date(event.date_time), "EEEE, MMMM d 'at' h:mm a");
+                const mapQuery = [event.location, event.address].filter(Boolean).join(", ");
+                const mapUrl = mapQuery
+                  ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapQuery)}`
+                  : "";
+                const lines = [
+                  `Assalamu Alaikum ${g.guest_name}! 🌙`,
+                  "",
+                  `Your guest request for *${event.title}* on ${date} has been approved!`,
+                ];
+                if (event.location) lines.push("", `📍 ${event.location}`);
+                if (event.address) lines.push(event.address);
+                if (mapUrl) lines.push(`🗺 ${mapUrl}`);
+                if (event.online_link || event.virtual_link) {
+                  lines.push("", `🔗 Join online: ${event.online_link || event.virtual_link}`);
+                }
+                lines.push("", "Looking forward to seeing you there inshaAllah!");
+                const message = lines.join("\n");
                 try {
                   await navigator.share({ text: message });
                 } catch (err: any) {
@@ -101,11 +120,7 @@ export default function GuestRequestsSection({ eventId, event }: GuestRequestsSe
                   }
                 }
               } else {
-                const phone = g.guest_phone?.replace(/\D/g, "") || "";
-                const waUrl = phone
-                  ? `https://wa.me/${phone}?text=${encodeURIComponent(message)}`
-                  : `https://wa.me/?text=${encodeURIComponent(message)}`;
-                window.open(waUrl, "_blank");
+                window.open(waUrl, "_blank", "noopener");
               }
             };
 
