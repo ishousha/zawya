@@ -87,7 +87,7 @@ export default function VenueSelector({ value, onChange }: VenueSelectorProps) {
     },
     onSuccess: (venue) => {
       queryClient.invalidateQueries({ queryKey: ["venues"] });
-      onChange(venue.id, venue.name, venue.address ?? "", (venue as any).area_hint ?? "", (venue as any).maps_url ?? "");
+      onChange(venue.id, venue.name, venue.address ?? "", venue.area_hint ?? "", venue.maps_url ?? "", venue.default_host_id ?? null);
       toast.success(editingVenue ? "Venue updated" : `Venue "${venue.name}" created`);
       resetForm();
       setOpen(false);
@@ -103,7 +103,7 @@ export default function VenueSelector({ value, onChange }: VenueSelectorProps) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["venues"] });
       if (deleteVenue && value === deleteVenue.id) {
-        onChange(null, "", "", "", "");
+        onChange(null, "", "", "", "", null);
       }
       setDeleteVenue(null);
       toast.success("Venue deleted");
@@ -208,7 +208,7 @@ export default function VenueSelector({ value, onChange }: VenueSelectorProps) {
                         value === venue.id && "bg-accent"
                       )}
                       onClick={() => {
-                        onChange(venue.id, venue.name, venue.address ?? "", (venue as any).area_hint ?? "", (venue as any).maps_url ?? "");
+                        onChange(venue.id, venue.name, venue.address ?? "", venue.area_hint ?? "", venue.maps_url ?? "", venue.default_host_id ?? null);
                         setOpen(false);
                         setSearch("");
                       }}
@@ -255,7 +255,7 @@ export default function VenueSelector({ value, onChange }: VenueSelectorProps) {
                   type="button"
                   className="w-full border-t px-3 py-2 text-sm text-muted-foreground hover:bg-accent transition-colors text-left"
                   onClick={() => {
-                    onChange(null, "", "", "", "");
+                    onChange(null, "", "", "", "", null);
                     setOpen(false);
                   }}
                 >
