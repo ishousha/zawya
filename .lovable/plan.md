@@ -1,8 +1,16 @@
-## Bug
-`EventCard` checks `event.allow_guests === false` to render the red "No guests allowed" badge, but `allow_guests` is not in `EVENT_PUBLIC_COLUMNS` (`src/lib/event-columns.ts`). Public event queries (HomeFeed, prefetch, etc.) therefore never return that field, so the condition is always falsy-but-not-`false` and the badge stays on "Guests allowed".
+## Plan
 
-## Fix
-Append `allow_guests` to the `EVENT_PUBLIC_COLUMNS` string in `src/lib/event-columns.ts`. No schema or component changes needed — the existing `=== false` check in `EventCard` and `RSVPModal` will then work for all event lists.
+### Problem
+- Event cards currently show a "Guests allowed" badge when `allow_guests` is true.
+- The user wants this hidden so members aren't encouraged to bring guests.
+- Only the red "No guests allowed" badge should appear when `allow_guests` is explicitly false.
 
-## Verify
-Toggle "Allow Guest Requests" off on an event → reload feed → card shows red "No guests allowed" badge; toggle on → shows subtle "Guests allowed" badge.
+### Changes
+1. **EventCard.tsx**: Remove the `else` branch that renders the "Guests allowed" badge. Keep the conditional that shows the red "No guests allowed" badge when `allow_guests === false`.
+
+2. **Default verification**: `defaultEventForm` in `types.ts` already sets `allow_guests: true`, so new events will continue to have guests allowed by default with no badge shown.
+
+### Result
+- Event cards show no guest-related badge when guests are allowed.
+- Event cards show a red "No guests allowed" badge when the admin toggles it off.
+- No database or settings changes needed.
