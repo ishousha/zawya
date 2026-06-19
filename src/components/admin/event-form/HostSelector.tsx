@@ -56,6 +56,7 @@ export default function HostSelector({ hostId, onChange }: HostSelectorProps) {
       let query = supabase
         .from("profiles")
         .select("id, name, email, family_name")
+        .in("role", ["approved", "admin", "moderator"])
         .order("name")
         .limit(50);
       if (term.length >= 1) {
@@ -87,7 +88,7 @@ export default function HostSelector({ hostId, onChange }: HostSelectorProps) {
   });
 
   const triggerLabel = selectedProfile
-    ? selectedProfile.name || selectedProfile.email || "Selected host"
+    ? selectedProfile.name?.trim() || "Unnamed member"
     : "Select host…";
 
   const selectHost = (id: string) => {
@@ -189,8 +190,8 @@ export default function HostSelector({ hostId, onChange }: HostSelectorProps) {
                       )}
                     />
                     <div className="min-w-0 flex-1">
-                      <p className="font-medium truncate">{p.name || p.email}</p>
-                      {p.email && p.name && (
+                      <p className="font-medium truncate">{p.name?.trim() || "Unnamed member"}</p>
+                      {p.email && (
                         <p className="text-xs text-muted-foreground truncate">{p.email}</p>
                       )}
                       {p.family_name && (
