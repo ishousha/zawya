@@ -42,7 +42,7 @@ export default function FeaturedSpeakers({ eventId }: FeaturedSpeakersProps) {
             >
               <Avatar className="h-20 w-20 ring-2 ring-primary/20 ring-offset-2 ring-offset-background group-hover:ring-primary/40 transition-all">
                 {speaker.image_url ? (
-                  <AvatarImage src={speaker.image_url} alt={speaker.name} />
+                  <AvatarImage src={speaker.image_url} alt={speaker.name} className="object-cover" />
                 ) : null}
                 <AvatarFallback className="bg-primary/10">
                   <User className="h-8 w-8 text-primary" />
