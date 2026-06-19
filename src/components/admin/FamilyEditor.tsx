@@ -634,7 +634,8 @@ function DependentDialog({
   saving: boolean;
 }) {
   const [first_name, setFirstName] = useState("");
-  const [type, setType] = useState<string>("child");
+  const [type, setType] = useState<string>("son");
+  const [typeOther, setTypeOther] = useState<string>("");
   const [gender, setGender] = useState<string>("");
   const [dob, setDob] = useState<string>("");
 
@@ -644,10 +645,17 @@ function DependentDialog({
   useEffect(() => {
     if (!value) return;
     setFirstName(value.first_name ?? "");
-    setType(value.type ?? "child");
+    setType(value.type ?? "son");
+    setTypeOther(value.type_other ?? "");
     setGender(value.gender ?? "");
     setDob(value.date_of_birth ?? "");
   }, [value]);
+
+  const isOther = type === "other";
+  const canSave =
+    !!first_name.trim() &&
+    (!isOther || !!typeOther.trim()) &&
+    !saving;
 
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
@@ -664,19 +672,30 @@ function DependentDialog({
             <Label>Type</Label>
             <Select value={type} onValueChange={setType}>
               <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
+              <SelectContent className="z-[110] bg-popover">
                 {TYPE_OPTIONS.map((o) => (
                   <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
+          {isOther && (
+            <div>
+              <Label htmlFor="dep-type-other">Please specify <span className="text-destructive">*</span></Label>
+              <Input
+                id="dep-type-other"
+                value={typeOther}
+                onChange={(e) => setTypeOther(e.target.value)}
+                placeholder="e.g. Cousin, Uncle, Friend"
+              />
+            </div>
+          )}
           <div className="grid grid-cols-2 gap-3">
             <div>
               <Label>Gender</Label>
               <Select value={gender || "unspecified"} onValueChange={(v) => setGender(v === "unspecified" ? "" : v)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
+                <SelectContent className="z-[110] bg-popover">
                   <SelectItem value="unspecified">—</SelectItem>
                   <SelectItem value="male">Male</SelectItem>
                   <SelectItem value="female">Female</SelectItem>
@@ -684,14 +703,14 @@ function DependentDialog({
               </Select>
             </div>
             <div>
-              <Label htmlFor="dep-dob">Date of birth</Label>
+              <Label htmlFor="dep-dob">Date of birth <span className="text-muted-foreground text-xs">(optional)</span></Label>
               <Input id="dep-dob" type="date" value={dob ?? ""} onChange={(e) => setDob(e.target.value)} />
             </div>
           </div>
           <Button
             className="w-full"
-            disabled={!first_name.trim() || saving}
-            onClick={() => onSave({ id, first_name: first_name.trim(), type, gender, date_of_birth: dob || null })}
+            disabled={!canSave}
+            onClick={() => onSave({ id, first_name: first_name.trim(), type, type_other: isOther ? typeOther.trim() : null, gender, date_of_birth: dob || null })}
           >
             {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Save
