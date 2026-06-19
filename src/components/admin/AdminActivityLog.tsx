@@ -2,13 +2,20 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/runtime-client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, ShieldAlert, UserMinus, UserCog, UserPlus, RefreshCw, Download, CalendarIcon, X, CheckCircle2, RotateCcw } from "lucide-react";
+import {
+  Loader2, ShieldAlert, UserMinus, UserCog, UserPlus, RefreshCw, Download,
+  CalendarIcon, X, CheckCircle2, RotateCcw, Calendar as CalendarEv, MapPin,
+  Tag, Mic, FileText, Megaphone, UserCheck, Users, Package, Send, Eye, EyeOff,
+  Ban, PlayCircle, Trash2, Edit3,
+} from "lucide-react";
 import { format, startOfDay, endOfDay } from "date-fns";
 import { useState, useMemo } from "react";
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
@@ -28,14 +35,106 @@ interface LogEntry {
   created_at: string;
 }
 
-const ACTION_CONFIG: Record<string, { label: string; icon: typeof UserCog; variant: "default" | "secondary" | "destructive" | "outline" }> = {
-  role_change: { label: "Role Change", icon: UserCog, variant: "secondary" },
-  suspend_user: { label: "Suspended", icon: ShieldAlert, variant: "destructive" },
-  delete_user: { label: "Deleted", icon: UserMinus, variant: "destructive" },
-  create_user: { label: "Created", icon: UserPlus, variant: "default" },
-  checkin_rsvp: { label: "Checked In", icon: CheckCircle2, variant: "default" },
-  undo_checkin: { label: "Check-in Undone", icon: RotateCcw, variant: "outline" },
+type ActionConfig = {
+  label: string;
+  icon: typeof UserCog;
+  variant: "default" | "secondary" | "destructive" | "outline";
+  group: "Users" | "Events" | "Content" | "Guests" | "Check-ins";
 };
+
+const ACTION_CONFIG: Record<string, ActionConfig> = {
+  // Users
+  role_change:           { label: "Role Change",       icon: UserCog,       variant: "secondary",   group: "Users" },
+  suspend_user:          { label: "Suspended",         icon: ShieldAlert,   variant: "destructive", group: "Users" },
+  delete_user:           { label: "Deleted User",      icon: UserMinus,     variant: "destructive", group: "Users" },
+  create_user:           { label: "Created User",      icon: UserPlus,      variant: "default",     group: "Users" },
+
+  // Events
+  event_create:          { label: "Event Created",     icon: CalendarEv,    variant: "default",     group: "Events" },
+  event_update:          { label: "Event Edited",      icon: Edit3,         variant: "secondary",   group: "Events" },
+  event_publish:         { label: "Published",         icon: Eye,           variant: "default",     group: "Events" },
+  event_unpublish:       { label: "Unpublished",       icon: EyeOff,        variant: "outline",     group: "Events" },
+  event_cancel:          { label: "Cancelled",         icon: Ban,           variant: "destructive", group: "Events" },
+  event_reactivate:      { label: "Reactivated",       icon: PlayCircle,    variant: "default",     group: "Events" },
+  event_delete:          { label: "Event Deleted",     icon: Trash2,        variant: "destructive", group: "Events" },
+  speaker_assign:        { label: "Speaker Added",     icon: Mic,           variant: "secondary",   group: "Events" },
+  speaker_unassign:      { label: "Speaker Removed",   icon: Mic,           variant: "outline",     group: "Events" },
+  signup_item_create:    { label: "Sign-up Added",     icon: Package,       variant: "secondary",   group: "Events" },
+  signup_item_update:    { label: "Sign-up Edited",    icon: Package,       variant: "secondary",   group: "Events" },
+  signup_item_delete:    { label: "Sign-up Removed",   icon: Package,       variant: "outline",     group: "Events" },
+
+  // Content
+  venue_create:          { label: "Venue Added",       icon: MapPin,        variant: "default",     group: "Content" },
+  venue_update:          { label: "Venue Edited",      icon: MapPin,        variant: "secondary",   group: "Content" },
+  venue_delete:          { label: "Venue Deleted",     icon: MapPin,        variant: "destructive", group: "Content" },
+  event_type_create:     { label: "Event Type Added",  icon: Tag,           variant: "default",     group: "Content" },
+  event_type_update:     { label: "Event Type Edited", icon: Tag,           variant: "secondary",   group: "Content" },
+  event_type_delete:     { label: "Event Type Deleted",icon: Tag,           variant: "destructive", group: "Content" },
+  speaker_create:        { label: "Speaker Added",     icon: Mic,           variant: "default",     group: "Content" },
+  speaker_update:        { label: "Speaker Edited",    icon: Mic,           variant: "secondary",   group: "Content" },
+  speaker_delete:        { label: "Speaker Deleted",   icon: Mic,           variant: "destructive", group: "Content" },
+  resource_create:       { label: "Resource Added",    icon: FileText,      variant: "default",     group: "Content" },
+  resource_update:       { label: "Resource Edited",   icon: FileText,      variant: "secondary",   group: "Content" },
+  resource_delete:       { label: "Resource Deleted",  icon: FileText,      variant: "destructive", group: "Content" },
+  announcement_create:   { label: "Announcement",      icon: Megaphone,     variant: "default",     group: "Content" },
+  announcement_update:   { label: "Announcement Edit", icon: Megaphone,     variant: "secondary",   group: "Content" },
+  announcement_delete:   { label: "Announcement Del.", icon: Megaphone,     variant: "destructive", group: "Content" },
+  family_create:         { label: "Family Created",    icon: Users,         variant: "default",     group: "Content" },
+  family_update:         { label: "Family Renamed",    icon: Users,         variant: "secondary",   group: "Content" },
+  family_delete:         { label: "Family Deleted",    icon: Users,         variant: "destructive", group: "Content" },
+  broadcast:             { label: "Broadcast Sent",    icon: Send,          variant: "default",     group: "Content" },
+
+  // Guests
+  guest_request_approve: { label: "Guest Approved",    icon: UserCheck,     variant: "default",     group: "Guests" },
+  guest_request_reject:  { label: "Guest Rejected",    icon: UserMinus,     variant: "destructive", group: "Guests" },
+  guest_request_delete:  { label: "Guest Req. Deleted",icon: Trash2,        variant: "outline",     group: "Guests" },
+
+  // Check-ins
+  checkin_rsvp:          { label: "Checked In",        icon: CheckCircle2,  variant: "default",     group: "Check-ins" },
+  undo_checkin:          { label: "Check-in Undone",   icon: RotateCcw,     variant: "outline",     group: "Check-ins" },
+};
+
+const FILTER_GROUPS: { group: ActionConfig["group"]; actions: string[] }[] = [
+  { group: "Users", actions: [] },
+  { group: "Events", actions: [] },
+  { group: "Content", actions: [] },
+  { group: "Guests", actions: [] },
+  { group: "Check-ins", actions: [] },
+];
+Object.entries(ACTION_CONFIG).forEach(([key, cfg]) => {
+  const g = FILTER_GROUPS.find((f) => f.group === cfg.group);
+  if (g) g.actions.push(key);
+});
+
+function formatVal(v: unknown): string {
+  if (v === null || v === undefined || v === "") return "—";
+  if (typeof v === "boolean") return v ? "yes" : "no";
+  if (typeof v === "string") {
+    // ISO date?
+    if (/^\d{4}-\d{2}-\d{2}T/.test(v)) {
+      try { return format(new Date(v), "MMM d, yyyy h:mm a"); } catch { /* noop */ }
+    }
+    return v.length > 60 ? v.slice(0, 57) + "…" : v;
+  }
+  return String(v);
+}
+
+function renderChangedDetails(details: Record<string, unknown> | null): string[] {
+  if (!details) return [];
+  const lines: string[] = [];
+  const changed = (details as any).changed as Record<string, { from: unknown; to: unknown }> | undefined;
+  if (changed && typeof changed === "object") {
+    for (const [field, diff] of Object.entries(changed)) {
+      const label = field.replace(/_/g, " ");
+      lines.push(`${label}: ${formatVal(diff?.from)} → ${formatVal(diff?.to)}`);
+    }
+  }
+  // Extra context fields
+  if ((details as any).guest_name) lines.unshift(`Guest: ${(details as any).guest_name}`);
+  if ((details as any).speaker_name) lines.unshift(`Speaker: ${(details as any).speaker_name}`);
+  if ((details as any).item_name && !changed) lines.unshift(`Item: ${(details as any).item_name}`);
+  return lines;
+}
 
 export default function AdminActivityLog() {
   const [actionFilter, setActionFilter] = useState("all");
@@ -44,20 +143,19 @@ export default function AdminActivityLog() {
 
   const { data: logs, isLoading, refetch } = useQuery({
     queryKey: ["admin-activity-log"],
-    staleTime: 5 * 60 * 1000,
+    staleTime: 60 * 1000,
     gcTime: 10 * 60 * 1000,
     refetchOnWindowFocus: false,
     queryFn: async () => {
       const { data, error } = await supabase.from("admin_activity_log")
         .select("*")
         .order("created_at", { ascending: false })
-        .limit(200);
+        .limit(500);
       if (error) throw error;
       return (data ?? []) as LogEntry[];
     },
   });
 
-  // Fetch actor profiles for display names
   const actorIds = useMemo(() => [...new Set(logs?.map((l) => l.actor_id) ?? [])], [logs]);
   const { data: actorProfiles } = useQuery({
     queryKey: ["admin-activity-actors", actorIds],
@@ -95,18 +193,15 @@ export default function AdminActivityLog() {
 
   const exportCsv = () => {
     if (!filtered.length) return;
-    const headers = ["Date", "Action", "Admin", "Target User", "Details"];
+    const headers = ["Date", "Action", "Admin", "Target", "Details"];
     const rows = filtered.map((log) => {
       const actor = actorMap[log.actor_id];
-      const details = log.details as Record<string, unknown> | null;
-      let detailStr = "";
-      if (details && log.action === "role_change") detailStr = `${details.previous_role} → ${details.new_role}`;
-      else if (details && log.action === "suspend_user") detailStr = `Previously: ${details.previous_role}`;
+      const detailStr = renderChangedDetails(log.details).join(" | ");
       return [
         format(new Date(log.created_at), "yyyy-MM-dd HH:mm"),
         ACTION_CONFIG[log.action]?.label ?? log.action,
         actor?.name || actor?.email || "Admin",
-        log.target_user_name || log.target_user_email || "Unknown",
+        log.target_user_name || log.target_user_email || "—",
         detailStr,
       ].map((v) => `"${String(v).replace(/"/g, '""')}"`).join(",");
     });
@@ -119,6 +214,7 @@ export default function AdminActivityLog() {
     a.click();
     URL.revokeObjectURL(url);
   };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -146,16 +242,19 @@ export default function AdminActivityLog() {
         </div>
         <div className="flex flex-wrap gap-2">
           <Select value={actionFilter} onValueChange={setActionFilter}>
-            <SelectTrigger className="w-[140px] h-9">
+            <SelectTrigger className="w-[180px] h-9">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All actions</SelectItem>
-              <SelectItem value="role_change">Role changes</SelectItem>
-              <SelectItem value="suspend_user">Suspensions</SelectItem>
-              <SelectItem value="delete_user">Deletions</SelectItem>
-              <SelectItem value="checkin_rsvp">Check-ins</SelectItem>
-              <SelectItem value="undo_checkin">Check-in undos</SelectItem>
+              {FILTER_GROUPS.filter((g) => g.actions.length > 0).map((g) => (
+                <SelectGroup key={g.group}>
+                  <SelectLabel>{g.group}</SelectLabel>
+                  {g.actions.map((a) => (
+                    <SelectItem key={a} value={a}>{ACTION_CONFIG[a].label}</SelectItem>
+                  ))}
+                </SelectGroup>
+              ))}
             </SelectContent>
           </Select>
           <Popover>
@@ -193,10 +292,10 @@ export default function AdminActivityLog() {
       ) : (
         <div className="space-y-2">
           {filtered.map((log) => {
-            const config = ACTION_CONFIG[log.action] ?? { label: log.action, icon: UserCog, variant: "outline" as const };
+            const config = ACTION_CONFIG[log.action] ?? { label: log.action, icon: UserCog, variant: "outline" as const, group: "Content" as const };
             const Icon = config.icon;
             const actor = actorMap[log.actor_id];
-            const details = log.details as Record<string, unknown> | null;
+            const detailLines = renderChangedDetails(log.details);
 
             return (
               <Card key={log.id}>
@@ -213,25 +312,40 @@ export default function AdminActivityLog() {
                         {format(new Date(log.created_at), "MMM d, yyyy · h:mm a")}
                       </span>
                     </div>
-                    <p className="text-sm text-foreground">
-                      <span className="font-medium">{actor?.name || "Admin"}</span>
-                      {" → "}
-                      <span className="font-medium">{log.target_user_name || log.target_user_email || "Unknown user"}</span>
+                    <p className="text-sm text-foreground break-words">
+                      <span className="font-medium">{actor?.name || actor?.email || "Admin"}</span>
+                      {log.target_user_name || log.target_user_email ? (
+                        <>
+                          {" → "}
+                          <span className="font-medium">{log.target_user_name || log.target_user_email}</span>
+                        </>
+                      ) : null}
                     </p>
-                    {details && log.action === "role_change" && (
+                    {/* Legacy custom renderers preserved */}
+                    {log.details && log.action === "role_change" && (
                       <p className="text-xs text-muted-foreground">
-                        {String(details.previous_role || "?")} → {String(details.new_role || "?")}
+                        {String((log.details as any).previous_role || "?")} → {String((log.details as any).new_role || "?")}
                       </p>
                     )}
-                    {details && log.action === "suspend_user" && (
+                    {log.details && log.action === "suspend_user" && (
                       <p className="text-xs text-muted-foreground">
-                        Previously: {String(details.previous_role || "?")}
+                        Previously: {String((log.details as any).previous_role || "?")}
                       </p>
                     )}
-                    {details && (log.action === "checkin_rsvp" || log.action === "undo_checkin") && details.event_title && (
+                    {log.details && (log.action === "checkin_rsvp" || log.action === "undo_checkin") && (log.details as any).event_title && (
                       <p className="text-xs text-muted-foreground">
-                        Event: {String(details.event_title)}
+                        Event: {String((log.details as any).event_title)}
                       </p>
+                    )}
+                    {detailLines.length > 0 && (
+                      <ul className="text-xs text-muted-foreground space-y-0.5 pt-0.5">
+                        {detailLines.slice(0, 8).map((line, i) => (
+                          <li key={i} className="break-words">{line}</li>
+                        ))}
+                        {detailLines.length > 8 && (
+                          <li className="italic">+{detailLines.length - 8} more</li>
+                        )}
+                      </ul>
                     )}
                   </div>
                 </CardContent>
