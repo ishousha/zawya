@@ -790,6 +790,36 @@ export default function UserManagement() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Bulk Role Change Confirmation */}
+      <AlertDialog open={!!bulkRoleConfirm} onOpenChange={(o) => { if (!o) setBulkRoleConfirm(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{bulkRoleConfirm?.label} {selectedIds.size} {selectedIds.size === 1 ? "user" : "users"}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {bulkRoleConfirm?.role === "rejected"
+                ? "Rejected users lose access immediately. They will be notified by email."
+                : bulkRoleConfirm?.role === "suspended"
+                ? "Suspended users lose access until reinstated. They will be notified by email."
+                : "Status will be updated and affected users will be notified by email."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className={bulkRoleConfirm?.destructive ? "bg-destructive text-destructive-foreground hover:bg-destructive/90" : ""}
+              onClick={() => {
+                if (bulkRoleConfirm) {
+                  bulkUpdateRole.mutate({ ids: Array.from(selectedIds), role: bulkRoleConfirm.role });
+                  setBulkRoleConfirm(null);
+                }
+              }}
+            >
+              {bulkUpdateRole.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} {bulkRoleConfirm?.label}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
