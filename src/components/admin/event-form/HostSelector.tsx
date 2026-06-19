@@ -105,21 +105,21 @@ export default function HostSelector({ hostId, onChange }: HostSelectorProps) {
 
       <div className="flex gap-1.5">
         <div className="relative min-w-0 flex-1" ref={rootRef}>
-            <Button
-              type="button"
-              variant="outline"
-              role="combobox"
-              aria-expanded={open}
-              aria-controls="host-selector-results"
-              onClick={() => setOpen((prev) => !prev)}
-              className={cn(
-                "w-full justify-between font-normal h-10 min-w-0",
-                !selectedProfile && "text-muted-foreground"
-              )}
-            >
+          <Button
+            type="button"
+            variant="outline"
+            role="combobox"
+            aria-expanded={open}
+            aria-controls="host-selector-results"
+            onClick={() => setOpen((prev) => !prev)}
+            className={cn(
+              "w-full justify-between font-normal h-10 min-w-0",
+              !selectedProfile && "text-muted-foreground"
+            )}
+          >
               <span className="truncate">{triggerLabel}</span>
               <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-            </Button>
+          </Button>
 
           {open && (
             <div
@@ -127,14 +127,14 @@ export default function HostSelector({ hostId, onChange }: HostSelectorProps) {
               role="listbox"
               className="absolute left-0 right-0 top-[calc(100%+0.25rem)] z-[100] overflow-hidden rounded-md border border-border bg-popover text-popover-foreground shadow-lg"
             >
-            <div className="p-2">
-              <Input
-                ref={inputRef}
-                placeholder="Search by name, email, or family…"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="h-9"
-                onKeyDown={(e) => {
+              <div className="p-2">
+                <Input
+                  ref={inputRef}
+                  placeholder="Search by name, email, or family…"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="h-9"
+                  onKeyDown={(e) => {
                   if (e.key === "Escape") {
                     e.preventDefault();
                     setOpen(false);
@@ -154,9 +154,9 @@ export default function HostSelector({ hostId, onChange }: HostSelectorProps) {
                     e.preventDefault();
                     selectHost(searchResults[activeIndex].id);
                   }
-                }}
-              />
-            </div>
+                  }}
+                />
+              </div>
 
             <div className="max-h-56 overflow-y-auto">
               {isFetching || isDebouncing ? (
