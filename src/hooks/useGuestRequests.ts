@@ -202,3 +202,21 @@ export function useUpdateGuestRequestStatus() {
     },
   });
 }
+
+/** Admin: delete any guest request */
+export function useAdminDeleteGuestRequest() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("guest_requests").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-guest-requests"] });
+      queryClient.invalidateQueries({ queryKey: ["all-guest-requests"] });
+      queryClient.invalidateQueries({ queryKey: ["my-guest-requests"] });
+      queryClient.invalidateQueries({ queryKey: ["my-guest-requests-batch"] });
+      queryClient.invalidateQueries({ queryKey: ["pending-guest-requests-count"] });
+    },
+  });
+}

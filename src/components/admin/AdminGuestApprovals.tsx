@@ -1,9 +1,9 @@
-import { useEventGuestRequests, useUpdateGuestRequestStatus } from "@/hooks/useGuestRequests";
+import { useEventGuestRequests, useUpdateGuestRequestStatus, useAdminDeleteGuestRequest } from "@/hooks/useGuestRequests";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/runtime-client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Check, X, MessageCircle } from "lucide-react";
+import { Loader2, Check, X, MessageCircle, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { buildGuestWhatsAppUrl } from "@/lib/share-event";
@@ -11,6 +11,17 @@ import { buildGuestWhatsAppUrl } from "@/lib/share-event";
 export default function AdminGuestApprovals({ eventId }: { eventId: string }) {
   const { data: requests, isLoading } = useEventGuestRequests(eventId);
   const updateStatus = useUpdateGuestRequestStatus();
+  const deleteRequest = useAdminDeleteGuestRequest();
+
+  const handleDelete = async (r: any) => {
+    if (!window.confirm(`Delete guest request for ${r.guest_name}? This cannot be undone.`)) return;
+    try {
+      await deleteRequest.mutateAsync(r.id);
+      toast.success("Guest request deleted.");
+    } catch {
+      toast.error("Failed to delete guest request.");
+    }
+  };
 
   // Fetch event details for email
   const { data: eventData } = useQuery({
@@ -148,6 +159,16 @@ export default function AdminGuestApprovals({ eventId }: { eventId: string }) {
                   >
                     <X className="h-4 w-4" />
                   </Button>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-8 w-8 text-destructive hover:bg-red-50"
+                    title="Delete guest request"
+                    disabled={deleteRequest.isPending}
+                    onClick={() => handleDelete(r)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
                 </div>
               </div>
             ))}
@@ -175,6 +196,16 @@ export default function AdminGuestApprovals({ eventId }: { eventId: string }) {
                 >
                   {r.status}
                 </Badge>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-8 w-8 text-destructive hover:bg-red-50 shrink-0"
+                  title="Delete guest request"
+                  disabled={deleteRequest.isPending}
+                  onClick={() => handleDelete(r)}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
               </div>
             ))}
           </div>

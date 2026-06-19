@@ -6,10 +6,11 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Loader2, CheckCircle, XCircle, Clock, Search, ChevronDown, CalendarDays, MessageCircle } from "lucide-react";
+import { Loader2, CheckCircle, XCircle, Clock, Search, ChevronDown, CalendarDays, MessageCircle, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { buildGuestWhatsAppUrl } from "@/lib/share-event";
+import { useAdminDeleteGuestRequest } from "@/hooks/useGuestRequests";
 
 interface GroupedEvent {
   eventId: string;
@@ -22,6 +23,7 @@ interface GroupedEvent {
 
 export default function AllGuestApprovals() {
   const queryClient = useQueryClient();
+  const deleteRequest = useAdminDeleteGuestRequest();
   const [search, setSearch] = useState("");
   const [openEventIds, setOpenEventIds] = useState<Record<string, boolean>>({});
 
@@ -318,6 +320,24 @@ export default function AllGuestApprovals() {
                                 <XCircle className="h-5 w-5" />
                               </Button>
                             )}
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-10 w-10 text-destructive hover:bg-red-50"
+                              title="Delete guest request"
+                              disabled={deleteRequest.isPending}
+                              onClick={async () => {
+                                if (!window.confirm(`Delete guest request for ${gr.guest_name}? This cannot be undone.`)) return;
+                                try {
+                                  await deleteRequest.mutateAsync(gr.id);
+                                  toast.success("Guest request deleted.");
+                                } catch {
+                                  toast.error("Failed to delete guest request.");
+                                }
+                              }}
+                            >
+                              <Trash2 className="h-5 w-5" />
+                            </Button>
                           </div>
                         </CardContent>
                       </Card>
