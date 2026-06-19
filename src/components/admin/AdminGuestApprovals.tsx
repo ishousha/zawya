@@ -18,7 +18,7 @@ export default function AdminGuestApprovals({ eventId }: { eventId: string }) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("events")
-        .select("title, date_time, location, address, virtual_link, online_link, event_type_id")
+        .select("title, date_time, location, address, maps_url, virtual_link, online_link, event_type_id")
         .eq("id", eventId)
         .single();
       if (error) throw error;
