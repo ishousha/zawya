@@ -94,17 +94,44 @@ Deno.serve(async (req) => {
       // Fetch all confirmed (non-waitlisted) RSVPs
       const { data: rsvps } = await supabase
         .from('rsvps')
-        .select('user_id')
+        .select('id, user_id, potluck_category, specific_food_item')
         .eq('event_id', event.id)
         .eq('is_waitlisted', false)
 
       if (!rsvps || rsvps.length === 0) continue
 
       const userIds = [...new Set(rsvps.map((r: any) => r.user_id))]
-      const { data: profiles } = await supabase
-        .from('profiles')
-        .select('id, name, email')
-        .in('id', userIds)
+      const rsvpIds = rsvps.map((r: any) => r.id)
+
+      const [{ data: profiles }, { data: selections }] = await Promise.all([
+        supabase.from('profiles').select('id, name, email').in('id', userIds),
+        supabase
+          .from('rsvp_sign_up_selections')
+          .select('rsvp_id, quantity, description, event_sign_up_items(item_name)')
+          .in('rsvp_id', rsvpIds),
+      ])
+
+      // Group sign-up selections by user_id (via rsvp_id)
+      const rsvpById = new Map<string, any>(rsvps.map((r: any) => [r.id, r]))
+      const itemsByUser = new Map<string, any[]>()
+      for (const sel of selections ?? []) {
+        const rsvp = rsvpById.get((sel as any).rsvp_id)
+        if (!rsvp) continue
+        const list = itemsByUser.get(rsvp.user_id) ?? []
+        list.push({
+          itemName: (sel as any).event_sign_up_items?.item_name ?? 'Item',
+          quantity: (sel as any).quantity ?? 1,
+          description: (sel as any).description ?? null,
+        })
+        itemsByUser.set(rsvp.user_id, list)
+      }
+
+      // Legacy single potluck item per user (oldest events)
+      const legacyByUser = new Map<string, string>()
+      for (const r of rsvps as any[]) {
+        const legacy = r.specific_food_item || r.potluck_category
+        if (legacy && !legacyByUser.has(r.user_id)) legacyByUser.set(r.user_id, legacy)
+      }
 
       const eventDate = new Date(event.date_time).toLocaleString('en-US', {
         weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
@@ -116,6 +143,9 @@ Deno.serve(async (req) => {
 
       for (const profile of profiles ?? []) {
         if (!profile.email) continue
+
+        const userItems = itemsByUser.get(profile.id) ?? []
+        const legacyItem = legacyByUser.get(profile.id)
 
         try {
           await supabase.functions.invoke('send-transactional-email', {
@@ -129,6 +159,8 @@ Deno.serve(async (req) => {
                 eventDate,
                 eventLocation,
                 reminderType: w.type,
+                signUpItems: userItems,
+                potluckItem: userItems.length === 0 ? legacyItem : undefined,
               },
             },
           })
