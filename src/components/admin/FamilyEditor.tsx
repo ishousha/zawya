@@ -217,12 +217,14 @@ export default function FamilyEditor({ family, onBack, onDeleted }: Props) {
 
   const upsertDependent = useMutation({
     mutationFn: async (d: Partial<DependentRow> & { id?: string }) => {
+      const typeOther = d.type === "other" ? (d.type_other?.trim() || null) : null;
       if (d.id) {
         const { error } = await supabase
           .from("dependents")
           .update({
             first_name: d.first_name,
             type: d.type,
+            type_other: typeOther,
             gender: d.gender,
             date_of_birth: d.date_of_birth || null,
           })
@@ -233,6 +235,7 @@ export default function FamilyEditor({ family, onBack, onDeleted }: Props) {
           family_id: family.id,
           first_name: d.first_name!,
           type: d.type!,
+          type_other: typeOther,
           gender: d.gender || null,
           date_of_birth: d.date_of_birth || null,
         });
