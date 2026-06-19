@@ -23,6 +23,7 @@ interface GroupedEvent {
 
 export default function AllGuestApprovals() {
   const queryClient = useQueryClient();
+  const deleteRequest = useAdminDeleteGuestRequest();
   const [search, setSearch] = useState("");
   const [openEventIds, setOpenEventIds] = useState<Record<string, boolean>>({});
 
