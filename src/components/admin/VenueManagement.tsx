@@ -10,6 +10,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Plus, Pencil, Trash2, Loader2, Building2 } from "lucide-react";
 import { toast } from "sonner";
+import HostSelector from "./event-form/HostSelector";
 
 interface Venue {
   id: string;
@@ -17,6 +18,8 @@ interface Venue {
   address: string | null;
   area_hint: string | null;
   maps_url: string | null;
+  default_host_id: string | null;
+  default_host?: { id: string; name: string | null; email: string | null } | null;
 }
 
 export default function VenueManagement() {
@@ -27,6 +30,7 @@ export default function VenueManagement() {
   const [formAreaHint, setFormAreaHint] = useState("");
   const [formAddress, setFormAddress] = useState("");
   const [formMapsUrl, setFormMapsUrl] = useState("");
+  const [formDefaultHostId, setFormDefaultHostId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Venue | null>(null);
 
   const { data: venues = [], isLoading } = useQuery({
@@ -34,7 +38,7 @@ export default function VenueManagement() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("venues")
-        .select("*")
+        .select("*, default_host:profiles!venues_default_host_id_fkey(id,name,email)")
         .order("name");
       if (error) throw error;
       return data as Venue[];
@@ -48,6 +52,7 @@ export default function VenueManagement() {
         area_hint: formAreaHint.trim() || null,
         address: formAddress.trim() || null,
         maps_url: formMapsUrl.trim() || null,
+        default_host_id: formDefaultHostId || null,
       };
       if (editingVenue) {
         const { error } = await supabase.from("venues").update(payload as any).eq("id", editingVenue.id);
@@ -95,6 +100,7 @@ export default function VenueManagement() {
     setFormAreaHint("");
     setFormAddress("");
     setFormMapsUrl("");
+    setFormDefaultHostId(null);
     setOpen(true);
   }
 
@@ -103,7 +109,8 @@ export default function VenueManagement() {
     setFormName(v.name);
     setFormAreaHint(v.area_hint ?? "");
     setFormAddress(v.address ?? "");
-    setFormMapsUrl((v as any).maps_url ?? "");
+    setFormMapsUrl(v.maps_url ?? "");
+    setFormDefaultHostId(v.default_host_id ?? null);
     setOpen(true);
   }
 
@@ -114,6 +121,7 @@ export default function VenueManagement() {
     setFormAreaHint("");
     setFormAddress("");
     setFormMapsUrl("");
+    setFormDefaultHostId(null);
   }
 
   return (
@@ -141,6 +149,7 @@ export default function VenueManagement() {
               <TableHead>Location Name</TableHead>
               <TableHead>Street Address</TableHead>
               <TableHead>Hint / Directions</TableHead>
+              <TableHead>Default Host</TableHead>
               <TableHead className="w-20" />
             </TableRow>
           </TableHeader>
@@ -150,6 +159,9 @@ export default function VenueManagement() {
                 <TableCell className="font-medium">{v.name}</TableCell>
                 <TableCell className="text-sm text-muted-foreground max-w-[200px] truncate">{v.address || "—"}</TableCell>
                 <TableCell className="text-sm text-muted-foreground italic max-w-[200px] truncate">{v.area_hint || "—"}</TableCell>
+                <TableCell className="text-sm text-muted-foreground max-w-[160px] truncate">
+                  {v.default_host?.name || v.default_host?.email || "—"}
+                </TableCell>
                 <TableCell>
                   <div className="flex gap-1">
                     <Button size="icon" variant="ghost" onClick={() => openEdit(v)}>
@@ -198,6 +210,10 @@ export default function VenueManagement() {
             <div>
               <Label htmlFor="v-hint">Location Hint / Directions <span className="text-muted-foreground font-normal">(optional)</span></Label>
               <Textarea id="v-hint" value={formAreaHint} onChange={(e) => setFormAreaHint(e.target.value)} placeholder="e.g. Park in the rear lot, ring the bell at the green gate" className="mt-1.5 min-h-[72px]" />
+            </div>
+            <div>
+              <HostSelector hostId={formDefaultHostId} onChange={setFormDefaultHostId} />
+              <p className="text-xs text-muted-foreground mt-1">When selected on an event, this host is auto-applied. Admins can still override.</p>
             </div>
           </div>
           <DialogFooter>
