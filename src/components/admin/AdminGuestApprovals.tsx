@@ -122,6 +122,7 @@ export default function AdminGuestApprovals({ eventId }: { eventId: string }) {
                         eventDateISO: eventData?.date_time,
                         location: eventData?.location,
                         address: eventData?.address,
+                        mapsUrl: (eventData as any)?.maps_url,
                         onlineLink: eventData?.online_link || eventData?.virtual_link,
                       });
                       window.open(url, "_blank", "noopener");
