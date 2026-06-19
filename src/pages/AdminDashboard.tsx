@@ -15,6 +15,7 @@ const EventControlRoom = lazy(() => import("@/components/admin/EventControlRoom"
 const AdminDoorScanner = lazy(() => import("@/components/admin/AdminDoorScanner"));
 const FamilyManagement = lazy(() => import("@/components/admin/FamilyManagement"));
 const AllGuestApprovals = lazy(() => import("@/components/admin/AllGuestApprovals"));
+const ExternalGuestsDirectory = lazy(() => import("@/components/admin/ExternalGuestsDirectory"));
 const AdminActivityLog = lazy(() => import("@/components/admin/AdminActivityLog"));
 const AdminAnalytics = lazy(() => import("@/components/admin/AdminAnalytics"));
 const EventTypeManagement = lazy(() => import("@/components/admin/EventTypeManagement"));
