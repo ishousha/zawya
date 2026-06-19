@@ -263,14 +263,33 @@ export default function QRTicketScreen({ event, rsvp, profileName, isOffline, on
                 {rsvp.guests_count > 1 ? `+${rsvp.guests_count - 1}` : "Just you"}
               </span>
             </div>
-            {rsvp.potluck_category && (
+            {signUpItems && signUpItems.length > 0 ? (
+              <div className="mt-3 rounded-md border border-primary/30 bg-primary/5 p-3">
+                <p className="text-xs font-semibold uppercase tracking-wider text-primary">
+                  Don't forget to bring
+                </p>
+                <ul className="mt-1.5 space-y-1">
+                  {signUpItems.map((item, i) => (
+                    <li key={i} className="flex justify-between gap-2 text-sm">
+                      <span className="font-medium text-card-foreground">
+                        {item.itemName}
+                        {item.quantity > 1 ? ` ×${item.quantity}` : ""}
+                      </span>
+                      {item.description && (
+                        <span className="text-muted-foreground text-right">{item.description}</span>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : rsvp.potluck_category ? (
               <div className="mt-2 flex justify-between">
                 <span className="text-muted-foreground">Bringing</span>
                 <span className="font-medium text-card-foreground capitalize">
                   {rsvp.specific_food_item || rsvp.potluck_category}
                 </span>
               </div>
-            )}
+            ) : null}
             {event.location && (
               <div className="mt-2 flex justify-between">
                 <span className="text-muted-foreground">Location</span>
