@@ -51,36 +51,53 @@ export { GenderToggle };
 
 export default function CompleteProfile() {
   const { user, profile, signOut } = useAuth();
-  const [name, setName] = useState("");
-  const [familyName, setFamilyName] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [gender, setGender] = useState("");
   const [whatsappCC, setWhatsappCC] = useState("+971");
   const [whatsappNum, setWhatsappNum] = useState("");
   const [saving, setSaving] = useState(false);
 
-  // Pre-fill name from existing profile or OAuth metadata (Google full_name, etc.)
+  // Pre-fill first/last name from existing profile or OAuth metadata
   useEffect(() => {
-    if (name) return;
-    const profileName = (profile?.name || "").trim();
-    if (profileName) { setName(profileName); return; }
+    if (firstName || lastName) return;
     const meta = (user?.user_metadata || {}) as Record<string, any>;
-    const fromMeta = (
-      meta.name ||
-      meta.full_name ||
-      meta.display_name ||
-      [meta.first_name, meta.last_name].filter(Boolean).join(" ") ||
-      [meta.given_name, meta.family_name].filter(Boolean).join(" ") ||
-      ""
-    ).toString().trim();
-    if (fromMeta) setName(fromMeta);
+
+    let first = (meta.given_name || meta.first_name || "").toString().trim();
+    let last = (meta.family_name || meta.last_name || "").toString().trim();
+
+    if (!first && !last) {
+      const existingName = (profile?.name || "").trim();
+      const combined =
+        existingName ||
+        (meta.name || meta.full_name || meta.display_name || "").toString().trim();
+      if (combined) {
+        const parts = combined.split(/\s+/);
+        first = parts[0] || "";
+        last = parts.slice(1).join(" ");
+      }
+    }
+
+    // Fall back to existing profile.family_name as last name if still empty
+    if (!last && profile?.family_name) last = profile.family_name.trim();
+
+    if (first) setFirstName(first);
+    if (last) setLastName(last);
   }, [user, profile]);
 
 
   const handleSubmit = async () => {
     if (!user) return;
 
-    if (!name.trim()) {
-      toast.error("Please enter your full name.");
+    const trimmedFirst = firstName.trim();
+    const trimmedLast = lastName.trim();
+
+    if (!trimmedFirst) {
+      toast.error("Please enter your first name.");
+      return;
+    }
+    if (!trimmedLast) {
+      toast.error("Please enter your last name.");
       return;
     }
     if (!gender) {
@@ -92,12 +109,14 @@ export default function CompleteProfile() {
       return;
     }
 
+    const fullName = `${trimmedFirst} ${trimmedLast}`;
+
     setSaving(true);
     const { error } = await supabase
       .from("profiles")
       .update({
-        name: name.trim(),
-        family_name: familyName.trim() || null,
+        name: fullName,
+        family_name: trimmedLast,
         gender,
         whatsapp_number: toE164(whatsappCC, whatsappNum),
       } as any)
@@ -134,7 +153,7 @@ export default function CompleteProfile() {
               recipientEmail: admin.email,
               idempotencyKey: `new-member-pending-${user?.id}-${admin.id}`,
               templateData: {
-                memberName: name.trim(),
+                memberName: fullName,
                 memberEmail,
                 memberPhone: fullPhone,
               },
