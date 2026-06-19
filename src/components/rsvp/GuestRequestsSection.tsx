@@ -83,6 +83,13 @@ export default function GuestRequestsSection({ eventId, event }: GuestRequestsSe
                 toast.error("Event details unavailable.");
                 return;
               }
+              const customMapsUrl = ((event as any).maps_url || "").trim();
+              const mapQuery = [event.location, event.address].filter(Boolean).join(", ");
+              const mapUrl = customMapsUrl
+                ? customMapsUrl
+                : mapQuery
+                  ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapQuery)}`
+                  : "";
               const waUrl = buildGuestWhatsAppUrl({
                 guestName: g.guest_name,
                 guestPhone: g.guest_phone,
@@ -90,15 +97,12 @@ export default function GuestRequestsSection({ eventId, event }: GuestRequestsSe
                 eventDateISO: event.date_time,
                 location: event.location,
                 address: event.address,
+                mapsUrl: customMapsUrl || undefined,
                 onlineLink: event.online_link || event.virtual_link,
               });
 
               if (navigator.share) {
                 const date = format(new Date(event.date_time), "EEEE, MMMM d 'at' h:mm a");
-                const mapQuery = [event.location, event.address].filter(Boolean).join(", ");
-                const mapUrl = mapQuery
-                  ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapQuery)}`
-                  : "";
                 const lines = [
                   `Assalamu Alaikum ${g.guest_name}! 🌙`,
                   "",

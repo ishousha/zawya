@@ -30,6 +30,7 @@ interface GuestWhatsAppInput {
   eventDateISO?: string | null;
   location?: string | null;
   address?: string | null;
+  mapsUrl?: string | null;
   onlineLink?: string | null;
 }
 
@@ -46,6 +47,7 @@ export function buildGuestWhatsAppUrl({
   eventDateISO,
   location,
   address,
+  mapsUrl,
   onlineLink,
 }: GuestWhatsAppInput): string {
   let dateLine = "";
@@ -64,9 +66,11 @@ export function buildGuestWhatsAppUrl({
     }
   }
   const mapQuery = [location, address].filter(Boolean).join(", ");
-  const mapUrl = mapQuery
-    ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapQuery)}`
-    : "";
+  const mapUrl = (mapsUrl && mapsUrl.trim())
+    ? mapsUrl.trim()
+    : mapQuery
+      ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapQuery)}`
+      : "";
 
   const lines = [
     `Assalamu Alaikum ${guestName}! 🌙`,

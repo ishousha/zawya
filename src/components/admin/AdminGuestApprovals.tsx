@@ -18,7 +18,7 @@ export default function AdminGuestApprovals({ eventId }: { eventId: string }) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("events")
-        .select("title, date_time, location, address, virtual_link, online_link, event_type_id")
+        .select("title, date_time, location, address, maps_url, virtual_link, online_link, event_type_id")
         .eq("id", eventId)
         .single();
       if (error) throw error;
@@ -39,10 +39,13 @@ export default function AdminGuestApprovals({ eventId }: { eventId: string }) {
       : eventData?.virtual_link || "";
     const eventLocation = eventData?.location || "";
     const eventAddress = eventData?.address || "";
+    const customMapsUrl = (eventData as any)?.maps_url?.trim();
     const mapQuery = [eventData?.location, eventData?.address].filter(Boolean).join(", ");
-    const mapUrl = mapQuery
-      ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapQuery)}`
-      : "";
+    const mapUrl = customMapsUrl
+      ? customMapsUrl
+      : mapQuery
+        ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapQuery)}`
+        : "";
 
     try {
       await updateStatus.mutateAsync({
@@ -119,6 +122,7 @@ export default function AdminGuestApprovals({ eventId }: { eventId: string }) {
                         eventDateISO: eventData?.date_time,
                         location: eventData?.location,
                         address: eventData?.address,
+                        mapsUrl: (eventData as any)?.maps_url,
                         onlineLink: eventData?.online_link || eventData?.virtual_link,
                       });
                       window.open(url, "_blank", "noopener");
