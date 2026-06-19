@@ -11,6 +11,17 @@ import { buildGuestWhatsAppUrl } from "@/lib/share-event";
 export default function AdminGuestApprovals({ eventId }: { eventId: string }) {
   const { data: requests, isLoading } = useEventGuestRequests(eventId);
   const updateStatus = useUpdateGuestRequestStatus();
+  const deleteRequest = useAdminDeleteGuestRequest();
+
+  const handleDelete = async (r: any) => {
+    if (!window.confirm(`Delete guest request for ${r.guest_name}? This cannot be undone.`)) return;
+    try {
+      await deleteRequest.mutateAsync(r.id);
+      toast.success("Guest request deleted.");
+    } catch {
+      toast.error("Failed to delete guest request.");
+    }
+  };
 
   // Fetch event details for email
   const { data: eventData } = useQuery({
