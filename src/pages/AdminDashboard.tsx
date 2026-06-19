@@ -15,6 +15,7 @@ const EventControlRoom = lazy(() => import("@/components/admin/EventControlRoom"
 const AdminDoorScanner = lazy(() => import("@/components/admin/AdminDoorScanner"));
 const FamilyManagement = lazy(() => import("@/components/admin/FamilyManagement"));
 const AllGuestApprovals = lazy(() => import("@/components/admin/AllGuestApprovals"));
+const ExternalGuestsDirectory = lazy(() => import("@/components/admin/ExternalGuestsDirectory"));
 const AdminActivityLog = lazy(() => import("@/components/admin/AdminActivityLog"));
 const AdminAnalytics = lazy(() => import("@/components/admin/AdminAnalytics"));
 const EventTypeManagement = lazy(() => import("@/components/admin/EventTypeManagement"));
@@ -226,7 +227,10 @@ export default function AdminDashboard() {
 
           <div {...adminSwipeHandlers} data-swipe-root className={`touch-pan-y overflow-hidden ${slideDir === "left" ? "animate-slide-in-right" : slideDir === "right" ? "animate-slide-in-left" : "animate-fade-in-fast"}`} key={slideKey}>
             <KeepAliveTab id="users" active={activeTab === "users"}><UserManagement /></KeepAliveTab>
-            <KeepAliveTab id="guests" active={activeTab === "guests"}><AllGuestApprovals /></KeepAliveTab>
+            <KeepAliveTab id="guests" active={activeTab === "guests"}>
+              <AllGuestApprovals />
+              <ExternalGuestsDirectory />
+            </KeepAliveTab>
             <KeepAliveTab id="families" active={activeTab === "families"}><FamilyManagement /></KeepAliveTab>
             <KeepAliveTab id="events" active={activeTab === "events"}><EventControlRoom /></KeepAliveTab>
             <KeepAliveTab id="scanner" active={activeTab === "scanner"}><AdminDoorScanner /></KeepAliveTab>

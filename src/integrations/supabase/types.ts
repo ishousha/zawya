@@ -597,6 +597,54 @@ export type Database = {
           },
         ]
       }
+      external_guests: {
+        Row: {
+          created_at: string
+          email: string | null
+          id: string
+          last_attended_at: string | null
+          last_invited_at: string | null
+          name: string
+          notes: string | null
+          owner_id: string
+          phone: string | null
+          times_approved: number
+          times_attended: number
+          times_invited: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          last_attended_at?: string | null
+          last_invited_at?: string | null
+          name: string
+          notes?: string | null
+          owner_id: string
+          phone?: string | null
+          times_approved?: number
+          times_attended?: number
+          times_invited?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          last_attended_at?: string | null
+          last_invited_at?: string | null
+          name?: string
+          notes?: string | null
+          owner_id?: string
+          phone?: string | null
+          times_approved?: number
+          times_attended?: number
+          times_invited?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       families: {
         Row: {
           created_at: string
@@ -683,6 +731,7 @@ export type Database = {
         Row: {
           created_at: string
           event_id: string
+          external_guest_id: string | null
           guest_email: string
           guest_name: string
           guest_phone: string | null
@@ -695,6 +744,7 @@ export type Database = {
         Insert: {
           created_at?: string
           event_id: string
+          external_guest_id?: string | null
           guest_email?: string
           guest_name: string
           guest_phone?: string | null
@@ -707,6 +757,7 @@ export type Database = {
         Update: {
           created_at?: string
           event_id?: string
+          external_guest_id?: string | null
           guest_email?: string
           guest_name?: string
           guest_phone?: string | null
@@ -722,6 +773,13 @@ export type Database = {
             columns: ["event_id"]
             isOneToOne: false
             referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "guest_requests_external_guest_id_fkey"
+            columns: ["external_guest_id"]
+            isOneToOne: false
+            referencedRelation: "external_guests"
             referencedColumns: ["id"]
           },
           {
