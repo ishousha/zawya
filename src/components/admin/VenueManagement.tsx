@@ -10,6 +10,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Plus, Pencil, Trash2, Loader2, Building2 } from "lucide-react";
 import { toast } from "sonner";
+import HostSelector from "./event-form/HostSelector";
 
 interface Venue {
   id: string;
@@ -17,6 +18,8 @@ interface Venue {
   address: string | null;
   area_hint: string | null;
   maps_url: string | null;
+  default_host_id: string | null;
+  default_host?: { id: string; name: string | null; email: string | null } | null;
 }
 
 export default function VenueManagement() {
@@ -27,6 +30,7 @@ export default function VenueManagement() {
   const [formAreaHint, setFormAreaHint] = useState("");
   const [formAddress, setFormAddress] = useState("");
   const [formMapsUrl, setFormMapsUrl] = useState("");
+  const [formDefaultHostId, setFormDefaultHostId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Venue | null>(null);
 
   const { data: venues = [], isLoading } = useQuery({
