@@ -36,8 +36,11 @@ export default function AdminGuestApprovals({ eventId }: { eventId: string }) {
     const eventLink = onlineLink
       ? onlineLink
       : eventData?.virtual_link || "";
-    const eventLocation = eventData?.location
-      ? `${eventData.location}${eventData.address ? ` — ${eventData.address}` : ""}`
+    const eventLocation = eventData?.location || "";
+    const eventAddress = eventData?.address || "";
+    const mapQuery = [eventData?.location, eventData?.address].filter(Boolean).join(", ");
+    const mapUrl = mapQuery
+      ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapQuery)}`
       : "";
 
     try {
@@ -49,6 +52,8 @@ export default function AdminGuestApprovals({ eventId }: { eventId: string }) {
         eventTitle: eventData?.title || "",
         eventDate,
         eventLocation,
+        eventAddress,
+        mapUrl,
         eventLink,
         requestedByName: r.profiles?.name || "",
         requestedByEmail: r.profiles?.email || "",
@@ -58,6 +63,7 @@ export default function AdminGuestApprovals({ eventId }: { eventId: string }) {
       toast.error("Failed to update guest request.");
     }
   };
+
 
   if (isLoading) {
     return (
