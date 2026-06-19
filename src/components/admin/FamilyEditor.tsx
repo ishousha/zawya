@@ -462,7 +462,7 @@ export default function FamilyEditor({ family, onBack, onDeleted }: Props) {
                       <div className="flex-1 min-w-0">
                         <p className="font-medium truncate">{d.first_name}</p>
                         <div className="flex flex-wrap gap-2 mt-0.5">
-                          <Badge variant="secondary" className="text-xs">{meta.label}</Badge>
+                          <Badge variant="secondary" className="text-xs">{d.type === "other" && d.type_other ? d.type_other : meta.label}</Badge>
                           {d.gender && <Badge variant="outline" className="text-xs capitalize">{d.gender}</Badge>}
                           {d.date_of_birth && (
                             <span className="text-xs text-muted-foreground">
