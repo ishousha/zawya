@@ -124,7 +124,7 @@ export function useExternalGuestHistory(guestId: string | null) {
         .eq("external_guest_id", guestId!)
         .order("created_at", { ascending: false });
       if (error) throw error;
-      const eventIds = Array.from(new Set((requests ?? []).map((r: any) => r.event_id).filter(Boolean)));
+      const eventIds = Array.from(new Set(((requests ?? []) as any[]).map((r: any) => r.event_id).filter(Boolean))) as string[];
       let eventsById: Record<string, { id: string; title: string; date_time: string }> = {};
       if (eventIds.length > 0) {
         const { data: events } = await supabase
