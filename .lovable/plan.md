@@ -1,33 +1,40 @@
+## Problem
 
-## Goal
-Make the "Don't forget to bring" section pop visually so members notice their assigned item. Current muted green blends with the parchment ticket.
+1. Members are forced to enter a guest email they often don't know, so they type their own — which means the approval invite goes to the wrong inbox.
+2. The "You're invited" email shows the address as plain text with no Google Maps link, so guests can't tap to navigate.
 
-## Color choice
-Use a warm **amber/gold** palette — it's attention-grabbing, fits the existing emerald + brushed-gold Sufi aesthetic, and reads as a friendly reminder (not an error like red).
+## Fix
 
-- Background: soft amber `#FEF3C7` (amber-100)
-- Border (left accent stripe, 4px): `#F59E0B` (amber-500)
-- Label "DON'T FORGET TO BRING": `#B45309` (amber-700), bold uppercase
-- Item name: dark slate `#1F2937` (gray-800), bold
-- Description/dish: `#78350F` (amber-900) for warm contrast
+### 1. Make guest email optional (member-facing guest request form)
 
-## Changes
+`src/components/rsvp/GuestRequestsSection.tsx`
+- Remove the red asterisk on the Guest Email field and drop the "required" validation in `handleSubmit`. Keep format validation only when the field is non-empty.
+- Replace the current helper text with: "Optional. If you have it, we'll email the guest their invite once approved. Otherwise, use the *Share Details* button after approval to send them the info via WhatsApp."
+- Reorder fields so **Phone** sits directly under Name (phone is what they'll actually use to share) and Email drops below as optional.
 
-### 1. QR Ticket — `src/components/QRTicketScreen.tsx`
-Restyle the "Don't forget to bring" box:
-- Replace current muted background with `bg-amber-50 border-l-4 border-amber-500`
-- Label → `text-amber-700 font-bold uppercase tracking-wide`
-- Item rows → bold gray-800 name, amber-900 description
-- Keep the existing layout/structure intact
+`src/hooks/useGuestRequests.ts`
+- Allow `guest_email` to be undefined / empty string in the mutation input type and insert payload (column already accepts `""` — walk-in flow uses it).
 
-### 2. Reminder Email — `supabase/functions/_shared/transactional-email-templates/event-reminder.tsx`
-Update the `bringBox`, `bringLabel`, `bringItem` inline styles:
-- `bringBox`: `backgroundColor: '#FEF3C7'`, `borderLeft: '4px solid #F59E0B'`, padding, rounded
-- `bringLabel`: `color: '#B45309'`, bold uppercase, letter-spacing
-- `bringItem`: `color: '#1F2937'` bold for category, `#78350F` for dish description
+`src/components/admin/AllGuestApprovals.tsx` — no change needed: the approval-email send is already gated on `gr.guest_email` being truthy, so missing emails simply skip the email step (the in-app "Share Details" button covers that case).
+
+### 2. Add a map link to the guest approval email
+
+`supabase/functions/_shared/transactional-email-templates/guest-approved.tsx`
+- Accept two new optional props: `eventAddress` (string) and `mapUrl` (string).
+- When `mapUrl` is present, render a gold/emerald "View on Map" `<Button>` directly below the Location row, plus a plain-text fallback link underneath so it survives clients that strip buttons.
+- Keep existing styling (parchment card, emerald headings).
+
+`src/components/admin/AllGuestApprovals.tsx`
+- Build the map URL when the event has a location/address:
+  - `https://www.google.com/maps/search/?api=1&query=<encoded address or location>`
+  - Pass `eventAddress: evt.address` and `mapUrl` in `templateData`.
+- Skip the field for virtual-only events.
 
 ### 3. Deploy
-Redeploy `send-event-reminders` and `send-transactional-email` edge functions so the email change ships.
+
+Deploy `send-transactional-email` so the updated template ships.
 
 ## Out of scope
-No data model or copy changes — visual only.
+- No DB schema change (column already nullable in practice via empty string).
+- No change to walk-in guest flow or admin door check-in.
+- No change to other email templates.

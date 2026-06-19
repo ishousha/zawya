@@ -53,8 +53,11 @@ export default function AllGuestApprovals() {
           ? format(new Date(evt.date_time), "EEEE, MMMM d 'at' h:mm a")
           : "";
         const eventLink = evt?.online_link || evt?.virtual_link || "";
-        const eventLocation = evt?.location
-          ? `${evt.location}${evt.address ? ` — ${evt.address}` : ""}`
+        const eventLocation = evt?.location || "";
+        const eventAddress = evt?.address || "";
+        const mapQuery = [evt?.location, evt?.address].filter(Boolean).join(", ");
+        const mapUrl = mapQuery
+          ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapQuery)}`
           : "";
         try {
           await supabase.functions.invoke("send-transactional-email", {
@@ -66,6 +69,8 @@ export default function AllGuestApprovals() {
                 eventTitle: evt?.title || "Event",
                 eventDate,
                 eventLocation,
+                eventAddress,
+                mapUrl,
                 eventLink,
                 requestedBy: gr.profiles?.name || "",
               },
@@ -75,6 +80,7 @@ export default function AllGuestApprovals() {
           console.error("Failed to send guest approved email:", emailErr);
         }
       }
+
 
       if (status === "rejected") {
         try {
