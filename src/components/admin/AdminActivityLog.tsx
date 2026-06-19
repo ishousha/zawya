@@ -6,10 +6,10 @@ import {
   Loader2, ShieldAlert, UserMinus, UserCog, UserPlus, RefreshCw, Download,
   CalendarIcon, X, CheckCircle2, RotateCcw, Calendar as CalendarEv, MapPin,
   Tag, Mic, FileText, Megaphone, UserCheck, Users, Package, Send, Eye, EyeOff,
-  Ban, PlayCircle, Trash2, Edit3,
+  Ban, PlayCircle, Trash2, Edit3, Search,
 } from "lucide-react";
 import { format, startOfDay, endOfDay } from "date-fns";
-import { useState, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Select,
   SelectContent,
@@ -20,6 +20,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
@@ -35,11 +36,13 @@ interface LogEntry {
   created_at: string;
 }
 
+type GroupName = "Users" | "Events" | "Content" | "Guests" | "Check-ins";
+
 type ActionConfig = {
   label: string;
   icon: typeof UserCog;
   variant: "default" | "secondary" | "destructive" | "outline";
-  group: "Users" | "Events" | "Content" | "Guests" | "Check-ins";
+  group: GroupName;
 };
 
 const ACTION_CONFIG: Record<string, ActionConfig> = {
@@ -94,23 +97,20 @@ const ACTION_CONFIG: Record<string, ActionConfig> = {
   undo_checkin:          { label: "Check-in Undone",   icon: RotateCcw,     variant: "outline",     group: "Check-ins" },
 };
 
-const FILTER_GROUPS: { group: ActionConfig["group"]; actions: string[] }[] = [
-  { group: "Users", actions: [] },
-  { group: "Events", actions: [] },
-  { group: "Content", actions: [] },
-  { group: "Guests", actions: [] },
-  { group: "Check-ins", actions: [] },
-];
+const GROUP_ORDER: GroupName[] = ["Users", "Events", "Content", "Guests", "Check-ins"];
+
+const FILTER_GROUPS: { group: GroupName; actions: string[] }[] = GROUP_ORDER.map((g) => ({ group: g, actions: [] }));
 Object.entries(ACTION_CONFIG).forEach(([key, cfg]) => {
   const g = FILTER_GROUPS.find((f) => f.group === cfg.group);
   if (g) g.actions.push(key);
 });
 
+const EVENT_SCOPED_GROUPS: GroupName[] = ["Events", "Guests", "Check-ins"];
+
 function formatVal(v: unknown): string {
   if (v === null || v === undefined || v === "") return "—";
   if (typeof v === "boolean") return v ? "yes" : "no";
   if (typeof v === "string") {
-    // ISO date?
     if (/^\d{4}-\d{2}-\d{2}T/.test(v)) {
       try { return format(new Date(v), "MMM d, yyyy h:mm a"); } catch { /* noop */ }
     }
@@ -129,7 +129,6 @@ function renderChangedDetails(details: Record<string, unknown> | null): string[]
       lines.push(`${label}: ${formatVal(diff?.from)} → ${formatVal(diff?.to)}`);
     }
   }
-  // Extra context fields
   if ((details as any).guest_name) lines.unshift(`Guest: ${(details as any).guest_name}`);
   if ((details as any).speaker_name) lines.unshift(`Speaker: ${(details as any).speaker_name}`);
   if ((details as any).item_name && !changed) lines.unshift(`Item: ${(details as any).item_name}`);
@@ -137,7 +136,12 @@ function renderChangedDetails(details: Record<string, unknown> | null): string[]
 }
 
 export default function AdminActivityLog() {
+  const [search, setSearch] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState<"all" | GroupName>("all");
   const [actionFilter, setActionFilter] = useState("all");
+  const [eventFilter, setEventFilter] = useState("all");
+  const [actorFilter, setActorFilter] = useState("all");
+  const [targetFilter, setTargetFilter] = useState("all");
   const [dateFrom, setDateFrom] = useState<Date | undefined>();
   const [dateTo, setDateTo] = useState<Date | undefined>();
 
@@ -179,17 +183,101 @@ export default function AdminActivityLog() {
     return map;
   }, [actorProfiles]);
 
+  // Reset action filter if it no longer matches the category
+  useEffect(() => {
+    if (categoryFilter === "all" || actionFilter === "all") return;
+    if (ACTION_CONFIG[actionFilter]?.group !== categoryFilter) setActionFilter("all");
+  }, [categoryFilter, actionFilter]);
+
+  // Build option lists
+  const eventOptions = useMemo(() => {
+    const map = new Map<string, string>();
+    (logs ?? []).forEach((l) => {
+      const grp = ACTION_CONFIG[l.action]?.group;
+      if (!grp || !EVENT_SCOPED_GROUPS.includes(grp)) return;
+      if (!l.target_user_id) return;
+      const label = l.target_user_name || `Event ${l.target_user_id.slice(0, 8)}`;
+      if (!map.has(l.target_user_id)) map.set(l.target_user_id, label);
+    });
+    return Array.from(map.entries())
+      .map(([id, label]) => ({ id, label }))
+      .sort((a, b) => a.label.localeCompare(b.label));
+  }, [logs]);
+
+  const actorOptions = useMemo(() => {
+    const ids = new Set<string>();
+    (logs ?? []).forEach((l) => { if (l.actor_id) ids.add(l.actor_id); });
+    return Array.from(ids)
+      .map((id) => ({
+        id,
+        label: actorMap[id]?.name || actorMap[id]?.email || `Admin ${id.slice(0, 8)}`,
+      }))
+      .sort((a, b) => a.label.localeCompare(b.label));
+  }, [logs, actorMap]);
+
+  const targetOptions = useMemo(() => {
+    const map = new Map<string, string>();
+    (logs ?? []).forEach((l) => {
+      const grp = ACTION_CONFIG[l.action]?.group;
+      if (grp !== "Users") return;
+      if (!l.target_user_id) return;
+      const label = l.target_user_name || l.target_user_email || `User ${l.target_user_id.slice(0, 8)}`;
+      if (!map.has(l.target_user_id)) map.set(l.target_user_id, label);
+    });
+    return Array.from(map.entries())
+      .map(([id, label]) => ({ id, label }))
+      .sort((a, b) => a.label.localeCompare(b.label));
+  }, [logs]);
+
   const filtered = useMemo(() => {
     if (!logs) return [];
-    let result = logs;
-    if (actionFilter !== "all") result = result.filter((l) => l.action === actionFilter);
-    if (dateFrom) result = result.filter((l) => new Date(l.created_at) >= startOfDay(dateFrom));
-    if (dateTo) result = result.filter((l) => new Date(l.created_at) <= endOfDay(dateTo));
-    return result;
-  }, [logs, actionFilter, dateFrom, dateTo]);
+    const q = search.trim().toLowerCase();
+    return logs.filter((l) => {
+      const cfg = ACTION_CONFIG[l.action];
+      if (categoryFilter !== "all" && cfg?.group !== categoryFilter) return false;
+      if (actionFilter !== "all" && l.action !== actionFilter) return false;
+      if (eventFilter !== "all") {
+        const grp = cfg?.group;
+        if (!grp || !EVENT_SCOPED_GROUPS.includes(grp)) return false;
+        if (l.target_user_id !== eventFilter) return false;
+      }
+      if (actorFilter !== "all" && l.actor_id !== actorFilter) return false;
+      if (targetFilter !== "all") {
+        if (cfg?.group !== "Users") return false;
+        if (l.target_user_id !== targetFilter) return false;
+      }
+      if (dateFrom && new Date(l.created_at) < startOfDay(dateFrom)) return false;
+      if (dateTo && new Date(l.created_at) > endOfDay(dateTo)) return false;
+      if (q) {
+        const actor = actorMap[l.actor_id];
+        const hay = [
+          cfg?.label ?? l.action,
+          l.action,
+          actor?.name, actor?.email,
+          l.target_user_name, l.target_user_email,
+          l.details ? JSON.stringify(l.details) : "",
+        ].filter(Boolean).join(" ").toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      return true;
+    });
+  }, [logs, search, categoryFilter, actionFilter, eventFilter, actorFilter, targetFilter, dateFrom, dateTo, actorMap]);
 
-  const hasDateFilter = dateFrom || dateTo;
-  const clearDates = () => { setDateFrom(undefined); setDateTo(undefined); };
+  const hasAnyFilter =
+    !!search || categoryFilter !== "all" || actionFilter !== "all" ||
+    eventFilter !== "all" || actorFilter !== "all" || targetFilter !== "all" ||
+    !!dateFrom || !!dateTo;
+
+  const clearAll = () => {
+    setSearch("");
+    setCategoryFilter("all");
+    setActionFilter("all");
+    setEventFilter("all");
+    setActorFilter("all");
+    setTargetFilter("all");
+    setDateFrom(undefined);
+    setDateTo(undefined);
+  };
 
   const exportCsv = () => {
     if (!filtered.length) return;
@@ -223,6 +311,29 @@ export default function AdminActivityLog() {
     );
   }
 
+  const actionsForCategory = categoryFilter === "all"
+    ? FILTER_GROUPS
+    : FILTER_GROUPS.filter((g) => g.group === categoryFilter);
+
+  const activeChips: { key: string; label: string; clear: () => void }[] = [];
+  if (search) activeChips.push({ key: "search", label: `Search: "${search}"`, clear: () => setSearch("") });
+  if (categoryFilter !== "all") activeChips.push({ key: "cat", label: `Category: ${categoryFilter}`, clear: () => setCategoryFilter("all") });
+  if (actionFilter !== "all") activeChips.push({ key: "act", label: `Action: ${ACTION_CONFIG[actionFilter]?.label ?? actionFilter}`, clear: () => setActionFilter("all") });
+  if (eventFilter !== "all") {
+    const ev = eventOptions.find((e) => e.id === eventFilter);
+    activeChips.push({ key: "ev", label: `Event: ${ev?.label ?? "—"}`, clear: () => setEventFilter("all") });
+  }
+  if (actorFilter !== "all") {
+    const a = actorOptions.find((o) => o.id === actorFilter);
+    activeChips.push({ key: "actor", label: `Admin: ${a?.label ?? "—"}`, clear: () => setActorFilter("all") });
+  }
+  if (targetFilter !== "all") {
+    const t = targetOptions.find((o) => o.id === targetFilter);
+    activeChips.push({ key: "target", label: `User: ${t?.label ?? "—"}`, clear: () => setTargetFilter("all") });
+  }
+  if (dateFrom) activeChips.push({ key: "from", label: `From ${format(dateFrom, "MMM d, yyyy")}`, clear: () => setDateFrom(undefined) });
+  if (dateTo) activeChips.push({ key: "to", label: `To ${format(dateTo, "MMM d, yyyy")}`, clear: () => setDateTo(undefined) });
+
   return (
     <div className="space-y-4 py-4">
       <div className="space-y-3">
@@ -240,14 +351,33 @@ export default function AdminActivityLog() {
             </Button>
           </div>
         </div>
+
+        <div className="relative">
+          <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search action, admin, target, or details…"
+            className="h-9 pl-8"
+          />
+        </div>
+
         <div className="flex flex-wrap gap-2">
+          <Select value={categoryFilter} onValueChange={(v) => setCategoryFilter(v as typeof categoryFilter)}>
+            <SelectTrigger className="w-[150px] h-9"><SelectValue placeholder="Category" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All categories</SelectItem>
+              {GROUP_ORDER.map((g) => (
+                <SelectItem key={g} value={g}>{g}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
           <Select value={actionFilter} onValueChange={setActionFilter}>
-            <SelectTrigger className="w-[180px] h-9">
-              <SelectValue />
-            </SelectTrigger>
+            <SelectTrigger className="w-[180px] h-9"><SelectValue placeholder="Action" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All actions</SelectItem>
-              {FILTER_GROUPS.filter((g) => g.actions.length > 0).map((g) => (
+              {actionsForCategory.filter((g) => g.actions.length > 0).map((g) => (
                 <SelectGroup key={g.group}>
                   <SelectLabel>{g.group}</SelectLabel>
                   {g.actions.map((a) => (
@@ -257,6 +387,37 @@ export default function AdminActivityLog() {
               ))}
             </SelectContent>
           </Select>
+
+          <Select value={eventFilter} onValueChange={setEventFilter} disabled={eventOptions.length === 0}>
+            <SelectTrigger className="w-[180px] h-9"><SelectValue placeholder="Event" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All events</SelectItem>
+              {eventOptions.map((e) => (
+                <SelectItem key={e.id} value={e.id}>{e.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select value={actorFilter} onValueChange={setActorFilter} disabled={actorOptions.length === 0}>
+            <SelectTrigger className="w-[170px] h-9"><SelectValue placeholder="Admin" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All admins</SelectItem>
+              {actorOptions.map((o) => (
+                <SelectItem key={o.id} value={o.id}>{o.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select value={targetFilter} onValueChange={setTargetFilter} disabled={targetOptions.length === 0}>
+            <SelectTrigger className="w-[170px] h-9"><SelectValue placeholder="Target user" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All users</SelectItem>
+              {targetOptions.map((o) => (
+                <SelectItem key={o.id} value={o.id}>{o.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
           <Popover>
             <PopoverTrigger asChild>
               <Button variant="outline" size="sm" className={cn("h-9 gap-1.5 text-sm", !dateFrom && "text-muted-foreground")}>
@@ -279,12 +440,27 @@ export default function AdminActivityLog() {
               <Calendar mode="single" selected={dateTo} onSelect={setDateTo} initialFocus className="p-3 pointer-events-auto" />
             </PopoverContent>
           </Popover>
-          {hasDateFilter && (
-            <Button variant="ghost" size="sm" className="h-9 gap-1 text-xs text-muted-foreground" onClick={clearDates}>
-              <X className="h-3.5 w-3.5" /> Clear dates
-            </Button>
-          )}
         </div>
+
+        {hasAnyFilter && (
+          <div className="flex flex-wrap items-center gap-1.5">
+            {activeChips.map((chip) => (
+              <Badge key={chip.key} variant="secondary" className="gap-1 pl-2 pr-1 py-0.5 text-xs font-normal">
+                {chip.label}
+                <button
+                  onClick={chip.clear}
+                  className="ml-0.5 rounded-sm hover:bg-background/60 p-0.5"
+                  aria-label={`Clear ${chip.label}`}
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </Badge>
+            ))}
+            <Button variant="ghost" size="sm" className="h-7 gap-1 text-xs text-muted-foreground" onClick={clearAll}>
+              Clear all
+            </Button>
+          </div>
+        )}
       </div>
 
       {filtered.length === 0 ? (
@@ -321,7 +497,6 @@ export default function AdminActivityLog() {
                         </>
                       ) : null}
                     </p>
-                    {/* Legacy custom renderers preserved */}
                     {log.details && log.action === "role_change" && (
                       <p className="text-xs text-muted-foreground">
                         {String((log.details as any).previous_role || "?")} → {String((log.details as any).new_role || "?")}
