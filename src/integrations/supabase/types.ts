@@ -1184,6 +1184,33 @@ export type Database = {
       }
       get_my_family_id: { Args: never; Returns: string }
       get_my_rsvp_qr: { Args: { _rsvp_id: string }; Returns: string }
+      get_user_analytics_export: {
+        Args: { date_from?: string; date_to?: string }
+        Returns: {
+          age: number
+          avg_events_per_month: number
+          checkin_rate: number
+          days_since_checkin: number
+          dependent_count: number
+          email: string
+          engagement_status: string
+          family_name: string
+          full_name: string
+          gender: string
+          guests_brought: number
+          inperson_events_attended: number
+          is_mureed: boolean
+          last_checkin_date: string
+          member_since: string
+          no_shows: number
+          phone: string
+          total_checkins: number
+          total_rsvps: number
+          user_id: string
+          virtual_events_attended: number
+          whatsapp: string
+        }[]
+      }
       guest_has_rsvp: {
         Args: { _event_id: string; _user_id: string }
         Returns: boolean
