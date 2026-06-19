@@ -18,7 +18,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuLabel, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Search, Download, Mail, Pencil, ChevronDown, ArrowUpDown, CalendarIcon } from "lucide-react";
 import {
@@ -278,6 +278,77 @@ export default function UserManagement() {
     onError: () => toast.error("Failed to update Mureed status"),
   });
 
+  const bulkUpdateRole = useMutation({
+    mutationFn: async ({ ids, role }: { ids: string[]; role: AppRole }) => {
+      let updated = 0;
+      let skipped = 0;
+      let failed = 0;
+      const results = await Promise.allSettled(
+        ids.map(async (id) => {
+          const p = profiles?.find((pr) => pr.id === id);
+          if (!p) { failed++; return; }
+          if (p.role === role) { skipped++; return; }
+          const previousRole = p.role as AppRole | undefined;
+          const { error } = await supabase.from("profiles").update({ role }).eq("id", id);
+          if (error) throw error;
+          const { error: roleError } = await supabase.from("user_roles")
+            .upsert({ user_id: id, role }, { onConflict: "user_id,role" });
+          if (roleError) console.warn("user_roles upsert:", roleError);
+          await supabase.from("user_roles").delete().eq("user_id", id).neq("role", role);
+          notifyUserApproval(id, role);
+          if (p.email) {
+            const templateMap: Record<string, string> = {
+              approved: "user-approved",
+              rejected: "user-rejected",
+              suspended: "user-suspended",
+            };
+            let templateName = templateMap[role];
+            if (role === "approved" && previousRole === "suspended") {
+              templateName = "user-reinstated";
+            }
+            if (templateName) {
+              supabase.functions.invoke("send-transactional-email", {
+                body: {
+                  templateName,
+                  recipientEmail: p.email,
+                  idempotencyKey: `${templateName}-${id}-${Date.now()}`,
+                  templateData: { memberName: p.name || undefined },
+                },
+              }).catch((err) => console.warn("Failed to send role change email:", err));
+            }
+          }
+          if (user) {
+            logActivity(
+              user.id,
+              role === "suspended" ? "suspend_user" : "role_change",
+              { id, name: p.name, email: p.email } as Profile,
+              { previous_role: previousRole, new_role: role, bulk: true },
+            );
+          }
+          updated++;
+        }),
+      );
+      results.forEach((r) => { if (r.status === "rejected") failed++; });
+      return { updated, skipped, failed };
+    },
+    onSuccess: ({ updated, skipped, failed }) => {
+      queryClient.invalidateQueries({ queryKey: ["admin-profiles"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-user-roles"] });
+      setSelectedIds(new Set());
+      const parts: string[] = [];
+      if (updated) parts.push(`${updated} updated`);
+      if (skipped) parts.push(`${skipped} skipped`);
+      if (failed) parts.push(`${failed} failed`);
+      if (failed && !updated) {
+        toast.error(parts.join(", "));
+      } else {
+        toast.success(parts.join(", ") || "No changes");
+      }
+    },
+    onError: () => toast.error("Bulk update failed"),
+  });
+
+
   const debouncedSearch = useDebounce(search, 300);
 
   const filteredProfiles = useMemo(() => {
@@ -338,6 +409,7 @@ export default function UserManagement() {
   }, [filteredProfiles, selectedIds.size]);
 
   const [bulkDeleteConfirmOpen, setBulkDeleteConfirmOpen] = useState(false);
+  const [bulkRoleConfirm, setBulkRoleConfirm] = useState<null | { role: AppRole; label: string; destructive?: boolean }>(null);
 
   const stats = useMemo(() => {
     if (!profiles) return { total: 0, approved: 0, pending: 0, suspended: 0, guests: 0, mureeds: 0 };
@@ -508,15 +580,36 @@ export default function UserManagement() {
                   Bulk Actions <ChevronDown className="h-3 w-3" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent>
-                <DropdownMenuItem onClick={() => setBulkDeleteConfirmOpen(true)} className="text-destructive">
-                  <Trash2 className="mr-2 h-4 w-4" /> Delete Selected
+              <DropdownMenuContent className="w-56">
+                <DropdownMenuLabel className="text-xs">Change status</DropdownMenuLabel>
+                <DropdownMenuItem onClick={() => bulkUpdateRole.mutate({ ids: Array.from(selectedIds), role: "approved" })}>
+                  <CheckCircle className="mr-2 h-4 w-4 text-primary" /> Approve / Reinstate
                 </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setBulkRoleConfirm({ role: "suspended", label: "Suspend", destructive: true })}>
+                  <Clock className="mr-2 h-4 w-4" /> Suspend
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setBulkRoleConfirm({ role: "rejected", label: "Reject", destructive: true })} className="text-destructive">
+                  <XCircle className="mr-2 h-4 w-4" /> Reject
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuLabel className="text-xs">Convert role</DropdownMenuLabel>
+                <DropdownMenuItem onClick={() => bulkUpdateRole.mutate({ ids: Array.from(selectedIds), role: "guest" as AppRole })}>
+                  <UserPlus className="mr-2 h-4 w-4" /> Convert to Guest
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => bulkUpdateRole.mutate({ ids: Array.from(selectedIds), role: "approved" })}>
+                  <UserCheck className="mr-2 h-4 w-4" /> Convert to Member
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuLabel className="text-xs">Mureed</DropdownMenuLabel>
                 <DropdownMenuItem onClick={() => bulkSetMureed.mutate({ ids: Array.from(selectedIds), value: true })}>
-                  Set as Mureed
+                  Mark as Mureed
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => bulkSetMureed.mutate({ ids: Array.from(selectedIds), value: false })}>
-                  Remove Mureed Status
+                  Unmark Mureed
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => setBulkDeleteConfirmOpen(true)} className="text-destructive">
+                  <Trash2 className="mr-2 h-4 w-4" /> Delete Selected
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -693,6 +786,36 @@ export default function UserManagement() {
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={() => { bulkDelete.mutate(Array.from(selectedIds)); setBulkDeleteConfirmOpen(false); }}>
               {bulkDelete.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Delete All
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Bulk Role Change Confirmation */}
+      <AlertDialog open={!!bulkRoleConfirm} onOpenChange={(o) => { if (!o) setBulkRoleConfirm(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{bulkRoleConfirm?.label} {selectedIds.size} {selectedIds.size === 1 ? "user" : "users"}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {bulkRoleConfirm?.role === "rejected"
+                ? "Rejected users lose access immediately. They will be notified by email."
+                : bulkRoleConfirm?.role === "suspended"
+                ? "Suspended users lose access until reinstated. They will be notified by email."
+                : "Status will be updated and affected users will be notified by email."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className={bulkRoleConfirm?.destructive ? "bg-destructive text-destructive-foreground hover:bg-destructive/90" : ""}
+              onClick={() => {
+                if (bulkRoleConfirm) {
+                  bulkUpdateRole.mutate({ ids: Array.from(selectedIds), role: bulkRoleConfirm.role });
+                  setBulkRoleConfirm(null);
+                }
+              }}
+            >
+              {bulkUpdateRole.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} {bulkRoleConfirm?.label}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
