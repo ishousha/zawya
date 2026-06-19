@@ -66,6 +66,7 @@ export default function HostSelector({ hostId, onChange }: HostSelectorProps) {
 
       <div className="flex gap-1.5">
         <Popover
+          modal
           open={open}
           onOpenChange={(o) => {
             setOpen(o);
