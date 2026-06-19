@@ -5,10 +5,21 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { useMyGuestRequests, useCreateGuestRequest, useCancelGuestRequest } from "@/hooks/useGuestRequests";
+import {
+  useMyExternalGuests,
+  useUpsertExternalGuest,
+  useDeleteExternalGuest,
+  type ExternalGuest,
+} from "@/hooks/useExternalGuests";
 import { toast } from "sonner";
-import { Loader2, UserPlus, Phone, User, Mail, Info, Share2, MessageSquare, Trash2 } from "lucide-react";
+import { Loader2, UserPlus, Phone, User, Mail, Info, Share2, MessageSquare, Trash2, BookUser, Check, ChevronsUpDown, Pencil } from "lucide-react";
 import { buildGuestWhatsAppUrl } from "@/lib/share-event";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { cn } from "@/lib/utils";
 import type { Database } from "@/integrations/supabase/types";
 
 type Event = Database["public"]["Tables"]["events"]["Row"];
@@ -28,14 +39,40 @@ export default function GuestRequestsSection({ eventId, event }: GuestRequestsSe
   const { data: guests, isLoading } = useMyGuestRequests(eventId);
   const createGuest = useCreateGuestRequest(eventId);
   const cancelGuest = useCancelGuestRequest(eventId);
+  const { data: savedGuests = [] } = useMyExternalGuests();
+  const upsertSaved = useUpsertExternalGuest();
+  const deleteSaved = useDeleteExternalGuest();
+
   const [showForm, setShowForm] = useState(false);
   const [guestName, setGuestName] = useState("");
   const [guestEmail, setGuestEmail] = useState("");
   const [guestPhone, setGuestPhone] = useState("");
   const [memberNote, setMemberNote] = useState("");
+  const [selectedSavedId, setSelectedSavedId] = useState<string | null>(null);
+  const [saveForLater, setSaveForLater] = useState(true);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [manageOpen, setManageOpen] = useState(false);
   const NOTE_MAX = 300;
 
   const isValidEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+
+  const resetForm = () => {
+    setGuestName("");
+    setGuestEmail("");
+    setGuestPhone("");
+    setMemberNote("");
+    setSelectedSavedId(null);
+    setSaveForLater(true);
+  };
+
+  const applySaved = (g: ExternalGuest) => {
+    setSelectedSavedId(g.id);
+    setGuestName(g.name);
+    setGuestEmail(g.email ?? "");
+    setGuestPhone(g.phone ?? "");
+    setMemberNote(g.notes ?? "");
+    setPickerOpen(false);
+  };
 
   const handleSubmit = async () => {
     if (!guestName.trim()) {
@@ -47,22 +84,39 @@ export default function GuestRequestsSection({ eventId, event }: GuestRequestsSe
       return;
     }
     try {
+      let externalGuestId = selectedSavedId;
+      // Save / update the address-book entry first when requested
+      if (!externalGuestId && saveForLater) {
+        try {
+          const saved = await upsertSaved.mutateAsync({
+            name: guestName.trim(),
+            email: guestEmail.trim() || null,
+            phone: guestPhone.trim() || null,
+            notes: memberNote.trim() || null,
+          });
+          externalGuestId = saved.id;
+        } catch (err: any) {
+          // Duplicate (unique index) is fine — request still goes through
+          if (!String(err?.message || "").toLowerCase().includes("duplicate")) {
+            console.warn("Failed to save guest for later:", err);
+          }
+        }
+      }
       await createGuest.mutateAsync({
         guest_name: guestName.trim(),
         guest_email: guestEmail.trim(),
         guest_phone: guestPhone.trim() || undefined,
         member_note: memberNote.trim() || undefined,
+        external_guest_id: externalGuestId,
       });
       toast.success("Guest request submitted for admin approval.");
-      setGuestName("");
-      setGuestEmail("");
-      setGuestPhone("");
-      setMemberNote("");
+      resetForm();
       setShowForm(false);
     } catch {
       toast.error("Failed to submit guest request.");
     }
   };
+
 
 
   return (
