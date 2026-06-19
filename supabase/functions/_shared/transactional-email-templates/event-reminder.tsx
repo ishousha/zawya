@@ -29,7 +29,10 @@ const EventReminderEmail = ({
   eventDate = '',
   eventLocation = '',
   reminderType = '24h',
+  signUpItems = [],
+  potluckItem,
 }: EventReminderProps) => {
+  const hasBringList = signUpItems.length > 0 || !!potluckItem
   const timeLabel = reminderType === '2h' ? '2 hours' : reminderType === '12h' ? '12 hours' : '24 hours'
   return (
     <Html lang="en" dir="ltr">
