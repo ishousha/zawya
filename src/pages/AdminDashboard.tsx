@@ -227,7 +227,10 @@ export default function AdminDashboard() {
 
           <div {...adminSwipeHandlers} data-swipe-root className={`touch-pan-y overflow-hidden ${slideDir === "left" ? "animate-slide-in-right" : slideDir === "right" ? "animate-slide-in-left" : "animate-fade-in-fast"}`} key={slideKey}>
             <KeepAliveTab id="users" active={activeTab === "users"}><UserManagement /></KeepAliveTab>
-            <KeepAliveTab id="guests" active={activeTab === "guests"}><AllGuestApprovals /></KeepAliveTab>
+            <KeepAliveTab id="guests" active={activeTab === "guests"}>
+              <AllGuestApprovals />
+              <ExternalGuestsDirectory />
+            </KeepAliveTab>
             <KeepAliveTab id="families" active={activeTab === "families"}><FamilyManagement /></KeepAliveTab>
             <KeepAliveTab id="events" active={activeTab === "events"}><EventControlRoom /></KeepAliveTab>
             <KeepAliveTab id="scanner" active={activeTab === "scanner"}><AdminDoorScanner /></KeepAliveTab>
