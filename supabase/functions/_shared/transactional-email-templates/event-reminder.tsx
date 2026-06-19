@@ -7,12 +7,20 @@ import type { TemplateEntry } from './registry.ts'
 
 const SITE_NAME = "Zawya"
 
+interface SignUpItem {
+  itemName: string
+  quantity: number
+  description?: string | null
+}
+
 interface EventReminderProps {
   memberName?: string
   eventTitle?: string
   eventDate?: string
   eventLocation?: string
   reminderType?: '24h' | '12h' | '2h'
+  signUpItems?: SignUpItem[]
+  potluckItem?: string
 }
 
 const EventReminderEmail = ({
