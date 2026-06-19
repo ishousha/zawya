@@ -1083,6 +1083,7 @@ export type Database = {
           address: string | null
           area_hint: string | null
           created_at: string | null
+          default_host_id: string | null
           id: string
           maps_url: string | null
           name: string
@@ -1091,6 +1092,7 @@ export type Database = {
           address?: string | null
           area_hint?: string | null
           created_at?: string | null
+          default_host_id?: string | null
           id?: string
           maps_url?: string | null
           name: string
@@ -1099,11 +1101,20 @@ export type Database = {
           address?: string | null
           area_hint?: string | null
           created_at?: string | null
+          default_host_id?: string | null
           id?: string
           maps_url?: string | null
           name?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "venues_default_host_id_fkey"
+            columns: ["default_host_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
