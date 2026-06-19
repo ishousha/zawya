@@ -6,25 +6,36 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Trash2, Loader2, Baby, UserRound } from "lucide-react";
+import { Plus, Trash2, Loader2, Baby, UserRound, Users, Car, HeartHandshake } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { GenderToggle } from "@/pages/CompleteProfile";
+import { format } from "date-fns";
 
-const AGE_GROUPS = [
-  { value: "infant_0_3", label: "Infant (0-3)" },
-  { value: "child_4_12", label: "Child (4-12)" },
-  { value: "youth_13_17", label: "Youth (13-17)" },
-  { value: "adult_18_plus", label: "Adult (18+)" },
-];
+const TYPE_OPTIONS = [
+  { value: "son", label: "Son", icon: Baby },
+  { value: "daughter", label: "Daughter", icon: Baby },
+  { value: "father", label: "Father", icon: UserRound },
+  { value: "mother", label: "Mother", icon: UserRound },
+  { value: "maid", label: "Maid", icon: HeartHandshake },
+  { value: "nanny", label: "Nanny", icon: HeartHandshake },
+  { value: "driver", label: "Driver", icon: Car },
+  { value: "househelper", label: "House Helper", icon: HeartHandshake },
+  { value: "other", label: "Other (please specify)", icon: Users },
+] as const;
 
-const AGE_GROUP_LABELS: Record<string, string> = {
-  infant_0_3: "Infant (0-3)",
-  child_4_12: "Child (4-12)",
-  youth_13_17: "Youth (13-17)",
-  adult_18_plus: "Adult (18+)",
+const LEGACY_TYPE_LABELS: Record<string, string> = {
+  child: "Child",
+  elder: "Elder",
+  helper: "House Helper",
 };
+
+function typeMeta(t: string) {
+  return (
+    TYPE_OPTIONS.find((o) => o.value === t) ??
+    { value: t, label: LEGACY_TYPE_LABELS[t] ?? "Other", icon: Users }
+  );
+}
 
 export function useDependents() {
   const { user, profile } = useAuth();
@@ -57,16 +68,20 @@ export default function DependentsSection() {
   const { data: dependents, isLoading } = useDependents();
   const [adding, setAdding] = useState(false);
   const [firstName, setFirstName] = useState("");
-  const [depType, setDepType] = useState<"child" | "elder">("child");
+  const [depType, setDepType] = useState<string>("son");
+  const [typeOther, setTypeOther] = useState("");
   const [gender, setGender] = useState("");
-  const [ageGroup, setAgeGroup] = useState<string | undefined>(undefined);
+  const [dob, setDob] = useState<string>("");
+
+  const isOther = depType === "other";
 
   const resetForm = () => {
     setAdding(false);
     setFirstName("");
-    setDepType("child");
+    setDepType("son");
+    setTypeOther("");
     setGender("");
-    setAgeGroup(undefined);
+    setDob("");
   };
 
   const addDependent = useMutation({
@@ -77,9 +92,10 @@ export default function DependentsSection() {
         parent_id: user.id,
         first_name: firstName.trim(),
         type: depType,
+        type_other: isOther ? typeOther.trim() || null : null,
         family_id: familyId,
         gender: gender || null,
-        age_group: ageGroup || null,
+        date_of_birth: dob || null,
       });
       if (error) throw error;
     },
@@ -103,15 +119,18 @@ export default function DependentsSection() {
     onError: () => toast.error("Failed to remove dependent."),
   });
 
+  const canSave =
+    !!firstName.trim() && (!isOther || !!typeOther.trim()) && !addDependent.isPending;
+
   return (
     <div className="rounded-lg border border-border bg-card p-6 space-y-4">
       <div className="flex items-center justify-between">
         <h3 className="font-heading text-lg font-semibold text-card-foreground">
-          Dependents (Children & Elders)
+          Dependents & Household
         </h3>
         {!adding && (
           <Button size="sm" variant="outline" onClick={() => setAdding(true)} className="gap-1">
-            <Plus className="h-4 w-4" /> Add Dependent
+            <Plus className="h-4 w-4" /> Add
           </Button>
         )}
       </div>
@@ -122,33 +141,27 @@ export default function DependentsSection() {
         </div>
       ) : dependents && dependents.length > 0 ? (
         <div className="space-y-2">
-          {dependents.map((dep) => {
-            const type = dep.type || "child";
-            const depGender = dep.gender;
-            const depAgeGroup = dep.age_group;
+          {dependents.map((dep: any) => {
+            const meta = typeMeta(dep.type || "other");
+            const Icon = meta.icon;
+            const label = dep.type === "other" && dep.type_other ? dep.type_other : meta.label;
             return (
               <div key={dep.id} className="flex items-center justify-between rounded-lg border border-border p-3">
                 <div className="flex items-center gap-2">
-                  {type === "elder" ? (
-                    <UserRound className="h-4 w-4 text-muted-foreground" />
-                  ) : (
-                    <Baby className="h-4 w-4 text-muted-foreground" />
-                  )}
+                  <Icon className="h-4 w-4 text-muted-foreground" />
                   <div>
                     <p className="text-sm font-medium text-card-foreground">{dep.first_name}</p>
                     <div className="flex items-center gap-2 flex-wrap">
-                      <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
-                        {type === "elder" ? "Elder/Adult" : "Child"}
-                      </Badge>
-                      {depGender && (
-                        <Badge variant="outline" className="text-[10px] px-1.5 py-0">
-                          {depGender === "male" ? "♂ Male" : "♀ Female"}
+                      <Badge variant="secondary" className="text-[10px] px-1.5 py-0">{label}</Badge>
+                      {dep.gender && (
+                        <Badge variant="outline" className="text-[10px] px-1.5 py-0 capitalize">
+                          {dep.gender}
                         </Badge>
                       )}
-                      {depAgeGroup && (
-                        <Badge variant="outline" className="text-[10px] px-1.5 py-0">
-                          {AGE_GROUP_LABELS[depAgeGroup] || depAgeGroup}
-                        </Badge>
+                      {dep.date_of_birth && (
+                        <span className="text-[10px] text-muted-foreground">
+                          {format(new Date(dep.date_of_birth), "MMM d, yyyy")}
+                        </span>
                       )}
                     </div>
                   </div>
@@ -173,49 +186,53 @@ export default function DependentsSection() {
       {adding && (
         <div className="space-y-3 rounded-lg border border-border bg-muted/30 p-4">
           <div className="space-y-2">
-            <Label className="text-sm font-medium">Dependent Type <span className="text-destructive">*</span></Label>
-            <Select value={depType} onValueChange={(v) => setDepType(v as "child" | "elder")}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="child">Child</SelectItem>
-                <SelectItem value="elder">Elder/Adult</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
             <Label className="text-sm font-medium">First Name <span className="text-destructive">*</span></Label>
             <Input
-              placeholder={depType === "elder" ? "Elder's first name" : "Child's first name"}
+              placeholder="First name"
               value={firstName}
               onChange={(e) => setFirstName(e.target.value)}
             />
           </div>
           <div className="space-y-2">
+            <Label className="text-sm font-medium">Type <span className="text-destructive">*</span></Label>
+            <Select value={depType} onValueChange={setDepType}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="z-[110] bg-popover">
+                {TYPE_OPTIONS.map((o) => (
+                  <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          {isOther && (
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">
+                Please specify <span className="text-destructive">*</span>
+              </Label>
+              <Input
+                placeholder="e.g. Cousin, Uncle, Friend"
+                value={typeOther}
+                onChange={(e) => setTypeOther(e.target.value)}
+              />
+            </div>
+          )}
+          <div className="space-y-2">
             <Label className="text-sm font-medium">Gender</Label>
             <GenderToggle value={gender} onChange={setGender} />
           </div>
           <div className="space-y-2">
-            <Label className="text-sm font-medium">Age Group</Label>
-            <Select value={ageGroup} onValueChange={(v) => setAgeGroup(v)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select age group" />
-              </SelectTrigger>
-              <SelectContent>
-                {AGE_GROUPS.map((ag) => (
-                  <SelectItem key={ag.value} value={ag.value}>
-                    {ag.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Label className="text-sm font-medium">
+              Date of birth <span className="text-muted-foreground text-xs">(optional)</span>
+            </Label>
+            <Input type="date" value={dob} onChange={(e) => setDob(e.target.value)} />
           </div>
           <div className="flex gap-2">
             <Button
               size="sm"
               onClick={() => addDependent.mutate()}
-              disabled={!firstName.trim() || addDependent.isPending}
+              disabled={!canSave}
             >
               {addDependent.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Save
