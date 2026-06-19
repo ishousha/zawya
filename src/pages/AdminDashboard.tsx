@@ -211,6 +211,7 @@ export default function AdminDashboard() {
             className="sticky top-[49px] z-20 flex w-full justify-start overflow-x-auto bg-background scrollbar-hide pb-0.5 border-b border-border/50 shadow-sm"
           >
             <TabsTrigger value="users" className={tabTriggerBase}><Users className="h-4 w-4" /> Users{pendingBadge}</TabsTrigger>
+            <TabsTrigger value="guests" className={tabTriggerBase}><UserPlus className="h-4 w-4" /> Guests{pendingGuestBadge}</TabsTrigger>
             <TabsTrigger value="families" className={tabTriggerBase}><Home className="h-4 w-4" /> Families</TabsTrigger>
             <TabsTrigger value="events" className={tabTriggerBase}><CalendarPlus className="h-4 w-4" /> Events</TabsTrigger>
             <TabsTrigger value="scanner" className={scannerTrigger}><ScanLine className="h-4 w-4" /> Check-in</TabsTrigger>
@@ -223,6 +224,7 @@ export default function AdminDashboard() {
 
           <div {...adminSwipeHandlers} data-swipe-root className={`touch-pan-y overflow-hidden ${slideDir === "left" ? "animate-slide-in-right" : slideDir === "right" ? "animate-slide-in-left" : "animate-fade-in-fast"}`} key={slideKey}>
             <KeepAliveTab id="users" active={activeTab === "users"}><UserManagement /></KeepAliveTab>
+            <KeepAliveTab id="guests" active={activeTab === "guests"}><AllGuestApprovals /></KeepAliveTab>
             <KeepAliveTab id="families" active={activeTab === "families"}><FamilyManagement /></KeepAliveTab>
             <KeepAliveTab id="events" active={activeTab === "events"}><EventControlRoom /></KeepAliveTab>
             <KeepAliveTab id="scanner" active={activeTab === "scanner"}><AdminDoorScanner /></KeepAliveTab>
