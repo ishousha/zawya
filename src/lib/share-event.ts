@@ -30,6 +30,7 @@ interface GuestWhatsAppInput {
   eventDateISO?: string | null;
   location?: string | null;
   address?: string | null;
+  mapsUrl?: string | null;
   onlineLink?: string | null;
 }
 
