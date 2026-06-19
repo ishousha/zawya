@@ -21,15 +21,19 @@ export default function HostSelector({ hostId, onChange }: HostSelectorProps) {
 
   const { data: searchResults, isLoading } = useQuery({
     queryKey: ["host-search", debouncedSearch],
-    enabled: debouncedSearch.trim().length >= 2,
+    enabled: open,
     queryFn: async () => {
-      const q = `%${debouncedSearch.trim()}%`;
-      const { data, error } = await supabase
+      const term = debouncedSearch.trim();
+      let query = supabase
         .from("profiles")
         .select("id, name, email, family_name")
-        .or(`name.ilike.${q},email.ilike.${q},family_name.ilike.${q}`)
         .order("name")
-        .limit(10);
+        .limit(50);
+      if (term.length >= 1) {
+        const q = `%${term}%`;
+        query = query.or(`name.ilike.${q},email.ilike.${q},family_name.ilike.${q}`);
+      }
+      const { data, error } = await query;
       if (error) throw error;
       return data;
     },
