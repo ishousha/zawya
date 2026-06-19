@@ -25,7 +25,7 @@ export function useCreateGuestRequest(eventId: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (input: { guest_name: string; guest_email: string; guest_phone?: string; member_note?: string }) => {
+    mutationFn: async (input: { guest_name: string; guest_email: string; guest_phone?: string; member_note?: string; external_guest_id?: string | null }) => {
       if (!user) throw new Error("Not authenticated");
       const { data, error } = await supabase
         .from("guest_requests")
@@ -36,6 +36,7 @@ export function useCreateGuestRequest(eventId: string) {
           guest_email: input.guest_email,
           guest_phone: input.guest_phone || null,
           member_note: input.member_note?.trim() || null,
+          external_guest_id: input.external_guest_id || null,
         } as any)
         .select()
         .single();
