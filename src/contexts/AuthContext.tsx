@@ -49,11 +49,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let initialDone = false;
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, newSession) => {
+      (event, newSession) => {
         if (!initialDone) return;
         if (!mounted) return;
 
         const prevUserId = sessionRef.current?.user?.id;
+        const prevEmail = sessionRef.current?.user?.email;
         const newUserId = newSession?.user?.id;
 
         setSession(newSession);
@@ -61,12 +62,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         if (newSession?.user) {
           if (newUserId !== prevUserId) {
-            // Different user signed in — discard previous user's cached queries
-            // to prevent stale counts/dashboards leaking across sessions.
             if (prevUserId) queryClient.clear();
             setLoading(true);
-            // Defer async DB call to avoid deadlocking the Supabase auth lock,
-            // which causes the first save/update after auth events to hang.
             setTimeout(() => {
               if (!mounted) return;
               fetchProfile(newSession.user.id).finally(() => {
@@ -74,8 +71,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               });
             }, 0);
           } else {
-            // Same user — token refresh etc. Refresh profile in background, don't block.
-            setTimeout(() => {
+            // Same user — token refresh, USER_UPDATED (e.g. confirmed email change), etc.
+            const authEmail = newSession.user.email;
+            const emailChanged =
+              event === "USER_UPDATED" && authEmail && authEmail !== prevEmail;
+            setTimeout(async () => {
+              if (!mounted) return;
+              // Keep profiles.email in sync with the auth email after a confirmed change.
+              if (emailChanged) {
+                await supabase
+                  .from("profiles")
+                  .update({ email: authEmail })
+                  .eq("id", newSession.user.id);
+              }
               if (mounted) fetchProfile(newSession.user.id);
             }, 0);
             if (mounted) setLoading(false);
