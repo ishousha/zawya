@@ -580,15 +580,36 @@ export default function UserManagement() {
                   Bulk Actions <ChevronDown className="h-3 w-3" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent>
-                <DropdownMenuItem onClick={() => setBulkDeleteConfirmOpen(true)} className="text-destructive">
-                  <Trash2 className="mr-2 h-4 w-4" /> Delete Selected
+              <DropdownMenuContent className="w-56">
+                <DropdownMenuLabel className="text-xs">Change status</DropdownMenuLabel>
+                <DropdownMenuItem onClick={() => bulkUpdateRole.mutate({ ids: Array.from(selectedIds), role: "approved" })}>
+                  <CheckCircle className="mr-2 h-4 w-4 text-primary" /> Approve / Reinstate
                 </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setBulkRoleConfirm({ role: "suspended", label: "Suspend", destructive: true })}>
+                  <Clock className="mr-2 h-4 w-4" /> Suspend
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setBulkRoleConfirm({ role: "rejected", label: "Reject", destructive: true })} className="text-destructive">
+                  <XCircle className="mr-2 h-4 w-4" /> Reject
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuLabel className="text-xs">Convert role</DropdownMenuLabel>
+                <DropdownMenuItem onClick={() => bulkUpdateRole.mutate({ ids: Array.from(selectedIds), role: "guest" as AppRole })}>
+                  <UserPlus className="mr-2 h-4 w-4" /> Convert to Guest
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => bulkUpdateRole.mutate({ ids: Array.from(selectedIds), role: "approved" })}>
+                  <UserCheck className="mr-2 h-4 w-4" /> Convert to Member
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuLabel className="text-xs">Mureed</DropdownMenuLabel>
                 <DropdownMenuItem onClick={() => bulkSetMureed.mutate({ ids: Array.from(selectedIds), value: true })}>
-                  Set as Mureed
+                  Mark as Mureed
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => bulkSetMureed.mutate({ ids: Array.from(selectedIds), value: false })}>
-                  Remove Mureed Status
+                  Unmark Mureed
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => setBulkDeleteConfirmOpen(true)} className="text-destructive">
+                  <Trash2 className="mr-2 h-4 w-4" /> Delete Selected
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
