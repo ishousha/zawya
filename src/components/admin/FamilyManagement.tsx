@@ -13,7 +13,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { toast } from "sonner";
 import { Plus, Users, UserPlus, X, Loader2, Check, ChevronsUpDown, Search, Eye, Pencil, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import FamilyDetailsModal from "./FamilyDetailsModal";
+import FamilyEditor from "./FamilyEditor";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -221,6 +221,18 @@ export default function FamilyManagement() {
     return (
       <div className="flex justify-center py-12">
         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (detailFamily) {
+    return (
+      <div className="py-4">
+        <FamilyEditor
+          family={detailFamily}
+          onBack={() => setDetailFamily(null)}
+          onDeleted={() => setDetailFamily(null)}
+        />
       </div>
     );
   }
@@ -453,7 +465,7 @@ export default function FamilyManagement() {
                       className="h-7 gap-1 text-xs"
                       onClick={() => setDetailFamily(family)}
                     >
-                      <Eye className="h-3.5 w-3.5" /> Details
+                      <Eye className="h-3.5 w-3.5" /> Manage
                     </Button>
                     <Button
                       size="sm"
@@ -503,14 +515,6 @@ export default function FamilyManagement() {
             );
           })}
         </div>
-      )}
-      {detailFamily && (
-        <FamilyDetailsModal
-          familyId={detailFamily.id}
-          familyName={detailFamily.name}
-          open={!!detailFamily}
-          onOpenChange={(open) => { if (!open) setDetailFamily(null); }}
-        />
       )}
 
       {/* Rename family dialog */}
