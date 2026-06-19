@@ -118,10 +118,10 @@ export function useExternalGuestHistory(guestId: string | null) {
     queryKey: ["external-guest-history", guestId],
     enabled: !!guestId,
     queryFn: async () => {
-      const { data: requests, error } = await supabase
-        .from("guest_requests")
+      const { data: requests, error } = await (supabase
+        .from("guest_requests") as any)
         .select("id, status, created_at, guest_name, event_id")
-        .eq("external_guest_id" as any, guestId!)
+        .eq("external_guest_id", guestId!)
         .order("created_at", { ascending: false });
       if (error) throw error;
       const eventIds = Array.from(new Set((requests ?? []).map((r: any) => r.event_id).filter(Boolean)));
