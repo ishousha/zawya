@@ -38,7 +38,7 @@ export default function VenueManagement() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("venues")
-        .select("*")
+        .select("*, default_host:profiles!venues_default_host_id_fkey(id,name,email)")
         .order("name");
       if (error) throw error;
       return data as Venue[];
@@ -52,6 +52,7 @@ export default function VenueManagement() {
         area_hint: formAreaHint.trim() || null,
         address: formAddress.trim() || null,
         maps_url: formMapsUrl.trim() || null,
+        default_host_id: formDefaultHostId || null,
       };
       if (editingVenue) {
         const { error } = await supabase.from("venues").update(payload as any).eq("id", editingVenue.id);
@@ -99,6 +100,7 @@ export default function VenueManagement() {
     setFormAreaHint("");
     setFormAddress("");
     setFormMapsUrl("");
+    setFormDefaultHostId(null);
     setOpen(true);
   }
 
@@ -107,7 +109,8 @@ export default function VenueManagement() {
     setFormName(v.name);
     setFormAreaHint(v.area_hint ?? "");
     setFormAddress(v.address ?? "");
-    setFormMapsUrl((v as any).maps_url ?? "");
+    setFormMapsUrl(v.maps_url ?? "");
+    setFormDefaultHostId(v.default_host_id ?? null);
     setOpen(true);
   }
 
@@ -118,6 +121,7 @@ export default function VenueManagement() {
     setFormAreaHint("");
     setFormAddress("");
     setFormMapsUrl("");
+    setFormDefaultHostId(null);
   }
 
   return (
