@@ -1,13 +1,19 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/runtime-client";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { UserCheck, ChevronsUpDown, Loader2, Check, X } from "lucide-react";
 import { useDebounce } from "@/hooks/useDebounce";
 import { cn } from "@/lib/utils";
+
+type HostProfile = {
+  id: string;
+  name: string | null;
+  email: string | null;
+  family_name: string | null;
+};
 
 interface HostSelectorProps {
   hostId: string | null;
@@ -17,13 +23,36 @@ interface HostSelectorProps {
 export default function HostSelector({ hostId, onChange }: HostSelectorProps) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
-  const debouncedSearch = useDebounce(search, 300);
+  const [activeIndex, setActiveIndex] = useState(0);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const debouncedSearch = useDebounce(search, 350);
+  const debouncedTerm = debouncedSearch.trim();
+  const isDebouncing = open && search.trim() !== debouncedTerm;
 
-  const { data: searchResults, isLoading } = useQuery({
-    queryKey: ["host-search", debouncedSearch],
+  useEffect(() => {
+    if (!open) return;
+    const handlePointerDown = (event: PointerEvent) => {
+      if (!rootRef.current?.contains(event.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener("pointerdown", handlePointerDown);
+    return () => document.removeEventListener("pointerdown", handlePointerDown);
+  }, [open]);
+
+  useEffect(() => {
+    if (open) {
+      requestAnimationFrame(() => inputRef.current?.focus());
+    }
+  }, [open]);
+
+  const { data: searchResults = [], isFetching } = useQuery<HostProfile[]>({
+    queryKey: ["host-search", debouncedTerm],
     enabled: open,
+    staleTime: 30_000,
     queryFn: async () => {
-      const term = debouncedSearch.trim();
+      const term = debouncedTerm.replace(/[%,()]/g, " ").replace(/\s+/g, " ").trim();
       let query = supabase
         .from("profiles")
         .select("id, name, email, family_name")
@@ -35,9 +64,13 @@ export default function HostSelector({ hostId, onChange }: HostSelectorProps) {
       }
       const { data, error } = await query;
       if (error) throw error;
-      return data;
+      return (data ?? []) as HostProfile[];
     },
   });
+
+  useEffect(() => {
+    setActiveIndex(0);
+  }, [debouncedTerm, searchResults.length]);
 
   const { data: selectedProfile } = useQuery({
     queryKey: ["host-profile", hostId],
@@ -57,6 +90,12 @@ export default function HostSelector({ hostId, onChange }: HostSelectorProps) {
     ? selectedProfile.name || selectedProfile.email || "Selected host"
     : "Select host…";
 
+  const selectHost = (id: string) => {
+    onChange(id);
+    setSearch("");
+    setOpen(false);
+  };
+
   return (
     <div>
       <Label className="flex items-center gap-1.5 mb-1.5 text-sm font-medium">
@@ -65,63 +104,82 @@ export default function HostSelector({ hostId, onChange }: HostSelectorProps) {
       </Label>
 
       <div className="flex gap-1.5">
-        <Popover
-          modal
-          open={open}
-          onOpenChange={(o) => {
-            setOpen(o);
-            if (!o) setSearch("");
-          }}
-        >
-          <PopoverTrigger asChild>
-            <Button
-              type="button"
-              variant="outline"
-              role="combobox"
-              aria-expanded={open}
-              className={cn(
-                "flex-1 justify-between font-normal h-10 min-w-0",
-                !selectedProfile && "text-muted-foreground"
-              )}
-            >
+        <div className="relative min-w-0 flex-1" ref={rootRef}>
+          <Button
+            type="button"
+            variant="outline"
+            role="combobox"
+            aria-expanded={open}
+            aria-controls="host-selector-results"
+            onClick={() => setOpen((prev) => !prev)}
+            className={cn(
+              "w-full justify-between font-normal h-10 min-w-0",
+              !selectedProfile && "text-muted-foreground"
+            )}
+          >
               <span className="truncate">{triggerLabel}</span>
               <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent
-            className="w-[var(--radix-popover-trigger-width)] p-0 z-[90]"
-            align="start"
-            onOpenAutoFocus={(e) => e.preventDefault()}
-          >
-            <div className="p-2">
-              <Input
-                placeholder="Search by name, email, or family…"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="h-9"
-                autoFocus
-              />
-            </div>
+          </Button>
+
+          {open && (
+            <div
+              id="host-selector-results"
+              role="listbox"
+              className="absolute left-0 right-0 top-[calc(100%+0.25rem)] z-[100] overflow-hidden rounded-md border border-border bg-popover text-popover-foreground shadow-lg"
+            >
+              <div className="p-2">
+                <Input
+                  ref={inputRef}
+                  placeholder="Search by name, email, or family…"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="h-9"
+                  onKeyDown={(e) => {
+                  if (e.key === "Escape") {
+                    e.preventDefault();
+                    setOpen(false);
+                    return;
+                  }
+                  if (e.key === "ArrowDown") {
+                    e.preventDefault();
+                    setActiveIndex((prev) => Math.min(prev + 1, Math.max(searchResults.length - 1, 0)));
+                    return;
+                  }
+                  if (e.key === "ArrowUp") {
+                    e.preventDefault();
+                    setActiveIndex((prev) => Math.max(prev - 1, 0));
+                    return;
+                  }
+                  if (e.key === "Enter" && searchResults[activeIndex]) {
+                    e.preventDefault();
+                    selectHost(searchResults[activeIndex].id);
+                  }
+                  }}
+                />
+              </div>
 
             <div className="max-h-56 overflow-y-auto">
-              {isLoading ? (
+              {isFetching || isDebouncing ? (
                 <div className="flex justify-center py-4">
                   <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
                 </div>
-              ) : !searchResults?.length ? (
+              ) : !searchResults.length ? (
                 <p className="px-3 py-3 text-center text-sm text-muted-foreground">No users found</p>
               ) : (
-                searchResults.map((p) => (
-                  <div
+                searchResults.map((p, index) => (
+                  <button
+                    type="button"
                     key={p.id}
+                    role="option"
+                    aria-selected={hostId === p.id}
                     className={cn(
-                      "flex w-full items-center gap-2 px-3 py-2 text-sm hover:bg-accent transition-colors cursor-pointer",
-                      hostId === p.id && "bg-accent"
+                      "flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-accent transition-colors",
+                      (hostId === p.id || activeIndex === index) && "bg-accent"
                     )}
-                    onClick={() => {
-                      onChange(p.id);
-                      setSearch("");
-                      setOpen(false);
+                    onMouseEnter={() => setActiveIndex(index)}
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      selectHost(p.id);
                     }}
                   >
                     <Check
@@ -139,7 +197,7 @@ export default function HostSelector({ hostId, onChange }: HostSelectorProps) {
                         <p className="text-xs text-muted-foreground truncate">{p.family_name}</p>
                       )}
                     </div>
-                  </div>
+                  </button>
                 ))
               )}
             </div>
@@ -150,14 +208,16 @@ export default function HostSelector({ hostId, onChange }: HostSelectorProps) {
                 className="w-full border-t px-3 py-2 text-sm text-muted-foreground hover:bg-accent transition-colors text-left"
                 onClick={() => {
                   onChange(null);
+                  setSearch("");
                   setOpen(false);
                 }}
               >
                 Clear selection
               </button>
             )}
-          </PopoverContent>
-        </Popover>
+            </div>
+          )}
+        </div>
 
         {hostId && (
           <Button
