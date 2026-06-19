@@ -69,6 +69,9 @@ export function useCancelGuestRequest(eventId: string) {
       queryClient.invalidateQueries({ queryKey: ["pending-guest-requests-count"] });
     },
   });
+}
+
+
 
 /** Batch-fetch the current user's guest requests across many events and hydrate per-event caches. */
 export function useBatchMyGuestRequests(eventIds: string[]) {
