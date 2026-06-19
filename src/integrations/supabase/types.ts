@@ -1195,6 +1195,15 @@ export type Database = {
         }
         Returns: boolean
       }
+      log_admin_change: {
+        Args: {
+          _action: string
+          _details: Json
+          _target_id: string
+          _target_label: string
+        }
+        Returns: undefined
+      }
       lookup_rsvp_by_qr: {
         Args: { _qr_hash: string }
         Returns: {
