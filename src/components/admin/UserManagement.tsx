@@ -409,6 +409,7 @@ export default function UserManagement() {
   }, [filteredProfiles, selectedIds.size]);
 
   const [bulkDeleteConfirmOpen, setBulkDeleteConfirmOpen] = useState(false);
+  const [bulkRoleConfirm, setBulkRoleConfirm] = useState<null | { role: AppRole; label: string; destructive?: boolean }>(null);
 
   const stats = useMemo(() => {
     if (!profiles) return { total: 0, approved: 0, pending: 0, suspended: 0, guests: 0, mureeds: 0 };
