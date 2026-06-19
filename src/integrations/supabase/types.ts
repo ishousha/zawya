@@ -165,6 +165,7 @@ export type Database = {
           id: string
           parent_id: string | null
           type: string
+          type_other: string | null
         }
         Insert: {
           age_group?: string | null
@@ -176,6 +177,7 @@ export type Database = {
           id?: string
           parent_id?: string | null
           type?: string
+          type_other?: string | null
         }
         Update: {
           age_group?: string | null
@@ -187,6 +189,7 @@ export type Database = {
           id?: string
           parent_id?: string | null
           type?: string
+          type_other?: string | null
         }
         Relationships: [
           {

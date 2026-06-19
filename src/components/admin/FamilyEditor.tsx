@@ -38,20 +38,34 @@ interface DependentRow {
   parent_id: string | null;
   family_id: string | null;
   type: string;
+  type_other: string | null;
   date_of_birth: string | null;
   gender: string | null;
 }
 
 const TYPE_OPTIONS = [
-  { value: "child", label: "Child", icon: Baby },
-  { value: "elder", label: "Elder", icon: UserRound },
-  { value: "helper", label: "House Helper", icon: HeartHandshake },
+  { value: "son", label: "Son", icon: Baby },
+  { value: "daughter", label: "Daughter", icon: Baby },
+  { value: "father", label: "Father", icon: UserRound },
+  { value: "mother", label: "Mother", icon: UserRound },
+  { value: "maid", label: "Maid", icon: HeartHandshake },
+  { value: "nanny", label: "Nanny", icon: HeartHandshake },
   { value: "driver", label: "Driver", icon: Car },
-  { value: "other", label: "Other", icon: Users },
+  { value: "househelper", label: "House Helper", icon: HeartHandshake },
+  { value: "other", label: "Other (please specify)", icon: Users },
 ] as const;
 
+const LEGACY_TYPE_LABELS: Record<string, string> = {
+  child: "Child",
+  elder: "Elder",
+  helper: "House Helper",
+};
+
 function typeMeta(t: string) {
-  return TYPE_OPTIONS.find((o) => o.value === t) ?? TYPE_OPTIONS[4];
+  return (
+    TYPE_OPTIONS.find((o) => o.value === t) ??
+    { value: t, label: LEGACY_TYPE_LABELS[t] ?? "Other", icon: Users }
+  );
 }
 
 interface Props {
@@ -88,7 +102,7 @@ export default function FamilyEditor({ family, onBack, onDeleted }: Props) {
     queryFn: async () => {
       let query = supabase
         .from("dependents")
-        .select("id, first_name, parent_id, family_id, type, date_of_birth, gender");
+        .select("id, first_name, parent_id, family_id, type, type_other, date_of_birth, gender");
       if (memberIds.length > 0) {
         query = query.or(`family_id.eq.${family.id},parent_id.in.(${memberIds.join(",")})`);
       } else {
@@ -203,12 +217,14 @@ export default function FamilyEditor({ family, onBack, onDeleted }: Props) {
 
   const upsertDependent = useMutation({
     mutationFn: async (d: Partial<DependentRow> & { id?: string }) => {
+      const typeOther = d.type === "other" ? (d.type_other?.trim() || null) : null;
       if (d.id) {
         const { error } = await supabase
           .from("dependents")
           .update({
             first_name: d.first_name,
             type: d.type,
+            type_other: typeOther,
             gender: d.gender,
             date_of_birth: d.date_of_birth || null,
           })
@@ -219,6 +235,7 @@ export default function FamilyEditor({ family, onBack, onDeleted }: Props) {
           family_id: family.id,
           first_name: d.first_name!,
           type: d.type!,
+          type_other: typeOther,
           gender: d.gender || null,
           date_of_birth: d.date_of_birth || null,
         });
@@ -426,7 +443,7 @@ export default function FamilyEditor({ family, onBack, onDeleted }: Props) {
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-semibold">Dependents &amp; Household</h3>
               <Button size="sm" variant="outline" className="gap-1.5"
-                onClick={() => setDepDialog({ type: "child", first_name: "" })}>
+                onClick={() => setDepDialog({ type: "son", first_name: "" })}>
                 <Plus className="h-4 w-4" /> Add
               </Button>
             </div>
@@ -445,7 +462,7 @@ export default function FamilyEditor({ family, onBack, onDeleted }: Props) {
                       <div className="flex-1 min-w-0">
                         <p className="font-medium truncate">{d.first_name}</p>
                         <div className="flex flex-wrap gap-2 mt-0.5">
-                          <Badge variant="secondary" className="text-xs">{meta.label}</Badge>
+                          <Badge variant="secondary" className="text-xs">{d.type === "other" && d.type_other ? d.type_other : meta.label}</Badge>
                           {d.gender && <Badge variant="outline" className="text-xs capitalize">{d.gender}</Badge>}
                           {d.date_of_birth && (
                             <span className="text-xs text-muted-foreground">
@@ -617,7 +634,8 @@ function DependentDialog({
   saving: boolean;
 }) {
   const [first_name, setFirstName] = useState("");
-  const [type, setType] = useState<string>("child");
+  const [type, setType] = useState<string>("son");
+  const [typeOther, setTypeOther] = useState<string>("");
   const [gender, setGender] = useState<string>("");
   const [dob, setDob] = useState<string>("");
 
@@ -627,10 +645,17 @@ function DependentDialog({
   useEffect(() => {
     if (!value) return;
     setFirstName(value.first_name ?? "");
-    setType(value.type ?? "child");
+    setType(value.type ?? "son");
+    setTypeOther(value.type_other ?? "");
     setGender(value.gender ?? "");
     setDob(value.date_of_birth ?? "");
   }, [value]);
+
+  const isOther = type === "other";
+  const canSave =
+    !!first_name.trim() &&
+    (!isOther || !!typeOther.trim()) &&
+    !saving;
 
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
@@ -647,19 +672,30 @@ function DependentDialog({
             <Label>Type</Label>
             <Select value={type} onValueChange={setType}>
               <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
+              <SelectContent className="z-[110] bg-popover">
                 {TYPE_OPTIONS.map((o) => (
                   <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
+          {isOther && (
+            <div>
+              <Label htmlFor="dep-type-other">Please specify <span className="text-destructive">*</span></Label>
+              <Input
+                id="dep-type-other"
+                value={typeOther}
+                onChange={(e) => setTypeOther(e.target.value)}
+                placeholder="e.g. Cousin, Uncle, Friend"
+              />
+            </div>
+          )}
           <div className="grid grid-cols-2 gap-3">
             <div>
               <Label>Gender</Label>
               <Select value={gender || "unspecified"} onValueChange={(v) => setGender(v === "unspecified" ? "" : v)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
+                <SelectContent className="z-[110] bg-popover">
                   <SelectItem value="unspecified">—</SelectItem>
                   <SelectItem value="male">Male</SelectItem>
                   <SelectItem value="female">Female</SelectItem>
@@ -667,14 +703,14 @@ function DependentDialog({
               </Select>
             </div>
             <div>
-              <Label htmlFor="dep-dob">Date of birth</Label>
+              <Label htmlFor="dep-dob">Date of birth <span className="text-muted-foreground text-xs">(optional)</span></Label>
               <Input id="dep-dob" type="date" value={dob ?? ""} onChange={(e) => setDob(e.target.value)} />
             </div>
           </div>
           <Button
             className="w-full"
-            disabled={!first_name.trim() || saving}
-            onClick={() => onSave({ id, first_name: first_name.trim(), type, gender, date_of_birth: dob || null })}
+            disabled={!canSave}
+            onClick={() => onSave({ id, first_name: first_name.trim(), type, type_other: isOther ? typeOther.trim() : null, gender, date_of_birth: dob || null })}
           >
             {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Save
