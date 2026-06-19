@@ -196,6 +196,16 @@ export default function AdminGuestApprovals({ eventId }: { eventId: string }) {
                 >
                   {r.status}
                 </Badge>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-8 w-8 text-destructive hover:bg-red-50 shrink-0"
+                  title="Delete guest request"
+                  disabled={deleteRequest.isPending}
+                  onClick={() => handleDelete(r)}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
               </div>
             ))}
           </div>
