@@ -104,6 +104,10 @@ export const template = {
     eventDate: 'Friday, January 10 at 7:00 PM',
     eventLocation: 'Community Hall',
     reminderType: '2h',
+    signUpItems: [
+      { itemName: 'Karak', quantity: 2 },
+      { itemName: 'Dessert', quantity: 1, description: 'Baklava' },
+    ],
   },
 } satisfies TemplateEntry
 
