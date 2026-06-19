@@ -287,6 +287,7 @@ export default function AllGuestApprovals() {
                                   eventDateISO: evt?.date_time,
                                   location: evt?.location,
                                   address: evt?.address,
+                                  mapsUrl: evt?.maps_url,
                                   onlineLink: evt?.online_link || evt?.virtual_link,
                                 });
                                 window.open(url, "_blank", "noopener");
