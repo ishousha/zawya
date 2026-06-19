@@ -248,33 +248,40 @@ export default function AllGuestApprovals() {
                   <div className="space-y-2 px-3 pb-3">
                     {g.requests.map((gr) => (
                       <Card key={gr.id} className={gr.status === "pending" ? "border-accent" : ""}>
-                        <CardContent className="flex items-center justify-between p-3">
-                          <div className="min-w-0 flex-1">
-                            <p className="truncate font-medium text-card-foreground">{gr.guest_name}</p>
-                            {(gr as any).profiles?.name && (
-                              <p className="text-xs text-muted-foreground">
-                                Requested by {(gr as any).profiles.name}
-                              </p>
-                            )}
-                            {gr.guest_phone && (
-                              <p className="text-xs text-muted-foreground">{gr.guest_phone}</p>
-                            )}
-                            {(gr as any).member_note && (
-                              <div className="mt-1.5 rounded-md border border-border bg-muted/30 p-2">
-                                <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground mb-0.5">
-                                  Note from member
-                                </p>
-                                <p className="text-xs text-foreground whitespace-pre-wrap">{(gr as any).member_note}</p>
-                              </div>
-                            )}
-                          </div>
-                          <div className="ml-3 flex items-center gap-2">
+                        <CardContent className="p-3 space-y-2">
+                          <div className="flex items-start justify-between gap-2">
+                            <p className="truncate font-medium text-card-foreground min-w-0 flex-1">
+                              {gr.guest_name}
+                            </p>
                             <Badge
                               variant={gr.status === "pending" ? "outline" : gr.status === "approved" ? "default" : "destructive"}
-                              className="capitalize"
+                              className="capitalize shrink-0"
                             >
                               {gr.status}
                             </Badge>
+                          </div>
+
+                          {((gr as any).profiles?.name || gr.guest_phone) && (
+                            <div className="text-xs text-muted-foreground space-y-0.5">
+                              {(gr as any).profiles?.name && (
+                                <p>Requested by {(gr as any).profiles.name}</p>
+                              )}
+                              {gr.guest_phone && <p>{gr.guest_phone}</p>}
+                            </div>
+                          )}
+
+                          {(gr as any).member_note && (
+                            <div className="rounded-md border border-border bg-muted/30 p-2.5">
+                              <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground mb-1">
+                                Note from member
+                              </p>
+                              <p className="text-sm leading-relaxed text-foreground whitespace-pre-wrap break-words">
+                                {(gr as any).member_note}
+                              </p>
+                            </div>
+                          )}
+
+                          <div className="flex items-center justify-end gap-2 pt-1">
                             <Button
                               size="icon"
                               variant="ghost"
@@ -342,6 +349,7 @@ export default function AllGuestApprovals() {
                         </CardContent>
                       </Card>
                     ))}
+
                   </div>
                 </CollapsibleContent>
               </Collapsible>
