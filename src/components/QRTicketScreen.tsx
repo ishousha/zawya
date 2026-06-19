@@ -4,10 +4,15 @@ import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, CheckCircle2, Download, Loader2, WifiOff, ScanLine } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/runtime-client";
 import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
+import {
+  cacheRsvpSignUpItems,
+  getCachedRsvpSignUpItems,
+  type CachedSignUpItem,
+} from "@/lib/offline-ticket-cache";
 
 type RSVP = Database["public"]["Tables"]["rsvps"]["Row"];
 type Event = Database["public"]["Tables"]["events"]["Row"];
@@ -29,6 +34,29 @@ export default function QRTicketScreen({ event, rsvp, profileName, isOffline, on
   const [checkinSuccess, setCheckinSuccess] = useState(rsvp.checked_in);
   const localDate = new Date(event.date_time);
   const displayName = profileName || profile?.name || "Member";
+
+  // Fetch this RSVP's sign-up item selections so the ticket can remind the member
+  // what they committed to bring. Cached to localStorage for offline access.
+  const { data: signUpItems } = useQuery<CachedSignUpItem[]>({
+    queryKey: ["rsvp-signup-items", rsvp.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("rsvp_sign_up_selections")
+        .select("quantity, description, event_sign_up_items(item_name)")
+        .eq("rsvp_id", rsvp.id);
+      if (error) throw error;
+      const items: CachedSignUpItem[] = (data ?? []).map((row: any) => ({
+        itemName: row.event_sign_up_items?.item_name ?? "Item",
+        quantity: row.quantity ?? 1,
+        description: row.description ?? null,
+      }));
+      cacheRsvpSignUpItems(rsvp.id, items);
+      return items;
+    },
+    initialData: () => getCachedRsvpSignUpItems(rsvp.id) ?? undefined,
+    enabled: !isOffline,
+    staleTime: 60_000,
+  });
 
   const qrData = JSON.stringify({
     rsvp_id: rsvp.id,
@@ -235,14 +263,33 @@ export default function QRTicketScreen({ event, rsvp, profileName, isOffline, on
                 {rsvp.guests_count > 1 ? `+${rsvp.guests_count - 1}` : "Just you"}
               </span>
             </div>
-            {rsvp.potluck_category && (
+            {signUpItems && signUpItems.length > 0 ? (
+              <div className="mt-3 rounded-md border border-primary/30 bg-primary/5 p-3">
+                <p className="text-xs font-semibold uppercase tracking-wider text-primary">
+                  Don't forget to bring
+                </p>
+                <ul className="mt-1.5 space-y-1">
+                  {signUpItems.map((item, i) => (
+                    <li key={i} className="flex justify-between gap-2 text-sm">
+                      <span className="font-medium text-card-foreground">
+                        {item.itemName}
+                        {item.quantity > 1 ? ` ×${item.quantity}` : ""}
+                      </span>
+                      {item.description && (
+                        <span className="text-muted-foreground text-right">{item.description}</span>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : rsvp.potluck_category ? (
               <div className="mt-2 flex justify-between">
                 <span className="text-muted-foreground">Bringing</span>
                 <span className="font-medium text-card-foreground capitalize">
                   {rsvp.specific_food_item || rsvp.potluck_category}
                 </span>
               </div>
-            )}
+            ) : null}
             {event.location && (
               <div className="mt-2 flex justify-between">
                 <span className="text-muted-foreground">Location</span>

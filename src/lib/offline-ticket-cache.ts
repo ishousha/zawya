@@ -70,3 +70,37 @@ export function cleanExpiredTickets() {
   }
   if (changed) writeAll(all);
 }
+
+// --- Sign-up item selections per RSVP (so the ticket can show "Bringing" offline) ---
+
+export interface CachedSignUpItem {
+  itemName: string;
+  quantity: number;
+  description?: string | null;
+}
+
+const SIGNUP_STORAGE_KEY = "zawya-offline-ticket-signups";
+
+function readAllSignUps(): Record<string, CachedSignUpItem[]> {
+  try {
+    const raw = localStorage.getItem(SIGNUP_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+}
+
+export function cacheRsvpSignUpItems(rsvpId: string, items: CachedSignUpItem[]) {
+  const all = readAllSignUps();
+  all[rsvpId] = items;
+  try {
+    localStorage.setItem(SIGNUP_STORAGE_KEY, JSON.stringify(all));
+  } catch {
+    /* ignore quota */
+  }
+}
+
+export function getCachedRsvpSignUpItems(rsvpId: string): CachedSignUpItem[] | null {
+  const all = readAllSignUps();
+  return all[rsvpId] ?? null;
+}

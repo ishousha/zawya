@@ -7,12 +7,20 @@ import type { TemplateEntry } from './registry.ts'
 
 const SITE_NAME = "Zawya"
 
+interface SignUpItem {
+  itemName: string
+  quantity: number
+  description?: string | null
+}
+
 interface EventReminderProps {
   memberName?: string
   eventTitle?: string
   eventDate?: string
   eventLocation?: string
   reminderType?: '24h' | '12h' | '2h'
+  signUpItems?: SignUpItem[]
+  potluckItem?: string
 }
 
 const EventReminderEmail = ({
@@ -21,7 +29,10 @@ const EventReminderEmail = ({
   eventDate = '',
   eventLocation = '',
   reminderType = '24h',
+  signUpItems = [],
+  potluckItem,
 }: EventReminderProps) => {
+  const hasBringList = signUpItems.length > 0 || !!potluckItem
   const timeLabel = reminderType === '2h' ? '2 hours' : reminderType === '12h' ? '12 hours' : '24 hours'
   return (
     <Html lang="en" dir="ltr">
@@ -56,6 +67,22 @@ const EventReminderEmail = ({
             ) : null}
           </Section>
 
+          {hasBringList ? (
+            <Section style={bringBox}>
+              <Text style={bringLabel}>Don't forget to bring</Text>
+              {signUpItems.length > 0 ? (
+                signUpItems.map((item, i) => (
+                  <Text key={i} style={bringItem}>
+                    • {item.itemName}{item.quantity > 1 ? ` ×${item.quantity}` : ''}
+                    {item.description ? ` — ${item.description}` : ''}
+                  </Text>
+                ))
+              ) : (
+                <Text style={bringItem}>• {potluckItem}</Text>
+              )}
+            </Section>
+          ) : null}
+
           <Hr style={hr} />
           <Text style={footer}>— The {SITE_NAME} Team</Text>
         </Container>
@@ -77,6 +104,10 @@ export const template = {
     eventDate: 'Friday, January 10 at 7:00 PM',
     eventLocation: 'Community Hall',
     reminderType: '2h',
+    signUpItems: [
+      { itemName: 'Karak', quantity: 2 },
+      { itemName: 'Dessert', quantity: 1, description: 'Baklava' },
+    ],
   },
 } satisfies TemplateEntry
 
@@ -89,3 +120,6 @@ const footer = { fontSize: '13px', color: '#9ca3af', margin: '0' }
 const detailsBox = { backgroundColor: '#f9fafb', borderRadius: '8px', padding: '16px 20px', margin: '0 0 16px' }
 const detailLabel = { fontSize: '11px', color: '#9ca3af', textTransform: 'uppercase' as const, letterSpacing: '0.05em', margin: '0 0 2px', fontWeight: 'bold' as const }
 const detailValue = { fontSize: '15px', color: '#374151', margin: '0 0 12px' }
+const bringBox = { backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '8px', padding: '14px 18px', margin: '0 0 16px' }
+const bringLabel = { fontSize: '11px', color: '#166534', textTransform: 'uppercase' as const, letterSpacing: '0.05em', margin: '0 0 6px', fontWeight: 'bold' as const }
+const bringItem = { fontSize: '15px', color: '#166534', margin: '0 0 4px', lineHeight: '1.5' }
