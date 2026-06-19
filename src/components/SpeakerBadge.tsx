@@ -43,7 +43,7 @@ export default function SpeakerBadge({ eventId, prefetchedSpeakers }: SpeakerBad
           >
             <Avatar className="h-5 w-5">
               {speaker.image_url ? (
-                <AvatarImage src={speaker.image_url} alt={speaker.name} />
+                <AvatarImage src={speaker.image_url} alt={speaker.name} className="object-cover" />
               ) : null}
               <AvatarFallback className="bg-primary/10 text-[8px]">
                 <User className="h-3 w-3" />

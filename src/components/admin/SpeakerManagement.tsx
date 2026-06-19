@@ -94,7 +94,7 @@ export default function SpeakerManagement() {
                 <div className="flex items-center gap-3">
                   <Avatar className="h-12 w-12">
                     {speaker.image_url ? (
-                      <AvatarImage src={speaker.image_url} alt={speaker.name} />
+                      <AvatarImage src={speaker.image_url} alt={speaker.name} className="object-cover" />
                     ) : null}
                     <AvatarFallback>
                       <User className="h-5 w-5" />
@@ -232,7 +232,7 @@ function SpeakerForm({ speaker, onClose }: { speaker: Speaker | null; onClose: (
 
         <div className="flex flex-col items-center gap-3">
           <Avatar className="h-20 w-20">
-            {imageUrl ? <AvatarImage src={imageUrl} /> : null}
+            {imageUrl ? <AvatarImage src={imageUrl} className="object-cover" /> : null}
             <AvatarFallback>
               <User className="h-8 w-8" />
             </AvatarFallback>
