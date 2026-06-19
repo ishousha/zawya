@@ -95,7 +95,7 @@ export default function HostSelector({ hostId, onChange }: HostSelectorProps) {
           >
             <div className="p-2">
               <Input
-                placeholder="Search by name or email (min 2)…"
+                placeholder="Search by name, email, or family…"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="h-9"
@@ -104,11 +104,7 @@ export default function HostSelector({ hostId, onChange }: HostSelectorProps) {
             </div>
 
             <div className="max-h-56 overflow-y-auto">
-              {debouncedSearch.trim().length < 2 ? (
-                <p className="px-3 py-3 text-center text-sm text-muted-foreground">
-                  Type at least 2 characters to search
-                </p>
-              ) : isLoading ? (
+              {isLoading ? (
                 <div className="flex justify-center py-4">
                   <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
                 </div>
