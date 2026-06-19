@@ -1,58 +1,50 @@
-## Goal
-Make guest-request management more discoverable, give admins instant in-app notification of new requests, let members cancel their own requests, and let hosts share event details with guests via WhatsApp.
+# Enrich Admin Activity Log
 
-## 1. In-app notification to admins on new guest request
-- DB trigger on `guest_requests` AFTER INSERT (status = 'pending'):
-  - Look up every admin (`user_roles.role = 'admin'`) and insert one row per admin into `notifications` with:
-    - `title`: "New guest request"
-    - `message`: "{requester name} requested {guest name} for {event title}"
-    - `type`: `guest_request`
-    - `metadata`: `{ event_id, guest_request_id }`
-  - Runs as `SECURITY DEFINER` so it bypasses the service-role-only INSERT policy.
-- Tap behavior: `Notifications.tsx` already routes by `type` — add a case for `guest_request` that navigates to `/admin` with `state: { tab: "guests" }`.
+Today the log only records user-management actions (role change, suspend, delete, create) and check-ins. We'll auto-capture admin actions across all major content tables via database triggers — nothing for app code to remember to call, and impossible to bypass.
 
-## 2. Separate "Guests" tab in Admin Dashboard (was buried under Users)
-- Add a `"guests"` tab to `ADMIN_TABS` in `AdminDashboard.tsx`, between `users` and `families`, rendering `<AllGuestApprovals />` (the existing moderator component, already sorted by event).
-- Remove the "Guest Requests" section from `UserManagement.tsx` (delete the query + rendered block; keep the role-`guest` member stats untouched — those are member-role guests, not external guest requests).
-- Tab label: "Guests" with `UserPlus` icon and a red badge showing total pending guest requests (new lightweight hook `usePendingGuestRequestsCount` mirroring `usePendingUsersCount`, counting `guest_requests` where `status = 'pending'`).
+## What will be tracked
 
-## 3. Members can cancel their guest requests
-- `GuestRequestsSection.tsx`: on each row in "My Guests", show a small trash/X button next to the status badge for requests that are `pending` or `approved` (already-rejected stays read-only).
-- `useGuestRequests.ts`: add `useCancelGuestRequest` mutation that `DELETE`s the row (RLS already permits the requesting user to delete their own — verify and add policy if missing).
-- Confirm via a simple `confirm()` dialog: "Cancel guest request for {name}?". On success invalidate `my-guest-requests` + admin guest queries.
-- If status was `approved`, also show a small toast reminding the admin will be notified (optional: insert a notification row of `type: guest_cancelled` for admins via the same trigger pattern — out of scope unless requested).
+For each table below, every INSERT / UPDATE / DELETE performed by an admin (or moderator) is recorded with the actor, the target object's name, and a `details` JSON containing the changed fields:
 
-## 4. Home Screen quick-action button → Guests panel
-- In `AdminQuickActions.tsx`, add a new `QuickActionCard`:
-  - Icon: `UserPlus` (or `Users`), label "Guest Requests"
-  - Badge: pending guest-request count (uses `usePendingGuestRequestsCount`)
-  - `onClick`: `navigate("/admin", { state: { tab: "guests" } })`
-- Fills the empty grid slot shown in the screenshot.
+- **events** — create, publish/unpublish, edit (title, date/time, location, capacity, status, etc.), cancel, reactivate, delete
+- **venues** — add, edit (name, address, maps_url), delete
+- **event_types** — add, edit, delete
+- **speakers** — add, edit, delete
+- **event_speakers** — assign / unassign speaker from event
+- **event_sign_up_items** — add, edit, delete sign-up items on an event
+- **resources** — add, edit, delete
+- **announcements** — create, edit, delete
+- **guest_requests** — approve / reject / delete (currently no log entry)
+- **families** — create, rename, delete
 
-## 5. Move "Manage Guests" off the EventCard top
-- `EventCard.tsx`: remove the standalone "Guests: X pending — Manage" pill currently sitting above the title.
-- Replace with a discreet inline action inside the existing RSVP action row, next to "Edit RSVP" / "View Ticket": a ghost `Button` with a `UserPlus` icon labelled "My Guests" + small badge `(X)` when the user has requests. Tapping opens the same RSVP modal scrolled to the Guests section (existing behavior).
-- Visual: matches the parchment/emerald button styling of the surrounding actions — no orange pill above the title.
+Existing logged actions (role_change, suspend_user, delete_user, create_user, checkin_rsvp, undo_checkin, broadcast) stay as they are.
 
-## 6. Share via WhatsApp from guest approval
-- `AllGuestApprovals.tsx` and `AdminGuestApprovals.tsx`: on each approved request (and pending row as a secondary action), add a green WhatsApp icon button.
-- Behavior: build a message
-  ```
-  As-salāmu ʿalaykum {guestName}! You're invited to {eventTitle} on {eventDate}.
-  📍 {locationName}
-  {address}
-  🗺 {mapUrl}
-  {eventLink ? `🔗 Join online: ${eventLink}` : ""}
-  ```
-  and open `https://wa.me/{phone}?text={encoded}` in a new tab when `guest_phone` exists; if no phone, fall back to `https://wa.me/?text=...` (lets host pick recipient).
-- Helper: extract `buildGuestWhatsAppMessage(event, guest)` into `src/lib/share-event.ts` so both admin guest panels reuse it.
+## How it works (technical)
+
+1. **One SECURITY DEFINER helper** `public.log_admin_change(action text, target_id uuid, target_label text, details jsonb)` that:
+   - Returns immediately if `auth.uid()` is null or service_role (lets seed/edge writes skip logging when desired).
+   - Skips logging if the actor doesn't have `admin` or `moderator` role (so member-level inserts on e.g. `guest_requests` aren't logged).
+   - Inserts a row into `admin_activity_log` with `actor_id = auth.uid()`, the action, and details. We reuse `target_user_name` to store the object's display label (e.g. event title, venue name) so the existing UI keeps working.
+
+2. **Per-table AFTER trigger functions** (one per table) that call the helper. For UPDATEs they diff OLD/NEW and only include changed fields in `details` (plus a `before`/`after` snapshot for important ones like `status`, `published`, `capacity`, `date_time`). For DELETEs they snapshot the old row.
+
+3. **No schema change to `admin_activity_log`** is required — `target_user_id` is nullable and we already have a JSONB `details` column.
+
+## UI changes (`AdminActivityLog.tsx`)
+
+- Extend `ACTION_CONFIG` with all new action keys, icons (Calendar, MapPin, Tag, Mic, FileText, Megaphone, UserCheck, Users, Package), labels, and badge variants.
+- Group the action filter `<Select>` into sections: Users, Events, Content, Guests, Check-ins.
+- Replace the hard-coded "Target user" column heading with "Target" — the trigger writes the object's label into `target_user_name`, so the existing row template already renders it.
+- Add a generic details renderer that pretty-prints the `details` JSON's `changed` fields (key: old → new) for any update action, so we don't need a custom switch per action.
+- CSV export updated to include the same generic details string.
 
 ## Out of scope
-- No changes to the email templates, walk-in flow, or member-role "guest" accounts in UserManagement.
-- No push notifications — in-app only.
 
-## Technical notes
-- **Migration order**: trigger function `notify_admins_on_guest_request()` (SECURITY DEFINER, search_path = public) → trigger `trg_notify_admins_on_guest_request AFTER INSERT ON public.guest_requests`. No new tables.
-- **Types**: regenerated Supabase types not needed (only inserts via trigger).
-- **`AllGuestApprovals` query** already returns `events.location`, `address`, `virtual_link`, `online_link` — reuse for WhatsApp message.
-- **Files touched**: `supabase/migrations/<new>.sql`, `src/pages/AdminDashboard.tsx`, `src/components/AdminQuickActions.tsx`, `src/components/admin/UserManagement.tsx`, `src/components/admin/AllGuestApprovals.tsx`, `src/components/admin/AdminGuestApprovals.tsx`, `src/components/EventCard.tsx`, `src/components/rsvp/GuestRequestsSection.tsx`, `src/hooks/useGuestRequests.ts`, new `src/hooks/usePendingGuestRequestsCount.ts`, `src/lib/share-event.ts`, `src/pages/Notifications.tsx`.
+- Backfilling history for actions that happened before the triggers exist.
+- Logging RSVP edits made by members on their own RSVPs (still only admin walk-in edits, captured via the rsvps trigger gated on admin role).
+- A "revert" button — read-only log only.
+
+## Files touched
+
+- New migration: `supabase/migrations/<ts>_admin_activity_log_triggers.sql` — helper function + per-table trigger functions + triggers.
+- `src/components/admin/AdminActivityLog.tsx` — new action configs, grouped filter, generic details renderer, CSV update.
