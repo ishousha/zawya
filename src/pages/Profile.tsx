@@ -341,6 +341,8 @@ export default function ProfilePage() {
           </Button>
         </div>
 
+        <ChangeEmailSection currentEmail={user?.email} />
+
         <FamilyInviteSection />
 
         <DependentsSection />
