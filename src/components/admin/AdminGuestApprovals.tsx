@@ -39,10 +39,13 @@ export default function AdminGuestApprovals({ eventId }: { eventId: string }) {
       : eventData?.virtual_link || "";
     const eventLocation = eventData?.location || "";
     const eventAddress = eventData?.address || "";
+    const customMapsUrl = (eventData as any)?.maps_url?.trim();
     const mapQuery = [eventData?.location, eventData?.address].filter(Boolean).join(", ");
-    const mapUrl = mapQuery
-      ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapQuery)}`
-      : "";
+    const mapUrl = customMapsUrl
+      ? customMapsUrl
+      : mapQuery
+        ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapQuery)}`
+        : "";
 
     try {
       await updateStatus.mutateAsync({
