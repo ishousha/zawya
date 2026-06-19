@@ -443,7 +443,7 @@ export default function FamilyEditor({ family, onBack, onDeleted }: Props) {
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-semibold">Dependents &amp; Household</h3>
               <Button size="sm" variant="outline" className="gap-1.5"
-                onClick={() => setDepDialog({ type: "child", first_name: "" })}>
+                onClick={() => setDepDialog({ type: "son", first_name: "" })}>
                 <Plus className="h-4 w-4" /> Add
               </Button>
             </div>
