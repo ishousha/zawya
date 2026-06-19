@@ -3,7 +3,7 @@ import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { useRef, useEffect, useCallback, useState, lazy, Suspense, type ReactNode } from "react";
 import { useSwipeable } from "react-swipeable";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Users, CalendarPlus, ScanLine, Home, ScrollText, Settings, BarChart3, BookOpen, Mic, UserPlus } from "lucide-react";
+import { Users, CalendarPlus, ScanLine, Home, ScrollText, Settings, BarChart3, BookOpen, Mic, UserPlus, FileSpreadsheet } from "lucide-react";
 import { usePendingUsersCount } from "@/hooks/usePendingUsersCount";
 import { usePendingGuestRequestsCount } from "@/hooks/usePendingGuestRequestsCount";
 import { Loader2 } from "lucide-react";
@@ -23,8 +23,9 @@ const ResourceManagement = lazy(() => import("@/components/admin/ResourceManagem
 const AnnouncementManagement = lazy(() => import("@/components/admin/AnnouncementManagement"));
 const DeliverabilityCheck = lazy(() => import("@/components/admin/DeliverabilityCheck"));
 const PotluckReclaimReport = lazy(() => import("@/components/admin/PotluckReclaimReport"));
+const AnalyticsExports = lazy(() => import("@/components/admin/AnalyticsExports"));
 
-const ADMIN_TABS = ["users", "guests", "families", "events", "scanner", "speakers", "resources", "analytics", "settings", "activity"] as const;
+const ADMIN_TABS = ["users", "guests", "families", "events", "scanner", "speakers", "resources", "analytics", "reports", "settings", "activity"] as const;
 type AdminTab = typeof ADMIN_TABS[number];
 
 const MODERATOR_TABS = ["events", "guests", "scanner"] as const;
@@ -218,6 +219,8 @@ export default function AdminDashboard() {
             <TabsTrigger value="speakers" className={tabTriggerBase}><Mic className="h-4 w-4" /> Special Guests</TabsTrigger>
             <TabsTrigger value="resources" className={tabTriggerBase}><BookOpen className="h-4 w-4" /> Resources</TabsTrigger>
             <TabsTrigger value="analytics" className={tabTriggerBase}><BarChart3 className="h-4 w-4" /> Analytics</TabsTrigger>
+            <TabsTrigger value="reports" className={tabTriggerBase}><FileSpreadsheet className="h-4 w-4" /> Reports</TabsTrigger>
+            <TabsTrigger value="reports" className={tabTriggerBase}><FileSpreadsheet className="h-4 w-4" /> Reports</TabsTrigger>
             <TabsTrigger value="settings" className={tabTriggerBase}><Settings className="h-4 w-4" /> Settings</TabsTrigger>
             <TabsTrigger value="activity" className={tabTriggerBase}><ScrollText className="h-4 w-4" /> Log</TabsTrigger>
           </TabsList>
@@ -231,6 +234,7 @@ export default function AdminDashboard() {
             <KeepAliveTab id="speakers" active={activeTab === "speakers"}><SpeakerManagement /></KeepAliveTab>
             <KeepAliveTab id="resources" active={activeTab === "resources"}><ResourceManagement /></KeepAliveTab>
             <KeepAliveTab id="analytics" active={activeTab === "analytics"}><AdminAnalytics /></KeepAliveTab>
+            <KeepAliveTab id="reports" active={activeTab === "reports"}><AnalyticsExports /></KeepAliveTab>
             <KeepAliveTab id="settings" active={activeTab === "settings"}>
               <div className="space-y-6">
                 <PotluckReclaimReport />
