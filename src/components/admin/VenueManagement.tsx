@@ -149,6 +149,7 @@ export default function VenueManagement() {
               <TableHead>Location Name</TableHead>
               <TableHead>Street Address</TableHead>
               <TableHead>Hint / Directions</TableHead>
+              <TableHead>Default Host</TableHead>
               <TableHead className="w-20" />
             </TableRow>
           </TableHeader>
@@ -158,6 +159,9 @@ export default function VenueManagement() {
                 <TableCell className="font-medium">{v.name}</TableCell>
                 <TableCell className="text-sm text-muted-foreground max-w-[200px] truncate">{v.address || "—"}</TableCell>
                 <TableCell className="text-sm text-muted-foreground italic max-w-[200px] truncate">{v.area_hint || "—"}</TableCell>
+                <TableCell className="text-sm text-muted-foreground max-w-[160px] truncate">
+                  {v.default_host?.name || v.default_host?.email || "—"}
+                </TableCell>
                 <TableCell>
                   <div className="flex gap-1">
                     <Button size="icon" variant="ghost" onClick={() => openEdit(v)}>
@@ -206,6 +210,10 @@ export default function VenueManagement() {
             <div>
               <Label htmlFor="v-hint">Location Hint / Directions <span className="text-muted-foreground font-normal">(optional)</span></Label>
               <Textarea id="v-hint" value={formAreaHint} onChange={(e) => setFormAreaHint(e.target.value)} placeholder="e.g. Park in the rear lot, ring the bell at the green gate" className="mt-1.5 min-h-[72px]" />
+            </div>
+            <div>
+              <HostSelector hostId={formDefaultHostId} onChange={setFormDefaultHostId} />
+              <p className="text-xs text-muted-foreground mt-1">When selected on an event, this host is auto-applied. Admins can still override.</p>
             </div>
           </div>
           <DialogFooter>
