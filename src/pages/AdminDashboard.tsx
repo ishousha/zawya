@@ -3,7 +3,7 @@ import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { useRef, useEffect, useCallback, useState, lazy, Suspense, type ReactNode } from "react";
 import { useSwipeable } from "react-swipeable";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Users, CalendarPlus, ScanLine, Home, ScrollText, Settings, BarChart3, BookOpen, Mic, UserPlus } from "lucide-react";
+import { Users, CalendarPlus, ScanLine, Home, ScrollText, Settings, BarChart3, BookOpen, Mic, UserPlus, FileSpreadsheet } from "lucide-react";
 import { usePendingUsersCount } from "@/hooks/usePendingUsersCount";
 import { usePendingGuestRequestsCount } from "@/hooks/usePendingGuestRequestsCount";
 import { Loader2 } from "lucide-react";
@@ -23,8 +23,9 @@ const ResourceManagement = lazy(() => import("@/components/admin/ResourceManagem
 const AnnouncementManagement = lazy(() => import("@/components/admin/AnnouncementManagement"));
 const DeliverabilityCheck = lazy(() => import("@/components/admin/DeliverabilityCheck"));
 const PotluckReclaimReport = lazy(() => import("@/components/admin/PotluckReclaimReport"));
+const AnalyticsExports = lazy(() => import("@/components/admin/AnalyticsExports"));
 
-const ADMIN_TABS = ["users", "guests", "families", "events", "scanner", "speakers", "resources", "analytics", "settings", "activity"] as const;
+const ADMIN_TABS = ["users", "guests", "families", "events", "scanner", "speakers", "resources", "analytics", "reports", "settings", "activity"] as const;
 type AdminTab = typeof ADMIN_TABS[number];
 
 const MODERATOR_TABS = ["events", "guests", "scanner"] as const;
