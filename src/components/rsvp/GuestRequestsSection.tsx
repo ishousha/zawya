@@ -40,8 +40,8 @@ export default function GuestRequestsSection({ eventId, event }: GuestRequestsSe
       toast.error("Please enter the guest's name.");
       return;
     }
-    if (!guestEmail.trim() || !isValidEmail(guestEmail.trim())) {
-      toast.error("Please enter a valid email address.");
+    if (guestEmail.trim() && !isValidEmail(guestEmail.trim())) {
+      toast.error("Please enter a valid email address, or leave it blank.");
       return;
     }
     try {
@@ -61,6 +61,7 @@ export default function GuestRequestsSection({ eventId, event }: GuestRequestsSe
       toast.error("Failed to submit guest request.");
     }
   };
+
 
   return (
     <div className="space-y-3">
