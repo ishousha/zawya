@@ -283,6 +283,9 @@ export default function ResourceManagement() {
                   </Command>
                 </PopoverContent>
               </Popover>
+              <p className="text-xs text-muted-foreground mt-1">
+                Don&apos;t see the right category? Type any name (e.g. <em>Other</em>) above to create a new one.
+              </p>
             </div>
 
             {/* Resource Type */}
