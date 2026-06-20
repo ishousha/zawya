@@ -56,6 +56,29 @@ function getResourceIcon(type?: string) {
   }
 }
 
+/**
+ * Deterministic color palette per category — gives each resource type a
+ * visually distinct accent so members can scan the list quickly.
+ * Tones are tuned to the Sufi parchment/emerald/gold aesthetic.
+ */
+const CATEGORY_PALETTE: { bar: string; tint: string; icon: string; badge: string }[] = [
+  { bar: "bg-emerald-600", tint: "bg-emerald-600/10", icon: "text-emerald-700", badge: "bg-emerald-600/10 text-emerald-800 border-emerald-600/20" },
+  { bar: "bg-amber-500",   tint: "bg-amber-500/10",   icon: "text-amber-700",   badge: "bg-amber-500/10 text-amber-800 border-amber-500/20" },
+  { bar: "bg-rose-500",    tint: "bg-rose-500/10",    icon: "text-rose-700",    badge: "bg-rose-500/10 text-rose-800 border-rose-500/20" },
+  { bar: "bg-sky-600",     tint: "bg-sky-600/10",     icon: "text-sky-700",     badge: "bg-sky-600/10 text-sky-800 border-sky-600/20" },
+  { bar: "bg-violet-600",  tint: "bg-violet-600/10",  icon: "text-violet-700",  badge: "bg-violet-600/10 text-violet-800 border-violet-600/20" },
+  { bar: "bg-teal-600",    tint: "bg-teal-600/10",    icon: "text-teal-700",    badge: "bg-teal-600/10 text-teal-800 border-teal-600/20" },
+  { bar: "bg-orange-500",  tint: "bg-orange-500/10",  icon: "text-orange-700",  badge: "bg-orange-500/10 text-orange-800 border-orange-500/20" },
+  { bar: "bg-fuchsia-600", tint: "bg-fuchsia-600/10", icon: "text-fuchsia-700", badge: "bg-fuchsia-600/10 text-fuchsia-800 border-fuchsia-600/20" },
+];
+
+function getCategoryColor(category: string) {
+  const cat = (category || "General").trim().toLowerCase();
+  let hash = 0;
+  for (let i = 0; i < cat.length; i++) hash = (hash * 31 + cat.charCodeAt(i)) >>> 0;
+  return CATEGORY_PALETTE[hash % CATEGORY_PALETTE.length];
+}
+
 export default function Library() {
   const [selected, setSelected] = useState<Resource | null>(null);
   const [search, setSearch] = useState("");
