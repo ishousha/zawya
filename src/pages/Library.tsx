@@ -316,8 +316,8 @@ export default function Library() {
               </div>
             ) : !pastEvents?.length ? (
               <div className="flex flex-col items-center justify-center py-16 text-center">
-                <Calendar className="h-12 w-12 text-muted-foreground/50 mb-3" />
-                <p className="text-muted-foreground">No past gatherings yet.</p>
+                <Video className="h-12 w-12 text-muted-foreground/50 mb-3" />
+                <p className="text-muted-foreground">No recordings available yet.</p>
               </div>
             ) : (
               <div className="space-y-3">
