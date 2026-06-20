@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { CalendarPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -7,6 +6,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useIsMobile } from "@/hooks/use-mobile";
 import type { Database } from "@/integrations/supabase/types";
 
 type Event = Database["public"]["Tables"]["events"]["Row"];
@@ -83,6 +83,7 @@ function downloadIcs(event: Event) {
 }
 
 export default function AddToCalendarButton({ event }: { event: Event }) {
+  const isMobile = useIsMobile();
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -91,7 +92,11 @@ export default function AddToCalendarButton({ event }: { event: Event }) {
           Add to Calendar
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
+      <DropdownMenuContent
+        align="end"
+        side={isMobile ? "top" : "bottom"}
+        collisionPadding={16}
+      >
         <DropdownMenuItem
           onClick={() => window.open(buildGoogleCalendarUrl(event), "_blank")}
         >
