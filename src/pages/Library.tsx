@@ -233,20 +233,29 @@ export default function Library() {
                 ref={pillsRef}
                 className="flex gap-2 overflow-x-auto scrollbar-hide pb-3 -mx-1 px-1"
               >
-                {["All", ...categories].map((cat) => (
-                  <button
-                    key={cat}
-                    data-active={activeCategory === cat}
-                    onClick={() => setActiveCategory(cat)}
-                    className={`flex-shrink-0 rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
-                      activeCategory === cat
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-muted text-muted-foreground hover:bg-muted/80"
-                    }`}
-                  >
-                    {cat}
-                  </button>
-                ))}
+                {["All", ...categories].map((cat) => {
+                  const isActive = activeCategory === cat;
+                  const color = cat === "All" ? null : getCategoryColor(cat);
+                  const activeClass = cat === "All"
+                    ? "bg-primary text-primary-foreground"
+                    : `${color!.bar} text-white`;
+                  const inactiveClass = cat === "All"
+                    ? "bg-muted text-muted-foreground hover:bg-muted/80"
+                    : `${color!.tint} ${color!.icon} hover:opacity-80`;
+                  return (
+                    <button
+                      key={cat}
+                      data-active={isActive}
+                      onClick={() => setActiveCategory(cat)}
+                      className={`flex-shrink-0 rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
+                        isActive ? activeClass : inactiveClass
+                      }`}
+                    >
+                      {cat}
+                    </button>
+                  );
+                })}
+
               </div>
             )}
 
