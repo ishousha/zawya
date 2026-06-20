@@ -160,9 +160,9 @@ export default function Library() {
     }
   };
 
-  // Past events query
+  // Past events with recordings query
   const { data: pastEvents, isLoading: pastLoading } = useQuery({
-    queryKey: ["past-events"],
+    queryKey: ["past-events-with-recordings"],
     staleTime: 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
     refetchOnWindowFocus: false,
@@ -174,6 +174,8 @@ export default function Library() {
         .from("events")
         .select(EVENT_PUBLIC_COLUMNS)
         .in("status", ["active", "full", "cancelled"])
+        .not("recording_url", "is", null)
+        .neq("recording_url", "")
         .or(`and(end_date_time.not.is.null,end_date_time.lt.${now}),and(end_date_time.is.null,date_time.lt.${fallbackCutoff})`)
         .order("date_time", { ascending: false })
         .limit(20);
