@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { CalendarPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -7,6 +6,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useIsMobile } from "@/hooks/use-mobile";
 import type { Database } from "@/integrations/supabase/types";
 
 type Event = Database["public"]["Tables"]["events"]["Row"];
