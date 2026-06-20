@@ -201,7 +201,7 @@ export default function Library() {
         <Tabs defaultValue="resources" className="w-full">
           <TabsList className="w-full mb-4">
             <TabsTrigger value="resources" className="flex-1">Resources</TabsTrigger>
-            <TabsTrigger value="past" className="flex-1">Past Gatherings</TabsTrigger>
+            <TabsTrigger value="past" className="flex-1">Recordings</TabsTrigger>
           </TabsList>
 
           <TabsContent value="resources">
