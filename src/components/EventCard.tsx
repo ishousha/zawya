@@ -589,7 +589,7 @@ function EventCardInner({ event, onShowTicket, isPast = false }: EventCardProps)
         </div>
 
         {/* Guest requests for this user — discreet, below the RSVP actions */}
-        {!isPast && !isCancelled && isAttending && (
+        {!isPast && !isCancelled && isAttending && (event as any).allow_guests !== false && (
           <GuestRequestStatusRow eventId={event.id} onOpen={() => setRsvpOpen(true)} />
         )}
 
@@ -683,7 +683,22 @@ export default EventCard;
 
 function GuestRequestStatusRow({ eventId, onOpen }: { eventId: string; onOpen: () => void }) {
   const { data: guests } = useMyGuestRequests(eventId);
-  if (!guests || guests.length === 0) return null;
+
+  // No guests yet — show a prominent "Add Guest" button so members know they can invite.
+  if (!guests || guests.length === 0) {
+    return (
+      <button
+        type="button"
+        onClick={onOpen}
+        className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-md border border-primary/30 bg-primary/5 px-3 py-2 text-sm font-medium text-primary hover:bg-primary/10 transition-colors"
+        aria-label="Add a guest to this event"
+      >
+        <UserPlus className="h-4 w-4" />
+        Add Guest
+      </button>
+    );
+  }
+
   const pending = guests.filter((g) => g.status === "pending").length;
   const approved = guests.filter((g) => g.status === "approved").length;
   const rejected = guests.filter((g) => g.status === "rejected").length;
