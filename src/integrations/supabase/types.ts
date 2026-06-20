@@ -932,11 +932,15 @@ export type Database = {
           category: string
           created_at: string
           description: string | null
+          event_id: string | null
           file_name: string | null
           file_size: number | null
           file_url: string
           id: string
+          resource_date: string | null
           resource_type: string
+          speaker_ids: string[]
+          tags: string[]
           title: string
           uploaded_by: string
         }
@@ -944,11 +948,15 @@ export type Database = {
           category?: string
           created_at?: string
           description?: string | null
+          event_id?: string | null
           file_name?: string | null
           file_size?: number | null
           file_url: string
           id?: string
+          resource_date?: string | null
           resource_type?: string
+          speaker_ids?: string[]
+          tags?: string[]
           title: string
           uploaded_by: string
         }
@@ -956,15 +964,27 @@ export type Database = {
           category?: string
           created_at?: string
           description?: string | null
+          event_id?: string | null
           file_name?: string | null
           file_size?: number | null
           file_url?: string
           id?: string
+          resource_date?: string | null
           resource_type?: string
+          speaker_ids?: string[]
+          tags?: string[]
           title?: string
           uploaded_by?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "resources_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       rsvp_sign_up_selections: {
         Row: {
