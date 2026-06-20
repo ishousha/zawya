@@ -223,8 +223,18 @@ export default function Library() {
       <main className="mx-auto max-w-2xl px-4 py-4">
         <Tabs defaultValue="resources" className="w-full">
           <TabsList className="w-full mb-4">
-            <TabsTrigger value="resources" className="flex-1">Resources</TabsTrigger>
-            <TabsTrigger value="past" className="flex-1">Recordings</TabsTrigger>
+            <TabsTrigger
+              value="resources"
+              className="flex-1 data-[state=active]:bg-emerald-700 data-[state=active]:text-white data-[state=active]:shadow-none"
+            >
+              Resources
+            </TabsTrigger>
+            <TabsTrigger
+              value="past"
+              className="flex-1 data-[state=active]:bg-amber-600 data-[state=active]:text-white data-[state=active]:shadow-none"
+            >
+              Recordings
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="resources">
