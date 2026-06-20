@@ -296,15 +296,17 @@ export default function Library() {
                 {filtered.map((res) => {
                   const Icon = getResourceIcon(res.resource_type);
                   const isExternal = isExternalUrl(res.file_url);
+                  const color = getCategoryColor(res.category || "General");
                   return (
                     <Card
                       key={res.id}
-                      className="cursor-pointer transition-shadow hover:shadow-md active:scale-[0.99] overflow-hidden"
+                      className="cursor-pointer transition-shadow hover:shadow-md active:scale-[0.99] overflow-hidden relative"
                       onClick={() => handleResourceClick(res)}
                     >
-                      <CardContent className="flex items-start gap-3 p-4">
-                        <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-primary/10">
-                          <Icon className="h-6 w-6 text-primary" />
+                      <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${color.bar}`} aria-hidden />
+                      <CardContent className="flex items-start gap-3 p-4 pl-5">
+                        <div className={`flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl ${color.tint}`}>
+                          <Icon className={`h-6 w-6 ${color.icon}`} />
                         </div>
                         <div className="flex-1 min-w-0">
                           <h3 className="font-heading text-base font-semibold text-foreground flex items-center gap-1.5 min-w-0">
@@ -315,7 +317,7 @@ export default function Library() {
                             <p className="text-sm text-muted-foreground line-clamp-2 mt-0.5 break-words">{res.description}</p>
                           )}
                           <div className="flex flex-wrap items-center gap-2 mt-2 text-xs text-muted-foreground">
-                            <Badge variant="secondary" className="text-[10px] px-1.5 py-0 gap-1">
+                            <Badge variant="outline" className={`text-[10px] px-1.5 py-0 gap-1 border ${color.badge}`}>
                               <Tag className="h-2.5 w-2.5" />
                               {res.category || "General"}
                             </Badge>
