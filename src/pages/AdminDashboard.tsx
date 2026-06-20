@@ -218,7 +218,7 @@ export default function AdminDashboard() {
             <TabsTrigger value="events" className={tabTriggerBase}><CalendarPlus className="h-4 w-4" /> Events</TabsTrigger>
             <TabsTrigger value="scanner" className={scannerTrigger}><ScanLine className="h-4 w-4" /> Check-in</TabsTrigger>
             <TabsTrigger value="speakers" className={tabTriggerBase}><Mic className="h-4 w-4" /> Special Guests</TabsTrigger>
-            <TabsTrigger value="resources" className={tabTriggerBase}><BookOpen className="h-4 w-4" /> Resources</TabsTrigger>
+            <TabsTrigger value="resources" className={tabTriggerBase}><BookOpen className="h-4 w-4" /> Library</TabsTrigger>
             <TabsTrigger value="analytics" className={tabTriggerBase}><BarChart3 className="h-4 w-4" /> Analytics</TabsTrigger>
             <TabsTrigger value="reports" className={tabTriggerBase}><FileSpreadsheet className="h-4 w-4" /> Reports</TabsTrigger>
             <TabsTrigger value="settings" className={tabTriggerBase}><Settings className="h-4 w-4" /> Settings</TabsTrigger>
