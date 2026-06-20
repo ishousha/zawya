@@ -16,7 +16,7 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 
-const DEFAULT_CATEGORIES = ["Awrad/Litanies", "Books", "Event Materials", "General"];
+const DEFAULT_CATEGORIES = ["Awrad/Litanies", "Books", "Event Materials", "General", "Other"];
 const RESOURCE_TYPES = [
   { value: "pdf", label: "PDF", icon: FileText },
   { value: "video", label: "Video", icon: Video },
@@ -283,6 +283,9 @@ export default function ResourceManagement() {
                   </Command>
                 </PopoverContent>
               </Popover>
+              <p className="text-xs text-muted-foreground mt-1">
+                Don&apos;t see the right category? Type any name (e.g. <em>Other</em>) above to create a new one.
+              </p>
             </div>
 
             {/* Resource Type */}

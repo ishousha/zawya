@@ -56,6 +56,29 @@ function getResourceIcon(type?: string) {
   }
 }
 
+/**
+ * Deterministic color palette per category — gives each resource type a
+ * visually distinct accent so members can scan the list quickly.
+ * Tones are tuned to the Sufi parchment/emerald/gold aesthetic.
+ */
+const CATEGORY_PALETTE: { bar: string; tint: string; icon: string; badge: string }[] = [
+  { bar: "bg-emerald-600", tint: "bg-emerald-600/10", icon: "text-emerald-700", badge: "bg-emerald-600/10 text-emerald-800 border-emerald-600/20" },
+  { bar: "bg-amber-500",   tint: "bg-amber-500/10",   icon: "text-amber-700",   badge: "bg-amber-500/10 text-amber-800 border-amber-500/20" },
+  { bar: "bg-rose-500",    tint: "bg-rose-500/10",    icon: "text-rose-700",    badge: "bg-rose-500/10 text-rose-800 border-rose-500/20" },
+  { bar: "bg-sky-600",     tint: "bg-sky-600/10",     icon: "text-sky-700",     badge: "bg-sky-600/10 text-sky-800 border-sky-600/20" },
+  { bar: "bg-violet-600",  tint: "bg-violet-600/10",  icon: "text-violet-700",  badge: "bg-violet-600/10 text-violet-800 border-violet-600/20" },
+  { bar: "bg-teal-600",    tint: "bg-teal-600/10",    icon: "text-teal-700",    badge: "bg-teal-600/10 text-teal-800 border-teal-600/20" },
+  { bar: "bg-orange-500",  tint: "bg-orange-500/10",  icon: "text-orange-700",  badge: "bg-orange-500/10 text-orange-800 border-orange-500/20" },
+  { bar: "bg-fuchsia-600", tint: "bg-fuchsia-600/10", icon: "text-fuchsia-700", badge: "bg-fuchsia-600/10 text-fuchsia-800 border-fuchsia-600/20" },
+];
+
+function getCategoryColor(category: string) {
+  const cat = (category || "General").trim().toLowerCase();
+  let hash = 0;
+  for (let i = 0; i < cat.length; i++) hash = (hash * 31 + cat.charCodeAt(i)) >>> 0;
+  return CATEGORY_PALETTE[hash % CATEGORY_PALETTE.length];
+}
+
 export default function Library() {
   const [selected, setSelected] = useState<Resource | null>(null);
   const [search, setSearch] = useState("");
@@ -273,15 +296,17 @@ export default function Library() {
                 {filtered.map((res) => {
                   const Icon = getResourceIcon(res.resource_type);
                   const isExternal = isExternalUrl(res.file_url);
+                  const color = getCategoryColor(res.category || "General");
                   return (
                     <Card
                       key={res.id}
-                      className="cursor-pointer transition-shadow hover:shadow-md active:scale-[0.99] overflow-hidden"
+                      className="cursor-pointer transition-shadow hover:shadow-md active:scale-[0.99] overflow-hidden relative"
                       onClick={() => handleResourceClick(res)}
                     >
-                      <CardContent className="flex items-start gap-3 p-4">
-                        <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-primary/10">
-                          <Icon className="h-6 w-6 text-primary" />
+                      <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${color.bar}`} aria-hidden />
+                      <CardContent className="flex items-start gap-3 p-4 pl-5">
+                        <div className={`flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl ${color.tint}`}>
+                          <Icon className={`h-6 w-6 ${color.icon}`} />
                         </div>
                         <div className="flex-1 min-w-0">
                           <h3 className="font-heading text-base font-semibold text-foreground flex items-center gap-1.5 min-w-0">
@@ -292,7 +317,7 @@ export default function Library() {
                             <p className="text-sm text-muted-foreground line-clamp-2 mt-0.5 break-words">{res.description}</p>
                           )}
                           <div className="flex flex-wrap items-center gap-2 mt-2 text-xs text-muted-foreground">
-                            <Badge variant="secondary" className="text-[10px] px-1.5 py-0 gap-1">
+                            <Badge variant="outline" className={`text-[10px] px-1.5 py-0 gap-1 border ${color.badge}`}>
                               <Tag className="h-2.5 w-2.5" />
                               {res.category || "General"}
                             </Badge>
