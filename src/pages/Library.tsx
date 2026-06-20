@@ -160,9 +160,9 @@ export default function Library() {
     }
   };
 
-  // Past events query
+  // Past events with recordings query
   const { data: pastEvents, isLoading: pastLoading } = useQuery({
-    queryKey: ["past-events"],
+    queryKey: ["past-events-with-recordings"],
     staleTime: 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
     refetchOnWindowFocus: false,
@@ -174,6 +174,8 @@ export default function Library() {
         .from("events")
         .select(EVENT_PUBLIC_COLUMNS)
         .in("status", ["active", "full", "cancelled"])
+        .not("recording_url", "is", null)
+        .neq("recording_url", "")
         .or(`and(end_date_time.not.is.null,end_date_time.lt.${now}),and(end_date_time.is.null,date_time.lt.${fallbackCutoff})`)
         .order("date_time", { ascending: false })
         .limit(20);
@@ -199,7 +201,7 @@ export default function Library() {
         <Tabs defaultValue="resources" className="w-full">
           <TabsList className="w-full mb-4">
             <TabsTrigger value="resources" className="flex-1">Resources</TabsTrigger>
-            <TabsTrigger value="past" className="flex-1">Past Gatherings</TabsTrigger>
+            <TabsTrigger value="past" className="flex-1">Recordings</TabsTrigger>
           </TabsList>
 
           <TabsContent value="resources">
@@ -314,8 +316,8 @@ export default function Library() {
               </div>
             ) : !pastEvents?.length ? (
               <div className="flex flex-col items-center justify-center py-16 text-center">
-                <Calendar className="h-12 w-12 text-muted-foreground/50 mb-3" />
-                <p className="text-muted-foreground">No past gatherings yet.</p>
+                <Video className="h-12 w-12 text-muted-foreground/50 mb-3" />
+                <p className="text-muted-foreground">No recordings available yet.</p>
               </div>
             ) : (
               <div className="space-y-3">

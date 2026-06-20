@@ -1,40 +1,16 @@
-## Fix guest request card layout (Admin → Guests tab)
+## Change
 
-**Problem:** Each card uses a single horizontal flex row where the action buttons (status badge + 4 icon buttons, ~280px wide) consume most of the card width on mobile. The left column collapses to ~120px, forcing the guest name, requester info, phone, and the "Note from member" box to wrap into thin vertical sausages — one or two characters per line.
+In `src/pages/Library.tsx`, update the "Past Gatherings" tab to only show events with a recording, and rename the tab.
 
-**Fix (purely presentational, in `src/components/admin/AllGuestApprovals.tsx`, the request `<Card>` block around lines 250–343):**
+### Edits
 
-1. Convert the card body from a single flex row to a vertical stack:
-   - Row 1: guest name + status badge inline (badge on the right, no longer competing with buttons).
-   - Row 2: requester name, phone (compact muted text).
-   - Row 3: "Note from member" box, now full card width so wrapping is natural (4–6 words per line instead of 1).
-   - Row 4: action buttons in a right-aligned row (WhatsApp, Approve, Reject, Delete).
+1. **Tab label**: Rename `Past Gatherings` → `Recordings` (both the `TabsTrigger` and the empty state copy/icon).
 
-2. Tighten the note box: smaller header chip ("Note from member" inline label), comfortable line-height, `break-words`, max-height with subtle scroll only if very long.
+2. **Query `past-events`**:
+   - Add `.not("recording_url", "is", null)` and `.neq("recording_url", "")` to the Supabase query so only events with a recording added are returned.
+   - Keep the existing past-time filter (end_date_time < now, or date_time < cutoff when end is null) so it stays scoped to past events.
+   - Query key bumped to `["past-events-with-recordings"]` to avoid stale cache from the old query.
 
-3. Keep buttons at 40×40 (accessibility) but move them out of the text column so they no longer squeeze it.
+3. **Empty state**: Update message to "No recordings available yet." with a sensible icon (e.g. `Video`).
 
-4. Truncate long guest names with `truncate` only on the name line — never on the note.
-
-No data, hook, or business-logic changes. No changes to the event header/collapsible. No changes to the member-side guest UI.
-
-### Before / after sketch
-
-```text
-BEFORE (cramped)              AFTER (readable)
-┌──────────────────────┐      ┌────────────────────────────┐
-│ Abdal…   [P][✓][✗][🗑]│      │ Abdullah Mears   [Pending] │
-│ Req by               │      │ Requested by Yahya Van Rooy│
-│ Yahya Van            │      │ +971 54 518 8895           │
-│ Rooy                 │      │ ┌────────────────────────┐ │
-│ +971 54              │      │ │ NOTE FROM MEMBER       │ │
-│ 518 8895             │      │ │ Son of Hajj Idris      │ │
-│ ┌────────┐           │      │ │ Mears. My partner at   │ │
-│ │NOTE    │           │      │ │ Fitra Brews…           │ │
-│ │FROM    │           │      │ └────────────────────────┘ │
-│ │MEMBER  │           │      │           [💬][✓][✗][🗑]   │
-│ │Son of  │           │      └────────────────────────────┘
-│ │Hajj …  │           │
-│ └────────┘           │
-└──────────────────────┘
-```
+No DB, RLS, or other component changes — `recording_url` is already in `EVENT_PUBLIC_COLUMNS` and readable by members.
