@@ -589,7 +589,7 @@ function EventCardInner({ event, onShowTicket, isPast = false }: EventCardProps)
         </div>
 
         {/* Guest requests for this user — discreet, below the RSVP actions */}
-        {!isPast && !isCancelled && isAttending && (
+        {!isPast && !isCancelled && isAttending && (event as any).allow_guests !== false && (
           <GuestRequestStatusRow eventId={event.id} onOpen={() => setRsvpOpen(true)} />
         )}
 
