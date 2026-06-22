@@ -814,6 +814,7 @@ export default function EventRsvpDetail({ eventId, eventTitle, eventDate, checki
         </CardContent>
       </Card>
       <WalkInRsvpModal eventId={eventId} open={showWalkIn} onOpenChange={setShowWalkIn} />
+      <WalkInGuestDialog eventId={eventId} open={showAddGuest} onOpenChange={setShowAddGuest} />
 
       <Dialog open={!!previewData} onOpenChange={(o) => !o && setPreviewData(null)}>
         <DialogContent className="max-w-3xl w-[calc(100vw-2rem)] h-[90vh] sm:h-auto sm:max-h-[90vh] flex flex-col p-4 sm:p-6 gap-3 overflow-hidden">
