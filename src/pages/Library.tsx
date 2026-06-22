@@ -542,7 +542,13 @@ export default function Library() {
                   return (
                     <Card
                       key={res.id}
-                      className="cursor-pointer transition-shadow hover:shadow-md active:scale-[0.99] overflow-hidden relative"
+                      ref={(el) => {
+                        if (el) cardRefs.current.set(res.id, el);
+                        else cardRefs.current.delete(res.id);
+                      }}
+                      className={`cursor-pointer transition-all hover:shadow-md active:scale-[0.99] overflow-hidden relative ${
+                        highlightId === res.id ? "ring-2 ring-primary shadow-lg" : ""
+                      }`}
                       onClick={() => handleResourceClick(res)}
                     >
                       <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${color.bar}`} aria-hidden />
@@ -595,6 +601,18 @@ export default function Library() {
                             </div>
                           )}
                         </div>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-8 w-8 flex-shrink-0 -mr-1 text-muted-foreground hover:text-primary"
+                          aria-label="Share resource"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openShare(res.id, res.title, res.short_code);
+                          }}
+                        >
+                          <Share2 className="h-4 w-4" />
+                        </Button>
                       </CardContent>
                     </Card>
                   );
