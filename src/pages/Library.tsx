@@ -268,6 +268,36 @@ export default function Library() {
     }
   };
 
+  // Handle deep links: /library/:resourceId — open viewer, highlight & scroll
+  const deepHandled = useRef<string | null>(null);
+  useEffect(() => {
+    if (!deepLinkId || !resources) return;
+    if (deepHandled.current === deepLinkId) return;
+    const res = resources.find((r) => r.id === deepLinkId);
+    if (!res) return;
+    deepHandled.current = deepLinkId;
+    setTab("resources");
+    // Clear any restrictive filters so the card is visible
+    setActiveCategory("All");
+    setFilterType("all");
+    setFilterSpeaker("all");
+    setFilterDate("any");
+    setSearch("");
+    setHighlightId(res.id);
+    handleResourceClick(res);
+    // Scroll into view after layout
+    setTimeout(() => {
+      const el = cardRefs.current.get(res.id);
+      el?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 100);
+    // Remove highlight after a moment
+    setTimeout(() => setHighlightId(null), 2500);
+    // Clean URL so refresh doesn't reopen
+    navigate("/library", { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [deepLinkId, resources]);
+
+
   // Past events with recordings
   const { data: pastEvents, isLoading: pastLoading } = useQuery({
     queryKey: ["past-events-with-recordings"],
