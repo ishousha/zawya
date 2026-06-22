@@ -38,6 +38,7 @@ interface Resource {
   speaker_ids?: string[] | null;
   tags?: string[] | null;
   resource_date?: string | null;
+  short_code?: string | null;
 }
 
 interface SpeakerLite { id: string; name: string }
