@@ -145,6 +145,7 @@ interface ResourceRow {
   speaker_ids: string[] | null;
   tags: string[] | null;
   resource_date: string | null;
+  short_code: string | null;
 }
 
 const DATE_PRESETS = [
