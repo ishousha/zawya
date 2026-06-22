@@ -64,6 +64,7 @@ export default function EventRsvpDetail({ eventId, eventTitle, eventDate, checki
   const checkinPin = (adminSecrets?.checkin_pin as string | undefined) || checkinPinProp || "";
   const [assignSelections, setAssignSelections] = useState<Record<number, string>>({});
   const [showWalkIn, setShowWalkIn] = useState(false);
+  const [showAddGuest, setShowAddGuest] = useState(false);
   const [sendingGuestList, setSendingGuestList] = useState(false);
   const [previewLoading, setPreviewLoading] = useState(false);
   const [previewData, setPreviewData] = useState<{
