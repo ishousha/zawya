@@ -983,6 +983,7 @@ export default function ResourceManagement() {
           })}
         </div>
       )}
+      {shareDialog}
     </div>
   );
 }
