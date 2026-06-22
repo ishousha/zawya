@@ -242,12 +242,32 @@ export default function AllGuestApprovals() {
                       <Badge variant="outline" className="h-6 px-2 text-xs hidden sm:inline-flex">
                         {g.memberCount} member{g.memberCount !== 1 ? "s" : ""} RSVP'd
                       </Badge>
+                      <span
+                        role="button"
+                        tabIndex={0}
+                        onClick={(e) => { e.stopPropagation(); setAddGuestEventId(g.eventId); }}
+                        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); e.stopPropagation(); setAddGuestEventId(g.eventId); } }}
+                        className="hidden sm:inline-flex items-center gap-1 h-7 px-2 rounded-md border border-border bg-background text-xs font-medium hover:bg-muted"
+                        title="Add guest to this event"
+                      >
+                        <UserPlus className="h-3.5 w-3.5" /> Add
+                      </span>
                       <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`} />
                     </div>
                   </button>
                 </CollapsibleTrigger>
                 <CollapsibleContent>
                   <div className="space-y-2 px-3 pb-3">
+                    <div className="flex justify-end pt-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-8 gap-1.5 text-xs"
+                        onClick={() => setAddGuestEventId(g.eventId)}
+                      >
+                        <UserPlus className="h-3.5 w-3.5" /> Add Guest
+                      </Button>
+                    </div>
                     {g.requests.map((gr) => (
                       <Card key={gr.id} className={gr.status === "pending" ? "border-accent" : ""}>
                         <CardContent className="p-3 space-y-2">
