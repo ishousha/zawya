@@ -717,6 +717,15 @@ export default function Library() {
           <DialogHeader className="flex flex-row items-center justify-between px-4 py-3 border-b border-border flex-shrink-0">
             <DialogTitle className="font-heading text-lg truncate pr-2">{selected?.title}</DialogTitle>
             <div className="flex items-center gap-2 flex-shrink-0">
+              <Button
+                size="sm"
+                variant="outline"
+                className="gap-1.5"
+                onClick={() => selected && openShare(selected.id, selected.title, selected.short_code)}
+              >
+                <Share2 className="h-4 w-4" />
+                <span className="hidden sm:inline">Share</span>
+              </Button>
               <Button size="sm" className="gap-1.5" asChild>
                 <a href={selected?.signed_url || "#"} download={selected?.file_name || "document.pdf"} target="_blank" rel="noopener noreferrer">
                   <Download className="h-4 w-4" />
@@ -736,6 +745,8 @@ export default function Library() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {shareDialog}
     </div>
   );
 }
