@@ -14,12 +14,13 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Loader2, Upload, Trash2, FileText, Plus, X, Tag, Video, Headphones,
-  Link as LinkIcon, Check, ChevronsUpDown, Pencil, Search, CalendarDays, Mic, Calendar as CalendarIcon
+  Link as LinkIcon, Check, ChevronsUpDown, Pencil, Search, CalendarDays, Mic, Calendar as CalendarIcon, Share2
 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import SpeakerSelector from "@/components/admin/event-form/SpeakerSelector";
+import { useShareResource } from "@/components/ShareResourceDialog";
 
 const DEFAULT_CATEGORIES = ["Awrad/Litanies", "Books", "Event Materials", "General", "Other"];
 const RESOURCE_TYPES = [
