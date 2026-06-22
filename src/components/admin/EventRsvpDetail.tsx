@@ -34,6 +34,7 @@ import HostDashboard from "@/components/HostDashboard";
 import AdminGuestApprovals from "./AdminGuestApprovals";
 import CheckinPoster from "./CheckinPoster";
 import WalkInRsvpModal from "./WalkInRsvpModal";
+import WalkInGuestDialog from "./WalkInGuestDialog";
 import { ageGroupLabel, ageGroupShort, deriveAgeGroup } from "@/lib/age-group-labels";
 
 interface Props {
