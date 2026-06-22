@@ -115,6 +115,9 @@ function getEventMode(ev: Event): "online" | "hybrid" | "in-person" {
 }
 
 export default function Library() {
+  const { resourceId: deepLinkId } = useParams<{ resourceId?: string }>();
+  const navigate = useNavigate();
+  const { open: openShare, dialog: shareDialog } = useShareResource();
   const [selected, setSelected] = useState<Resource | null>(null);
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState("All");
@@ -123,7 +126,10 @@ export default function Library() {
   const [filterDate, setFilterDate] = useState<DatePreset>("any");
   const [sortBy, setSortBy] = useState<"newest" | "oldest" | "title">("newest");
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [tab, setTab] = useState<"resources" | "past">("resources");
+  const [highlightId, setHighlightId] = useState<string | null>(null);
   const pillsRef = useRef<HTMLDivElement>(null);
+  const cardRefs = useRef<Map<string, HTMLDivElement>>(new Map());
 
   // Recordings tab filters
   const [recSearch, setRecSearch] = useState("");
