@@ -140,7 +140,7 @@ export default function Library() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("resources")
-        .select("id, title, description, file_url, file_name, file_size, created_at, category, resource_type, event_id, speaker_ids, tags, resource_date")
+        .select("id, title, description, file_url, file_name, file_size, created_at, category, resource_type, event_id, speaker_ids, tags, resource_date, short_code")
         .order("created_at", { ascending: false })
         .limit(500);
       if (error) throw error;
