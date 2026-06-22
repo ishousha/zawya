@@ -366,7 +366,7 @@ export default function Library() {
       </header>
 
       <main className="mx-auto max-w-2xl px-4 py-4">
-        <Tabs defaultValue="resources" className="w-full">
+        <Tabs value={tab} onValueChange={(v) => setTab(v as "resources" | "past")} className="w-full">
           <TabsList className="w-full mb-4">
             <TabsTrigger value="resources" className="flex-1">Resources</TabsTrigger>
             <TabsTrigger value="past" className="flex-1">Recordings</TabsTrigger>
