@@ -6,11 +6,12 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Loader2, CheckCircle, XCircle, Clock, Search, ChevronDown, CalendarDays, MessageCircle, Trash2 } from "lucide-react";
+import { Loader2, CheckCircle, XCircle, Clock, Search, ChevronDown, CalendarDays, MessageCircle, Trash2, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { buildGuestWhatsAppUrl } from "@/lib/share-event";
 import { useAdminDeleteGuestRequest } from "@/hooks/useGuestRequests";
+import WalkInGuestDialog from "./WalkInGuestDialog";
 
 interface GroupedEvent {
   eventId: string;
@@ -26,6 +27,7 @@ export default function AllGuestApprovals() {
   const deleteRequest = useAdminDeleteGuestRequest();
   const [search, setSearch] = useState("");
   const [openEventIds, setOpenEventIds] = useState<Record<string, boolean>>({});
+  const [addGuestEventId, setAddGuestEventId] = useState<string | null>(null);
 
   const { data: guestRequests, isLoading } = useQuery({
     queryKey: ["all-guest-requests"],
@@ -240,12 +242,32 @@ export default function AllGuestApprovals() {
                       <Badge variant="outline" className="h-6 px-2 text-xs hidden sm:inline-flex">
                         {g.memberCount} member{g.memberCount !== 1 ? "s" : ""} RSVP'd
                       </Badge>
+                      <span
+                        role="button"
+                        tabIndex={0}
+                        onClick={(e) => { e.stopPropagation(); setAddGuestEventId(g.eventId); }}
+                        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); e.stopPropagation(); setAddGuestEventId(g.eventId); } }}
+                        className="hidden sm:inline-flex items-center gap-1 h-7 px-2 rounded-md border border-border bg-background text-xs font-medium hover:bg-muted"
+                        title="Add guest to this event"
+                      >
+                        <UserPlus className="h-3.5 w-3.5" /> Add
+                      </span>
                       <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`} />
                     </div>
                   </button>
                 </CollapsibleTrigger>
                 <CollapsibleContent>
                   <div className="space-y-2 px-3 pb-3">
+                    <div className="flex justify-end pt-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-8 gap-1.5 text-xs"
+                        onClick={() => setAddGuestEventId(g.eventId)}
+                      >
+                        <UserPlus className="h-3.5 w-3.5" /> Add Guest
+                      </Button>
+                    </div>
                     {g.requests.map((gr) => (
                       <Card key={gr.id} className={gr.status === "pending" ? "border-accent" : ""}>
                         <CardContent className="p-3 space-y-2">
@@ -356,6 +378,14 @@ export default function AllGuestApprovals() {
             );
           })}
         </div>
+      )}
+
+      {addGuestEventId && (
+        <WalkInGuestDialog
+          eventId={addGuestEventId}
+          open={!!addGuestEventId}
+          onOpenChange={(o) => { if (!o) setAddGuestEventId(null); }}
+        />
       )}
     </div>
   );

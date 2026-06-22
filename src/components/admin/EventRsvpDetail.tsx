@@ -34,6 +34,7 @@ import HostDashboard from "@/components/HostDashboard";
 import AdminGuestApprovals from "./AdminGuestApprovals";
 import CheckinPoster from "./CheckinPoster";
 import WalkInRsvpModal from "./WalkInRsvpModal";
+import WalkInGuestDialog from "./WalkInGuestDialog";
 import { ageGroupLabel, ageGroupShort, deriveAgeGroup } from "@/lib/age-group-labels";
 
 interface Props {
@@ -63,6 +64,7 @@ export default function EventRsvpDetail({ eventId, eventTitle, eventDate, checki
   const checkinPin = (adminSecrets?.checkin_pin as string | undefined) || checkinPinProp || "";
   const [assignSelections, setAssignSelections] = useState<Record<number, string>>({});
   const [showWalkIn, setShowWalkIn] = useState(false);
+  const [showAddGuest, setShowAddGuest] = useState(false);
   const [sendingGuestList, setSendingGuestList] = useState(false);
   const [previewLoading, setPreviewLoading] = useState(false);
   const [previewData, setPreviewData] = useState<{
@@ -469,6 +471,9 @@ export default function EventRsvpDetail({ eventId, eventTitle, eventDate, checki
               <Button size="sm" variant="default" className="h-8 gap-1.5 text-xs" onClick={() => setShowWalkIn(true)}>
                 <UserPlus className="h-3.5 w-3.5" /> Walk-In
               </Button>
+              <Button size="sm" variant="outline" className="h-8 gap-1.5 text-xs" onClick={() => setShowAddGuest(true)}>
+                <UserPlus className="h-3.5 w-3.5" /> Add Guest
+              </Button>
               <Button size="sm" variant="outline" className="h-8 gap-1.5 text-xs" onClick={handleExportCsv} disabled={!rsvps || rsvps.length === 0}>
                 <Download className="h-3.5 w-3.5" /> Export CSV
               </Button>
@@ -809,6 +814,7 @@ export default function EventRsvpDetail({ eventId, eventTitle, eventDate, checki
         </CardContent>
       </Card>
       <WalkInRsvpModal eventId={eventId} open={showWalkIn} onOpenChange={setShowWalkIn} />
+      <WalkInGuestDialog eventId={eventId} open={showAddGuest} onOpenChange={setShowAddGuest} />
 
       <Dialog open={!!previewData} onOpenChange={(o) => !o && setPreviewData(null)}>
         <DialogContent className="max-w-3xl w-[calc(100vw-2rem)] h-[90vh] sm:h-auto sm:max-h-[90vh] flex flex-col p-4 sm:p-6 gap-3 overflow-hidden">
