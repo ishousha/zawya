@@ -245,7 +245,7 @@ function StableLayout({ profile }: { profile: any }) {
 
   const stableTab = useMemo(() => {
     if (location.pathname === "/") return "home";
-    if (location.pathname === "/library") return "library";
+    if (location.pathname === "/library" || location.pathname.startsWith("/library/")) return "library";
     if (location.pathname === "/admin" && (isAdmin || isModerator)) return "admin";
     if (location.pathname === "/profile") return "profile";
     return null;
