@@ -954,6 +954,15 @@ export default function ResourceManagement() {
                       size="icon"
                       variant="ghost"
                       className="h-8 w-8"
+                      onClick={() => openShare(res.id, res.title, res.short_code)}
+                      aria-label="Share resource"
+                    >
+                      <Share2 className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-8 w-8"
                       onClick={() => startEdit(res)}
                     >
                       <Pencil className="h-4 w-4" />
