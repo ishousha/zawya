@@ -1,5 +1,5 @@
 import { useState, useMemo, useRef, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useParams, useNavigate } from "react-router-dom";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/runtime-client";
@@ -12,13 +12,14 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Loader2, FileText, Download, BookOpen, Search, Tag, Video, Headphones,
-  Link as LinkIcon, ExternalLink, CalendarDays, Mic, X, SlidersHorizontal
+  Link as LinkIcon, ExternalLink, CalendarDays, Mic, X, SlidersHorizontal, Share2
 } from "lucide-react";
 import { format } from "date-fns";
 import EventCard from "@/components/EventCard";
 import ResourceCardSkeleton from "@/components/library/ResourceCardSkeleton";
 import type { Database } from "@/integrations/supabase/types";
 import { EVENT_PUBLIC_COLUMNS } from "@/lib/event-columns";
+import { useShareResource } from "@/components/ShareResourceDialog";
 
 type Event = Database["public"]["Tables"]["events"]["Row"];
 
@@ -37,6 +38,7 @@ interface Resource {
   speaker_ids?: string[] | null;
   tags?: string[] | null;
   resource_date?: string | null;
+  short_code?: string | null;
 }
 
 interface SpeakerLite { id: string; name: string }
@@ -113,6 +115,9 @@ function getEventMode(ev: Event): "online" | "hybrid" | "in-person" {
 }
 
 export default function Library() {
+  const { resourceId: deepLinkId } = useParams<{ resourceId?: string }>();
+  const navigate = useNavigate();
+  const { open: openShare, dialog: shareDialog } = useShareResource();
   const [selected, setSelected] = useState<Resource | null>(null);
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState("All");
@@ -121,7 +126,10 @@ export default function Library() {
   const [filterDate, setFilterDate] = useState<DatePreset>("any");
   const [sortBy, setSortBy] = useState<"newest" | "oldest" | "title">("newest");
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [tab, setTab] = useState<"resources" | "past">("resources");
+  const [highlightId, setHighlightId] = useState<string | null>(null);
   const pillsRef = useRef<HTMLDivElement>(null);
+  const cardRefs = useRef<Map<string, HTMLDivElement>>(new Map());
 
   // Recordings tab filters
   const [recSearch, setRecSearch] = useState("");
@@ -138,7 +146,7 @@ export default function Library() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("resources")
-        .select("id, title, description, file_url, file_name, file_size, created_at, category, resource_type, event_id, speaker_ids, tags, resource_date")
+        .select("id, title, description, file_url, file_name, file_size, created_at, category, resource_type, event_id, speaker_ids, tags, resource_date, short_code")
         .order("created_at", { ascending: false })
         .limit(500);
       if (error) throw error;
@@ -260,6 +268,36 @@ export default function Library() {
     }
   };
 
+  // Handle deep links: /library/:resourceId — open viewer, highlight & scroll
+  const deepHandled = useRef<string | null>(null);
+  useEffect(() => {
+    if (!deepLinkId || !resources) return;
+    if (deepHandled.current === deepLinkId) return;
+    const res = resources.find((r) => r.id === deepLinkId);
+    if (!res) return;
+    deepHandled.current = deepLinkId;
+    setTab("resources");
+    // Clear any restrictive filters so the card is visible
+    setActiveCategory("All");
+    setFilterType("all");
+    setFilterSpeaker("all");
+    setFilterDate("any");
+    setSearch("");
+    setHighlightId(res.id);
+    handleResourceClick(res);
+    // Scroll into view after layout
+    setTimeout(() => {
+      const el = cardRefs.current.get(res.id);
+      el?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 100);
+    // Remove highlight after a moment
+    setTimeout(() => setHighlightId(null), 2500);
+    // Clean URL so refresh doesn't reopen
+    navigate("/library", { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [deepLinkId, resources]);
+
+
   // Past events with recordings
   const { data: pastEvents, isLoading: pastLoading } = useQuery({
     queryKey: ["past-events-with-recordings"],
@@ -358,7 +396,7 @@ export default function Library() {
       </header>
 
       <main className="mx-auto max-w-2xl px-4 py-4">
-        <Tabs defaultValue="resources" className="w-full">
+        <Tabs value={tab} onValueChange={(v) => setTab(v as "resources" | "past")} className="w-full">
           <TabsList className="w-full mb-4">
             <TabsTrigger value="resources" className="flex-1">Resources</TabsTrigger>
             <TabsTrigger value="past" className="flex-1">Recordings</TabsTrigger>
@@ -504,7 +542,13 @@ export default function Library() {
                   return (
                     <Card
                       key={res.id}
-                      className="cursor-pointer transition-shadow hover:shadow-md active:scale-[0.99] overflow-hidden relative"
+                      ref={(el) => {
+                        if (el) cardRefs.current.set(res.id, el);
+                        else cardRefs.current.delete(res.id);
+                      }}
+                      className={`cursor-pointer transition-all hover:shadow-md active:scale-[0.99] overflow-hidden relative ${
+                        highlightId === res.id ? "ring-2 ring-primary shadow-lg" : ""
+                      }`}
                       onClick={() => handleResourceClick(res)}
                     >
                       <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${color.bar}`} aria-hidden />
@@ -557,6 +601,18 @@ export default function Library() {
                             </div>
                           )}
                         </div>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-8 w-8 flex-shrink-0 -mr-1 text-muted-foreground hover:text-primary"
+                          aria-label="Share resource"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openShare(res.id, res.title, res.short_code);
+                          }}
+                        >
+                          <Share2 className="h-4 w-4" />
+                        </Button>
                       </CardContent>
                     </Card>
                   );
@@ -661,6 +717,15 @@ export default function Library() {
           <DialogHeader className="flex flex-row items-center justify-between px-4 py-3 border-b border-border flex-shrink-0">
             <DialogTitle className="font-heading text-lg truncate pr-2">{selected?.title}</DialogTitle>
             <div className="flex items-center gap-2 flex-shrink-0">
+              <Button
+                size="sm"
+                variant="outline"
+                className="gap-1.5"
+                onClick={() => selected && openShare(selected.id, selected.title, selected.short_code)}
+              >
+                <Share2 className="h-4 w-4" />
+                <span className="hidden sm:inline">Share</span>
+              </Button>
               <Button size="sm" className="gap-1.5" asChild>
                 <a href={selected?.signed_url || "#"} download={selected?.file_name || "document.pdf"} target="_blank" rel="noopener noreferrer">
                   <Download className="h-4 w-4" />
@@ -680,6 +745,8 @@ export default function Library() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {shareDialog}
     </div>
   );
 }

@@ -14,12 +14,13 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Loader2, Upload, Trash2, FileText, Plus, X, Tag, Video, Headphones,
-  Link as LinkIcon, Check, ChevronsUpDown, Pencil, Search, CalendarDays, Mic, Calendar as CalendarIcon
+  Link as LinkIcon, Check, ChevronsUpDown, Pencil, Search, CalendarDays, Mic, Calendar as CalendarIcon, Share2
 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import SpeakerSelector from "@/components/admin/event-form/SpeakerSelector";
+import { useShareResource } from "@/components/ShareResourceDialog";
 
 const DEFAULT_CATEGORIES = ["Awrad/Litanies", "Books", "Event Materials", "General", "Other"];
 const RESOURCE_TYPES = [
@@ -145,6 +146,7 @@ interface ResourceRow {
   speaker_ids: string[] | null;
   tags: string[] | null;
   resource_date: string | null;
+  short_code: string | null;
 }
 
 const DATE_PRESETS = [
@@ -180,6 +182,7 @@ function inDatePreset(iso: string | null | undefined, preset: DatePreset): boole
 export default function ResourceManagement() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const { open: openShare, dialog: shareDialog } = useShareResource();
 
   // ----- Form state -----
   const [showForm, setShowForm] = useState(false);
@@ -951,6 +954,15 @@ export default function ResourceManagement() {
                       size="icon"
                       variant="ghost"
                       className="h-8 w-8"
+                      onClick={() => openShare(res.id, res.title, res.short_code)}
+                      aria-label="Share resource"
+                    >
+                      <Share2 className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-8 w-8"
                       onClick={() => startEdit(res)}
                     >
                       <Pencil className="h-4 w-4" />
@@ -971,6 +983,7 @@ export default function ResourceManagement() {
           })}
         </div>
       )}
+      {shareDialog}
     </div>
   );
 }
