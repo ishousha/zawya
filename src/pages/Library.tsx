@@ -713,23 +713,38 @@ export default function Library() {
 
       {/* PDF Viewer Modal — only for storage files */}
       <Dialog open={!!selected} onOpenChange={(open) => !open && setSelected(null)}>
-        <DialogContent className="max-w-4xl w-[95vw] h-[90vh] flex flex-col p-0 gap-0">
-          <DialogHeader className="flex flex-row items-center justify-between px-4 py-3 border-b border-border flex-shrink-0">
-            <DialogTitle className="font-heading text-lg truncate pr-2">{selected?.title}</DialogTitle>
-            <div className="flex items-center gap-2 flex-shrink-0">
+        <DialogContent
+          className="max-w-4xl w-screen sm:w-[95vw] h-[100dvh] sm:h-[90vh] max-h-[100dvh] sm:max-h-[90vh] rounded-none sm:rounded-lg flex flex-col p-0 gap-0 [&>button.absolute]:hidden"
+          style={{ paddingTop: "env(safe-area-inset-top)", paddingBottom: "env(safe-area-inset-bottom)" }}
+        >
+          <DialogHeader className="flex flex-row items-center justify-between gap-2 px-3 py-2 border-b border-border flex-shrink-0">
+            <Button
+              size="icon"
+              variant="ghost"
+              className="h-10 w-10 flex-shrink-0"
+              onClick={() => setSelected(null)}
+              aria-label="Close"
+            >
+              <X className="h-5 w-5" />
+            </Button>
+            <DialogTitle className="font-heading text-base sm:text-lg truncate flex-1 min-w-0 text-left">
+              {selected?.title}
+            </DialogTitle>
+            <div className="flex items-center gap-1.5 flex-shrink-0">
               <Button
-                size="sm"
+                size="icon"
                 variant="outline"
-                className="gap-1.5"
+                className="h-10 w-10 sm:h-9 sm:w-auto sm:px-3 sm:gap-1.5"
                 onClick={() => selected && openShare(selected.id, selected.title, selected.short_code)}
+                aria-label="Share"
               >
                 <Share2 className="h-4 w-4" />
                 <span className="hidden sm:inline">Share</span>
               </Button>
-              <Button size="sm" className="gap-1.5" asChild>
+              <Button size="icon" className="h-10 w-10 sm:h-9 sm:w-auto sm:px-3 sm:gap-1.5" asChild aria-label="Download">
                 <a href={selected?.signed_url || "#"} download={selected?.file_name || "document.pdf"} target="_blank" rel="noopener noreferrer">
                   <Download className="h-4 w-4" />
-                  Download
+                  <span className="hidden sm:inline">Download</span>
                 </a>
               </Button>
             </div>
