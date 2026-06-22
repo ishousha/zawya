@@ -182,6 +182,7 @@ function inDatePreset(iso: string | null | undefined, preset: DatePreset): boole
 export default function ResourceManagement() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const { open: openShare, dialog: shareDialog } = useShareResource();
 
   // ----- Form state -----
   const [showForm, setShowForm] = useState(false);
