@@ -295,6 +295,7 @@ function StableLayout({ profile }: { profile: any }) {
             <Route path="/events/:eventId" element={<EventDetail />} />
             <Route path="/event/:eventId" element={<EventAliasRedirect />} />
             <Route path="/e/:shortCode" element={<EventShortLinkRedirect />} />
+            <Route path="/r/:shortCode" element={<ResourceShortLinkRedirect />} />
             <Route path="/speakers" element={<SpeakersDirectory />} />
             <Route path="/speakers/:speakerId" element={<SpeakerProfile />} />
             <Route path="/notifications" element={<NotificationsPage />} />
