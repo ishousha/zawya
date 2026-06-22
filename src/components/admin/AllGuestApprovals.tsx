@@ -379,6 +379,14 @@ export default function AllGuestApprovals() {
           })}
         </div>
       )}
+
+      {addGuestEventId && (
+        <WalkInGuestDialog
+          eventId={addGuestEventId}
+          open={!!addGuestEventId}
+          onOpenChange={(o) => { if (!o) setAddGuestEventId(null); }}
+        />
+      )}
     </div>
   );
 }
