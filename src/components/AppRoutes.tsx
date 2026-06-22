@@ -37,6 +37,7 @@ const Library = lazy(libraryImport);
 const SpeakersDirectory = lazy(() => import("@/pages/SpeakersDirectory"));
 const SpeakerProfile = lazy(() => import("@/pages/SpeakerProfile"));
 const EventShortLinkRedirect = lazy(() => import("@/pages/EventShortLinkRedirect"));
+const ResourceShortLinkRedirect = lazy(() => import("@/pages/ResourceShortLinkRedirect"));
 
 function LazyFallback() {
   return (
