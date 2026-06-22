@@ -27,6 +27,7 @@ export default function AllGuestApprovals() {
   const deleteRequest = useAdminDeleteGuestRequest();
   const [search, setSearch] = useState("");
   const [openEventIds, setOpenEventIds] = useState<Record<string, boolean>>({});
+  const [addGuestEventId, setAddGuestEventId] = useState<string | null>(null);
 
   const { data: guestRequests, isLoading } = useQuery({
     queryKey: ["all-guest-requests"],
