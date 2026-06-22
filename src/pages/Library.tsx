@@ -1,5 +1,5 @@
 import { useState, useMemo, useRef, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useParams, useNavigate } from "react-router-dom";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/runtime-client";
@@ -12,13 +12,14 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Loader2, FileText, Download, BookOpen, Search, Tag, Video, Headphones,
-  Link as LinkIcon, ExternalLink, CalendarDays, Mic, X, SlidersHorizontal
+  Link as LinkIcon, ExternalLink, CalendarDays, Mic, X, SlidersHorizontal, Share2
 } from "lucide-react";
 import { format } from "date-fns";
 import EventCard from "@/components/EventCard";
 import ResourceCardSkeleton from "@/components/library/ResourceCardSkeleton";
 import type { Database } from "@/integrations/supabase/types";
 import { EVENT_PUBLIC_COLUMNS } from "@/lib/event-columns";
+import { useShareResource } from "@/components/ShareResourceDialog";
 
 type Event = Database["public"]["Tables"]["events"]["Row"];
 
