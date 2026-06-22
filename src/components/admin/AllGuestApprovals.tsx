@@ -6,11 +6,12 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Loader2, CheckCircle, XCircle, Clock, Search, ChevronDown, CalendarDays, MessageCircle, Trash2 } from "lucide-react";
+import { Loader2, CheckCircle, XCircle, Clock, Search, ChevronDown, CalendarDays, MessageCircle, Trash2, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { buildGuestWhatsAppUrl } from "@/lib/share-event";
 import { useAdminDeleteGuestRequest } from "@/hooks/useGuestRequests";
+import WalkInGuestDialog from "./WalkInGuestDialog";
 
 interface GroupedEvent {
   eventId: string;
