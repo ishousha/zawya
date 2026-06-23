@@ -239,7 +239,12 @@ function EventCardInner({ event, onShowTicket, isPast = false }: EventCardProps)
           {!isCancelled && isAttending && !isWaitlisted && (
             <span className="inline-flex items-center gap-1 rounded-full bg-accent px-2.5 py-0.5 text-xs font-medium text-accent-foreground">
               <CheckCircle2 className="h-3 w-3" />
-              {isPhysical && isCheckedIn ? "Checked In" : "Attending"}
+              {isPhysical && isCheckedIn ? "Checked In" : isCovered ? `RSVP'd by ${coverage!.covering_user_name}` : "Attending"}
+            </span>
+          )}
+          {!isCancelled && isHost && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-gold/20 px-2.5 py-0.5 text-xs font-semibold text-gold-foreground">
+              ⭐ Hosting
             </span>
           )}
           {!isCancelled && isAttending && isWaitlisted && (
