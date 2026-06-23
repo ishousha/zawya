@@ -433,6 +433,9 @@ export default function ResourceManagement() {
     setSpeakerIds(res.speaker_ids ?? []);
     setTags(res.tags ?? []);
     setResourceDate(res.resource_date ?? "");
+    setCoverUrl(res.cover_image_url ?? null);
+    setCoverFile(null);
+    setCoverRemoved(false);
     setShowForm(true);
   }
 
@@ -451,6 +454,9 @@ export default function ResourceManagement() {
     setSpeakerIds([]);
     setTags([]);
     setResourceDate("");
+    setCoverFile(null);
+    setCoverUrl(null);
+    setCoverRemoved(false);
   }
 
   const isFormValid =
