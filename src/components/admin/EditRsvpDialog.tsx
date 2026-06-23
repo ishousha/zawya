@@ -93,6 +93,15 @@ export default function EditRsvpDialog({ rsvp, eventTitle, open, onOpenChange, c
       const isWaitlist = status === "waitlisted";
       const dbStatus = status === "cancelled" ? "cancelled" : isWaitlist ? "waitlisted" : "attending";
 
+      // Snapshot previous state for undo
+      const previous = {
+        guests_count: rsvp.guests_count,
+        attending_dependents: rsvp.attending_dependents ?? null,
+        status: rsvp.status,
+        is_waitlisted: !!rsvp.is_waitlisted,
+        checked_in: !!rsvp.checked_in,
+      };
+
       const { error } = await supabase
         .from("rsvps")
         .update({
@@ -122,9 +131,11 @@ export default function EditRsvpDialog({ rsvp, eventTitle, open, onOpenChange, c
             status: dbStatus,
             is_waitlisted: isWaitlist,
             checked_in: status === "cancelled" ? false : checkedIn,
+            previous,
           },
         });
       }
+      return { previous };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-rsvps", rsvp?.event_id] });
