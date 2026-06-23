@@ -630,7 +630,7 @@ export default function Library() {
                             {isExternal && <ExternalLink className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />}
                           </h4>
                           <span className="text-[10px] text-muted-foreground font-medium flex-shrink-0 uppercase tracking-wider">
-                            {(res.resource_type || "pdf").toUpperCase()}
+                            {label.toUpperCase()}
                           </span>
                         </div>
                         {res.description && (
