@@ -12,7 +12,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import { useRSVPConcurrency, useSignUpItems, useEventSignUpClaims, useMyRSVP, useMySelections, useEventRSVPs } from "@/hooks/useRSVP";
+import { useRSVPConcurrency, useSignUpItems, useEventSignUpClaims, useMyRSVP, useMySelections, useEventRSVPs, useMyEventCoverage, useRemoveSelfFromFamilyRsvp } from "@/hooks/useRSVP";
 import { useDependents } from "@/components/profile/DependentsSection";
 import { useFamilyMembers } from "@/hooks/useFamilyMembers";
 import { useDuplicateFoodCheck } from "@/hooks/useDuplicateFoodCheck";
