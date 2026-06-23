@@ -71,15 +71,15 @@ function isPlaylistResource(r: { resource_type?: string; category?: string }) {
   if (r.resource_type === "playlist") return true;
   return (r.category || "").toLowerCase().includes("playlist");
 }
-function getResourceIcon(res: { resource_type?: string; category?: string; tags?: string[] | null }) {
-  if (isPodcastResource(res)) return Mic;
-  if (isAwradResource(res)) return BookOpen;
-  if (isPlaylistResource(res)) return ListMusic;
+function getResourceMeta(res: { resource_type?: string; category?: string; tags?: string[] | null }) {
+  if (isPodcastResource(res)) return { Icon: Mic, label: "Podcast" };
+  if (isAwradResource(res)) return { Icon: BookOpen, label: "Awrad" };
+  if (isPlaylistResource(res)) return { Icon: ListMusic, label: "Playlist" };
   switch (res.resource_type) {
-    case "video": return PlayCircle;
-    case "audio": return Headphones;
-    case "link": return LinkIcon;
-    default: return FileText;
+    case "video": return { Icon: PlayCircle, label: "Video" };
+    case "audio": return { Icon: Headphones, label: "Audio" };
+    case "link": return { Icon: LinkIcon, label: "Link" };
+    default: return { Icon: FileText, label: "PDF" };
   }
 }
 
@@ -437,15 +437,12 @@ export default function Library() {
 
   return (
     <div className="min-h-screen bg-background pb-24">
-      <header className="border-b border-gold/20 bg-card px-4 pb-5 pt-6 relative">
-        <div className="absolute top-4 left-4 w-10 h-px bg-gold/40" aria-hidden />
-        <div className="flex items-center gap-2 mt-2">
+      <header className="border-b border-border bg-card px-4 pb-4 pt-6">
+        <div className="flex items-center gap-2">
           <BookOpen className="h-6 w-6 text-primary" />
-          <h1 className="font-heading text-3xl font-bold text-foreground leading-tight">Library</h1>
+          <h1 className="font-heading text-2xl font-bold text-foreground">Library</h1>
         </div>
-        <p className="mt-2 text-[10px] uppercase tracking-[0.2em] font-semibold text-gold-foreground/70">
-          The Garden of Knowledge
-        </p>
+        <p className="mt-1 text-sm text-muted-foreground">Resources & past gatherings</p>
       </header>
 
       <main className="mx-auto max-w-2xl px-4 py-4">
@@ -585,7 +582,7 @@ export default function Library() {
             ) : (
               (() => {
                 const renderListCard = (res: Resource) => {
-                  const Icon = getResourceIcon(res);
+                  const { Icon, label } = getResourceMeta(res);
                   const isExternal = isExternalUrl(res.file_url);
                   const color = getCategoryColor(res.category || "General");
                   const linkedEvent = res.event_id ? eventById.get(res.event_id) : null;
@@ -630,7 +627,7 @@ export default function Library() {
                             {isExternal && <ExternalLink className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />}
                           </h4>
                           <span className="text-[10px] text-muted-foreground font-medium flex-shrink-0 uppercase tracking-wider">
-                            {(res.resource_type || "pdf").toUpperCase()}
+                            {label.toUpperCase()}
                           </span>
                         </div>
                         {res.description && (
@@ -692,7 +689,7 @@ export default function Library() {
                 };
 
                 const renderFeaturedCard = (res: Resource) => {
-                  const Icon = getResourceIcon(res);
+                  const { Icon, label } = getResourceMeta(res);
                   const color = getCategoryColor(res.category || "General");
                   const podcast = isPodcastResource(res);
                   const firstSpeaker = (res.speaker_ids ?? [])
@@ -713,15 +710,11 @@ export default function Library() {
                           </div>
                         </div>
                         <div className="absolute inset-0 bg-gradient-to-t from-primary via-primary/40 to-transparent" aria-hidden />
-                        <div className="absolute top-3 left-3">
-                          <div className="bg-gold/90 backdrop-blur-sm px-2.5 py-0.5 rounded-full">
-                            <span className="text-[9px] font-bold text-gold-foreground uppercase tracking-wider">
-                              {res.category || "General"}
-                            </span>
-                          </div>
-                        </div>
-                        <div className="absolute top-3 right-3 bg-card/20 backdrop-blur-sm p-1.5 rounded-full text-card-foreground">
-                          <Icon className="h-4 w-4 text-card" />
+                        <div className="absolute top-3 left-3 flex items-center gap-1.5 bg-gold/90 backdrop-blur-sm pl-1.5 pr-2.5 py-1 rounded-full">
+                          <Icon className="h-3 w-3 text-gold-foreground" />
+                          <span className="text-[9px] font-bold text-gold-foreground uppercase tracking-wider">
+                            {label}
+                          </span>
                         </div>
                         <div className="absolute bottom-0 p-4 text-card-foreground w-full">
                           <h3 className="font-heading text-lg font-semibold text-card leading-tight mb-2 line-clamp-2">
@@ -757,14 +750,21 @@ export default function Library() {
                 }
 
                 return (
-                  <div className="space-y-8">
+                  <div className="space-y-6">
                     {recentResources.length > 0 && (
                       <section>
-                        <div className="flex items-center justify-between mb-3 px-1">
-                          <h2 className="font-heading italic text-lg font-semibold text-gold">
-                            Recently Added
-                          </h2>
-                          <span className="text-[10px] uppercase tracking-widest text-muted-foreground">
+                        <div className="flex items-end justify-between mb-3">
+                          <div>
+                            <h2 className="font-heading text-lg font-semibold text-foreground">
+                              Recently Added
+                            </h2>
+                            <div className="mt-1 flex items-center gap-1 text-gold/70" aria-hidden>
+                              <span className="text-[8px]">◆</span>
+                              <span className="text-[6px]">◆</span>
+                              <span className="text-[8px]">◆</span>
+                            </div>
+                          </div>
+                          <span className="text-xs text-muted-foreground">
                             {recentResources.length} new
                           </span>
                         </div>
@@ -775,19 +775,27 @@ export default function Library() {
                     )}
                     {groupedByCategory.map(([cat, items]) => (
                       <section key={cat}>
-                        <div className="flex items-center gap-3 mb-4">
-                          <span className="font-heading italic text-lg font-semibold text-gold whitespace-nowrap">
-                            {cat}
-                          </span>
-                          <div className="h-px flex-1 bg-gradient-to-r from-gold/30 to-transparent" />
-                          <button
-                            onClick={() => setActiveCategory(cat)}
-                            className="text-[10px] uppercase tracking-widest text-muted-foreground hover:text-primary"
-                          >
-                            View all
-                          </button>
+                        <div className="flex items-end justify-between mb-3">
+                          <div>
+                            <h2 className="font-heading text-lg font-semibold text-foreground">
+                              {cat}
+                            </h2>
+                            <div className="mt-1 flex items-center gap-1 text-gold/70" aria-hidden>
+                              <span className="text-[8px]">◆</span>
+                              <span className="text-[6px]">◆</span>
+                              <span className="text-[8px]">◆</span>
+                            </div>
+                          </div>
+                          {items.length > 4 && (
+                            <button
+                              onClick={() => setActiveCategory(cat)}
+                              className="text-xs font-medium text-primary hover:underline"
+                            >
+                              See all ({items.length})
+                            </button>
+                          )}
                         </div>
-                        <div className="grid gap-3">
+                        <div className="space-y-3">
                           {items.slice(0, 4).map(renderListCard)}
                         </div>
                       </section>
@@ -904,8 +912,16 @@ export default function Library() {
             >
               <X className="h-5 w-5" />
             </Button>
-            <DialogTitle className="font-heading text-base sm:text-lg truncate flex-1 min-w-0 text-left">
-              {selected?.title}
+            <DialogTitle className="font-heading text-base sm:text-lg truncate flex-1 min-w-0 text-left flex items-center gap-2">
+              {selected && (() => {
+                const { Icon, label } = getResourceMeta(selected);
+                return (
+                  <span className="inline-flex items-center gap-1.5 text-primary flex-shrink-0" aria-label={label}>
+                    <Icon className="h-4 w-4" />
+                  </span>
+                );
+              })()}
+              <span className="truncate">{selected?.title}</span>
             </DialogTitle>
             <div className="flex items-center gap-1.5 flex-shrink-0">
               <Button
