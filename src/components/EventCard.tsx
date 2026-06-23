@@ -511,6 +511,27 @@ function EventCardInner({ event, onShowTicket, isPast = false }: EventCardProps)
                         Your RSVP no longer matches this event's audience.
                       </p>
                     </div>
+                  ) : isCovered ? (
+                  <>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setRsvpOpen(true)}
+                      className="flex-1"
+                      title={`Included in ${coverage!.covering_user_name}'s RSVP`}
+                    >
+                      <Users className="mr-1.5 h-3.5 w-3.5" />
+                      RSVP'd by family
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={() => onShowTicket?.(event)}
+                      className="flex-1"
+                    >
+                      <Ticket className="mr-1.5 h-3.5 w-3.5" />
+                      View Family Ticket
+                    </Button>
+                  </>
                   ) : (
                   <>
                     <Button
