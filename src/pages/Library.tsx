@@ -19,7 +19,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { format } from "date-fns";
 import EventCard from "@/components/EventCard";
 import ResourceCardSkeleton from "@/components/library/ResourceCardSkeleton";
-import FeaturedCarousel from "@/components/library/FeaturedCarousel";
+
 import RecentlyAddedSection from "@/components/library/RecentlyAddedSection";
 import { ResourceCover } from "@/components/library/resourceCover";
 import type { Database } from "@/integrations/supabase/types";
