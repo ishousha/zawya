@@ -102,67 +102,7 @@ function getCategoryColor(category: string) {
   return CATEGORY_PALETTE[hash % CATEGORY_PALETTE.length];
 }
 
-// In-memory cache so we don't re-sign covers across renders.
-const coverUrlCache = new Map<string, { url: string; expires: number }>();
-
-function useCoverSignedUrl(path: string | null | undefined) {
-  const [url, setUrl] = useState<string | null>(() => {
-    if (!path) return null;
-    const hit = coverUrlCache.get(path);
-    return hit && hit.expires > Date.now() ? hit.url : null;
-  });
-  useEffect(() => {
-    if (!path) { setUrl(null); return; }
-    const hit = coverUrlCache.get(path);
-    if (hit && hit.expires > Date.now()) { setUrl(hit.url); return; }
-    let cancelled = false;
-    supabase.storage.from("resource-covers").createSignedUrl(path, 3600).then(({ data }) => {
-      if (cancelled || !data?.signedUrl) return;
-      coverUrlCache.set(path, { url: data.signedUrl, expires: Date.now() + 55 * 60 * 1000 });
-      setUrl(data.signedUrl);
-    });
-    return () => { cancelled = true; };
-  }, [path]);
-  return url;
-}
-
-/** Themed fallback tile — parchment with concentric gold rings + type icon. */
-function CoverFallback({ Icon, className = "" }: { Icon: typeof FileText; className?: string }) {
-  return (
-    <div className={`relative w-full h-full bg-[hsl(var(--parchment-deep))]/40 flex items-center justify-center overflow-hidden ${className}`}>
-      <div className="absolute inset-0 flex items-center justify-center opacity-60" aria-hidden>
-        <div className="w-[140%] h-[140%] border border-gold/30 rounded-full" />
-      </div>
-      <div className="absolute inset-0 flex items-center justify-center opacity-40" aria-hidden>
-        <div className="w-[90%] h-[90%] border border-gold/40 rounded-full" />
-      </div>
-      <Icon className="relative h-7 w-7 text-primary/70" />
-    </div>
-  );
-}
-
-/** Renders the best available cover image for a resource, with fallbacks. */
-function ResourceCover({
-  res, speakerImage, eventCover, Icon, rounded = "rounded-2xl",
-}: {
-  res: { cover_image_url?: string | null };
-  speakerImage?: string | null;
-  eventCover?: string | null;
-  Icon: typeof FileText;
-  rounded?: string;
-}) {
-  const signed = useCoverSignedUrl(res.cover_image_url ?? null);
-  const src = signed || speakerImage || eventCover || null;
-  return (
-    <div className={`w-full h-full overflow-hidden ${rounded}`}>
-      {src ? (
-        <img src={src} alt="" className="w-full h-full object-cover" loading="lazy" />
-      ) : (
-        <CoverFallback Icon={Icon} />
-      )}
-    </div>
-  );
-}
+// Cover signing + fallback now live in @/components/library/resourceCover & CoverFallback.
 
 
 const DATE_PRESETS = [
