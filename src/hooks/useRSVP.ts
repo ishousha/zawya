@@ -11,11 +11,15 @@ type RSVP = Database["public"]["Tables"]["rsvps"]["Row"];
 type RSVPInsert = Database["public"]["Tables"]["rsvps"]["Insert"];
 
 function getErrorMessage(error: unknown, fallback: string) {
-  if (error instanceof Error && error.message) return error.message;
-  if (typeof error === "object" && error && "message" in error && typeof (error as { message?: unknown }).message === "string") {
-    return (error as { message: string }).message;
+  let msg: string | undefined;
+  if (error instanceof Error && error.message) msg = error.message;
+  else if (typeof error === "object" && error && "message" in error && typeof (error as { message?: unknown }).message === "string") {
+    msg = (error as { message: string }).message;
   }
-  return fallback;
+  if (!msg) return fallback;
+  // Strip trigger error codes like "RSVP_DUPLICATE_COVERED: ..." to keep the friendly tail
+  const m = msg.match(/RSVP_DUPLICATE_[A-Z_]+:\s*(.+)$/);
+  return m ? m[1] : msg;
 }
 
 export function useEventRsvpCounts(eventId: string) {
