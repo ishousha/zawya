@@ -223,19 +223,19 @@ async function checkWaitlistStatus(
 ): Promise<boolean> {
   const { data: event, error: evErr } = await supabase
     .from("events")
-    .select("capacity, waitlist_capacity")
+    .select("capacity, waitlist_capacity, host_id")
     .eq("id", eventId)
     .single();
   if (evErr) throw evErr;
 
   const capacity = (event as any).capacity as number | null;
   const waitlistCapacity = ((event as any).waitlist_capacity ?? 0) as number;
+  const hostId = (event as any).host_id as string | null;
 
   if (!capacity) return false;
 
-  // Count ALL attending RSVPs (do not exclude self), then subtract only the
-  // caller's currently-attending seats. Waitlisted/cancelled rows contribute 0.
-  // This prevents a waitlisted user from self-promoting on re-submit.
+  // Count ALL attending RSVPs (excluding the host's seat, which doesn't consume capacity),
+  // then subtract only the caller's currently-attending seats.
   const { data: allAttending, error: cErr } = await supabase
     .from("rsvps")
     .select("user_id, guests_count")
@@ -243,16 +243,19 @@ async function checkWaitlistStatus(
     .eq("status", "attending");
   if (cErr) throw cErr;
 
-  const totalConfirmed = (allAttending ?? []).reduce(
-    (sum, r: any) => sum + (r.guests_count ?? 1),
-    0
-  );
+  const totalConfirmed = (allAttending ?? [])
+    .filter((r: any) => !hostId || r.user_id !== hostId)
+    .reduce((sum, r: any) => sum + (r.guests_count ?? 1), 0);
   const mySeats = (allAttending ?? [])
-    .filter((r: any) => r.user_id === currentUserId)
+    .filter((r: any) => r.user_id === currentUserId && (!hostId || r.user_id !== hostId))
     .reduce((s: number, r: any) => s + (r.guests_count ?? 1), 0);
   const othersConfirmed = totalConfirmed - mySeats;
 
+  // Host never gets waitlisted on their own event
+  if (hostId && currentUserId === hostId) return false;
+
   if (othersConfirmed + requestedGuests <= capacity) return false;
+
 
   // Count ALL waitlisted rows, subtract 1 if caller is already waitlisted.
   const { data: allWait, error: wErr } = await supabase
