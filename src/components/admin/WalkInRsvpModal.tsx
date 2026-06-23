@@ -142,6 +142,16 @@ export default function WalkInRsvpModal({ eventId, open, onOpenChange, onProject
     },
   });
 
+  // Live projection: while the modal is open and the chosen mode would
+  // consume capacity, report the prospective added headcount.
+  useEffect(() => {
+    if (!onProjectionChange) return;
+    if (!open) { onProjectionChange(null); return; }
+    if (mode === "waitlist") { onProjectionChange(0); return; }
+    onProjectionChange(adultsCount + childrenCount);
+    return () => onProjectionChange(null);
+  }, [open, mode, adultsCount, childrenCount, onProjectionChange]);
+
   const resetForm = () => {
     setSelectedUserId(null);
     setAdultsCount(1);
