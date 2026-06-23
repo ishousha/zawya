@@ -605,7 +605,7 @@ export default function Library() {
                         else cardRefs.current.delete(res.id);
                       }}
                       onClick={() => handleResourceClick(res)}
-                      className={`group cursor-pointer bg-white/60 border border-gold/15 rounded-2xl p-3 flex gap-3 transition-all hover:bg-card hover:shadow-lg hover:shadow-primary/5 active:scale-[0.99] ${
+                      className={`group cursor-pointer bg-white/60 border border-gold/15 rounded-2xl p-3 flex gap-3 min-w-0 transition-all hover:bg-card hover:shadow-lg hover:shadow-primary/5 active:scale-[0.99] ${
                         highlightId === res.id ? "ring-2 ring-primary shadow-lg" : ""
                       }`}
                     >
