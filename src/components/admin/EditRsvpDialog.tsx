@@ -172,6 +172,18 @@ export default function EditRsvpDialog({ rsvp, eventTitle, open, onOpenChange, c
         queryClient.invalidateQueries({ queryKey: ["door-attendees", evId] });
         queryClient.invalidateQueries({ queryKey: ["existing-rsvp-users", evId] });
       };
+      // Surface action to parent (used for global "Undo last change" on error toasts)
+      if (previous && rsvpId && rsvp) {
+        onActionRecorded?.({
+          kind: "edit",
+          rsvpId,
+          userId: rsvp.user_id,
+          name: rsvp.profile?.name ?? rsvp.profile?.email ?? "Member",
+          email: rsvp.profile?.email ?? null,
+          previous,
+          at: Date.now(),
+        });
+      }
       toast.success("RSVP updated", {
         duration: 10000,
         action: previous && rsvpId
@@ -189,11 +201,11 @@ export default function EditRsvpDialog({ rsvp, eventTitle, open, onOpenChange, c
                   })
                   .eq("id", rsvpId);
                 if (error) {
-                  const m = String(error.message || "");
-                  if (m.includes("RSVP_CAPACITY_EXCEEDED")) {
-                    toast.error("Can't undo — event is now full");
+                  const cap = capacityToastFromError(error);
+                  if (cap) {
+                    toast.error("Can't undo — " + cap.title.toLowerCase(), { description: cap.description });
                   } else {
-                    toast.error("Undo failed", { description: m });
+                    toast.error("Undo failed", { description: error.message });
                   }
                   return;
                 }
@@ -217,10 +229,13 @@ export default function EditRsvpDialog({ rsvp, eventTitle, open, onOpenChange, c
       onOpenChange(false);
     },
     onError: (err: any) => {
+      const cap = capacityToastFromError(err);
+      if (cap) {
+        toast.error(cap.title, { description: cap.description });
+        return;
+      }
       const msg = String(err?.message || "Failed to update RSVP");
-      if (msg.includes("RSVP_CAPACITY_EXCEEDED")) {
-        toast.error("Over capacity", { description: msg.replace(/^.*?RSVP_CAPACITY_EXCEEDED:\s*/, "") });
-      } else if (msg.includes("RSVP_DUPLICATE_COVERED") || msg.includes("RSVP_DUPLICATE_MEMBER")) {
+      if (msg.includes("RSVP_DUPLICATE_COVERED") || msg.includes("RSVP_DUPLICATE_MEMBER")) {
         toast.error("Family conflict", { description: msg.replace(/^.*?:\s*/, "") });
       } else {
         toast.error(msg);
