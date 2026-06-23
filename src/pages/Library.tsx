@@ -265,7 +265,7 @@ export default function Library() {
     if (active) active.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
   }, [activeCategory]);
 
-  const handleResourceClick = async (res: Resource) => {
+  const handleResourceClick = useCallback(async (res: Resource) => {
     if (isExternalUrl(res.file_url)) {
       window.open(res.file_url, "_blank", "noopener,noreferrer");
       return;
