@@ -807,21 +807,31 @@ export default function ResourceManagement() {
 
             <Button
               className="w-full h-11"
-              onClick={() => {
+              onClick={async () => {
                 if (editingId) {
-                  editMutation.mutate({
-                    id: editingId,
-                    updates: {
-                      title,
-                      description: description || null,
-                      category: category.trim(),
-                      resource_type: resourceType,
-                      event_id: linkedEventId,
-                      speaker_ids: speakerIds,
-                      tags,
-                      resource_date: resourceDate || null,
-                    } as any,
-                  });
+                  try {
+                    const newCoverPath = await uploadCoverIfAny();
+                    const cover_image_url =
+                      newCoverPath !== undefined ? newCoverPath
+                      : coverRemoved ? null
+                      : undefined;
+                    editMutation.mutate({
+                      id: editingId,
+                      updates: {
+                        title,
+                        description: description || null,
+                        category: category.trim(),
+                        resource_type: resourceType,
+                        event_id: linkedEventId,
+                        speaker_ids: speakerIds,
+                        tags,
+                        resource_date: resourceDate || null,
+                        ...(cover_image_url !== undefined ? { cover_image_url } : {}),
+                      } as any,
+                    });
+                  } catch (err: any) {
+                    toast.error(err.message || "Failed to upload cover");
+                  }
                 } else {
                   uploadMutation.mutate();
                 }
