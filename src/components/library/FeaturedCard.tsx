@@ -24,7 +24,7 @@ function FeaturedCardImpl({ resource, speakerImage, eventCover, Icon, label, onS
     <button
       type="button"
       onClick={() => onSelect(resource)}
-      className="flex-none w-24 sm:w-28 md:w-32 lg:w-36 snap-start text-left group"
+      className="flex-none w-36 sm:w-40 md:w-44 lg:w-48 snap-start text-left group"
     >
       <div className="relative aspect-square rounded-2xl overflow-hidden shadow-sm border border-gold/15 bg-card transition-transform group-active:scale-[0.98]">
         <ResourceCover
@@ -34,21 +34,18 @@ function FeaturedCardImpl({ resource, speakerImage, eventCover, Icon, label, onS
           Icon={Icon}
           label={label}
           rounded=""
-          showLabel
+          showLabel={false}
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/10 to-transparent pointer-events-none" aria-hidden />
-        <div className="absolute top-2 left-2 flex items-center gap-1 bg-card/90 backdrop-blur-sm pl-1.5 pr-2 py-0.5 rounded-full border border-gold/20">
-          <Icon className="h-2.5 w-2.5 text-primary" />
-          <span className="text-[9px] font-semibold text-foreground uppercase tracking-wide">
+        <div className="absolute top-2 left-2 flex items-center gap-1 bg-card/95 backdrop-blur-sm pl-1.5 pr-2 h-5 rounded-full border border-gold/30 shadow-sm">
+          <Icon className="h-3 w-3 text-primary" />
+          <span className="text-[10px] font-semibold text-foreground uppercase tracking-wide leading-none">
             {label}
           </span>
         </div>
-        <div className="absolute bottom-0 left-0 right-0 p-2.5">
-          <h3 className="font-heading text-sm font-semibold text-white leading-tight line-clamp-2 drop-shadow">
-            {resource.title}
-          </h3>
-        </div>
       </div>
+      <h3 className="mt-2 px-0.5 font-heading text-sm font-semibold text-foreground leading-snug line-clamp-2">
+        {resource.title}
+      </h3>
     </button>
   );
 }

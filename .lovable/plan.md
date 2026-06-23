@@ -1,48 +1,30 @@
-## Goals
-1. Stop re-rendering the "Recently Added" carousel (and re-mounting its cover images / re-fetching signed URLs) every time the user toggles a category, type, speaker, or search filter.
-2. Make the icon-only fallback tiles feel like first-class covers so resources without an uploaded image, speaker photo, or linked event cover don't visibly downgrade the strip.
+## Goal
+Make Library carousel tiles easier to identify on mobile phones — larger thumbnails, clearer type labels, and a visible title underneath instead of relying on the dark overlay.
 
-## Scope
-`src/pages/Library.tsx` and `src/components/library/` only. No DB, schema, or admin changes.
+## Changes
 
----
+**1. Bigger tiles on mobile** (`src/components/library/FeaturedCard.tsx`)
+- Bump width: `w-36 sm:w-40 md:w-44 lg:w-48` (from `w-24 sm:w-28 md:w-32 lg:w-36`).
+- Keep `aspect-square` so height grows proportionally — still much shorter than the original tall carousel, but tiles roughly 50% larger on phones.
 
-## 1. Render isolation for the carousel
+**2. Move title below the image, not over it**
+- Remove the dark gradient overlay and the absolutely-positioned title inside the cover.
+- Render the title under the tile in a 2-line clamp using `font-heading text-sm` for crisp readability on parchment background. This frees the cover art to be fully visible — important since covers/speaker photos/fallbacks are the main identifier.
 
-Today `renderFeaturedCard` is a closure recreated on every `Library` render, so every filter keystroke unmounts/remounts each `ResourceCover` — that triggers a new signed-URL request and a fresh `<img>` load (visible flicker). Plan:
+**3. Stronger type chip**
+- Keep the top-left chip but enlarge to `text-[10px]`, `h-5`, with a slightly more opaque background so "PODCAST / PDF / VIDEO" is legible at a glance on small screens.
+- Drop the redundant baked-in label inside `CoverFallback` (pass `showLabel={false}`) to avoid double-labeling now that the chip is larger and the title sits below.
 
-- Extract `FeaturedCard` into `src/components/library/FeaturedCard.tsx` wrapped in `React.memo`. Props: `resource`, `speakerImage`, `eventCover`, `meta` (Icon + label), `onSelect`.
-- Extract `RecentlyAddedSection` into `src/components/library/RecentlyAddedSection.tsx` wrapped in `React.memo`. Props: `resources`, `speakerById`, `eventById`, `getResourceMeta`, `onSelect`. It owns the `FeaturedCarousel` and maps to `FeaturedCard`.
-- In `Library.tsx`:
-  - Stabilize `handleResourceClick` with `useCallback`.
-  - Stabilize `getResourceMeta` (it's pure) with `useCallback` or hoist to module scope.
-  - `speakerById` / `eventById` already come from `useMemo` queries — keep as-is so the memo compare is stable.
-  - Pass the memoized props in.
-- Net effect: changing `activeCategory`, `filterType`, `filterSpeaker`, `filterDate`, or `search` no longer causes `RecentlyAddedSection` to re-render, so signed URLs and `<img>` elements persist.
+**4. Carousel spacing tweak** (`src/components/library/FeaturedCarousel.tsx`)
+- Increase gap to `gap-4` and bottom padding to `pb-4` so the larger tiles + external titles breathe.
+- Nudge nav buttons up (`-mt-6`) to sit centered on the new tile (not the title).
 
-Also memoize the per-resource lookup inside the card (the linked-event + first-speaker derivation) so it doesn't recompute on internal re-renders.
+**5. Version bump** (`public/version.json` → 7).
 
-## 2. Upgrade the icon-only fallback cover
+## Out of scope
+No DB changes, no admin UI changes, no changes to `RecentlyAddedSection` or `CoverFallback` visuals beyond the `showLabel` toggle. Category color palette and scroll/drag behavior stay as shipped.
 
-Replace the current `CoverFallback` (two faint gold rings + tiny icon on parchment) with a richer Sufi-manuscript style tile that holds its own visual weight next to photo tiles.
-
-New `CoverFallback` design:
-- Background: soft diagonal gradient from `parchment-deep` → `parchment` → faint `primary/8`, giving depth.
-- Decorative SVG layer (inline, no extra asset): an 8-point Sufi star + concentric arabesque rings drawn in `gold/25` strokes, rotated and offset; subtle so it reads as texture, not chrome.
-- Centered emblem: 56px gold-rimmed roundel (gradient `gold/15` → `gold/30`) with the resource-type `Icon` at `h-7 w-7 text-primary`.
-- Bottom-left type label baked into the cover ("Podcast", "Playlist", "Recording", "PDF", etc.) in `font-heading text-[10px] uppercase tracking-[0.18em] text-primary/80`, so even a fallback tile communicates type at a glance.
-- Deterministic tint per resource (hash of `res.id` → one of 4 Sufi accents: emerald, olive, clay, gold) applied to the gradient stop and the star stroke, so adjacent fallback tiles don't look identical.
-- Same component works at any size: carousel square tile, list-card 56px thumbnail, PDF-viewer thumb. The list-card variant hides the bottom label (no room) but keeps the gradient + star + emblem.
-
-Acceptance check: place a row of 3 fallback + 3 photo tiles side by side — fallbacks should look intentional, not "missing image".
-
-## 3. Out of scope
-- No new DB column, no admin UI change, no AI-generated covers.
-- Carousel scroll/drag behavior, sizing, and category palette stay exactly as last shipped.
-
-## 4. Files
-- `src/pages/Library.tsx` — extract pieces, add `useCallback`s, hoist `getResourceMeta` if pure, swap fallback usage.
-- `src/components/library/FeaturedCard.tsx` (new, memoized).
-- `src/components/library/RecentlyAddedSection.tsx` (new, memoized).
-- `src/components/library/CoverFallback.tsx` (new, replaces inline version).
-- `public/version.json` — bump to v6.
+## Files
+- edit `src/components/library/FeaturedCard.tsx`
+- edit `src/components/library/FeaturedCarousel.tsx`
+- edit `public/version.json`
