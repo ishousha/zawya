@@ -47,6 +47,8 @@ export default function RSVPModal({ event, open, onOpenChange }: RSVPModalProps)
   const { user, profile } = useAuth();
   const queryClient = useQueryClient();
   const { data: myRSVP } = useMyRSVP(event.id);
+  const { data: coverage } = useMyEventCoverage(event.id);
+  const removeSelf = useRemoveSelfFromFamilyRsvp(event.id);
   const { data: signUpItems } = useSignUpItems(event.id);
   const { data: claimsAgg } = useEventSignUpClaims(event.id);
   const { data: mySelections } = useMySelections(myRSVP?.id);
@@ -57,6 +59,7 @@ export default function RSVPModal({ event, open, onOpenChange }: RSVPModalProps)
   const { isDuplicate } = useDuplicateFoodCheck(allRsvps, user?.id);
   const groupedMenu = useGroupedPotluckMenu(event.id);
   const isEditing = !!myRSVP;
+  const isCovered = !myRSVP && !!coverage;
 
   const [selectedMemberIds, setSelectedMemberIds] = useState<Set<string>>(new Set());
   const [selectedDependentIds, setSelectedDependentIds] = useState<Set<string>>(new Set());
