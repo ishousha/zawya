@@ -56,9 +56,27 @@ function formatFileSize(bytes: number | null) {
 const isStoragePath = (url: string) => !url.startsWith("http");
 const isExternalUrl = (url: string) => url.startsWith("http") && !url.includes("supabase");
 
-function getResourceIcon(type?: string) {
-  switch (type) {
-    case "video": return Video;
+function isPodcastResource(r: { resource_type?: string; category?: string; tags?: string[] | null }) {
+  if (r.resource_type === "podcast") return true;
+  const cat = (r.category || "").toLowerCase();
+  if (cat.includes("podcast")) return true;
+  return (r.tags ?? []).some((t) => t.toLowerCase().includes("podcast"));
+}
+function isAwradResource(r: { category?: string; tags?: string[] | null }) {
+  const cat = (r.category || "").toLowerCase();
+  if (cat.includes("awrad") || cat.includes("litan") || cat.includes("wird") || cat.includes("dhikr")) return true;
+  return (r.tags ?? []).some((t) => /awrad|litan|wird|dhikr/i.test(t));
+}
+function isPlaylistResource(r: { resource_type?: string; category?: string }) {
+  if (r.resource_type === "playlist") return true;
+  return (r.category || "").toLowerCase().includes("playlist");
+}
+function getResourceIcon(res: { resource_type?: string; category?: string; tags?: string[] | null }) {
+  if (isPodcastResource(res)) return Mic;
+  if (isAwradResource(res)) return BookOpen;
+  if (isPlaylistResource(res)) return ListMusic;
+  switch (res.resource_type) {
+    case "video": return PlayCircle;
     case "audio": return Headphones;
     case "link": return LinkIcon;
     default: return FileText;
