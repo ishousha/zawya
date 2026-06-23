@@ -50,6 +50,9 @@ interface Props {
   eventTitle: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  capacity?: number | null;
+  attendingCount?: number; // total attending seats (excluding host)
+  hostId?: string | null;
 }
 
 const STATUS_OPTIONS: { value: "attending" | "waitlisted" | "cancelled"; label: string }[] = [
@@ -58,7 +61,7 @@ const STATUS_OPTIONS: { value: "attending" | "waitlisted" | "cancelled"; label: 
   { value: "cancelled", label: "Cancelled" },
 ];
 
-export default function EditRsvpDialog({ rsvp, eventTitle, open, onOpenChange }: Props) {
+export default function EditRsvpDialog({ rsvp, eventTitle, open, onOpenChange, capacity, attendingCount, hostId }: Props) {
   const queryClient = useQueryClient();
   const [adults, setAdults] = useState(1);
   const [deps, setDeps] = useState<EditDep[]>([]);
@@ -90,6 +93,15 @@ export default function EditRsvpDialog({ rsvp, eventTitle, open, onOpenChange }:
       const isWaitlist = status === "waitlisted";
       const dbStatus = status === "cancelled" ? "cancelled" : isWaitlist ? "waitlisted" : "attending";
 
+      // Snapshot previous state for undo
+      const previous = {
+        guests_count: rsvp.guests_count,
+        attending_dependents: rsvp.attending_dependents ?? null,
+        status: rsvp.status,
+        is_waitlisted: !!rsvp.is_waitlisted,
+        checked_in: !!rsvp.checked_in,
+      };
+
       const { error } = await supabase
         .from("rsvps")
         .update({
@@ -119,28 +131,96 @@ export default function EditRsvpDialog({ rsvp, eventTitle, open, onOpenChange }:
             status: dbStatus,
             is_waitlisted: isWaitlist,
             checked_in: status === "cancelled" ? false : checkedIn,
+            previous,
           },
         });
       }
+      return { previous };
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin-rsvps", rsvp?.event_id] });
-      queryClient.invalidateQueries({ queryKey: ["host-rsvps", rsvp?.event_id] });
-      queryClient.invalidateQueries({ queryKey: ["event-rsvp-counts", rsvp?.event_id] });
-      queryClient.invalidateQueries({ queryKey: ["door-attendees", rsvp?.event_id] });
-      queryClient.invalidateQueries({ queryKey: ["existing-rsvp-users", rsvp?.event_id] });
-      toast.success("RSVP updated");
+    onSuccess: (result) => {
+      const evId = rsvp?.event_id;
+      const rsvpId = rsvp?.id;
+      const previous = result?.previous;
+      queryClient.invalidateQueries({ queryKey: ["admin-rsvps", evId] });
+      queryClient.invalidateQueries({ queryKey: ["host-rsvps", evId] });
+      queryClient.invalidateQueries({ queryKey: ["event-rsvp-counts", evId] });
+      queryClient.invalidateQueries({ queryKey: ["door-attendees", evId] });
+      queryClient.invalidateQueries({ queryKey: ["existing-rsvp-users", evId] });
+      const invalidate = () => {
+        queryClient.invalidateQueries({ queryKey: ["admin-rsvps", evId] });
+        queryClient.invalidateQueries({ queryKey: ["host-rsvps", evId] });
+        queryClient.invalidateQueries({ queryKey: ["event-rsvp-counts", evId] });
+        queryClient.invalidateQueries({ queryKey: ["door-attendees", evId] });
+        queryClient.invalidateQueries({ queryKey: ["existing-rsvp-users", evId] });
+      };
+      toast.success("RSVP updated", {
+        duration: 10000,
+        action: previous && rsvpId
+          ? {
+              label: "Undo",
+              onClick: async () => {
+                const { error } = await supabase
+                  .from("rsvps")
+                  .update({
+                    guests_count: previous.guests_count,
+                    attending_dependents: previous.attending_dependents,
+                    status: previous.status as any,
+                    is_waitlisted: previous.is_waitlisted,
+                    checked_in: previous.checked_in,
+                  })
+                  .eq("id", rsvpId);
+                if (error) {
+                  const m = String(error.message || "");
+                  if (m.includes("RSVP_CAPACITY_EXCEEDED")) {
+                    toast.error("Can't undo — event is now full");
+                  } else {
+                    toast.error("Undo failed", { description: m });
+                  }
+                  return;
+                }
+                const { data: u } = await supabase.auth.getUser();
+                if (u.user?.id) {
+                  await supabase.from("admin_activity_log").insert({
+                    actor_id: u.user.id,
+                    action: "rsvp_admin_undo",
+                    target_user_id: rsvp!.user_id,
+                    target_user_name: rsvp!.profile?.name ?? null,
+                    target_user_email: rsvp!.profile?.email ?? null,
+                    details: { event_id: evId, rsvp_id: rsvpId, undone: "rsvp_admin_edit" },
+                  });
+                }
+                invalidate();
+                toast.success("RSVP edit undone");
+              },
+            }
+          : undefined,
+      });
       onOpenChange(false);
     },
     onError: (err: any) => {
       const msg = String(err?.message || "Failed to update RSVP");
-      if (msg.includes("RSVP_DUPLICATE_COVERED") || msg.includes("RSVP_DUPLICATE_MEMBER")) {
+      if (msg.includes("RSVP_CAPACITY_EXCEEDED")) {
+        toast.error("Over capacity", { description: msg.replace(/^.*?RSVP_CAPACITY_EXCEEDED:\s*/, "") });
+      } else if (msg.includes("RSVP_DUPLICATE_COVERED") || msg.includes("RSVP_DUPLICATE_MEMBER")) {
         toast.error("Family conflict", { description: msg.replace(/^.*?:\s*/, "") });
       } else {
         toast.error(msg);
       }
     },
   });
+
+  // Capacity projection
+  const isHost = !!(hostId && rsvp && rsvp.user_id === hostId);
+  const newTotal = Math.max(1, adults + deps.length);
+  const previousAttendingFromThis =
+    rsvp && rsvp.status === "attending" && !rsvp.is_waitlisted && !isHost
+      ? (rsvp.guests_count ?? 0)
+      : 0;
+  const otherAttending = Math.max(0, (attendingCount ?? 0) - previousAttendingFromThis);
+  const willCountTowardCapacity = status === "attending" && !isHost;
+  const projectedTotal = otherAttending + (willCountTowardCapacity ? newTotal : 0);
+  const overCapacity =
+    typeof capacity === "number" && capacity > 0 && willCountTowardCapacity && projectedTotal > capacity;
 
   const addDep = () =>
     setDeps((d) => [...d, { name: "", type: "dependent", age_group: "child_4_12" }]);
@@ -257,11 +337,28 @@ export default function EditRsvpDialog({ rsvp, eventTitle, open, onOpenChange }:
               Total party size: <strong>{adults + deps.length}</strong>
             </p>
           </div>
+
+          {typeof capacity === "number" && capacity > 0 && (
+            <div className={`rounded-md border px-3 py-2 text-xs ${overCapacity ? "border-destructive/40 bg-destructive/5 text-destructive" : "text-muted-foreground"}`}>
+              {isHost ? (
+                <>Host RSVPs don't consume capacity ({attendingCount ?? 0} / {capacity} used).</>
+              ) : !willCountTowardCapacity ? (
+                <>{status === "waitlisted" ? "Waitlisted" : "Cancelled"} — won't consume capacity ({attendingCount ?? 0} / {capacity} used).</>
+              ) : (
+                <>
+                  Capacity: <strong>{projectedTotal} / {capacity}</strong> after save
+                  {overCapacity && (
+                    <> · over by <strong>{projectedTotal - capacity}</strong>. Reduce party size or move to Waitlist.</>
+                  )}
+                </>
+              )}
+            </div>
+          )}
         </div>
 
         <DialogFooter className="gap-2">
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button onClick={() => save.mutate()} disabled={save.isPending}>
+          <Button onClick={() => save.mutate()} disabled={save.isPending || overCapacity}>
             {save.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Save changes
           </Button>

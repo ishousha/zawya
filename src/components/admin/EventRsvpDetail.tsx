@@ -75,6 +75,20 @@ export default function EventRsvpDetail({ eventId, eventTitle, eventDate, checki
     summary: { totalHeadcount: number; totalAdults: number; totalElders: number; totalChildren: number; guestCount: number; potluckCount: number };
   } | null>(null);
 
+  // Event meta (capacity + host) for capacity validation
+  const { data: eventMeta } = useQuery({
+    queryKey: ["event-meta-capacity", eventId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("events")
+        .select("capacity, host_id")
+        .eq("id", eventId)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+  });
+
   // Fetch RSVPs + profiles
   const { data: rsvps, isLoading } = useQuery({
     queryKey: ["admin-rsvps", eventId],
@@ -125,6 +139,13 @@ export default function EventRsvpDetail({ eventId, eventTitle, eventDate, checki
 
   const attending = useMemo(() => (rsvps ?? []).filter((r) => r.status === "attending" && !r.is_waitlisted), [rsvps]);
   const waitlisted = useMemo(() => (rsvps ?? []).filter((r) => r.status === "waitlisted" || r.is_waitlisted), [rsvps]);
+  const capacity = (eventMeta?.capacity ?? null) as number | null;
+  const hostId = (eventMeta?.host_id ?? null) as string | null;
+  const attendingHeadcount = useMemo(
+    () => attending.reduce((s, r) => s + (r.user_id === hostId ? 0 : (r.guests_count || 0)), 0),
+    [attending, hostId],
+  );
+  const remainingCapacity = capacity != null ? Math.max(0, capacity - attendingHeadcount) : null;
 
   const invalidatePotluck = () => {
     queryClient.invalidateQueries({ queryKey: ["admin-signup-items", eventId] });
@@ -211,9 +232,35 @@ export default function EventRsvpDetail({ eventId, eventTitle, eventDate, checki
   } | null>(null);
   const [editTarget, setEditTarget] = useState<any | null>(null);
   const [removeTarget, setRemoveTarget] = useState<{ rsvpId: string; name: string; userId: string; email: string | null } | null>(null);
+  const [promoteTarget, setPromoteTarget] = useState<{ rsvpId: string; name: string; userId: string; email: string | null; guestsCount: number } | null>(null);
+
+  const friendlyError = (e: any, fallback: string) => {
+    const msg = String(e?.message || fallback);
+    if (msg.includes("RSVP_CAPACITY_EXCEEDED")) {
+      toast.error("Over capacity", { description: msg.replace(/^.*?RSVP_CAPACITY_EXCEEDED:\s*/, "") });
+    } else if (msg.includes("RSVP_DUPLICATE_")) {
+      toast.error("Family conflict", { description: msg.replace(/^.*?:\s*/, "") });
+    } else {
+      toast.error(msg);
+    }
+  };
+
+  const invalidateRsvpQueries = () => {
+    queryClient.invalidateQueries({ queryKey: ["admin-rsvps", eventId] });
+    queryClient.invalidateQueries({ queryKey: ["host-rsvps", eventId] });
+    queryClient.invalidateQueries({ queryKey: ["event-rsvp-counts", eventId] });
+    queryClient.invalidateQueries({ queryKey: ["door-attendees", eventId] });
+    queryClient.invalidateQueries({ queryKey: ["existing-rsvp-users", eventId] });
+  };
 
   const removeRsvp = useMutation({
     mutationFn: async (vars: { rsvpId: string; name: string; userId: string; email: string | null }) => {
+      // Snapshot full row before delete so we can re-insert on undo
+      const { data: snap } = await supabase
+        .from("rsvps")
+        .select("*")
+        .eq("id", vars.rsvpId)
+        .maybeSingle();
       const { error } = await supabase.from("rsvps").delete().eq("id", vars.rsvpId);
       if (error) throw error;
       const { data: userData } = await supabase.auth.getUser();
@@ -225,22 +272,52 @@ export default function EventRsvpDetail({ eventId, eventTitle, eventDate, checki
           target_user_id: vars.userId,
           target_user_name: vars.name,
           target_user_email: vars.email,
-          details: { event_id: eventId, event_title: eventTitle, rsvp_id: vars.rsvpId },
+          details: { event_id: eventId, event_title: eventTitle, rsvp_id: vars.rsvpId, previous_row: snap ?? null },
         });
       }
+      return { snap };
     },
-    onSuccess: (_d, vars) => {
-      queryClient.invalidateQueries({ queryKey: ["admin-rsvps", eventId] });
-      queryClient.invalidateQueries({ queryKey: ["host-rsvps", eventId] });
-      queryClient.invalidateQueries({ queryKey: ["event-rsvp-counts", eventId] });
-      queryClient.invalidateQueries({ queryKey: ["existing-rsvp-users", eventId] });
-      toast.success(`Removed RSVP for ${vars.name}`);
+    onSuccess: ({ snap }, vars) => {
+      invalidateRsvpQueries();
+      toast.success(`Removed RSVP for ${vars.name}`, {
+        duration: 10000,
+        action: snap
+          ? {
+              label: "Undo",
+              onClick: async () => {
+                const { error } = await supabase.from("rsvps").insert(snap as any);
+                if (error) {
+                  friendlyError(error, "Failed to restore RSVP");
+                  return;
+                }
+                const { data: u } = await supabase.auth.getUser();
+                if (u.user?.id) {
+                  await supabase.from("admin_activity_log").insert({
+                    actor_id: u.user.id,
+                    action: "rsvp_admin_undo",
+                    target_user_id: vars.userId,
+                    target_user_name: vars.name,
+                    target_user_email: vars.email,
+                    details: { event_id: eventId, rsvp_id: vars.rsvpId, undone: "rsvp_admin_remove" },
+                  });
+                }
+                invalidateRsvpQueries();
+                toast.success("RSVP restored");
+              },
+            }
+          : undefined,
+      });
     },
-    onError: (e: any) => toast.error(e?.message || "Failed to remove RSVP"),
+    onError: (e) => friendlyError(e, "Failed to remove RSVP"),
   });
 
   const promoteFromWaitlist = useMutation({
     mutationFn: async (vars: { rsvpId: string; name: string; userId: string; email: string | null }) => {
+      const { data: snap } = await supabase
+        .from("rsvps")
+        .select("status, is_waitlisted")
+        .eq("id", vars.rsvpId)
+        .maybeSingle();
       const { error } = await supabase
         .from("rsvps")
         .update({ status: "attending" as any, is_waitlisted: false })
@@ -255,17 +332,49 @@ export default function EventRsvpDetail({ eventId, eventTitle, eventDate, checki
           target_user_id: vars.userId,
           target_user_name: vars.name,
           target_user_email: vars.email,
-          details: { event_id: eventId, event_title: eventTitle, rsvp_id: vars.rsvpId },
+          details: { event_id: eventId, event_title: eventTitle, rsvp_id: vars.rsvpId, previous: snap ?? null },
         });
       }
+      return { snap };
     },
-    onSuccess: (_d, vars) => {
-      queryClient.invalidateQueries({ queryKey: ["admin-rsvps", eventId] });
-      queryClient.invalidateQueries({ queryKey: ["host-rsvps", eventId] });
-      queryClient.invalidateQueries({ queryKey: ["event-rsvp-counts", eventId] });
-      toast.success(`Moved ${vars.name} to Attending`);
+    onSuccess: ({ snap }, vars) => {
+      invalidateRsvpQueries();
+      toast.success(`Moved ${vars.name} to Attending`, {
+        duration: 10000,
+        action: snap
+          ? {
+              label: "Undo",
+              onClick: async () => {
+                const { error } = await supabase
+                  .from("rsvps")
+                  .update({
+                    status: (snap.status ?? "waitlisted") as any,
+                    is_waitlisted: snap.is_waitlisted ?? true,
+                  })
+                  .eq("id", vars.rsvpId);
+                if (error) {
+                  friendlyError(error, "Failed to undo");
+                  return;
+                }
+                const { data: u } = await supabase.auth.getUser();
+                if (u.user?.id) {
+                  await supabase.from("admin_activity_log").insert({
+                    actor_id: u.user.id,
+                    action: "rsvp_admin_undo",
+                    target_user_id: vars.userId,
+                    target_user_name: vars.name,
+                    target_user_email: vars.email,
+                    details: { event_id: eventId, rsvp_id: vars.rsvpId, undone: "rsvp_admin_promote" },
+                  });
+                }
+                invalidateRsvpQueries();
+                toast.success(`${vars.name} moved back to Waitlist`);
+              },
+            }
+          : undefined,
+      });
     },
-    onError: (e: any) => toast.error(e?.message || "Failed to promote RSVP"),
+    onError: (e) => friendlyError(e, "Failed to promote RSVP"),
   });
 
 
@@ -734,7 +843,7 @@ export default function EventRsvpDetail({ eventId, eventTitle, eventDate, checki
                                         className="h-8 w-8 text-emerald-700 hover:text-emerald-800"
                                         title="Move to Attending"
                                         disabled={promoteFromWaitlist.isPending}
-                                        onClick={() => promoteFromWaitlist.mutate({ rsvpId: r.id, name, userId, email })}
+                                        onClick={() => setPromoteTarget({ rsvpId: r.id, name, userId, email, guestsCount: r.guests_count || 1 })}
                                       >
                                         <ArrowUp className="h-4 w-4" />
                                       </Button>
@@ -1021,14 +1130,59 @@ export default function EventRsvpDetail({ eventId, eventTitle, eventDate, checki
         eventTitle={eventTitle}
         open={!!editTarget}
         onOpenChange={(o) => !o && setEditTarget(null)}
+        capacity={capacity}
+        attendingCount={attendingHeadcount}
+        hostId={hostId}
       />
+
+      <AlertDialog open={!!promoteTarget} onOpenChange={(o) => !o && setPromoteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Move to Attending?</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-2 text-sm">
+                <p>
+                  Promote <strong>{promoteTarget?.name}</strong> (party of {promoteTarget?.guestsCount ?? 1}) from the waitlist to Attending.
+                </p>
+                {capacity != null && promoteTarget && (() => {
+                  const after = attendingHeadcount + promoteTarget.guestsCount;
+                  const over = after > capacity;
+                  return (
+                    <p className={over ? "text-destructive font-medium" : "text-muted-foreground"}>
+                      Capacity after promotion: {after} / {capacity}
+                      {over && ` — over by ${after - capacity}. This will be blocked.`}
+                    </p>
+                  );
+                })()}
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={
+                !!(capacity != null && promoteTarget && attendingHeadcount + promoteTarget.guestsCount > capacity)
+              }
+              onClick={() => {
+                if (promoteTarget) {
+                  const { guestsCount, ...vars } = promoteTarget;
+                  promoteFromWaitlist.mutate(vars);
+                  setPromoteTarget(null);
+                }
+              }}
+            >
+              Move to Attending
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <AlertDialog open={!!removeTarget} onOpenChange={(o) => !o && setRemoveTarget(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Remove RSVP?</AlertDialogTitle>
             <AlertDialogDescription>
-              This permanently removes {removeTarget?.name}'s RSVP for "{eventTitle}". This cannot be undone.
+              This removes {removeTarget?.name}'s RSVP for "{eventTitle}". You can undo this immediately from the toast.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
