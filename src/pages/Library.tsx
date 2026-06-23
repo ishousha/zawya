@@ -760,8 +760,7 @@ export default function Library() {
 
                 const renderFeaturedCard = (res: Resource) => {
                   const { Icon, label } = getResourceMeta(res);
-                  const color = getCategoryColor(res.category || "General");
-                  const podcast = isPodcastResource(res);
+                  const linkedEvent = res.event_id ? eventById.get(res.event_id) : null;
                   const firstSpeaker = (res.speaker_ids ?? [])
                     .map((id) => speakerById.get(id))
                     .find(Boolean);
@@ -770,41 +769,27 @@ export default function Library() {
                       key={res.id}
                       type="button"
                       onClick={() => handleResourceClick(res)}
-                      className="flex-none w-60 snap-start text-left"
+                      className="flex-none w-36 snap-start text-left group"
                     >
-                      <div className="relative aspect-[4/5] rounded-3xl overflow-hidden shadow-lg shadow-primary/10 border border-gold/20 bg-primary group">
-                        <div className={`absolute inset-0 ${color.tint}`} aria-hidden />
-                        <div className="absolute inset-0 flex items-center justify-center opacity-30">
-                          <div className="w-40 h-40 border border-gold/20 rounded-full flex items-center justify-center rotate-45">
-                            <div className="w-24 h-24 border border-gold/30 rounded-full" />
-                          </div>
-                        </div>
-                        <div className="absolute inset-0 bg-gradient-to-t from-primary via-primary/40 to-transparent" aria-hidden />
-                        <div className="absolute top-3 left-3 flex items-center gap-1.5 bg-gold/90 backdrop-blur-sm pl-1.5 pr-2.5 py-1 rounded-full">
-                          <Icon className="h-3 w-3 text-gold-foreground" />
-                          <span className="text-[9px] font-bold text-gold-foreground uppercase tracking-wider">
+                      <div className="relative aspect-square rounded-2xl overflow-hidden shadow-sm border border-gold/15 bg-card transition-transform group-active:scale-[0.98]">
+                        <ResourceCover
+                          res={res}
+                          speakerImage={firstSpeaker?.image_url ?? null}
+                          eventCover={linkedEvent?.cover_photo_url ?? null}
+                          Icon={Icon}
+                          rounded=""
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/10 to-transparent" aria-hidden />
+                        <div className="absolute top-2 left-2 flex items-center gap-1 bg-card/90 backdrop-blur-sm pl-1.5 pr-2 py-0.5 rounded-full border border-gold/20">
+                          <Icon className="h-2.5 w-2.5 text-primary" />
+                          <span className="text-[9px] font-semibold text-foreground uppercase tracking-wide">
                             {label}
                           </span>
                         </div>
-                        <div className="absolute bottom-0 p-4 text-card-foreground w-full">
-                          <h3 className="font-heading text-lg font-semibold text-card leading-tight mb-2 line-clamp-2">
+                        <div className="absolute bottom-0 left-0 right-0 p-2.5">
+                          <h3 className="font-heading text-sm font-semibold text-white leading-tight line-clamp-2 drop-shadow">
                             {res.title}
                           </h3>
-                          {podcast && firstSpeaker ? (
-                            <div className="flex items-center gap-2">
-                              <Avatar className="h-6 w-6 border border-gold/50">
-                                {firstSpeaker.image_url && (
-                                  <AvatarImage src={firstSpeaker.image_url} alt={firstSpeaker.name} className="object-cover" />
-                                )}
-                                <AvatarFallback className="text-[10px]">{firstSpeaker.name.charAt(0)}</AvatarFallback>
-                              </Avatar>
-                              <span className="text-xs text-card/90 truncate">{firstSpeaker.name}</span>
-                            </div>
-                          ) : (
-                            <p className="text-[10px] uppercase tracking-widest text-card/80 font-semibold">
-                              {format(new Date(res.resource_date ?? res.created_at), "MMM d, yyyy")}
-                            </p>
-                          )}
                         </div>
                       </div>
                     </button>
