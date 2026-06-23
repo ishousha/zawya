@@ -51,6 +51,8 @@ export default function EventDetail() {
   });
 
   const { data: myRSVP, isLoading: rsvpLoading } = useMyRSVP(eventId ?? "");
+  const { data: coverage } = useMyEventCoverage(eventId ?? "");
+  const ticketRsvp = myRSVP ?? (coverage as any);
 
   // Auto-trigger check-in modal when arriving via QR deep link
   useEffect(() => {
