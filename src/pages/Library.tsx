@@ -183,7 +183,7 @@ export default function Library() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("speakers")
-        .select("id, name")
+        .select("id, name, image_url")
         .order("name");
       if (error) throw error;
       return (data as any[]) as SpeakerLite[];
