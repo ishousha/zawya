@@ -55,6 +55,18 @@ export default {
           DEFAULT: "hsl(var(--gold))",
           foreground: "hsl(var(--gold-foreground))",
         },
+        olive: {
+          DEFAULT: "hsl(var(--olive))",
+          foreground: "hsl(var(--olive-foreground))",
+        },
+        clay: {
+          DEFAULT: "hsl(var(--clay))",
+          foreground: "hsl(var(--clay-foreground))",
+        },
+        "parchment-deep": {
+          DEFAULT: "hsl(var(--parchment-deep))",
+          foreground: "hsl(var(--parchment-deep-foreground))",
+        },
         "emerald-light": "hsl(var(--emerald-light))",
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
