@@ -3,7 +3,7 @@ import { Link, useParams, useNavigate } from "react-router-dom";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/runtime-client";
-import { Card, CardContent } from "@/components/ui/card";
+// (Card primitives removed — using custom resource cards)
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -11,9 +11,11 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
-  Loader2, FileText, Download, BookOpen, Search, Tag, Video, Headphones,
-  Link as LinkIcon, ExternalLink, CalendarDays, Mic, X, SlidersHorizontal, Share2
+  Loader2, FileText, Download, BookOpen, Search, Video, Headphones,
+  Link as LinkIcon, ExternalLink, CalendarDays, Mic, X, SlidersHorizontal, Share2,
+  PlayCircle, ListMusic,
 } from "lucide-react";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { format } from "date-fns";
 import EventCard from "@/components/EventCard";
 import ResourceCardSkeleton from "@/components/library/ResourceCardSkeleton";
@@ -41,7 +43,7 @@ interface Resource {
   short_code?: string | null;
 }
 
-interface SpeakerLite { id: string; name: string }
+interface SpeakerLite { id: string; name: string; image_url?: string | null }
 interface EventLite { id: string; title: string; date_time: string }
 
 function formatFileSize(bytes: number | null) {
@@ -54,9 +56,27 @@ function formatFileSize(bytes: number | null) {
 const isStoragePath = (url: string) => !url.startsWith("http");
 const isExternalUrl = (url: string) => url.startsWith("http") && !url.includes("supabase");
 
-function getResourceIcon(type?: string) {
-  switch (type) {
-    case "video": return Video;
+function isPodcastResource(r: { resource_type?: string; category?: string; tags?: string[] | null }) {
+  if (r.resource_type === "podcast") return true;
+  const cat = (r.category || "").toLowerCase();
+  if (cat.includes("podcast")) return true;
+  return (r.tags ?? []).some((t) => t.toLowerCase().includes("podcast"));
+}
+function isAwradResource(r: { category?: string; tags?: string[] | null }) {
+  const cat = (r.category || "").toLowerCase();
+  if (cat.includes("awrad") || cat.includes("litan") || cat.includes("wird") || cat.includes("dhikr")) return true;
+  return (r.tags ?? []).some((t) => /awrad|litan|wird|dhikr/i.test(t));
+}
+function isPlaylistResource(r: { resource_type?: string; category?: string }) {
+  if (r.resource_type === "playlist") return true;
+  return (r.category || "").toLowerCase().includes("playlist");
+}
+function getResourceIcon(res: { resource_type?: string; category?: string; tags?: string[] | null }) {
+  if (isPodcastResource(res)) return Mic;
+  if (isAwradResource(res)) return BookOpen;
+  if (isPlaylistResource(res)) return ListMusic;
+  switch (res.resource_type) {
+    case "video": return PlayCircle;
     case "audio": return Headphones;
     case "link": return LinkIcon;
     default: return FileText;
@@ -163,7 +183,7 @@ export default function Library() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("speakers")
-        .select("id, name")
+        .select("id, name, image_url")
         .order("name");
       if (error) throw error;
       return (data as any[]) as SpeakerLite[];
@@ -385,14 +405,47 @@ export default function Library() {
     setSearch("");
   };
 
+  const hasActiveResourceFilters =
+    activeCategory !== "All" ||
+    filterType !== "all" ||
+    filterSpeaker !== "all" ||
+    filterDate !== "any" ||
+    debouncedSearch.trim().length > 0;
+
+  // Recently added (top 6 by date) — only when no filters
+  const recentResources = useMemo(() => {
+    if (!resources) return [] as Resource[];
+    return [...resources]
+      .sort(
+        (a, b) =>
+          new Date(b.resource_date ?? b.created_at).getTime() -
+          new Date(a.resource_date ?? a.created_at).getTime()
+      )
+      .slice(0, 6);
+  }, [resources]);
+
+  // Group filtered resources by category
+  const groupedByCategory = useMemo(() => {
+    const map = new Map<string, Resource[]>();
+    filtered.forEach((r) => {
+      const c = r.category || "General";
+      if (!map.has(c)) map.set(c, []);
+      map.get(c)!.push(r);
+    });
+    return Array.from(map.entries()).sort(([a], [b]) => a.localeCompare(b));
+  }, [filtered]);
+
   return (
     <div className="min-h-screen bg-background pb-24">
-      <header className="border-b border-border bg-card px-4 pb-4 pt-6">
-        <div className="flex items-center gap-2">
+      <header className="border-b border-gold/20 bg-card px-4 pb-5 pt-6 relative">
+        <div className="absolute top-4 left-4 w-10 h-px bg-gold/40" aria-hidden />
+        <div className="flex items-center gap-2 mt-2">
           <BookOpen className="h-6 w-6 text-primary" />
-          <h1 className="font-heading text-2xl font-bold text-foreground">Library</h1>
+          <h1 className="font-heading text-3xl font-bold text-foreground leading-tight">Library</h1>
         </div>
-        <p className="mt-1 text-sm text-muted-foreground">Resources & past gatherings</p>
+        <p className="mt-2 text-[10px] uppercase tracking-[0.2em] font-semibold text-gold-foreground/70">
+          The Garden of Knowledge
+        </p>
       </header>
 
       <main className="mx-auto max-w-2xl px-4 py-4">
@@ -530,94 +583,218 @@ export default function Library() {
                 </Button>
               </div>
             ) : (
-              <div className="grid gap-3">
-                {filtered.map((res) => {
-                  const Icon = getResourceIcon(res.resource_type);
+              (() => {
+                const renderListCard = (res: Resource) => {
+                  const Icon = getResourceIcon(res);
                   const isExternal = isExternalUrl(res.file_url);
                   const color = getCategoryColor(res.category || "General");
                   const linkedEvent = res.event_id ? eventById.get(res.event_id) : null;
+                  const podcast = isPodcastResource(res);
+                  const firstSpeaker = podcast
+                    ? (res.speaker_ids ?? []).map((id) => speakerById.get(id)).find(Boolean)
+                    : undefined;
                   const linkedSpeakers = (res.speaker_ids ?? [])
                     .map((id) => speakerById.get(id)?.name)
                     .filter(Boolean) as string[];
                   return (
-                    <Card
+                    <div
                       key={res.id}
                       ref={(el) => {
                         if (el) cardRefs.current.set(res.id, el);
                         else cardRefs.current.delete(res.id);
                       }}
-                      className={`cursor-pointer transition-all hover:shadow-md active:scale-[0.99] overflow-hidden relative ${
+                      onClick={() => handleResourceClick(res)}
+                      className={`group cursor-pointer bg-white/60 border border-gold/15 rounded-2xl p-3 flex gap-3 transition-all hover:bg-card hover:shadow-lg hover:shadow-primary/5 active:scale-[0.99] ${
                         highlightId === res.id ? "ring-2 ring-primary shadow-lg" : ""
                       }`}
-                      onClick={() => handleResourceClick(res)}
                     >
-                      <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${color.bar}`} aria-hidden />
-                      <CardContent className="flex items-start gap-3 p-4 pl-5">
-                        <div className={`flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl ${color.tint}`}>
-                          <Icon className={`h-6 w-6 ${color.icon}`} />
+                      {podcast && firstSpeaker?.image_url ? (
+                        <div className="relative flex-shrink-0">
+                          <Avatar className="w-14 h-14 border border-gold/30">
+                            <AvatarImage src={firstSpeaker.image_url} alt={firstSpeaker.name} className="object-cover" />
+                            <AvatarFallback>{firstSpeaker.name.charAt(0)}</AvatarFallback>
+                          </Avatar>
+                          <div className="absolute -bottom-0.5 -right-0.5 bg-gold text-gold-foreground p-1 rounded-full ring-2 ring-card">
+                            <Mic className="h-2.5 w-2.5" strokeWidth={3} />
+                          </div>
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <h3 className="font-heading text-base font-semibold text-foreground flex items-center gap-1.5 min-w-0">
-                            <span className="truncate min-w-0">{res.title}</span>
+                      ) : (
+                        <div className={`w-14 h-14 rounded-xl flex items-center justify-center flex-shrink-0 transition-colors bg-primary/5 group-hover:bg-primary group-hover:text-primary-foreground ${color.icon} group-hover:text-primary-foreground`}>
+                          <Icon className="h-6 w-6" />
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between gap-2">
+                          <h4 className="font-heading text-base font-semibold text-foreground leading-snug flex items-center gap-1.5 min-w-0">
+                            <span className="truncate">{res.title}</span>
                             {isExternal && <ExternalLink className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />}
+                          </h4>
+                          <span className="text-[10px] text-muted-foreground font-medium flex-shrink-0 uppercase tracking-wider">
+                            {(res.resource_type || "pdf").toUpperCase()}
+                          </span>
+                        </div>
+                        {res.description && (
+                          <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">{res.description}</p>
+                        )}
+                        {linkedSpeakers.length > 0 && !podcast && (
+                          <p className="mt-1 text-xs text-foreground/80 flex items-center gap-1">
+                            <Mic className="h-3 w-3 text-primary" />
+                            <span className="truncate">{linkedSpeakers.join(", ")}</span>
+                          </p>
+                        )}
+                        {podcast && firstSpeaker && (
+                          <p className="mt-1 text-xs text-foreground/80 truncate">{firstSpeaker.name}</p>
+                        )}
+                        <div className="mt-2 flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-tight text-gold-foreground/80 min-w-0">
+                            {res.file_size && <span className="truncate">{formatFileSize(res.file_size)}</span>}
+                            {res.file_size && <span className="text-muted-foreground">·</span>}
+                            <span className="truncate text-muted-foreground font-medium normal-case tracking-normal">
+                              {format(new Date(res.resource_date ?? res.created_at), "MMM d, yyyy")}
+                            </span>
+                          </div>
+                          <button
+                            type="button"
+                            className="text-primary/40 hover:text-primary p-1.5 -mr-1 rounded-md"
+                            aria-label="Share resource"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openShare(res.id, res.title, res.short_code);
+                            }}
+                          >
+                            <Share2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                        {linkedEvent && (
+                          <Link
+                            to={`/event/${linkedEvent.id}`}
+                            onClick={(e) => e.stopPropagation()}
+                            className="mt-1.5 inline-flex"
+                          >
+                            <Badge variant="outline" className="text-[10px] px-1.5 py-0 gap-1 border-primary/40 text-primary hover:bg-primary/10">
+                              <CalendarDays className="h-2.5 w-2.5" />
+                              From: {linkedEvent.title}
+                            </Badge>
+                          </Link>
+                        )}
+                        {(res.tags ?? []).length > 0 && (
+                          <div className="flex flex-wrap gap-1 mt-1.5">
+                            {(res.tags ?? []).slice(0, 4).map((t) => (
+                              <span key={t} className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
+                                #{t}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                };
+
+                const renderFeaturedCard = (res: Resource) => {
+                  const Icon = getResourceIcon(res);
+                  const color = getCategoryColor(res.category || "General");
+                  const podcast = isPodcastResource(res);
+                  const firstSpeaker = (res.speaker_ids ?? [])
+                    .map((id) => speakerById.get(id))
+                    .find(Boolean);
+                  return (
+                    <button
+                      key={res.id}
+                      type="button"
+                      onClick={() => handleResourceClick(res)}
+                      className="flex-none w-60 snap-start text-left"
+                    >
+                      <div className="relative aspect-[4/5] rounded-3xl overflow-hidden shadow-lg shadow-primary/10 border border-gold/20 bg-primary group">
+                        <div className={`absolute inset-0 ${color.tint}`} aria-hidden />
+                        <div className="absolute inset-0 flex items-center justify-center opacity-30">
+                          <div className="w-40 h-40 border border-gold/20 rounded-full flex items-center justify-center rotate-45">
+                            <div className="w-24 h-24 border border-gold/30 rounded-full" />
+                          </div>
+                        </div>
+                        <div className="absolute inset-0 bg-gradient-to-t from-primary via-primary/40 to-transparent" aria-hidden />
+                        <div className="absolute top-3 left-3">
+                          <div className="bg-gold/90 backdrop-blur-sm px-2.5 py-0.5 rounded-full">
+                            <span className="text-[9px] font-bold text-gold-foreground uppercase tracking-wider">
+                              {res.category || "General"}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="absolute top-3 right-3 bg-card/20 backdrop-blur-sm p-1.5 rounded-full text-card-foreground">
+                          <Icon className="h-4 w-4 text-card" />
+                        </div>
+                        <div className="absolute bottom-0 p-4 text-card-foreground w-full">
+                          <h3 className="font-heading text-lg font-semibold text-card leading-tight mb-2 line-clamp-2">
+                            {res.title}
                           </h3>
-                          {res.description && (
-                            <p className="text-sm text-muted-foreground line-clamp-2 mt-0.5 break-words">{res.description}</p>
-                          )}
-                          {linkedSpeakers.length > 0 && (
-                            <p className="mt-1 text-xs text-foreground/80 flex items-center gap-1">
-                              <Mic className="h-3 w-3 text-primary" />
-                              <span className="truncate">{linkedSpeakers.join(", ")}</span>
+                          {podcast && firstSpeaker ? (
+                            <div className="flex items-center gap-2">
+                              <Avatar className="h-6 w-6 border border-gold/50">
+                                {firstSpeaker.image_url && (
+                                  <AvatarImage src={firstSpeaker.image_url} alt={firstSpeaker.name} className="object-cover" />
+                                )}
+                                <AvatarFallback className="text-[10px]">{firstSpeaker.name.charAt(0)}</AvatarFallback>
+                              </Avatar>
+                              <span className="text-xs text-card/90 truncate">{firstSpeaker.name}</span>
+                            </div>
+                          ) : (
+                            <p className="text-[10px] uppercase tracking-widest text-card/80 font-semibold">
+                              {format(new Date(res.resource_date ?? res.created_at), "MMM d, yyyy")}
                             </p>
                           )}
-                          <div className="flex flex-wrap items-center gap-1.5 mt-2 text-xs text-muted-foreground">
-                            <Badge variant="outline" className={`text-[10px] px-1.5 py-0 gap-1 border ${color.badge}`}>
-                              <Tag className="h-2.5 w-2.5" />
-                              {res.category || "General"}
-                            </Badge>
-                            {linkedEvent && (
-                              <Link
-                                to={`/event/${linkedEvent.id}`}
-                                onClick={(e) => e.stopPropagation()}
-                                className="inline-flex items-center"
-                              >
-                                <Badge variant="outline" className="text-[10px] px-1.5 py-0 gap-1 border-primary/40 text-primary hover:bg-primary/10">
-                                  <CalendarDays className="h-2.5 w-2.5" />
-                                  From: {linkedEvent.title}
-                                </Badge>
-                              </Link>
-                            )}
-                            {res.file_size && <span>{formatFileSize(res.file_size)}</span>}
-                            <span>·</span>
-                            <span>{format(new Date(res.resource_date ?? res.created_at), "MMM d, yyyy")}</span>
-                          </div>
-                          {(res.tags ?? []).length > 0 && (
-                            <div className="flex flex-wrap gap-1 mt-1.5">
-                              {(res.tags ?? []).slice(0, 6).map((t) => (
-                                <span key={t} className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
-                                  #{t}
-                                </span>
-                              ))}
-                            </div>
-                          )}
                         </div>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="h-8 w-8 flex-shrink-0 -mr-1 text-muted-foreground hover:text-primary"
-                          aria-label="Share resource"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            openShare(res.id, res.title, res.short_code);
-                          }}
-                        >
-                          <Share2 className="h-4 w-4" />
-                        </Button>
-                      </CardContent>
-                    </Card>
+                      </div>
+                    </button>
                   );
-                })}
-              </div>
+                };
+
+                if (hasActiveResourceFilters) {
+                  return (
+                    <div className="grid gap-3">
+                      {filtered.map(renderListCard)}
+                    </div>
+                  );
+                }
+
+                return (
+                  <div className="space-y-8">
+                    {recentResources.length > 0 && (
+                      <section>
+                        <div className="flex items-center justify-between mb-3 px-1">
+                          <h2 className="font-heading italic text-lg font-semibold text-gold">
+                            Recently Added
+                          </h2>
+                          <span className="text-[10px] uppercase tracking-widest text-muted-foreground">
+                            {recentResources.length} new
+                          </span>
+                        </div>
+                        <div className="flex overflow-x-auto gap-3 pb-3 -mx-4 px-4 snap-x scrollbar-hide">
+                          {recentResources.map(renderFeaturedCard)}
+                        </div>
+                      </section>
+                    )}
+                    {groupedByCategory.map(([cat, items]) => (
+                      <section key={cat}>
+                        <div className="flex items-center gap-3 mb-4">
+                          <span className="font-heading italic text-lg font-semibold text-gold whitespace-nowrap">
+                            {cat}
+                          </span>
+                          <div className="h-px flex-1 bg-gradient-to-r from-gold/30 to-transparent" />
+                          <button
+                            onClick={() => setActiveCategory(cat)}
+                            className="text-[10px] uppercase tracking-widest text-muted-foreground hover:text-primary"
+                          >
+                            View all
+                          </button>
+                        </div>
+                        <div className="grid gap-3">
+                          {items.slice(0, 4).map(renderListCard)}
+                        </div>
+                      </section>
+                    ))}
+                  </div>
+                );
+              })()
             )}
           </TabsContent>
 
