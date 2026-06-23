@@ -1225,9 +1225,19 @@ export default function EventRsvpDetail({ eventId, eventTitle, eventDate, checki
         capacity={capacity}
         attendingCount={attendingHeadcount}
         hostId={hostId}
+        onProjectionChange={setPreviewAttending}
+        onActionRecorded={(a) => setLastAction({ ...a })}
       />
 
-      <AlertDialog open={!!promoteTarget} onOpenChange={(o) => !o && setPromoteTarget(null)}>
+      <AlertDialog
+        open={!!promoteTarget}
+        onOpenChange={(o) => {
+          if (!o) {
+            setPromoteTarget(null);
+            setPreviewAttending(null);
+          }
+        }}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Move to Attending?</AlertDialogTitle>
