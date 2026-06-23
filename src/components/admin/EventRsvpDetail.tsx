@@ -599,6 +599,7 @@ export default function EventRsvpDetail({ eventId, eventTitle, eventDate, checki
                               <TableHead className="text-xs">Dependents</TableHead>
                               <TableHead className="text-xs text-center">Party</TableHead>
                               <TableHead className="text-xs text-center">Check-in</TableHead>
+                              <TableHead className="text-xs text-center">Actions</TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
