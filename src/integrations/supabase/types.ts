@@ -1281,6 +1281,23 @@ export type Database = {
           zoom_password: string
         }[]
       }
+      get_my_event_coverage: {
+        Args: { _event_id: string }
+        Returns: {
+          attending_dependents: Json
+          checked_in: boolean
+          covering_user_name: string
+          event_id: string
+          guests_count: number
+          id: string
+          is_waitlisted: boolean
+          potluck_category: Database["public"]["Enums"]["potluck_category"]
+          qr_hash: string
+          specific_food_item: string
+          status: Database["public"]["Enums"]["rsvp_status"]
+          user_id: string
+        }[]
+      }
       get_my_family_id: { Args: never; Returns: string }
       get_my_rsvp_qr: { Args: { _rsvp_id: string }; Returns: string }
       get_user_analytics_export: {
@@ -1368,6 +1385,10 @@ export type Database = {
           msg_id: number
           read_ct: number
         }[]
+      }
+      remove_self_from_family_rsvp: {
+        Args: { _event_id: string }
+        Returns: Json
       }
       verify_checkin_pin: {
         Args: { _event_id: string; _pin: string }
