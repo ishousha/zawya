@@ -19,6 +19,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { format } from "date-fns";
 import EventCard from "@/components/EventCard";
 import ResourceCardSkeleton from "@/components/library/ResourceCardSkeleton";
+import FeaturedCarousel from "@/components/library/FeaturedCarousel";
 import type { Database } from "@/integrations/supabase/types";
 import { EVENT_PUBLIC_COLUMNS } from "@/lib/event-columns";
 import { useShareResource } from "@/components/ShareResourceDialog";
