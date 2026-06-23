@@ -693,8 +693,30 @@ export default function EventRsvpDetail({ eventId, eventTitle, eventDate, checki
       <Card>
         <CardHeader className="pb-2">
           <div className="flex flex-col gap-3">
-            <div className="flex items-start justify-between">
-              <CardTitle className="text-lg">{eventTitle}</CardTitle>
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0 flex-1">
+                <CardTitle className="text-lg">{eventTitle}</CardTitle>
+                {capacity != null && (() => {
+                  const effectiveAttending = previewAttending ?? attendingHeadcount;
+                  const remaining = capacity - effectiveAttending;
+                  const tone =
+                    remaining <= 0 ? "border-destructive/40 bg-destructive/10 text-destructive"
+                    : remaining <= 5 ? "border-amber-400/50 bg-amber-50 text-amber-800 dark:bg-amber-950/30 dark:text-amber-200"
+                    : "border-border bg-muted/40 text-foreground";
+                  const isPreview = previewAttending != null && previewAttending !== attendingHeadcount;
+                  return (
+                    <div
+                      className={`mt-1.5 inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-[11px] font-medium ${tone}`}
+                      title="Hosts and waitlisted entries do not consume capacity."
+                      aria-live="polite"
+                    >
+                      <span>Remaining: {Math.max(0, remaining)} / {capacity}</span>
+                      {remaining < 0 && <span className="font-semibold">· over by {Math.abs(remaining)}</span>}
+                      {isPreview && <span className="opacity-70">· preview</span>}
+                    </div>
+                  );
+                })()}
+              </div>
               <Button size="icon" variant="ghost" className="h-10 w-10 shrink-0" onClick={onClose}>
                 <X className="h-5 w-5" />
               </Button>
