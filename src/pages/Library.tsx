@@ -71,15 +71,15 @@ function isPlaylistResource(r: { resource_type?: string; category?: string }) {
   if (r.resource_type === "playlist") return true;
   return (r.category || "").toLowerCase().includes("playlist");
 }
-function getResourceIcon(res: { resource_type?: string; category?: string; tags?: string[] | null }) {
-  if (isPodcastResource(res)) return Mic;
-  if (isAwradResource(res)) return BookOpen;
-  if (isPlaylistResource(res)) return ListMusic;
+function getResourceMeta(res: { resource_type?: string; category?: string; tags?: string[] | null }) {
+  if (isPodcastResource(res)) return { Icon: Mic, label: "Podcast" };
+  if (isAwradResource(res)) return { Icon: BookOpen, label: "Awrad" };
+  if (isPlaylistResource(res)) return { Icon: ListMusic, label: "Playlist" };
   switch (res.resource_type) {
-    case "video": return PlayCircle;
-    case "audio": return Headphones;
-    case "link": return LinkIcon;
-    default: return FileText;
+    case "video": return { Icon: PlayCircle, label: "Video" };
+    case "audio": return { Icon: Headphones, label: "Audio" };
+    case "link": return { Icon: LinkIcon, label: "Link" };
+    default: return { Icon: FileText, label: "PDF" };
   }
 }
 
