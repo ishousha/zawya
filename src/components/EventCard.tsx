@@ -128,8 +128,8 @@ function EventCardInner({ event, onShowTicket, isPast = false }: EventCardProps)
   // Self check-in: active within 2 hours of event start
   const checkinActivatesAt = eventTime - 2 * 60 * 60 * 1000;
   const isCheckinActive = now.getTime() >= checkinActivatesAt;
-  const isCheckedIn = myRSVP?.checked_in ?? false;
-  const canSelfCheckin = isAttending && !isWaitlisted && !isCheckedIn && !isCancelled;
+  const isCheckedIn = (myRSVP?.checked_in ?? coverage?.checked_in) ?? false;
+  const canSelfCheckin = ownAttending && !isWaitlisted && !isCheckedIn && !isCancelled;
 
   // Countdown string
   const remainingMs = linkActivatesAt - now.getTime();
