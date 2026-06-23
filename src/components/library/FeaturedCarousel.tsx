@@ -85,7 +85,7 @@ export default function FeaturedCarousel({ children }: Props) {
         aria-label="Previous"
         onClick={() => scrollByAmount(-1)}
         disabled={!canPrev}
-        className={`hidden sm:flex absolute left-1 top-1/2 -translate-y-1/2 -mt-2 h-9 w-9 items-center justify-center rounded-full bg-card/95 border border-gold/30 shadow-md text-foreground backdrop-blur transition-opacity ${
+        className={`hidden sm:flex absolute left-1 top-1/2 -translate-y-1/2 -mt-6 h-9 w-9 items-center justify-center rounded-full bg-card/95 border border-gold/30 shadow-md text-foreground backdrop-blur transition-opacity ${
           canPrev ? "opacity-90 hover:opacity-100" : "opacity-0 pointer-events-none"
         }`}
       >
@@ -96,7 +96,7 @@ export default function FeaturedCarousel({ children }: Props) {
         aria-label="Next"
         onClick={() => scrollByAmount(1)}
         disabled={!canNext}
-        className={`hidden sm:flex absolute right-1 top-1/2 -translate-y-1/2 -mt-2 h-9 w-9 items-center justify-center rounded-full bg-card/95 border border-gold/30 shadow-md text-foreground backdrop-blur transition-opacity ${
+        className={`hidden sm:flex absolute right-1 top-1/2 -translate-y-1/2 -mt-6 h-9 w-9 items-center justify-center rounded-full bg-card/95 border border-gold/30 shadow-md text-foreground backdrop-blur transition-opacity ${
           canNext ? "opacity-90 hover:opacity-100" : "opacity-0 pointer-events-none"
         }`}
       >
