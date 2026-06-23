@@ -320,6 +320,18 @@ export default function ResourceManagement() {
       .slice(0, 50);
   }, [events, eventSearch]);
 
+  // ----- Cover upload helper -----
+  async function uploadCoverIfAny(): Promise<string | null | undefined> {
+    if (!coverFile) return undefined; // no change
+    const ext = (coverFile.name.split(".").pop() || "jpg").toLowerCase();
+    const path = `${crypto.randomUUID()}.${ext}`;
+    const { error } = await supabase.storage
+      .from("resource-covers")
+      .upload(path, coverFile, { contentType: coverFile.type, upsert: false });
+    if (error) throw error;
+    return path;
+  }
+
   // ----- Mutations -----
   const uploadMutation = useMutation({
     mutationFn: async () => {
@@ -346,6 +358,8 @@ export default function ResourceManagement() {
         fileUrl = externalUrl.trim();
       }
 
+      const coverPath = await uploadCoverIfAny();
+
       const { error: insertError } = await supabase.from("resources").insert({
         title,
         description: description || null,
@@ -359,6 +373,7 @@ export default function ResourceManagement() {
         speaker_ids: speakerIds,
         tags,
         resource_date: resourceDate || null,
+        cover_image_url: coverPath ?? null,
       } as any);
       if (insertError) throw insertError;
     },
