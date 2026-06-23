@@ -703,7 +703,7 @@ export default function Library() {
 
                 if (hasActiveResourceFilters) {
                   return (
-                    <div className="grid gap-3">
+                    <div className="flex flex-col gap-3">
                       {filtered.map(renderListCard)}
                     </div>
                   );
