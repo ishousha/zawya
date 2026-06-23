@@ -290,7 +290,7 @@ export default function Library() {
     } else {
       setSelected(res);
     }
-  };
+  }, []);
 
   // Handle deep links: /library/:resourceId — open viewer, highlight & scroll
   const deepHandled = useRef<string | null>(null);
