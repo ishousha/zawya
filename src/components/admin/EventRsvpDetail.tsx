@@ -245,6 +245,14 @@ export default function EventRsvpDetail({ eventId, eventTitle, eventDate, checki
     | { kind: "remove"; rsvpId: string; userId: string; name: string; email: string | null; removedRow: any; at: number };
   const [lastAction, setLastAction] = useState<LastAction | null>(null);
 
+  // While promote confirmation is open, preview the projected attending headcount
+  useEffect(() => {
+    if (promoteTarget) {
+      setPreviewAttending(attendingHeadcount + promoteTarget.guestsCount);
+    }
+    // Clearing is handled by the dialog's onOpenChange to avoid races with edit dialog
+  }, [promoteTarget, attendingHeadcount]);
+
   const invalidateRsvpQueries = () => {
     queryClient.invalidateQueries({ queryKey: ["admin-rsvps", eventId] });
     queryClient.invalidateQueries({ queryKey: ["host-rsvps", eventId] });
