@@ -61,7 +61,7 @@ const STATUS_OPTIONS: { value: "attending" | "waitlisted" | "cancelled"; label: 
   { value: "cancelled", label: "Cancelled" },
 ];
 
-export default function EditRsvpDialog({ rsvp, eventTitle, open, onOpenChange }: Props) {
+export default function EditRsvpDialog({ rsvp, eventTitle, open, onOpenChange, capacity, attendingCount, hostId }: Props) {
   const queryClient = useQueryClient();
   const [adults, setAdults] = useState(1);
   const [deps, setDeps] = useState<EditDep[]>([]);
