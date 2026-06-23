@@ -43,6 +43,36 @@ function formatFileSize(bytes: number | null) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+/** Small preview tile for the admin cover-image picker. */
+function CoverThumb({ file, path }: { file: File | null; path: string | null }) {
+  const [localUrl, setLocalUrl] = useState<string | null>(null);
+  const [signedUrl, setSignedUrl] = useState<string | null>(null);
+  useEffect(() => {
+    if (!file) { setLocalUrl(null); return; }
+    const u = URL.createObjectURL(file);
+    setLocalUrl(u);
+    return () => URL.revokeObjectURL(u);
+  }, [file]);
+  useEffect(() => {
+    let cancelled = false;
+    if (file || !path) { setSignedUrl(null); return; }
+    supabase.storage.from("resource-covers").createSignedUrl(path, 3600).then(({ data }) => {
+      if (!cancelled) setSignedUrl(data?.signedUrl ?? null);
+    });
+    return () => { cancelled = true; };
+  }, [file, path]);
+  const src = localUrl ?? signedUrl;
+  return (
+    <div className="w-16 h-16 rounded-lg border border-border bg-muted/50 overflow-hidden flex items-center justify-center flex-shrink-0">
+      {src ? (
+        <img src={src} alt="Cover preview" className="w-full h-full object-cover" />
+      ) : (
+        <ImageIcon className="h-5 w-5 text-muted-foreground" />
+      )}
+    </div>
+  );
+}
+
 /** Compact tag chip input — Enter or comma adds a tag. */
 function TagInput({
   value,
