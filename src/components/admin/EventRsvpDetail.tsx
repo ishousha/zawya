@@ -75,6 +75,20 @@ export default function EventRsvpDetail({ eventId, eventTitle, eventDate, checki
     summary: { totalHeadcount: number; totalAdults: number; totalElders: number; totalChildren: number; guestCount: number; potluckCount: number };
   } | null>(null);
 
+  // Event meta (capacity + host) for capacity validation
+  const { data: eventMeta } = useQuery({
+    queryKey: ["event-meta-capacity", eventId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("events")
+        .select("capacity, host_id")
+        .eq("id", eventId)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+  });
+
   // Fetch RSVPs + profiles
   const { data: rsvps, isLoading } = useQuery({
     queryKey: ["admin-rsvps", eventId],
