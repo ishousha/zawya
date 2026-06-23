@@ -40,6 +40,14 @@
     --gold-foreground: 150 25% 15%;
     --emerald-light: 153 30% 40%;
 
+    /* Sufi category palette — muted, harmonious tones */
+    --olive: 82 22% 38%;
+    --olive-foreground: 40 33% 96%;
+    --clay: 18 42% 52%;
+    --clay-foreground: 40 33% 96%;
+    --parchment-deep: 36 28% 72%;
+    --parchment-deep-foreground: 150 25% 15%;
+
     --sidebar-background: 150 20% 12%;
     --sidebar-foreground: 40 33% 96%;
     --sidebar-primary: 43 72% 55%;
