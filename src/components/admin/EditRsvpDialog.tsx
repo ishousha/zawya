@@ -137,13 +137,28 @@ export default function EditRsvpDialog({ rsvp, eventTitle, open, onOpenChange, c
     },
     onError: (err: any) => {
       const msg = String(err?.message || "Failed to update RSVP");
-      if (msg.includes("RSVP_DUPLICATE_COVERED") || msg.includes("RSVP_DUPLICATE_MEMBER")) {
+      if (msg.includes("RSVP_CAPACITY_EXCEEDED")) {
+        toast.error("Over capacity", { description: msg.replace(/^.*?RSVP_CAPACITY_EXCEEDED:\s*/, "") });
+      } else if (msg.includes("RSVP_DUPLICATE_COVERED") || msg.includes("RSVP_DUPLICATE_MEMBER")) {
         toast.error("Family conflict", { description: msg.replace(/^.*?:\s*/, "") });
       } else {
         toast.error(msg);
       }
     },
   });
+
+  // Capacity projection
+  const isHost = !!(hostId && rsvp && rsvp.user_id === hostId);
+  const newTotal = Math.max(1, adults + deps.length);
+  const previousAttendingFromThis =
+    rsvp && rsvp.status === "attending" && !rsvp.is_waitlisted && !isHost
+      ? (rsvp.guests_count ?? 0)
+      : 0;
+  const otherAttending = Math.max(0, (attendingCount ?? 0) - previousAttendingFromThis);
+  const willCountTowardCapacity = status === "attending" && !isHost;
+  const projectedTotal = otherAttending + (willCountTowardCapacity ? newTotal : 0);
+  const overCapacity =
+    typeof capacity === "number" && capacity > 0 && willCountTowardCapacity && projectedTotal > capacity;
 
   const addDep = () =>
     setDeps((d) => [...d, { name: "", type: "dependent", age_group: "child_4_12" }]);
