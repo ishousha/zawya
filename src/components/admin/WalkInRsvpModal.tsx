@@ -128,10 +128,13 @@ export default function WalkInRsvpModal({ eventId, open, onOpenChange, onProject
       onOpenChange(false);
     },
     onError: (err) => {
+      const cap = capacityToastFromError(err);
+      if (cap) {
+        toast.error(cap.title, { description: cap.description });
+        return;
+      }
       const msg = (err as Error).message;
-      if (msg.includes("RSVP_CAPACITY_EXCEEDED")) {
-        toast.error("Over capacity", { description: msg.replace(/^.*?RSVP_CAPACITY_EXCEEDED:\s*/, "") });
-      } else if (msg.includes("RSVP_DUPLICATE_COVERED") || msg.includes("RSVP_DUPLICATE_MEMBER")) {
+      if (msg.includes("RSVP_DUPLICATE_COVERED") || msg.includes("RSVP_DUPLICATE_MEMBER")) {
         toast.error("Family conflict", { description: msg.replace(/^.*?:\s*/, "") });
       } else {
         toast.error("Failed to add RSVP: " + msg);
