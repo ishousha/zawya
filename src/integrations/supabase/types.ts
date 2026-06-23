@@ -1209,6 +1209,20 @@ export type Database = {
     }
     Functions: {
       accept_family_invite: { Args: { _token: string }; Returns: Json }
+      create_my_family: {
+        Args: { p_name: string }
+        Returns: {
+          created_at: string
+          id: string
+          name: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "families"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       delete_email: {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
