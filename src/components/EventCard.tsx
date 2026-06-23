@@ -3,7 +3,7 @@ import { format } from "date-fns";
 import { MapPin, Video, Users, Calendar, Clock, CheckCircle2, Ticket, Edit, Building2, ExternalLink, Ban, BookOpen, Mountain, Handshake, ClockIcon, ScanLine, Lock, Play, Share2, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
-import { useMyRSVP, useEventRsvpCounts } from "@/hooks/useRSVP";
+import { useMyRSVP, useEventRsvpCounts, useMyEventCoverage } from "@/hooks/useRSVP";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/runtime-client";
 import { useEventTypes, getEventTypeIcon } from "@/hooks/useEventTypes";
