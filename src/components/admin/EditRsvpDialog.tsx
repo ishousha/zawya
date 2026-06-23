@@ -24,6 +24,7 @@ import { Badge } from "@/components/ui/badge";
 import { Loader2, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { AGE_GROUP_LABELS, type AgeGroupKey } from "@/lib/age-group-labels";
+import { capacityToastFromError } from "@/lib/rsvp-errors";
 
 interface RsvpRow {
   id: string;
@@ -45,6 +46,22 @@ interface EditDep {
   id?: string | null; // family_member id, preserved
 }
 
+export interface RecordedEditAction {
+  kind: "edit";
+  rsvpId: string;
+  userId: string;
+  name: string;
+  email: string | null;
+  previous: {
+    guests_count: number;
+    attending_dependents: any;
+    status: string;
+    is_waitlisted: boolean;
+    checked_in: boolean;
+  };
+  at: number;
+}
+
 interface Props {
   rsvp: RsvpRow | null;
   eventTitle: string;
@@ -53,6 +70,8 @@ interface Props {
   capacity?: number | null;
   attendingCount?: number; // total attending seats (excluding host)
   hostId?: string | null;
+  onActionRecorded?: (action: RecordedEditAction) => void;
+  onProjectionChange?: (projectedAttending: number | null) => void;
 }
 
 const STATUS_OPTIONS: { value: "attending" | "waitlisted" | "cancelled"; label: string }[] = [
@@ -61,7 +80,7 @@ const STATUS_OPTIONS: { value: "attending" | "waitlisted" | "cancelled"; label: 
   { value: "cancelled", label: "Cancelled" },
 ];
 
-export default function EditRsvpDialog({ rsvp, eventTitle, open, onOpenChange, capacity, attendingCount, hostId }: Props) {
+export default function EditRsvpDialog({ rsvp, eventTitle, open, onOpenChange, capacity, attendingCount, hostId, onActionRecorded, onProjectionChange }: Props) {
   const queryClient = useQueryClient();
   const [adults, setAdults] = useState(1);
   const [deps, setDeps] = useState<EditDep[]>([]);
@@ -153,6 +172,18 @@ export default function EditRsvpDialog({ rsvp, eventTitle, open, onOpenChange, c
         queryClient.invalidateQueries({ queryKey: ["door-attendees", evId] });
         queryClient.invalidateQueries({ queryKey: ["existing-rsvp-users", evId] });
       };
+      // Surface action to parent (used for global "Undo last change" on error toasts)
+      if (previous && rsvpId && rsvp) {
+        onActionRecorded?.({
+          kind: "edit",
+          rsvpId,
+          userId: rsvp.user_id,
+          name: rsvp.profile?.name ?? rsvp.profile?.email ?? "Member",
+          email: rsvp.profile?.email ?? null,
+          previous,
+          at: Date.now(),
+        });
+      }
       toast.success("RSVP updated", {
         duration: 10000,
         action: previous && rsvpId
@@ -170,11 +201,11 @@ export default function EditRsvpDialog({ rsvp, eventTitle, open, onOpenChange, c
                   })
                   .eq("id", rsvpId);
                 if (error) {
-                  const m = String(error.message || "");
-                  if (m.includes("RSVP_CAPACITY_EXCEEDED")) {
-                    toast.error("Can't undo — event is now full");
+                  const cap = capacityToastFromError(error);
+                  if (cap) {
+                    toast.error("Can't undo — " + cap.title.toLowerCase(), { description: cap.description });
                   } else {
-                    toast.error("Undo failed", { description: m });
+                    toast.error("Undo failed", { description: error.message });
                   }
                   return;
                 }
@@ -198,10 +229,13 @@ export default function EditRsvpDialog({ rsvp, eventTitle, open, onOpenChange, c
       onOpenChange(false);
     },
     onError: (err: any) => {
+      const cap = capacityToastFromError(err);
+      if (cap) {
+        toast.error(cap.title, { description: cap.description });
+        return;
+      }
       const msg = String(err?.message || "Failed to update RSVP");
-      if (msg.includes("RSVP_CAPACITY_EXCEEDED")) {
-        toast.error("Over capacity", { description: msg.replace(/^.*?RSVP_CAPACITY_EXCEEDED:\s*/, "") });
-      } else if (msg.includes("RSVP_DUPLICATE_COVERED") || msg.includes("RSVP_DUPLICATE_MEMBER")) {
+      if (msg.includes("RSVP_DUPLICATE_COVERED") || msg.includes("RSVP_DUPLICATE_MEMBER")) {
         toast.error("Family conflict", { description: msg.replace(/^.*?:\s*/, "") });
       } else {
         toast.error(msg);
@@ -221,6 +255,14 @@ export default function EditRsvpDialog({ rsvp, eventTitle, open, onOpenChange, c
   const projectedTotal = otherAttending + (willCountTowardCapacity ? newTotal : 0);
   const overCapacity =
     typeof capacity === "number" && capacity > 0 && willCountTowardCapacity && projectedTotal > capacity;
+
+  // Notify parent of live capacity projection while open
+  useEffect(() => {
+    if (!onProjectionChange) return;
+    if (!open) { onProjectionChange(null); return; }
+    onProjectionChange(projectedTotal);
+    return () => onProjectionChange(null);
+  }, [open, projectedTotal, onProjectionChange]);
 
   const addDep = () =>
     setDeps((d) => [...d, { name: "", type: "dependent", age_group: "child_4_12" }]);

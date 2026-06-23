@@ -11,16 +11,20 @@ import { AlertTriangle, Check, Loader2, UserPlus, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useEventRsvpCounts } from "@/hooks/useRSVP";
 import { toast } from "sonner";
+import { capacityToastFromError } from "@/lib/rsvp-errors";
+import { useEffect } from "react";
 
 interface WalkInRsvpModalProps {
   eventId: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** Called with the projected extra attending seats while this modal is open. */
+  onProjectionChange?: (extraAttending: number | null) => void;
 }
 
 type AddMode = "walkin" | "rsvp" | "waitlist";
 
-export default function WalkInRsvpModal({ eventId, open, onOpenChange }: WalkInRsvpModalProps) {
+export default function WalkInRsvpModal({ eventId, open, onOpenChange, onProjectionChange }: WalkInRsvpModalProps) {
   const queryClient = useQueryClient();
 
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
@@ -124,16 +128,29 @@ export default function WalkInRsvpModal({ eventId, open, onOpenChange }: WalkInR
       onOpenChange(false);
     },
     onError: (err) => {
+      const cap = capacityToastFromError(err);
+      if (cap) {
+        toast.error(cap.title, { description: cap.description });
+        return;
+      }
       const msg = (err as Error).message;
-      if (msg.includes("RSVP_CAPACITY_EXCEEDED")) {
-        toast.error("Over capacity", { description: msg.replace(/^.*?RSVP_CAPACITY_EXCEEDED:\s*/, "") });
-      } else if (msg.includes("RSVP_DUPLICATE_COVERED") || msg.includes("RSVP_DUPLICATE_MEMBER")) {
+      if (msg.includes("RSVP_DUPLICATE_COVERED") || msg.includes("RSVP_DUPLICATE_MEMBER")) {
         toast.error("Family conflict", { description: msg.replace(/^.*?:\s*/, "") });
       } else {
         toast.error("Failed to add RSVP: " + msg);
       }
     },
   });
+
+  // Live projection: while the modal is open and the chosen mode would
+  // consume capacity, report the prospective added headcount.
+  useEffect(() => {
+    if (!onProjectionChange) return;
+    if (!open) { onProjectionChange(null); return; }
+    if (mode === "waitlist") { onProjectionChange(0); return; }
+    onProjectionChange(adultsCount + childrenCount);
+    return () => onProjectionChange(null);
+  }, [open, mode, adultsCount, childrenCount, onProjectionChange]);
 
   const resetForm = () => {
     setSelectedUserId(null);

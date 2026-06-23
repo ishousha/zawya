@@ -1,96 +1,67 @@
 ## Goal
-Three admin-safety improvements for event RSVP management:
+Three follow-up admin RSVP improvements building on the existing capacity-trigger + undo work:
 
-1. Confirm before moving a waitlist entry to Attending.
-2. Prevent (and clearly explain) RSVP edits/promotions that would exceed event capacity — enforced server-side, surfaced in the UI.
-3. Let an admin undo their most recent RSVP edit, promote, or remove action to restore the previous state.
+1. Add an "Undo" action to the **error** toast for promote/remove (and edit) when the action failed, so admins can quickly re-apply the last successful state if needed mid-edit.
+2. Show a live **Remaining seats** indicator on the `EventRsvpDetail` header that updates in real time as admins open/edit RSVPs.
+3. Make every capacity-related server error toast show the exact **attempted delta** and the **remaining capacity**.
 
-## 1. Promote-from-Waitlist confirmation
+## 1. Error-state undo for last successful RSVP action
 
 **File:** `src/components/admin/EventRsvpDetail.tsx`
 
-- Wrap the existing "↑ Move to Attending" button in an `AlertDialog`.
-- Dialog body shows: member name, the party size being promoted, current attending vs capacity, and the resulting attending count after promotion.
-- If promotion would push past capacity, show an inline warning and disable the confirm button (the server will also block it — see §2).
-- Confirm button text: "Move to Attending". Cancel keeps them on waitlist.
+- Introduce component-level state `lastAction: { kind: 'edit'|'promote'|'remove', rsvpId, eventTitle, name, previous, removedRow? } | null`.
+- Populate it inside the existing `onSuccess` handlers for the promote, remove, and (forwarded from `EditRsvpDialog`) edit mutations.
+- When any subsequent admin RSVP mutation hits `onError`, show an error toast that includes an **Undo last change** action button if `lastAction` is set and was within the last 60s. Clicking it runs the same undo logic already wired into the success toast (UPDATE back to `previous`, or re-INSERT the removed row), then clears `lastAction`.
+- After undo succeeds, show "Reverted last RSVP change". After it fails (e.g. capacity now full), show the standard capacity-error toast (see §3).
+- `EditRsvpDialog`: accept an optional `onActionRecorded(action)` callback and call it from its `save` `onSuccess` so the parent's `lastAction` stays in sync; the dialog's own success toast keeps its inline Undo button as today.
 
-## 2. Server-side capacity validation + clear UI errors
+## 2. Live "Remaining seats" indicator in the header
 
-### Database trigger (new migration)
+**File:** `src/components/admin/EventRsvpDetail.tsx`
 
-Add `enforce_event_capacity_on_rsvp` (BEFORE INSERT OR UPDATE on `public.rsvps`):
+- The header already renders capacity/attending data from `eventMeta` + `get_event_rsvp_counts`. Replace the static badge with a `Remaining: X / Y` chip:
+  - `remaining = capacity - attendingCount` (excluding host, matching `get_event_rsvp_counts`).
+  - Color: neutral when `remaining > 5`, amber `<=5`, red `<=0`.
+  - Tooltip: "Hosts and waitlisted entries do not consume capacity."
+- Make it react live to edits in-flight:
+  - `EditRsvpDialog` exposes a new `onProjectionChange?(projectedAttending: number)` prop. Parent stores `previewAttending`. The header shows `Remaining` based on `previewAttending ?? attendingCount` while the dialog is open, then snaps back on close.
+  - For promote confirm AlertDialog and WalkInRsvpModal: same idea — pass a callback so opening or changing party size updates the header preview.
+- Counts already invalidate via React Query on every mutation success, so post-save the chip naturally reflects the new truth.
 
-- Skip when `NEW.status = 'cancelled'` or `NEW.is_waitlisted = true`.
-- Skip for the event `host_id` (hosts don't consume capacity, matching existing `get_event_rsvp_counts` logic).
-- Load `events.capacity`; if NULL → unlimited, allow.
-- Compute current attending sum excluding host and excluding `OLD` (when UPDATE on same row):
-  ```sql
-  SELECT COALESCE(SUM(guests_count),0)
-  FROM rsvps
-  WHERE event_id = NEW.event_id
-    AND status = 'attending' AND COALESCE(is_waitlisted,false)=false
-    AND user_id <> events.host_id
-    AND id <> COALESCE(NEW.id, '00000000-...');
-  ```
-- If `current + NEW.guests_count > capacity` →
-  `RAISE EXCEPTION 'RSVP_CAPACITY_EXCEEDED: Adding % seats would exceed capacity (% / %).', NEW.guests_count, current, capacity USING ERRCODE = 'check_violation';`
+## 3. Capacity errors with attempted delta + remaining
 
-This blocks party-size increases, status flips waitlisted→attending, and waitlist promotions that overflow capacity — for both admin and member actions.
+### Trigger message (new migration)
 
-### UI surfacing
+Update `enforce_event_capacity_on_rsvp` to include both pieces explicitly so clients can parse them:
 
-- `EditRsvpDialog.tsx`: accept `attendingCount`, `capacity`, `hostId`, `currentRsvpCount` props. Compute live "after-save" projection and show:
-  - Helper text under Adults: `X of Y seats used · this RSVP will take N`.
-  - Red inline error + disabled Save when the new total would exceed capacity (skipped when status = `waitlisted` or `cancelled`, or user is the host).
-- `EditRsvpDialog`, `WalkInRsvpModal`, `promoteFromWaitlist`, `removeRsvp` mutation `onError` handlers: detect `RSVP_CAPACITY_EXCEEDED:` prefix and show a friendly toast: "Over capacity — {detail}".
-- Update `useRSVP.ts` `getErrorMessage` to strip the same prefix for member-facing flows.
-
-## 3. Undo for admin RSVP edits / promote / remove
-
-### Snapshot-based undo
-
-`admin_activity_log.details` already accepts JSON. Extend the existing `rsvp_admin_edit`, `rsvp_admin_promote`, and `rsvp_admin_remove` log entries with a `previous` snapshot:
-
-```json
-{
-  "event_id": "...",
-  "rsvp_id": "...",
-  "previous": {
-    "guests_count": 4,
-    "attending_dependents": [...],
-    "status": "attending",
-    "is_waitlisted": false,
-    "checked_in": true
-  }
-}
+```
+RSVP_CAPACITY_EXCEEDED: Adding {delta} seat(s) would exceed capacity.
+attempted={delta} current={current} capacity={capacity} remaining={remaining}
 ```
 
-For `rsvp_admin_remove`, store the full row (all editable columns) so it can be re-inserted.
+Where `delta = NEW.guests_count - (OLD.guests_count if same row and previously attending else 0)` so it reflects the *change*, not just the new total. Keep the human sentence at the start; append a machine-readable tail `attempted=… current=… capacity=… remaining=…`.
 
-### Undo UI
+### Client parsing
 
-`EventRsvpDetail.tsx`:
+- Add `src/lib/rsvp-errors.ts` with `parseCapacityError(message)` → `{ attempted, current, capacity, remaining, human } | null`.
+- Update every existing capacity-error `onError` handler (`EditRsvpDialog`, `WalkInRsvpModal`, `EventRsvpDetail` promote / remove / undo, `useRSVP.ts` `getErrorMessage`) to use the parser and render:
+  - Title: "Over capacity"
+  - Description: `Tried to add N seat(s). Only M seat(s) left (X / Y used).`
+  - Falls back to the raw message if parsing fails.
+- Same parser feeds the error-state undo toast in §1 so the message is consistent.
 
-- Track the last admin RSVP action for this event in component state: `{ kind: 'edit'|'promote'|'remove', logId, rsvpId, eventTitle, name, previous }`. Set it inside each mutation's `onSuccess`.
-- Show a sonner toast with an **Undo** action button (sonner's `toast.success(msg, { action: { label: 'Undo', onClick } })`) on every successful edit/promote/remove. Undo button stays available for ~10s (default toast duration) — no separate panel.
-- Undo handler:
-  - `edit` / `promote` → `UPDATE rsvps SET ...previous WHERE id = rsvp_id` (subject to the same capacity trigger; if it now fails because someone else filled the seat, show "Cannot undo — event is now full").
-  - `remove` → re-`INSERT` the saved row (preserve the original `id` so QR hashes / selections still line up).
-  - Write a follow-up `admin_activity_log` entry with `action: 'rsvp_admin_undo'` referencing the original `logId` and clear the in-memory `lastAction` to avoid double-undo.
-  - Invalidate the same React Query keys already invalidated by the original mutations.
+## Out of scope
 
-### Out of scope
-
-- Undo for self-service member RSVPs.
-- Multi-step undo history / timeline view (only the most recent admin action is undoable).
-- Editing potluck sign-up items (already has its own flow).
+- No new tables or RLS changes.
+- No changes to self-service member RSVP flows beyond the friendlier message string.
+- No expansion of undo history (still only the most recent admin action).
 
 ## Technical summary
 
-- **Migration:** `enforce_event_capacity_on_rsvp` trigger function + `BEFORE INSERT OR UPDATE` trigger on `public.rsvps`. No schema changes; no new tables; no new RLS.
+- **Migration:** replace `enforce_event_capacity_on_rsvp` function body with the richer error string. Trigger definition itself unchanged.
 - **Frontend:**
-  - `src/components/admin/EventRsvpDetail.tsx` — AlertDialog for promote, undo toasts, undo mutations, capacity props passed to `EditRsvpDialog`.
-  - `src/components/admin/EditRsvpDialog.tsx` — capacity-aware props, inline projection + error, save disabled when over capacity.
-  - `src/components/admin/WalkInRsvpModal.tsx` — friendly error mapping for `RSVP_CAPACITY_EXCEEDED`.
-  - `src/hooks/useRSVP.ts` — extend `getErrorMessage` prefix stripping.
-- **React Query keys invalidated on undo:** `admin-rsvps`, `host-rsvps`, `event-rsvp-counts`, `door-attendees`, `existing-rsvp-users` (same set already in use).
+  - `src/components/admin/EventRsvpDetail.tsx` — `lastAction` state, error-state Undo wiring, live Remaining-seats chip, projection callbacks from dialogs.
+  - `src/components/admin/EditRsvpDialog.tsx` — `onActionRecorded`, `onProjectionChange` props; use shared parser for capacity errors.
+  - `src/components/admin/WalkInRsvpModal.tsx` — `onProjectionChange`; use shared parser.
+  - `src/hooks/useRSVP.ts` — `getErrorMessage` uses shared parser for friendlier member-facing text.
+  - New `src/lib/rsvp-errors.ts` — `parseCapacityError`.

@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Select,
@@ -37,6 +37,7 @@ import CheckinPoster from "./CheckinPoster";
 import WalkInRsvpModal from "./WalkInRsvpModal";
 import WalkInGuestDialog from "./WalkInGuestDialog";
 import { ageGroupLabel, ageGroupShort, deriveAgeGroup } from "@/lib/age-group-labels";
+import { capacityToastFromError } from "@/lib/rsvp-errors";
 
 interface Props {
   eventId: string;
@@ -234,16 +235,23 @@ export default function EventRsvpDetail({ eventId, eventTitle, eventDate, checki
   const [removeTarget, setRemoveTarget] = useState<{ rsvpId: string; name: string; userId: string; email: string | null } | null>(null);
   const [promoteTarget, setPromoteTarget] = useState<{ rsvpId: string; name: string; userId: string; email: string | null; guestsCount: number } | null>(null);
 
-  const friendlyError = (e: any, fallback: string) => {
-    const msg = String(e?.message || fallback);
-    if (msg.includes("RSVP_CAPACITY_EXCEEDED")) {
-      toast.error("Over capacity", { description: msg.replace(/^.*?RSVP_CAPACITY_EXCEEDED:\s*/, "") });
-    } else if (msg.includes("RSVP_DUPLICATE_")) {
-      toast.error("Family conflict", { description: msg.replace(/^.*?:\s*/, "") });
-    } else {
-      toast.error(msg);
+  // Live projection from open dialogs ("after-save" attending headcount)
+  const [previewAttending, setPreviewAttending] = useState<number | null>(null);
+
+  // Most recent admin RSVP action (for "Undo last change" on subsequent errors)
+  type LastAction =
+    | { kind: "edit"; rsvpId: string; userId: string; name: string; email: string | null; previous: any; at: number }
+    | { kind: "promote"; rsvpId: string; userId: string; name: string; email: string | null; previous: any; at: number }
+    | { kind: "remove"; rsvpId: string; userId: string; name: string; email: string | null; removedRow: any; at: number };
+  const [lastAction, setLastAction] = useState<LastAction | null>(null);
+
+  // While promote confirmation is open, preview the projected attending headcount
+  useEffect(() => {
+    if (promoteTarget) {
+      setPreviewAttending(attendingHeadcount + promoteTarget.guestsCount);
     }
-  };
+    // Clearing is handled by the dialog's onOpenChange to avoid races with edit dialog
+  }, [promoteTarget, attendingHeadcount]);
 
   const invalidateRsvpQueries = () => {
     queryClient.invalidateQueries({ queryKey: ["admin-rsvps", eventId] });
@@ -251,6 +259,63 @@ export default function EventRsvpDetail({ eventId, eventTitle, eventDate, checki
     queryClient.invalidateQueries({ queryKey: ["event-rsvp-counts", eventId] });
     queryClient.invalidateQueries({ queryKey: ["door-attendees", eventId] });
     queryClient.invalidateQueries({ queryKey: ["existing-rsvp-users", eventId] });
+  };
+
+  const runUndoLastAction = async () => {
+    if (!lastAction) return;
+    try {
+      if (lastAction.kind === "remove") {
+        const { error } = await supabase.from("rsvps").insert(lastAction.removedRow as any);
+        if (error) throw error;
+      } else {
+        const prev = lastAction.previous || {};
+        const patch: any = {};
+        if ("guests_count" in prev) patch.guests_count = prev.guests_count;
+        if ("attending_dependents" in prev) patch.attending_dependents = prev.attending_dependents;
+        if ("status" in prev) patch.status = prev.status;
+        if ("is_waitlisted" in prev) patch.is_waitlisted = prev.is_waitlisted;
+        if ("checked_in" in prev) patch.checked_in = prev.checked_in;
+        const { error } = await supabase.from("rsvps").update(patch).eq("id", lastAction.rsvpId);
+        if (error) throw error;
+      }
+      const { data: u } = await supabase.auth.getUser();
+      if (u.user?.id) {
+        await supabase.from("admin_activity_log").insert({
+          actor_id: u.user.id,
+          action: "rsvp_admin_undo",
+          target_user_id: lastAction.userId,
+          target_user_name: lastAction.name,
+          target_user_email: lastAction.email,
+          details: { event_id: eventId, rsvp_id: lastAction.rsvpId, undone: `rsvp_admin_${lastAction.kind}` },
+        });
+      }
+      invalidateRsvpQueries();
+      setLastAction(null);
+      toast.success("Reverted last RSVP change");
+    } catch (e: any) {
+      const cap = capacityToastFromError(e);
+      if (cap) {
+        toast.error("Can't undo — " + cap.title.toLowerCase(), { description: cap.description });
+      } else {
+        toast.error("Undo failed", { description: e?.message || "Unknown error" });
+      }
+    }
+  };
+
+  const friendlyError = (e: any, fallback: string) => {
+    const msg = String(e?.message || fallback);
+    const cap = capacityToastFromError(e);
+    const recent = lastAction && Date.now() - lastAction.at < 60_000 ? lastAction : null;
+    const action = recent
+      ? { label: "Undo last change", onClick: () => { void runUndoLastAction(); } }
+      : undefined;
+    if (cap) {
+      toast.error(cap.title, { description: cap.description, action, duration: 10000 });
+    } else if (msg.includes("RSVP_DUPLICATE_")) {
+      toast.error("Family conflict", { description: msg.replace(/^.*?:\s*/, ""), action, duration: 10000 });
+    } else {
+      toast.error(msg, { action, duration: 10000 });
+    }
   };
 
   const removeRsvp = useMutation({
@@ -279,6 +344,9 @@ export default function EventRsvpDetail({ eventId, eventTitle, eventDate, checki
     },
     onSuccess: ({ snap }, vars) => {
       invalidateRsvpQueries();
+      if (snap) {
+        setLastAction({ kind: "remove", rsvpId: vars.rsvpId, userId: vars.userId, name: vars.name, email: vars.email, removedRow: snap, at: Date.now() });
+      }
       toast.success(`Removed RSVP for ${vars.name}`, {
         duration: 10000,
         action: snap
@@ -339,6 +407,9 @@ export default function EventRsvpDetail({ eventId, eventTitle, eventDate, checki
     },
     onSuccess: ({ snap }, vars) => {
       invalidateRsvpQueries();
+      if (snap) {
+        setLastAction({ kind: "promote", rsvpId: vars.rsvpId, userId: vars.userId, name: vars.name, email: vars.email, previous: snap, at: Date.now() });
+      }
       toast.success(`Moved ${vars.name} to Attending`, {
         duration: 10000,
         action: snap
@@ -630,8 +701,30 @@ export default function EventRsvpDetail({ eventId, eventTitle, eventDate, checki
       <Card>
         <CardHeader className="pb-2">
           <div className="flex flex-col gap-3">
-            <div className="flex items-start justify-between">
-              <CardTitle className="text-lg">{eventTitle}</CardTitle>
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0 flex-1">
+                <CardTitle className="text-lg">{eventTitle}</CardTitle>
+                {capacity != null && (() => {
+                  const effectiveAttending = previewAttending ?? attendingHeadcount;
+                  const remaining = capacity - effectiveAttending;
+                  const tone =
+                    remaining <= 0 ? "border-destructive/40 bg-destructive/10 text-destructive"
+                    : remaining <= 5 ? "border-amber-400/50 bg-amber-50 text-amber-800 dark:bg-amber-950/30 dark:text-amber-200"
+                    : "border-border bg-muted/40 text-foreground";
+                  const isPreview = previewAttending != null && previewAttending !== attendingHeadcount;
+                  return (
+                    <div
+                      className={`mt-1.5 inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-[11px] font-medium ${tone}`}
+                      title="Hosts and waitlisted entries do not consume capacity."
+                      aria-live="polite"
+                    >
+                      <span>Remaining: {Math.max(0, remaining)} / {capacity}</span>
+                      {remaining < 0 && <span className="font-semibold">· over by {Math.abs(remaining)}</span>}
+                      {isPreview && <span className="opacity-70">· preview</span>}
+                    </div>
+                  );
+                })()}
+              </div>
               <Button size="icon" variant="ghost" className="h-10 w-10 shrink-0" onClick={onClose}>
                 <X className="h-5 w-5" />
               </Button>
@@ -1043,7 +1136,14 @@ export default function EventRsvpDetail({ eventId, eventTitle, eventDate, checki
           )}
         </CardContent>
       </Card>
-      <WalkInRsvpModal eventId={eventId} open={showWalkIn} onOpenChange={setShowWalkIn} />
+      <WalkInRsvpModal
+        eventId={eventId}
+        open={showWalkIn}
+        onOpenChange={setShowWalkIn}
+        onProjectionChange={(extra) =>
+          setPreviewAttending(extra == null ? null : attendingHeadcount + extra)
+        }
+      />
       <WalkInGuestDialog eventId={eventId} open={showAddGuest} onOpenChange={setShowAddGuest} />
 
       <Dialog open={!!previewData} onOpenChange={(o) => !o && setPreviewData(null)}>
@@ -1133,9 +1233,19 @@ export default function EventRsvpDetail({ eventId, eventTitle, eventDate, checki
         capacity={capacity}
         attendingCount={attendingHeadcount}
         hostId={hostId}
+        onProjectionChange={setPreviewAttending}
+        onActionRecorded={(a) => setLastAction({ ...a })}
       />
 
-      <AlertDialog open={!!promoteTarget} onOpenChange={(o) => !o && setPromoteTarget(null)}>
+      <AlertDialog
+        open={!!promoteTarget}
+        onOpenChange={(o) => {
+          if (!o) {
+            setPromoteTarget(null);
+            setPreviewAttending(null);
+          }
+        }}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Move to Attending?</AlertDialogTitle>
