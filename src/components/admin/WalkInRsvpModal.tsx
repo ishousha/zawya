@@ -18,12 +18,15 @@ interface WalkInRsvpModalProps {
   onOpenChange: (open: boolean) => void;
 }
 
+type AddMode = "walkin" | "rsvp" | "waitlist";
+
 export default function WalkInRsvpModal({ eventId, open, onOpenChange }: WalkInRsvpModalProps) {
   const queryClient = useQueryClient();
-  
+
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [adultsCount, setAdultsCount] = useState(1);
   const [childrenCount, setChildrenCount] = useState(0);
+  const [mode, setMode] = useState<AddMode>("walkin");
 
   const { data: approvedUsers, isLoading: loadingUsers } = useQuery({
     queryKey: ["approved-users-for-walkin"],
