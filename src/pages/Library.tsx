@@ -750,14 +750,21 @@ export default function Library() {
                 }
 
                 return (
-                  <div className="space-y-8">
+                  <div className="space-y-6">
                     {recentResources.length > 0 && (
                       <section>
-                        <div className="flex items-center justify-between mb-3 px-1">
-                          <h2 className="font-heading italic text-lg font-semibold text-gold">
-                            Recently Added
-                          </h2>
-                          <span className="text-[10px] uppercase tracking-widest text-muted-foreground">
+                        <div className="flex items-end justify-between mb-3">
+                          <div>
+                            <h2 className="font-heading text-lg font-semibold text-foreground">
+                              Recently Added
+                            </h2>
+                            <div className="mt-1 flex items-center gap-1 text-gold/70" aria-hidden>
+                              <span className="text-[8px]">◆</span>
+                              <span className="text-[6px]">◆</span>
+                              <span className="text-[8px]">◆</span>
+                            </div>
+                          </div>
+                          <span className="text-xs text-muted-foreground">
                             {recentResources.length} new
                           </span>
                         </div>
@@ -768,19 +775,27 @@ export default function Library() {
                     )}
                     {groupedByCategory.map(([cat, items]) => (
                       <section key={cat}>
-                        <div className="flex items-center gap-3 mb-4">
-                          <span className="font-heading italic text-lg font-semibold text-gold whitespace-nowrap">
-                            {cat}
-                          </span>
-                          <div className="h-px flex-1 bg-gradient-to-r from-gold/30 to-transparent" />
-                          <button
-                            onClick={() => setActiveCategory(cat)}
-                            className="text-[10px] uppercase tracking-widest text-muted-foreground hover:text-primary"
-                          >
-                            View all
-                          </button>
+                        <div className="flex items-end justify-between mb-3">
+                          <div>
+                            <h2 className="font-heading text-lg font-semibold text-foreground">
+                              {cat}
+                            </h2>
+                            <div className="mt-1 flex items-center gap-1 text-gold/70" aria-hidden>
+                              <span className="text-[8px]">◆</span>
+                              <span className="text-[6px]">◆</span>
+                              <span className="text-[8px]">◆</span>
+                            </div>
+                          </div>
+                          {items.length > 4 && (
+                            <button
+                              onClick={() => setActiveCategory(cat)}
+                              className="text-xs font-medium text-primary hover:underline"
+                            >
+                              See all ({items.length})
+                            </button>
+                          )}
                         </div>
-                        <div className="grid gap-3">
+                        <div className="space-y-3">
                           {items.slice(0, 4).map(renderListCard)}
                         </div>
                       </section>
