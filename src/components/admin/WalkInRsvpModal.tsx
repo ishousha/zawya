@@ -146,9 +146,30 @@ export default function WalkInRsvpModal({ eventId, open, onOpenChange }: WalkInR
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 font-heading">
             <UserPlus className="h-5 w-5 text-primary" />
-            Add Walk-In
+            Add Attendee
           </DialogTitle>
         </DialogHeader>
+
+        <div className="flex rounded-md border border-border p-0.5 mt-2 text-xs">
+          {([
+            { v: "walkin", label: "Walk-In" },
+            { v: "rsvp", label: "RSVP" },
+            { v: "waitlist", label: "Waitlist" },
+          ] as { v: AddMode; label: string }[]).map((opt) => (
+            <button
+              key={opt.v}
+              type="button"
+              onClick={() => setMode(opt.v)}
+              className={cn(
+                "flex-1 h-8 rounded-sm font-medium transition-colors",
+                mode === opt.v ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"
+              )}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+
 
         <div className="space-y-4 pt-2">
           {/* User search — inline cmdk list (no Popover, avoids Dialog focus-trap conflicts on mobile) */}
