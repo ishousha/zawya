@@ -11,7 +11,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
-  Loader2, FileText, Download, BookOpen, Search, Tag, Video, Headphones,
+  Loader2, FileText, Download, BookOpen, Search, Video, Headphones,
   Link as LinkIcon, ExternalLink, CalendarDays, Mic, X, SlidersHorizontal, Share2,
   PlayCircle, ListMusic,
 } from "lucide-react";
