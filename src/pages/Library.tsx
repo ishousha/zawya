@@ -676,8 +676,17 @@ export default function Library() {
                             <Mic className="h-2.5 w-2.5" strokeWidth={3} />
                           </div>
                         </div>
+                      ) : (res.cover_image_url || linkedEvent?.cover_photo_url) ? (
+                        <div className="w-14 h-14 rounded-xl overflow-hidden flex-shrink-0 border border-gold/20">
+                          <ResourceCover
+                            res={res}
+                            eventCover={linkedEvent?.cover_photo_url ?? null}
+                            Icon={Icon}
+                            rounded=""
+                          />
+                        </div>
                       ) : (
-                        <div className={`w-14 h-14 rounded-xl flex items-center justify-center flex-shrink-0 transition-colors bg-primary/5 group-hover:bg-primary group-hover:text-primary-foreground ${color.icon} group-hover:text-primary-foreground`}>
+                        <div className={`w-14 h-14 rounded-xl flex items-center justify-center flex-shrink-0 transition-colors ${color.tint} ${color.icon} group-hover:bg-primary group-hover:text-primary-foreground`}>
                           <Icon className="h-6 w-6" />
                         </div>
                       )}
