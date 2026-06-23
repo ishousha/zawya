@@ -912,8 +912,16 @@ export default function Library() {
             >
               <X className="h-5 w-5" />
             </Button>
-            <DialogTitle className="font-heading text-base sm:text-lg truncate flex-1 min-w-0 text-left">
-              {selected?.title}
+            <DialogTitle className="font-heading text-base sm:text-lg truncate flex-1 min-w-0 text-left flex items-center gap-2">
+              {selected && (() => {
+                const { Icon, label } = getResourceMeta(selected);
+                return (
+                  <span className="inline-flex items-center gap-1.5 text-primary flex-shrink-0" aria-label={label}>
+                    <Icon className="h-4 w-4" />
+                  </span>
+                );
+              })()}
+              <span className="truncate">{selected?.title}</span>
             </DialogTitle>
             <div className="flex items-center gap-1.5 flex-shrink-0">
               <Button
