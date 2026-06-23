@@ -663,6 +663,28 @@ export default function EventRsvpDetail({ eventId, eventTitle, eventDate, checki
                                     );
                                   })()}
                                 </TableCell>
+                                <TableCell className="py-2 text-center">
+                                  <div className="flex items-center justify-center gap-1">
+                                    <Button
+                                      size="icon"
+                                      variant="ghost"
+                                      className="h-8 w-8"
+                                      onClick={() => setEditTarget(r)}
+                                      title="Edit RSVP"
+                                    >
+                                      <Pencil className="h-4 w-4" />
+                                    </Button>
+                                    <Button
+                                      size="icon"
+                                      variant="ghost"
+                                      className="h-8 w-8 text-destructive hover:text-destructive"
+                                      onClick={() => setRemoveTarget({ rsvpId: r.id, name: (r.profile as any)?.name || "guest", userId: r.user_id as string, email: (r.profile as any)?.email ?? null })}
+                                      title="Remove RSVP"
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  </div>
+                                </TableCell>
 
                               </TableRow>
                             ))}
