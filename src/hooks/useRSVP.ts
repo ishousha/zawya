@@ -10,6 +10,8 @@ import type { Database } from "@/integrations/supabase/types";
 type RSVP = Database["public"]["Tables"]["rsvps"]["Row"];
 type RSVPInsert = Database["public"]["Tables"]["rsvps"]["Insert"];
 
+import { parseCapacityError, formatCapacityToast } from "@/lib/rsvp-errors";
+
 function getErrorMessage(error: unknown, fallback: string) {
   let msg: string | undefined;
   if (error instanceof Error && error.message) msg = error.message;
@@ -17,8 +19,11 @@ function getErrorMessage(error: unknown, fallback: string) {
     msg = (error as { message: string }).message;
   }
   if (!msg) return fallback;
-  // Strip trigger error codes like "RSVP_DUPLICATE_COVERED: ..." / "RSVP_CAPACITY_EXCEEDED: ..."
-  const m = msg.match(/(?:RSVP_DUPLICATE_[A-Z_]+|RSVP_CAPACITY_EXCEEDED):\s*(.+)$/);
+  // Friendly capacity error with attempted/remaining numbers
+  const cap = parseCapacityError(msg);
+  if (cap) return formatCapacityToast(cap).description;
+  // Strip other trigger error prefixes and drop machine-readable tails
+  const m = msg.match(/(?:RSVP_DUPLICATE_[A-Z_]+|RSVP_CAPACITY_EXCEEDED):\s*(.+?)(?:\s+attempted=.*)?$/);
   return m ? m[1] : msg;
 }
 
