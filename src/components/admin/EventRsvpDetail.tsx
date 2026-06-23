@@ -1015,6 +1015,38 @@ export default function EventRsvpDetail({ eventId, eventTitle, eventDate, checki
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <EditRsvpDialog
+        rsvp={editTarget}
+        eventTitle={eventTitle}
+        open={!!editTarget}
+        onOpenChange={(o) => !o && setEditTarget(null)}
+      />
+
+      <AlertDialog open={!!removeTarget} onOpenChange={(o) => !o && setRemoveTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove RSVP?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This permanently removes {removeTarget?.name}'s RSVP for "{eventTitle}". This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => {
+                if (removeTarget) {
+                  removeRsvp.mutate(removeTarget);
+                  setRemoveTarget(null);
+                }
+              }}
+            >
+              Remove RSVP
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
