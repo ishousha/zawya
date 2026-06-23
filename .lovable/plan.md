@@ -1,30 +1,22 @@
-## Goal
-Make Library carousel tiles easier to identify on mobile phones — larger thumbnails, clearer type labels, and a visible title underneath instead of relying on the dark overlay.
+# Fix podcast/resource card overflow on Library page
 
-## Changes
+## Problem
+On mobile, the resource list card (most visible on the Podcast filter) extends past the right edge of the screen. The "PODCAST" badge gets clipped and the description spills outside the card border.
 
-**1. Bigger tiles on mobile** (`src/components/library/FeaturedCard.tsx`)
-- Bump width: `w-36 sm:w-40 md:w-44 lg:w-48` (from `w-24 sm:w-28 md:w-32 lg:w-36`).
-- Keep `aspect-square` so height grows proportionally — still much shorter than the original tall carousel, but tiles roughly 50% larger on phones.
+## Root cause
+The resource list is wrapped in `<div className="grid gap-3">` with no explicit columns. Grid items default to `min-width: auto`, so a long title or one-line description (with `truncate` / `line-clamp-1`) forces the implicit track wider than the parent. The card itself also lacks `min-w-0`, so flex/grid children can't shrink below their intrinsic width.
 
-**2. Move title below the image, not over it**
-- Remove the dark gradient overlay and the absolutely-positioned title inside the cover.
-- Render the title under the tile in a 2-line clamp using `font-heading text-sm` for crisp readability on parchment background. This frees the cover art to be fully visible — important since covers/speaker photos/fallbacks are the main identifier.
+## Changes (frontend-only, `src/pages/Library.tsx`)
 
-**3. Stronger type chip**
-- Keep the top-left chip but enlarge to `text-[10px]`, `h-5`, with a slightly more opaque background so "PODCAST / PDF / VIDEO" is legible at a glance on small screens.
-- Drop the redundant baked-in label inside `CoverFallback` (pass `showLabel={false}`) to avoid double-labeling now that the chip is larger and the title sits below.
-
-**4. Carousel spacing tweak** (`src/components/library/FeaturedCarousel.tsx`)
-- Increase gap to `gap-4` and bottom padding to `pb-4` so the larger tiles + external titles breathe.
-- Nudge nav buttons up (`-mt-6`) to sit centered on the new tile (not the title).
-
-**5. Version bump** (`public/version.json` → 7).
+1. Replace the two list wrappers with a flex column layout:
+   - Line ~706: `<div className="grid gap-3">` → `<div className="flex flex-col gap-3">` (filtered list)
+   - Line ~745 area: same swap for the grouped-by-category `items.slice(0, 4)` wrapper
+   - Line ~569 loading skeleton wrapper: same swap for consistency
+2. Add `min-w-0` to the card root (line ~608) so the inner `flex-1 min-w-0` text column can actually shrink:
+   `className="group cursor-pointer ... rounded-2xl p-3 flex gap-3 min-w-0 ..."`
+3. Bump `public/version.json` to 8.
 
 ## Out of scope
-No DB changes, no admin UI changes, no changes to `RecentlyAddedSection` or `CoverFallback` visuals beyond the `showLabel` toggle. Category color palette and scroll/drag behavior stay as shipped.
-
-## Files
-- edit `src/components/library/FeaturedCard.tsx`
-- edit `src/components/library/FeaturedCarousel.tsx`
-- edit `public/version.json`
+- No changes to the carousel, FeaturedCard, CoverFallback, or RecentlyAddedSection
+- No changes to filters, search, data fetching, or DB
+- No visual restyle of the card itself — only the width constraint
