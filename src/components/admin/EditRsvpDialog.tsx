@@ -256,6 +256,14 @@ export default function EditRsvpDialog({ rsvp, eventTitle, open, onOpenChange, c
   const overCapacity =
     typeof capacity === "number" && capacity > 0 && willCountTowardCapacity && projectedTotal > capacity;
 
+  // Notify parent of live capacity projection while open
+  useEffect(() => {
+    if (!onProjectionChange) return;
+    if (!open) { onProjectionChange(null); return; }
+    onProjectionChange(projectedTotal);
+    return () => onProjectionChange(null);
+  }, [open, projectedTotal, onProjectionChange]);
+
   const addDep = () =>
     setDeps((d) => [...d, { name: "", type: "dependent", age_group: "child_4_12" }]);
   const updateDep = (i: number, patch: Partial<EditDep>) =>
