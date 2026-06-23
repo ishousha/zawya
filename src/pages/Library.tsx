@@ -41,10 +41,11 @@ interface Resource {
   tags?: string[] | null;
   resource_date?: string | null;
   short_code?: string | null;
+  cover_image_url?: string | null;
 }
 
 interface SpeakerLite { id: string; name: string; image_url?: string | null }
-interface EventLite { id: string; title: string; date_time: string }
+interface EventLite { id: string; title: string; date_time: string; cover_photo_url?: string | null }
 
 function formatFileSize(bytes: number | null) {
   if (!bytes) return "";
