@@ -43,7 +43,7 @@ interface Resource {
   short_code?: string | null;
 }
 
-interface SpeakerLite { id: string; name: string }
+interface SpeakerLite { id: string; name: string; image_url?: string | null }
 interface EventLite { id: string; title: string; date_time: string }
 
 function formatFileSize(bytes: number | null) {
