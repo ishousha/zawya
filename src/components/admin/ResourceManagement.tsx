@@ -147,6 +147,7 @@ interface ResourceRow {
   tags: string[] | null;
   resource_date: string | null;
   short_code: string | null;
+  cover_image_url: string | null;
 }
 
 const DATE_PRESETS = [
