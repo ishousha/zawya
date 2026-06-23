@@ -13,12 +13,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import {
   Loader2, FileText, Download, BookOpen, Search, Video, Headphones,
   Link as LinkIcon, ExternalLink, CalendarDays, Mic, X, SlidersHorizontal, Share2,
-  PlayCircle, ListMusic,
+  PlayCircle, ListMusic, ChevronLeft, ChevronRight,
 } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { format } from "date-fns";
 import EventCard from "@/components/EventCard";
 import ResourceCardSkeleton from "@/components/library/ResourceCardSkeleton";
+import FeaturedCarousel from "@/components/library/FeaturedCarousel";
 import type { Database } from "@/integrations/supabase/types";
 import { EVENT_PUBLIC_COLUMNS } from "@/lib/event-columns";
 import { useShareResource } from "@/components/ShareResourceDialog";
@@ -769,7 +770,7 @@ export default function Library() {
                       key={res.id}
                       type="button"
                       onClick={() => handleResourceClick(res)}
-                      className="flex-none w-36 snap-start text-left group"
+                      className="flex-none w-24 sm:w-28 md:w-32 lg:w-36 snap-start text-left group"
                     >
                       <div className="relative aspect-square rounded-2xl overflow-hidden shadow-sm border border-gold/15 bg-card transition-transform group-active:scale-[0.98]">
                         <ResourceCover
@@ -823,9 +824,9 @@ export default function Library() {
                             {recentResources.length} new
                           </span>
                         </div>
-                        <div className="flex overflow-x-auto gap-3 pb-3 -mx-4 px-4 snap-x scrollbar-hide">
+                        <FeaturedCarousel>
                           {recentResources.map(renderFeaturedCard)}
-                        </div>
+                        </FeaturedCarousel>
                       </section>
                     )}
                     {groupedByCategory.map(([cat, items]) => (
