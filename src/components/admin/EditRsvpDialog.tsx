@@ -137,13 +137,64 @@ export default function EditRsvpDialog({ rsvp, eventTitle, open, onOpenChange, c
       }
       return { previous };
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin-rsvps", rsvp?.event_id] });
-      queryClient.invalidateQueries({ queryKey: ["host-rsvps", rsvp?.event_id] });
-      queryClient.invalidateQueries({ queryKey: ["event-rsvp-counts", rsvp?.event_id] });
-      queryClient.invalidateQueries({ queryKey: ["door-attendees", rsvp?.event_id] });
-      queryClient.invalidateQueries({ queryKey: ["existing-rsvp-users", rsvp?.event_id] });
-      toast.success("RSVP updated");
+    onSuccess: (result) => {
+      const evId = rsvp?.event_id;
+      const rsvpId = rsvp?.id;
+      const previous = result?.previous;
+      queryClient.invalidateQueries({ queryKey: ["admin-rsvps", evId] });
+      queryClient.invalidateQueries({ queryKey: ["host-rsvps", evId] });
+      queryClient.invalidateQueries({ queryKey: ["event-rsvp-counts", evId] });
+      queryClient.invalidateQueries({ queryKey: ["door-attendees", evId] });
+      queryClient.invalidateQueries({ queryKey: ["existing-rsvp-users", evId] });
+      const invalidate = () => {
+        queryClient.invalidateQueries({ queryKey: ["admin-rsvps", evId] });
+        queryClient.invalidateQueries({ queryKey: ["host-rsvps", evId] });
+        queryClient.invalidateQueries({ queryKey: ["event-rsvp-counts", evId] });
+        queryClient.invalidateQueries({ queryKey: ["door-attendees", evId] });
+        queryClient.invalidateQueries({ queryKey: ["existing-rsvp-users", evId] });
+      };
+      toast.success("RSVP updated", {
+        duration: 10000,
+        action: previous && rsvpId
+          ? {
+              label: "Undo",
+              onClick: async () => {
+                const { error } = await supabase
+                  .from("rsvps")
+                  .update({
+                    guests_count: previous.guests_count,
+                    attending_dependents: previous.attending_dependents,
+                    status: previous.status as any,
+                    is_waitlisted: previous.is_waitlisted,
+                    checked_in: previous.checked_in,
+                  })
+                  .eq("id", rsvpId);
+                if (error) {
+                  const m = String(error.message || "");
+                  if (m.includes("RSVP_CAPACITY_EXCEEDED")) {
+                    toast.error("Can't undo — event is now full");
+                  } else {
+                    toast.error("Undo failed", { description: m });
+                  }
+                  return;
+                }
+                const { data: u } = await supabase.auth.getUser();
+                if (u.user?.id) {
+                  await supabase.from("admin_activity_log").insert({
+                    actor_id: u.user.id,
+                    action: "rsvp_admin_undo",
+                    target_user_id: rsvp!.user_id,
+                    target_user_name: rsvp!.profile?.name ?? null,
+                    target_user_email: rsvp!.profile?.email ?? null,
+                    details: { event_id: evId, rsvp_id: rsvpId, undone: "rsvp_admin_edit" },
+                  });
+                }
+                invalidate();
+                toast.success("RSVP edit undone");
+              },
+            }
+          : undefined,
+      });
       onOpenChange(false);
     },
     onError: (err: any) => {
