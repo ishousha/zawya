@@ -701,44 +701,6 @@ export default function Library() {
                   );
                 };
 
-                const renderFeaturedCard = (res: Resource) => {
-                  const { Icon, label } = getResourceMeta(res);
-                  const linkedEvent = res.event_id ? eventById.get(res.event_id) : null;
-                  const firstSpeaker = (res.speaker_ids ?? [])
-                    .map((id) => speakerById.get(id))
-                    .find(Boolean);
-                  return (
-                    <button
-                      key={res.id}
-                      type="button"
-                      onClick={() => handleResourceClick(res)}
-                      className="flex-none w-24 sm:w-28 md:w-32 lg:w-36 snap-start text-left group"
-                    >
-                      <div className="relative aspect-square rounded-2xl overflow-hidden shadow-sm border border-gold/15 bg-card transition-transform group-active:scale-[0.98]">
-                        <ResourceCover
-                          res={res}
-                          speakerImage={firstSpeaker?.image_url ?? null}
-                          eventCover={linkedEvent?.cover_photo_url ?? null}
-                          Icon={Icon}
-                          rounded=""
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/10 to-transparent" aria-hidden />
-                        <div className="absolute top-2 left-2 flex items-center gap-1 bg-card/90 backdrop-blur-sm pl-1.5 pr-2 py-0.5 rounded-full border border-gold/20">
-                          <Icon className="h-2.5 w-2.5 text-primary" />
-                          <span className="text-[9px] font-semibold text-foreground uppercase tracking-wide">
-                            {label}
-                          </span>
-                        </div>
-                        <div className="absolute bottom-0 left-0 right-0 p-2.5">
-                          <h3 className="font-heading text-sm font-semibold text-white leading-tight line-clamp-2 drop-shadow">
-                            {res.title}
-                          </h3>
-                        </div>
-                      </div>
-                    </button>
-                  );
-                };
-
                 if (hasActiveResourceFilters) {
                   return (
                     <div className="grid gap-3">
@@ -749,28 +711,14 @@ export default function Library() {
 
                 return (
                   <div className="space-y-6">
-                    {recentResources.length > 0 && (
-                      <section>
-                        <div className="flex items-end justify-between mb-3">
-                          <div>
-                            <h2 className="font-heading text-lg font-semibold text-foreground">
-                              Recently Added
-                            </h2>
-                            <div className="mt-1 flex items-center gap-1 text-gold/70" aria-hidden>
-                              <span className="text-[8px]">◆</span>
-                              <span className="text-[6px]">◆</span>
-                              <span className="text-[8px]">◆</span>
-                            </div>
-                          </div>
-                          <span className="text-xs text-muted-foreground">
-                            {recentResources.length} new
-                          </span>
-                        </div>
-                        <FeaturedCarousel>
-                          {recentResources.map(renderFeaturedCard)}
-                        </FeaturedCarousel>
-                      </section>
-                    )}
+                    <RecentlyAddedSection
+                      resources={recentResources}
+                      speakerById={speakerById}
+                      eventById={eventById}
+                      getResourceMeta={getResourceMeta}
+                      onSelect={handleResourceClick}
+                    />
+
                     {groupedByCategory.map(([cat, items]) => (
                       <section key={cat}>
                         <div className="flex items-end justify-between mb-3">
