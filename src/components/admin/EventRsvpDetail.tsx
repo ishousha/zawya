@@ -235,16 +235,15 @@ export default function EventRsvpDetail({ eventId, eventTitle, eventDate, checki
   const [removeTarget, setRemoveTarget] = useState<{ rsvpId: string; name: string; userId: string; email: string | null } | null>(null);
   const [promoteTarget, setPromoteTarget] = useState<{ rsvpId: string; name: string; userId: string; email: string | null; guestsCount: number } | null>(null);
 
-  const friendlyError = (e: any, fallback: string) => {
-    const msg = String(e?.message || fallback);
-    if (msg.includes("RSVP_CAPACITY_EXCEEDED")) {
-      toast.error("Over capacity", { description: msg.replace(/^.*?RSVP_CAPACITY_EXCEEDED:\s*/, "") });
-    } else if (msg.includes("RSVP_DUPLICATE_")) {
-      toast.error("Family conflict", { description: msg.replace(/^.*?:\s*/, "") });
-    } else {
-      toast.error(msg);
-    }
-  };
+  // Live projection from open dialogs ("after-save" attending headcount)
+  const [previewAttending, setPreviewAttending] = useState<number | null>(null);
+
+  // Most recent admin RSVP action (for "Undo last change" on subsequent errors)
+  type LastAction =
+    | { kind: "edit"; rsvpId: string; userId: string; name: string; email: string | null; previous: any; at: number }
+    | { kind: "promote"; rsvpId: string; userId: string; name: string; email: string | null; previous: any; at: number }
+    | { kind: "remove"; rsvpId: string; userId: string; name: string; email: string | null; removedRow: any; at: number };
+  const [lastAction, setLastAction] = useState<LastAction | null>(null);
 
   const invalidateRsvpQueries = () => {
     queryClient.invalidateQueries({ queryKey: ["admin-rsvps", eventId] });
@@ -252,6 +251,63 @@ export default function EventRsvpDetail({ eventId, eventTitle, eventDate, checki
     queryClient.invalidateQueries({ queryKey: ["event-rsvp-counts", eventId] });
     queryClient.invalidateQueries({ queryKey: ["door-attendees", eventId] });
     queryClient.invalidateQueries({ queryKey: ["existing-rsvp-users", eventId] });
+  };
+
+  const runUndoLastAction = async () => {
+    if (!lastAction) return;
+    try {
+      if (lastAction.kind === "remove") {
+        const { error } = await supabase.from("rsvps").insert(lastAction.removedRow as any);
+        if (error) throw error;
+      } else {
+        const prev = lastAction.previous || {};
+        const patch: any = {};
+        if ("guests_count" in prev) patch.guests_count = prev.guests_count;
+        if ("attending_dependents" in prev) patch.attending_dependents = prev.attending_dependents;
+        if ("status" in prev) patch.status = prev.status;
+        if ("is_waitlisted" in prev) patch.is_waitlisted = prev.is_waitlisted;
+        if ("checked_in" in prev) patch.checked_in = prev.checked_in;
+        const { error } = await supabase.from("rsvps").update(patch).eq("id", lastAction.rsvpId);
+        if (error) throw error;
+      }
+      const { data: u } = await supabase.auth.getUser();
+      if (u.user?.id) {
+        await supabase.from("admin_activity_log").insert({
+          actor_id: u.user.id,
+          action: "rsvp_admin_undo",
+          target_user_id: lastAction.userId,
+          target_user_name: lastAction.name,
+          target_user_email: lastAction.email,
+          details: { event_id: eventId, rsvp_id: lastAction.rsvpId, undone: `rsvp_admin_${lastAction.kind}` },
+        });
+      }
+      invalidateRsvpQueries();
+      setLastAction(null);
+      toast.success("Reverted last RSVP change");
+    } catch (e: any) {
+      const cap = capacityToastFromError(e);
+      if (cap) {
+        toast.error("Can't undo — " + cap.title.toLowerCase(), { description: cap.description });
+      } else {
+        toast.error("Undo failed", { description: e?.message || "Unknown error" });
+      }
+    }
+  };
+
+  const friendlyError = (e: any, fallback: string) => {
+    const msg = String(e?.message || fallback);
+    const cap = capacityToastFromError(e);
+    const recent = lastAction && Date.now() - lastAction.at < 60_000 ? lastAction : null;
+    const action = recent
+      ? { label: "Undo last change", onClick: () => { void runUndoLastAction(); } }
+      : undefined;
+    if (cap) {
+      toast.error(cap.title, { description: cap.description, action, duration: 10000 });
+    } else if (msg.includes("RSVP_DUPLICATE_")) {
+      toast.error("Family conflict", { description: msg.replace(/^.*?:\s*/, ""), action, duration: 10000 });
+    } else {
+      toast.error(msg, { action, duration: 10000 });
+    }
   };
 
   const removeRsvp = useMutation({
