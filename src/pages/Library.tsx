@@ -12,8 +12,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Loader2, FileText, Download, BookOpen, Search, Tag, Video, Headphones,
-  Link as LinkIcon, ExternalLink, CalendarDays, Mic, X, SlidersHorizontal, Share2
+  Link as LinkIcon, ExternalLink, CalendarDays, Mic, X, SlidersHorizontal, Share2,
+  PlayCircle, ListMusic,
 } from "lucide-react";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { format } from "date-fns";
 import EventCard from "@/components/EventCard";
 import ResourceCardSkeleton from "@/components/library/ResourceCardSkeleton";
