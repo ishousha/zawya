@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, useEffect } from "react";
+import { useState, useMemo, useRef, useEffect, useCallback } from "react";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useQuery } from "@tanstack/react-query";
@@ -19,7 +19,9 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { format } from "date-fns";
 import EventCard from "@/components/EventCard";
 import ResourceCardSkeleton from "@/components/library/ResourceCardSkeleton";
-import FeaturedCarousel from "@/components/library/FeaturedCarousel";
+
+import RecentlyAddedSection from "@/components/library/RecentlyAddedSection";
+import { ResourceCover } from "@/components/library/resourceCover";
 import type { Database } from "@/integrations/supabase/types";
 import { EVENT_PUBLIC_COLUMNS } from "@/lib/event-columns";
 import { useShareResource } from "@/components/ShareResourceDialog";
@@ -100,67 +102,7 @@ function getCategoryColor(category: string) {
   return CATEGORY_PALETTE[hash % CATEGORY_PALETTE.length];
 }
 
-// In-memory cache so we don't re-sign covers across renders.
-const coverUrlCache = new Map<string, { url: string; expires: number }>();
-
-function useCoverSignedUrl(path: string | null | undefined) {
-  const [url, setUrl] = useState<string | null>(() => {
-    if (!path) return null;
-    const hit = coverUrlCache.get(path);
-    return hit && hit.expires > Date.now() ? hit.url : null;
-  });
-  useEffect(() => {
-    if (!path) { setUrl(null); return; }
-    const hit = coverUrlCache.get(path);
-    if (hit && hit.expires > Date.now()) { setUrl(hit.url); return; }
-    let cancelled = false;
-    supabase.storage.from("resource-covers").createSignedUrl(path, 3600).then(({ data }) => {
-      if (cancelled || !data?.signedUrl) return;
-      coverUrlCache.set(path, { url: data.signedUrl, expires: Date.now() + 55 * 60 * 1000 });
-      setUrl(data.signedUrl);
-    });
-    return () => { cancelled = true; };
-  }, [path]);
-  return url;
-}
-
-/** Themed fallback tile — parchment with concentric gold rings + type icon. */
-function CoverFallback({ Icon, className = "" }: { Icon: typeof FileText; className?: string }) {
-  return (
-    <div className={`relative w-full h-full bg-[hsl(var(--parchment-deep))]/40 flex items-center justify-center overflow-hidden ${className}`}>
-      <div className="absolute inset-0 flex items-center justify-center opacity-60" aria-hidden>
-        <div className="w-[140%] h-[140%] border border-gold/30 rounded-full" />
-      </div>
-      <div className="absolute inset-0 flex items-center justify-center opacity-40" aria-hidden>
-        <div className="w-[90%] h-[90%] border border-gold/40 rounded-full" />
-      </div>
-      <Icon className="relative h-7 w-7 text-primary/70" />
-    </div>
-  );
-}
-
-/** Renders the best available cover image for a resource, with fallbacks. */
-function ResourceCover({
-  res, speakerImage, eventCover, Icon, rounded = "rounded-2xl",
-}: {
-  res: { cover_image_url?: string | null };
-  speakerImage?: string | null;
-  eventCover?: string | null;
-  Icon: typeof FileText;
-  rounded?: string;
-}) {
-  const signed = useCoverSignedUrl(res.cover_image_url ?? null);
-  const src = signed || speakerImage || eventCover || null;
-  return (
-    <div className={`w-full h-full overflow-hidden ${rounded}`}>
-      {src ? (
-        <img src={src} alt="" className="w-full h-full object-cover" loading="lazy" />
-      ) : (
-        <CoverFallback Icon={Icon} />
-      )}
-    </div>
-  );
-}
+// Cover signing + fallback now live in @/components/library/resourceCover & CoverFallback.
 
 
 const DATE_PRESETS = [
@@ -323,7 +265,7 @@ export default function Library() {
     if (active) active.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
   }, [activeCategory]);
 
-  const handleResourceClick = async (res: Resource) => {
+  const handleResourceClick = useCallback(async (res: Resource) => {
     if (isExternalUrl(res.file_url)) {
       window.open(res.file_url, "_blank", "noopener,noreferrer");
       return;
@@ -348,7 +290,7 @@ export default function Library() {
     } else {
       setSelected(res);
     }
-  };
+  }, []);
 
   // Handle deep links: /library/:resourceId — open viewer, highlight & scroll
   const deepHandled = useRef<string | null>(null);
@@ -759,44 +701,6 @@ export default function Library() {
                   );
                 };
 
-                const renderFeaturedCard = (res: Resource) => {
-                  const { Icon, label } = getResourceMeta(res);
-                  const linkedEvent = res.event_id ? eventById.get(res.event_id) : null;
-                  const firstSpeaker = (res.speaker_ids ?? [])
-                    .map((id) => speakerById.get(id))
-                    .find(Boolean);
-                  return (
-                    <button
-                      key={res.id}
-                      type="button"
-                      onClick={() => handleResourceClick(res)}
-                      className="flex-none w-24 sm:w-28 md:w-32 lg:w-36 snap-start text-left group"
-                    >
-                      <div className="relative aspect-square rounded-2xl overflow-hidden shadow-sm border border-gold/15 bg-card transition-transform group-active:scale-[0.98]">
-                        <ResourceCover
-                          res={res}
-                          speakerImage={firstSpeaker?.image_url ?? null}
-                          eventCover={linkedEvent?.cover_photo_url ?? null}
-                          Icon={Icon}
-                          rounded=""
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/10 to-transparent" aria-hidden />
-                        <div className="absolute top-2 left-2 flex items-center gap-1 bg-card/90 backdrop-blur-sm pl-1.5 pr-2 py-0.5 rounded-full border border-gold/20">
-                          <Icon className="h-2.5 w-2.5 text-primary" />
-                          <span className="text-[9px] font-semibold text-foreground uppercase tracking-wide">
-                            {label}
-                          </span>
-                        </div>
-                        <div className="absolute bottom-0 left-0 right-0 p-2.5">
-                          <h3 className="font-heading text-sm font-semibold text-white leading-tight line-clamp-2 drop-shadow">
-                            {res.title}
-                          </h3>
-                        </div>
-                      </div>
-                    </button>
-                  );
-                };
-
                 if (hasActiveResourceFilters) {
                   return (
                     <div className="grid gap-3">
@@ -807,28 +711,14 @@ export default function Library() {
 
                 return (
                   <div className="space-y-6">
-                    {recentResources.length > 0 && (
-                      <section>
-                        <div className="flex items-end justify-between mb-3">
-                          <div>
-                            <h2 className="font-heading text-lg font-semibold text-foreground">
-                              Recently Added
-                            </h2>
-                            <div className="mt-1 flex items-center gap-1 text-gold/70" aria-hidden>
-                              <span className="text-[8px]">◆</span>
-                              <span className="text-[6px]">◆</span>
-                              <span className="text-[8px]">◆</span>
-                            </div>
-                          </div>
-                          <span className="text-xs text-muted-foreground">
-                            {recentResources.length} new
-                          </span>
-                        </div>
-                        <FeaturedCarousel>
-                          {recentResources.map(renderFeaturedCard)}
-                        </FeaturedCarousel>
-                      </section>
-                    )}
+                    <RecentlyAddedSection
+                      resources={recentResources}
+                      speakerById={speakerById}
+                      eventById={eventById}
+                      getResourceMeta={getResourceMeta}
+                      onSelect={handleResourceClick}
+                    />
+
                     {groupedByCategory.map(([cat, items]) => (
                       <section key={cat}>
                         <div className="flex items-end justify-between mb-3">

@@ -1,67 +1,48 @@
-## Library polish: compact carousel, real covers, on-theme palette
+## Goals
+1. Stop re-rendering the "Recently Added" carousel (and re-mounting its cover images / re-fetching signed URLs) every time the user toggles a category, type, speaker, or search filter.
+2. Make the icon-only fallback tiles feel like first-class covers so resources without an uploaded image, speaker photo, or linked event cover don't visibly downgrade the strip.
 
-### 1. Carousel — compact square cover tiles
-Replace the current `w-60 aspect-[4/5]` emerald-gradient cards with cleaner album/cover tiles.
+## Scope
+`src/pages/Library.tsx` and `src/components/library/` only. No DB, schema, or admin changes.
 
-- Tile size: `w-36` (144px), `aspect-square`, `rounded-2xl`, `gap-3`.
-- Section becomes a horizontal strip ~150px tall (was ~340px) — roughly **2.3 tiles** visible per screen.
-- Render order inside each tile:
-  - Full-bleed cover image (see §2 for source).
-  - Subtle bottom gradient `from-black/70 via-black/20 to-transparent` so the title is legible.
-  - Type chip top-left: small parchment pill with `Icon` + label (no gold fill — `bg-card/90 backdrop-blur` + `text-foreground`).
-  - 2-line title at the bottom in `font-heading text-sm`.
-  - No date/speaker line in the tile (keeps it clean; details live in the list card).
-- Strip header keeps the existing "Recently Added" heading + 3-dot gold ornament, and now shows a small "→" affordance because the strip is scrollable.
+---
 
-### 2. Cover image system
-Add an explicit cover field, with three fallbacks so existing rows still look good.
+## 1. Render isolation for the carousel
 
-**Schema (migration):**
-- `ALTER TABLE public.resources ADD COLUMN cover_image_url text;`
-- New public Storage bucket `resource-covers` (public read), with admin-only insert/update/delete policy on `storage.objects`. Image upload only (jpg/png/webp).
+Today `renderFeaturedCard` is a closure recreated on every `Library` render, so every filter keystroke unmounts/remounts each `ResourceCover` — that triggers a new signed-URL request and a fresh `<img>` load (visible flicker). Plan:
 
-**Admin form (`src/components/admin/ResourceManagement.tsx`):**
-- Add an optional "Cover image" upload above the file/source picker (preview + remove).
-- Upload to `resource-covers/{resourceId}-{timestamp}.{ext}`, store public URL in `cover_image_url`.
+- Extract `FeaturedCard` into `src/components/library/FeaturedCard.tsx` wrapped in `React.memo`. Props: `resource`, `speakerImage`, `eventCover`, `meta` (Icon + label), `onSelect`.
+- Extract `RecentlyAddedSection` into `src/components/library/RecentlyAddedSection.tsx` wrapped in `React.memo`. Props: `resources`, `speakerById`, `eventById`, `getResourceMeta`, `onSelect`. It owns the `FeaturedCarousel` and maps to `FeaturedCard`.
+- In `Library.tsx`:
+  - Stabilize `handleResourceClick` with `useCallback`.
+  - Stabilize `getResourceMeta` (it's pure) with `useCallback` or hoist to module scope.
+  - `speakerById` / `eventById` already come from `useMemo` queries — keep as-is so the memo compare is stable.
+  - Pass the memoized props in.
+- Net effect: changing `activeCategory`, `filterType`, `filterSpeaker`, `filterDate`, or `search` no longer causes `RecentlyAddedSection` to re-render, so signed URLs and `<img>` elements persist.
 
-**Resolution helper in `Library.tsx`:**
-```
-getResourceCover(res) =>
-  1. res.cover_image_url
-  2. podcast?         → first speaker.image_url
-  3. res.event_id     → linkedEvent.cover_photo_url   (fetch in same query as title/date_time)
-  4. null             → render themed pattern tile (parchment bg + soft gold concentric arcs + centered type Icon)
-```
-The themed-pattern fallback uses only `bg-parchment`, `text-primary/70`, and a single decorative gold ring — no emerald flood-fill. Used in both the carousel tile and the list card's left thumbnail when no cover/speaker image exists.
+Also memoize the per-resource lookup inside the card (the linked-event + first-speaker derivation) so it doesn't recompute on internal re-renders.
 
-### 3. Category palette — Sufi only
-Replace the 8-color rainbow `CATEGORY_PALETTE` (emerald/amber/rose/sky/violet/teal/orange/fuchsia) with a curated 5-tone Sufi palette using existing design tokens:
+## 2. Upgrade the icon-only fallback cover
 
-| Tone | Bar | Tint | Icon/Text |
-|---|---|---|---|
-| Emerald (primary) | `bg-primary` | `bg-primary/8` | `text-primary` |
-| Gold | `bg-gold` | `bg-gold/10` | `text-gold-foreground` |
-| Olive | `bg-olive` *(new token)* | `bg-olive/10` | `text-olive-foreground` |
-| Clay/terracotta | `bg-clay` *(new token)* | `bg-clay/10` | `text-clay-foreground` |
-| Parchment-deep | `bg-parchment-deep` *(new token)* | `bg-parchment-deep/10` | `text-foreground` |
+Replace the current `CoverFallback` (two faint gold rings + tiny icon on parchment) with a richer Sufi-manuscript style tile that holds its own visual weight next to photo tiles.
 
-- Add `olive`, `clay`, `parchment-deep` semantic HSL tokens to `src/index.css` + `tailwind.config.ts` (muted Sufi hues: olive ~80° 25% 40%, clay ~20° 45% 55%, parchment-deep ~38° 30% 78%).
-- `getCategoryColor` keeps its deterministic hash but now maps over the 5-tone palette so the same category always picks the same tone.
-- Category pills and section group dividers (currently lightly colored) shift to these tones too, so the whole page stays inside the brand.
+New `CoverFallback` design:
+- Background: soft diagonal gradient from `parchment-deep` → `parchment` → faint `primary/8`, giving depth.
+- Decorative SVG layer (inline, no extra asset): an 8-point Sufi star + concentric arabesque rings drawn in `gold/25` strokes, rotated and offset; subtle so it reads as texture, not chrome.
+- Centered emblem: 56px gold-rimmed roundel (gradient `gold/15` → `gold/30`) with the resource-type `Icon` at `h-7 w-7 text-primary`.
+- Bottom-left type label baked into the cover ("Podcast", "Playlist", "Recording", "PDF", etc.) in `font-heading text-[10px] uppercase tracking-[0.18em] text-primary/80`, so even a fallback tile communicates type at a glance.
+- Deterministic tint per resource (hash of `res.id` → one of 4 Sufi accents: emerald, olive, clay, gold) applied to the gradient stop and the star stroke, so adjacent fallback tiles don't look identical.
+- Same component works at any size: carousel square tile, list-card 56px thumbnail, PDF-viewer thumb. The list-card variant hides the bottom label (no room) but keeps the gradient + star + emblem.
 
-### 4. List card thumbnail (consistency)
-- When `cover_image_url` exists, the list card's 56px left tile becomes an `<img>` cover (preserves rounded square).
-- Podcast speaker-avatar tile is unchanged.
-- Otherwise the icon tile uses the new category tint instead of the old rainbow tint.
+Acceptance check: place a row of 3 fallback + 3 photo tiles side by side — fallbacks should look intentional, not "missing image".
 
-### Out of scope
-- No changes to filters, search, recordings tab, PDF viewer, or RSVP flow.
-- No backfill of existing resources — they simply use fallbacks until an admin uploads a cover.
+## 3. Out of scope
+- No new DB column, no admin UI change, no AI-generated covers.
+- Carousel scroll/drag behavior, sizing, and category palette stay exactly as last shipped.
 
-### Files touched
-- DB migration (add column) + Storage bucket creation
-- `src/index.css`, `tailwind.config.ts` — new tokens
-- `src/pages/Library.tsx` — palette, carousel, cover resolver, list card thumbnail, query updates (linked event cover, resource cover field)
-- `src/lib/event-columns.ts` or `linkedEvents` query — include `cover_photo_url`
-- `src/components/admin/ResourceManagement.tsx` — cover image upload
-- `public/version.json` — bump
+## 4. Files
+- `src/pages/Library.tsx` — extract pieces, add `useCallback`s, hoist `getResourceMeta` if pure, swap fallback usage.
+- `src/components/library/FeaturedCard.tsx` (new, memoized).
+- `src/components/library/RecentlyAddedSection.tsx` (new, memoized).
+- `src/components/library/CoverFallback.tsx` (new, replaces inline version).
+- `public/version.json` — bump to v6.
