@@ -843,7 +843,7 @@ export default function EventRsvpDetail({ eventId, eventTitle, eventDate, checki
                                         className="h-8 w-8 text-emerald-700 hover:text-emerald-800"
                                         title="Move to Attending"
                                         disabled={promoteFromWaitlist.isPending}
-                                        onClick={() => promoteFromWaitlist.mutate({ rsvpId: r.id, name, userId, email })}
+                                        onClick={() => setPromoteTarget({ rsvpId: r.id, name, userId, email, guestsCount: r.guests_count || 1 })}
                                       >
                                         <ArrowUp className="h-4 w-4" />
                                       </Button>
