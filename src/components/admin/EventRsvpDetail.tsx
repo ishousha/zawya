@@ -139,6 +139,13 @@ export default function EventRsvpDetail({ eventId, eventTitle, eventDate, checki
 
   const attending = useMemo(() => (rsvps ?? []).filter((r) => r.status === "attending" && !r.is_waitlisted), [rsvps]);
   const waitlisted = useMemo(() => (rsvps ?? []).filter((r) => r.status === "waitlisted" || r.is_waitlisted), [rsvps]);
+  const capacity = (eventMeta?.capacity ?? null) as number | null;
+  const hostId = (eventMeta?.host_id ?? null) as string | null;
+  const attendingHeadcount = useMemo(
+    () => attending.reduce((s, r) => s + (r.user_id === hostId ? 0 : (r.guests_count || 0)), 0),
+    [attending, hostId],
+  );
+  const remainingCapacity = capacity != null ? Math.max(0, capacity - attendingHeadcount) : null;
 
   const invalidatePotluck = () => {
     queryClient.invalidateQueries({ queryKey: ["admin-signup-items", eventId] });
