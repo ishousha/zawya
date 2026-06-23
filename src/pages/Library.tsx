@@ -585,7 +585,7 @@ export default function Library() {
             ) : (
               (() => {
                 const renderListCard = (res: Resource) => {
-                  const Icon = getResourceIcon(res);
+                  const { Icon, label } = getResourceMeta(res);
                   const isExternal = isExternalUrl(res.file_url);
                   const color = getCategoryColor(res.category || "General");
                   const linkedEvent = res.event_id ? eventById.get(res.event_id) : null;
