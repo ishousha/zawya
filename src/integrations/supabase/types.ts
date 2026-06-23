@@ -930,6 +930,7 @@ export type Database = {
       resources: {
         Row: {
           category: string
+          cover_image_url: string | null
           created_at: string
           description: string | null
           event_id: string | null
@@ -947,6 +948,7 @@ export type Database = {
         }
         Insert: {
           category?: string
+          cover_image_url?: string | null
           created_at?: string
           description?: string | null
           event_id?: string | null
@@ -964,6 +966,7 @@ export type Database = {
         }
         Update: {
           category?: string
+          cover_image_url?: string | null
           created_at?: string
           description?: string | null
           event_id?: string | null

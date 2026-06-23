@@ -41,10 +41,11 @@ interface Resource {
   tags?: string[] | null;
   resource_date?: string | null;
   short_code?: string | null;
+  cover_image_url?: string | null;
 }
 
 interface SpeakerLite { id: string; name: string; image_url?: string | null }
-interface EventLite { id: string; title: string; date_time: string }
+interface EventLite { id: string; title: string; date_time: string; cover_photo_url?: string | null }
 
 function formatFileSize(bytes: number | null) {
   if (!bytes) return "";
@@ -84,14 +85,11 @@ function getResourceMeta(res: { resource_type?: string; category?: string; tags?
 }
 
 const CATEGORY_PALETTE: { bar: string; tint: string; icon: string; badge: string }[] = [
-  { bar: "bg-emerald-600", tint: "bg-emerald-600/10", icon: "text-emerald-700", badge: "bg-emerald-600/10 text-emerald-800 border-emerald-600/20" },
-  { bar: "bg-amber-500",   tint: "bg-amber-500/10",   icon: "text-amber-700",   badge: "bg-amber-500/10 text-amber-800 border-amber-500/20" },
-  { bar: "bg-rose-500",    tint: "bg-rose-500/10",    icon: "text-rose-700",    badge: "bg-rose-500/10 text-rose-800 border-rose-500/20" },
-  { bar: "bg-sky-600",     tint: "bg-sky-600/10",     icon: "text-sky-700",     badge: "bg-sky-600/10 text-sky-800 border-sky-600/20" },
-  { bar: "bg-violet-600",  tint: "bg-violet-600/10",  icon: "text-violet-700",  badge: "bg-violet-600/10 text-violet-800 border-violet-600/20" },
-  { bar: "bg-teal-600",    tint: "bg-teal-600/10",    icon: "text-teal-700",    badge: "bg-teal-600/10 text-teal-800 border-teal-600/20" },
-  { bar: "bg-orange-500",  tint: "bg-orange-500/10",  icon: "text-orange-700",  badge: "bg-orange-500/10 text-orange-800 border-orange-500/20" },
-  { bar: "bg-fuchsia-600", tint: "bg-fuchsia-600/10", icon: "text-fuchsia-700", badge: "bg-fuchsia-600/10 text-fuchsia-800 border-fuchsia-600/20" },
+  { bar: "bg-primary",          tint: "bg-primary/10",          icon: "text-primary",                  badge: "bg-primary/10 text-primary border-primary/20" },
+  { bar: "bg-gold",             tint: "bg-gold/15",             icon: "text-gold-foreground",          badge: "bg-gold/15 text-gold-foreground border-gold/30" },
+  { bar: "bg-olive",            tint: "bg-olive/15",            icon: "text-olive",                    badge: "bg-olive/15 text-olive border-olive/30" },
+  { bar: "bg-clay",             tint: "bg-clay/15",             icon: "text-clay",                     badge: "bg-clay/15 text-clay border-clay/30" },
+  { bar: "bg-parchment-deep",   tint: "bg-parchment-deep/30",   icon: "text-foreground/70",            badge: "bg-parchment-deep/30 text-foreground border-parchment-deep/50" },
 ];
 
 function getCategoryColor(category: string) {
@@ -100,6 +98,69 @@ function getCategoryColor(category: string) {
   for (let i = 0; i < cat.length; i++) hash = (hash * 31 + cat.charCodeAt(i)) >>> 0;
   return CATEGORY_PALETTE[hash % CATEGORY_PALETTE.length];
 }
+
+// In-memory cache so we don't re-sign covers across renders.
+const coverUrlCache = new Map<string, { url: string; expires: number }>();
+
+function useCoverSignedUrl(path: string | null | undefined) {
+  const [url, setUrl] = useState<string | null>(() => {
+    if (!path) return null;
+    const hit = coverUrlCache.get(path);
+    return hit && hit.expires > Date.now() ? hit.url : null;
+  });
+  useEffect(() => {
+    if (!path) { setUrl(null); return; }
+    const hit = coverUrlCache.get(path);
+    if (hit && hit.expires > Date.now()) { setUrl(hit.url); return; }
+    let cancelled = false;
+    supabase.storage.from("resource-covers").createSignedUrl(path, 3600).then(({ data }) => {
+      if (cancelled || !data?.signedUrl) return;
+      coverUrlCache.set(path, { url: data.signedUrl, expires: Date.now() + 55 * 60 * 1000 });
+      setUrl(data.signedUrl);
+    });
+    return () => { cancelled = true; };
+  }, [path]);
+  return url;
+}
+
+/** Themed fallback tile — parchment with concentric gold rings + type icon. */
+function CoverFallback({ Icon, className = "" }: { Icon: typeof FileText; className?: string }) {
+  return (
+    <div className={`relative w-full h-full bg-[hsl(var(--parchment-deep))]/40 flex items-center justify-center overflow-hidden ${className}`}>
+      <div className="absolute inset-0 flex items-center justify-center opacity-60" aria-hidden>
+        <div className="w-[140%] h-[140%] border border-gold/30 rounded-full" />
+      </div>
+      <div className="absolute inset-0 flex items-center justify-center opacity-40" aria-hidden>
+        <div className="w-[90%] h-[90%] border border-gold/40 rounded-full" />
+      </div>
+      <Icon className="relative h-7 w-7 text-primary/70" />
+    </div>
+  );
+}
+
+/** Renders the best available cover image for a resource, with fallbacks. */
+function ResourceCover({
+  res, speakerImage, eventCover, Icon, rounded = "rounded-2xl",
+}: {
+  res: { cover_image_url?: string | null };
+  speakerImage?: string | null;
+  eventCover?: string | null;
+  Icon: typeof FileText;
+  rounded?: string;
+}) {
+  const signed = useCoverSignedUrl(res.cover_image_url ?? null);
+  const src = signed || speakerImage || eventCover || null;
+  return (
+    <div className={`w-full h-full overflow-hidden ${rounded}`}>
+      {src ? (
+        <img src={src} alt="" className="w-full h-full object-cover" loading="lazy" />
+      ) : (
+        <CoverFallback Icon={Icon} />
+      )}
+    </div>
+  );
+}
+
 
 const DATE_PRESETS = [
   { value: "any", label: "Any time" },
@@ -166,7 +227,7 @@ export default function Library() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("resources")
-        .select("id, title, description, file_url, file_name, file_size, created_at, category, resource_type, event_id, speaker_ids, tags, resource_date, short_code")
+        .select("id, title, description, file_url, file_name, file_size, created_at, category, resource_type, event_id, speaker_ids, tags, resource_date, short_code, cover_image_url")
         .order("created_at", { ascending: false })
         .limit(500);
       if (error) throw error;
@@ -196,7 +257,7 @@ export default function Library() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("events")
-        .select("id, title, date_time")
+        .select("id, title, date_time, cover_photo_url")
         .order("date_time", { ascending: false })
         .limit(500);
       if (error) throw error;
@@ -615,8 +676,17 @@ export default function Library() {
                             <Mic className="h-2.5 w-2.5" strokeWidth={3} />
                           </div>
                         </div>
+                      ) : (res.cover_image_url || linkedEvent?.cover_photo_url) ? (
+                        <div className="w-14 h-14 rounded-xl overflow-hidden flex-shrink-0 border border-gold/20">
+                          <ResourceCover
+                            res={res}
+                            eventCover={linkedEvent?.cover_photo_url ?? null}
+                            Icon={Icon}
+                            rounded=""
+                          />
+                        </div>
                       ) : (
-                        <div className={`w-14 h-14 rounded-xl flex items-center justify-center flex-shrink-0 transition-colors bg-primary/5 group-hover:bg-primary group-hover:text-primary-foreground ${color.icon} group-hover:text-primary-foreground`}>
+                        <div className={`w-14 h-14 rounded-xl flex items-center justify-center flex-shrink-0 transition-colors ${color.tint} ${color.icon} group-hover:bg-primary group-hover:text-primary-foreground`}>
                           <Icon className="h-6 w-6" />
                         </div>
                       )}
@@ -690,8 +760,7 @@ export default function Library() {
 
                 const renderFeaturedCard = (res: Resource) => {
                   const { Icon, label } = getResourceMeta(res);
-                  const color = getCategoryColor(res.category || "General");
-                  const podcast = isPodcastResource(res);
+                  const linkedEvent = res.event_id ? eventById.get(res.event_id) : null;
                   const firstSpeaker = (res.speaker_ids ?? [])
                     .map((id) => speakerById.get(id))
                     .find(Boolean);
@@ -700,41 +769,27 @@ export default function Library() {
                       key={res.id}
                       type="button"
                       onClick={() => handleResourceClick(res)}
-                      className="flex-none w-60 snap-start text-left"
+                      className="flex-none w-36 snap-start text-left group"
                     >
-                      <div className="relative aspect-[4/5] rounded-3xl overflow-hidden shadow-lg shadow-primary/10 border border-gold/20 bg-primary group">
-                        <div className={`absolute inset-0 ${color.tint}`} aria-hidden />
-                        <div className="absolute inset-0 flex items-center justify-center opacity-30">
-                          <div className="w-40 h-40 border border-gold/20 rounded-full flex items-center justify-center rotate-45">
-                            <div className="w-24 h-24 border border-gold/30 rounded-full" />
-                          </div>
-                        </div>
-                        <div className="absolute inset-0 bg-gradient-to-t from-primary via-primary/40 to-transparent" aria-hidden />
-                        <div className="absolute top-3 left-3 flex items-center gap-1.5 bg-gold/90 backdrop-blur-sm pl-1.5 pr-2.5 py-1 rounded-full">
-                          <Icon className="h-3 w-3 text-gold-foreground" />
-                          <span className="text-[9px] font-bold text-gold-foreground uppercase tracking-wider">
+                      <div className="relative aspect-square rounded-2xl overflow-hidden shadow-sm border border-gold/15 bg-card transition-transform group-active:scale-[0.98]">
+                        <ResourceCover
+                          res={res}
+                          speakerImage={firstSpeaker?.image_url ?? null}
+                          eventCover={linkedEvent?.cover_photo_url ?? null}
+                          Icon={Icon}
+                          rounded=""
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/10 to-transparent" aria-hidden />
+                        <div className="absolute top-2 left-2 flex items-center gap-1 bg-card/90 backdrop-blur-sm pl-1.5 pr-2 py-0.5 rounded-full border border-gold/20">
+                          <Icon className="h-2.5 w-2.5 text-primary" />
+                          <span className="text-[9px] font-semibold text-foreground uppercase tracking-wide">
                             {label}
                           </span>
                         </div>
-                        <div className="absolute bottom-0 p-4 text-card-foreground w-full">
-                          <h3 className="font-heading text-lg font-semibold text-card leading-tight mb-2 line-clamp-2">
+                        <div className="absolute bottom-0 left-0 right-0 p-2.5">
+                          <h3 className="font-heading text-sm font-semibold text-white leading-tight line-clamp-2 drop-shadow">
                             {res.title}
                           </h3>
-                          {podcast && firstSpeaker ? (
-                            <div className="flex items-center gap-2">
-                              <Avatar className="h-6 w-6 border border-gold/50">
-                                {firstSpeaker.image_url && (
-                                  <AvatarImage src={firstSpeaker.image_url} alt={firstSpeaker.name} className="object-cover" />
-                                )}
-                                <AvatarFallback className="text-[10px]">{firstSpeaker.name.charAt(0)}</AvatarFallback>
-                              </Avatar>
-                              <span className="text-xs text-card/90 truncate">{firstSpeaker.name}</span>
-                            </div>
-                          ) : (
-                            <p className="text-[10px] uppercase tracking-widest text-card/80 font-semibold">
-                              {format(new Date(res.resource_date ?? res.created_at), "MMM d, yyyy")}
-                            </p>
-                          )}
                         </div>
                       </div>
                     </button>

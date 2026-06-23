@@ -14,7 +14,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Loader2, Upload, Trash2, FileText, Plus, X, Tag, Video, Headphones,
-  Link as LinkIcon, Check, ChevronsUpDown, Pencil, Search, CalendarDays, Mic, Calendar as CalendarIcon, Share2
+  Link as LinkIcon, Check, ChevronsUpDown, Pencil, Search, CalendarDays, Mic, Calendar as CalendarIcon, Share2, ImageIcon
 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -41,6 +41,36 @@ function formatFileSize(bytes: number | null) {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+/** Small preview tile for the admin cover-image picker. */
+function CoverThumb({ file, path }: { file: File | null; path: string | null }) {
+  const [localUrl, setLocalUrl] = useState<string | null>(null);
+  const [signedUrl, setSignedUrl] = useState<string | null>(null);
+  useEffect(() => {
+    if (!file) { setLocalUrl(null); return; }
+    const u = URL.createObjectURL(file);
+    setLocalUrl(u);
+    return () => URL.revokeObjectURL(u);
+  }, [file]);
+  useEffect(() => {
+    let cancelled = false;
+    if (file || !path) { setSignedUrl(null); return; }
+    supabase.storage.from("resource-covers").createSignedUrl(path, 3600).then(({ data }) => {
+      if (!cancelled) setSignedUrl(data?.signedUrl ?? null);
+    });
+    return () => { cancelled = true; };
+  }, [file, path]);
+  const src = localUrl ?? signedUrl;
+  return (
+    <div className="w-16 h-16 rounded-lg border border-border bg-muted/50 overflow-hidden flex items-center justify-center flex-shrink-0">
+      {src ? (
+        <img src={src} alt="Cover preview" className="w-full h-full object-cover" />
+      ) : (
+        <ImageIcon className="h-5 w-5 text-muted-foreground" />
+      )}
+    </div>
+  );
 }
 
 /** Compact tag chip input — Enter or comma adds a tag. */
@@ -147,6 +177,7 @@ interface ResourceRow {
   tags: string[] | null;
   resource_date: string | null;
   short_code: string | null;
+  cover_image_url: string | null;
 }
 
 const DATE_PRESETS = [
@@ -202,6 +233,9 @@ export default function ResourceManagement() {
   const [speakerIds, setSpeakerIds] = useState<string[]>([]);
   const [tags, setTags] = useState<string[]>([]);
   const [resourceDate, setResourceDate] = useState<string>("");
+  const [coverFile, setCoverFile] = useState<File | null>(null);
+  const [coverUrl, setCoverUrl] = useState<string | null>(null);
+  const [coverRemoved, setCoverRemoved] = useState(false);
 
   // ----- Admin list filter state -----
   const [search, setSearch] = useState("");
@@ -316,6 +350,18 @@ export default function ResourceManagement() {
       .slice(0, 50);
   }, [events, eventSearch]);
 
+  // ----- Cover upload helper -----
+  async function uploadCoverIfAny(): Promise<string | null | undefined> {
+    if (!coverFile) return undefined; // no change
+    const ext = (coverFile.name.split(".").pop() || "jpg").toLowerCase();
+    const path = `${crypto.randomUUID()}.${ext}`;
+    const { error } = await supabase.storage
+      .from("resource-covers")
+      .upload(path, coverFile, { contentType: coverFile.type, upsert: false });
+    if (error) throw error;
+    return path;
+  }
+
   // ----- Mutations -----
   const uploadMutation = useMutation({
     mutationFn: async () => {
@@ -342,6 +388,8 @@ export default function ResourceManagement() {
         fileUrl = externalUrl.trim();
       }
 
+      const coverPath = await uploadCoverIfAny();
+
       const { error: insertError } = await supabase.from("resources").insert({
         title,
         description: description || null,
@@ -355,6 +403,7 @@ export default function ResourceManagement() {
         speaker_ids: speakerIds,
         tags,
         resource_date: resourceDate || null,
+        cover_image_url: coverPath ?? null,
       } as any);
       if (insertError) throw insertError;
     },
@@ -414,6 +463,9 @@ export default function ResourceManagement() {
     setSpeakerIds(res.speaker_ids ?? []);
     setTags(res.tags ?? []);
     setResourceDate(res.resource_date ?? "");
+    setCoverUrl(res.cover_image_url ?? null);
+    setCoverFile(null);
+    setCoverRemoved(false);
     setShowForm(true);
   }
 
@@ -432,6 +484,9 @@ export default function ResourceManagement() {
     setSpeakerIds([]);
     setTags([]);
     setResourceDate("");
+    setCoverFile(null);
+    setCoverUrl(null);
+    setCoverRemoved(false);
   }
 
   const isFormValid =
@@ -604,6 +659,53 @@ export default function ResourceManagement() {
                 rows={2}
               />
             </div>
+
+            {/* Cover image */}
+            <div>
+              <label className="text-sm font-medium text-foreground flex items-center gap-1.5">
+                <ImageIcon className="h-3.5 w-3.5 text-primary" />
+                Cover image (optional)
+              </label>
+              <div className="mt-1.5 flex items-center gap-3">
+                <CoverThumb file={coverFile} path={coverRemoved ? null : coverUrl} />
+                <div className="flex-1 flex items-center gap-2">
+                  <label className="inline-flex cursor-pointer items-center gap-2 rounded-md border border-input px-3 py-2 text-xs hover:bg-muted/50 transition-colors">
+                    <Upload className="h-3.5 w-3.5" />
+                    {coverFile ? "Replace" : (coverUrl && !coverRemoved ? "Replace" : "Upload cover")}
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      className="hidden"
+                      onChange={(e) => {
+                        const picked = e.target.files?.[0] ?? null;
+                        if (picked && picked.size > 3 * 1024 * 1024) {
+                          toast.error("Cover image must be under 3MB.");
+                          e.target.value = "";
+                          return;
+                        }
+                        setCoverFile(picked);
+                        setCoverRemoved(false);
+                      }}
+                    />
+                  </label>
+                  {(coverFile || (coverUrl && !coverRemoved)) && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 text-xs text-muted-foreground"
+                      onClick={() => { setCoverFile(null); setCoverRemoved(true); }}
+                    >
+                      <X className="h-3.5 w-3.5 mr-1" /> Remove
+                    </Button>
+                  )}
+                </div>
+              </div>
+              <p className="text-[10px] text-muted-foreground mt-1">
+                Square images look best. JPG/PNG/WebP, up to 3MB.
+              </p>
+            </div>
+
 
             {/* --- Linking section (all optional) --- */}
             <div className="rounded-lg border border-border bg-muted/30 p-3 space-y-3">
@@ -782,21 +884,31 @@ export default function ResourceManagement() {
 
             <Button
               className="w-full h-11"
-              onClick={() => {
+              onClick={async () => {
                 if (editingId) {
-                  editMutation.mutate({
-                    id: editingId,
-                    updates: {
-                      title,
-                      description: description || null,
-                      category: category.trim(),
-                      resource_type: resourceType,
-                      event_id: linkedEventId,
-                      speaker_ids: speakerIds,
-                      tags,
-                      resource_date: resourceDate || null,
-                    } as any,
-                  });
+                  try {
+                    const newCoverPath = await uploadCoverIfAny();
+                    const cover_image_url =
+                      newCoverPath !== undefined ? newCoverPath
+                      : coverRemoved ? null
+                      : undefined;
+                    editMutation.mutate({
+                      id: editingId,
+                      updates: {
+                        title,
+                        description: description || null,
+                        category: category.trim(),
+                        resource_type: resourceType,
+                        event_id: linkedEventId,
+                        speaker_ids: speakerIds,
+                        tags,
+                        resource_date: resourceDate || null,
+                        ...(cover_image_url !== undefined ? { cover_image_url } : {}),
+                      } as any,
+                    });
+                  } catch (err: any) {
+                    toast.error(err.message || "Failed to upload cover");
+                  }
                 } else {
                   uploadMutation.mutate();
                 }
