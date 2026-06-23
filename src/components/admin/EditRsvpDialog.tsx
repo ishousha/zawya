@@ -24,6 +24,7 @@ import { Badge } from "@/components/ui/badge";
 import { Loader2, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { AGE_GROUP_LABELS, type AgeGroupKey } from "@/lib/age-group-labels";
+import { capacityToastFromError } from "@/lib/rsvp-errors";
 
 interface RsvpRow {
   id: string;
@@ -45,6 +46,22 @@ interface EditDep {
   id?: string | null; // family_member id, preserved
 }
 
+export interface RecordedEditAction {
+  kind: "edit";
+  rsvpId: string;
+  userId: string;
+  name: string;
+  email: string | null;
+  previous: {
+    guests_count: number;
+    attending_dependents: any;
+    status: string;
+    is_waitlisted: boolean;
+    checked_in: boolean;
+  };
+  at: number;
+}
+
 interface Props {
   rsvp: RsvpRow | null;
   eventTitle: string;
@@ -53,6 +70,8 @@ interface Props {
   capacity?: number | null;
   attendingCount?: number; // total attending seats (excluding host)
   hostId?: string | null;
+  onActionRecorded?: (action: RecordedEditAction) => void;
+  onProjectionChange?: (projectedAttending: number | null) => void;
 }
 
 const STATUS_OPTIONS: { value: "attending" | "waitlisted" | "cancelled"; label: string }[] = [
