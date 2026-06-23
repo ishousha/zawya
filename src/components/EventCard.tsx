@@ -69,9 +69,12 @@ function EventCardInner({ event, onShowTicket, isPast = false }: EventCardProps)
   }, [event.description, checkClamped]);
   const { profile } = useAuth();
 
-  const isAttending = !!myRSVP && myRSVP.status !== "cancelled";
+  const ownAttending = !!myRSVP && myRSVP.status !== "cancelled";
+  const isCovered = !ownAttending && !!coverage;
+  const isAttending = ownAttending || isCovered;
   const isWaitlisted = myRSVP?.status === "waitlisted";
   const isCancelled = event.status === "cancelled";
+  const isHost = !!profile && (event as any).host_id === (profile as any).id;
 
   const confirmedCount = counts?.attending_count ?? 0;
   const checkedInCount = counts?.checked_in_count ?? 0;
