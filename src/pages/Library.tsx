@@ -566,7 +566,7 @@ export default function Library() {
             )}
 
             {isLoading ? (
-              <div className="grid gap-3">
+              <div className="flex flex-col gap-3">
                 {Array.from({ length: 5 }).map((_, i) => <ResourceCardSkeleton key={i} />)}
               </div>
             ) : !resources?.length ? (
