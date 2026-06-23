@@ -14,7 +14,8 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
-import { Loader2, X, Download, UserPlus, Mail, Printer, Users, UtensilsCrossed, CheckCircle2, Circle, Eye, Plus, Trash2, MessageCircle, ChevronDown } from "lucide-react";
+import { Loader2, X, Download, UserPlus, Mail, Printer, Users, UtensilsCrossed, CheckCircle2, Circle, Eye, Plus, Trash2, MessageCircle, ChevronDown, Pencil, ArrowUp } from "lucide-react";
+import EditRsvpDialog from "./EditRsvpDialog";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useEventGuestRequests } from "@/hooks/useGuestRequests";
 import {
@@ -208,6 +209,65 @@ export default function EventRsvpDetail({ eventId, eventTitle, eventDate, checki
     userId: string;
     email: string | null;
   } | null>(null);
+  const [editTarget, setEditTarget] = useState<any | null>(null);
+  const [removeTarget, setRemoveTarget] = useState<{ rsvpId: string; name: string; userId: string; email: string | null } | null>(null);
+
+  const removeRsvp = useMutation({
+    mutationFn: async (vars: { rsvpId: string; name: string; userId: string; email: string | null }) => {
+      const { error } = await supabase.from("rsvps").delete().eq("id", vars.rsvpId);
+      if (error) throw error;
+      const { data: userData } = await supabase.auth.getUser();
+      const actorId = userData.user?.id;
+      if (actorId) {
+        await supabase.from("admin_activity_log").insert({
+          actor_id: actorId,
+          action: "rsvp_admin_remove",
+          target_user_id: vars.userId,
+          target_user_name: vars.name,
+          target_user_email: vars.email,
+          details: { event_id: eventId, event_title: eventTitle, rsvp_id: vars.rsvpId },
+        });
+      }
+    },
+    onSuccess: (_d, vars) => {
+      queryClient.invalidateQueries({ queryKey: ["admin-rsvps", eventId] });
+      queryClient.invalidateQueries({ queryKey: ["host-rsvps", eventId] });
+      queryClient.invalidateQueries({ queryKey: ["event-rsvp-counts", eventId] });
+      queryClient.invalidateQueries({ queryKey: ["existing-rsvp-users", eventId] });
+      toast.success(`Removed RSVP for ${vars.name}`);
+    },
+    onError: (e: any) => toast.error(e?.message || "Failed to remove RSVP"),
+  });
+
+  const promoteFromWaitlist = useMutation({
+    mutationFn: async (vars: { rsvpId: string; name: string; userId: string; email: string | null }) => {
+      const { error } = await supabase
+        .from("rsvps")
+        .update({ status: "attending" as any, is_waitlisted: false })
+        .eq("id", vars.rsvpId);
+      if (error) throw error;
+      const { data: userData } = await supabase.auth.getUser();
+      const actorId = userData.user?.id;
+      if (actorId) {
+        await supabase.from("admin_activity_log").insert({
+          actor_id: actorId,
+          action: "rsvp_admin_promote",
+          target_user_id: vars.userId,
+          target_user_name: vars.name,
+          target_user_email: vars.email,
+          details: { event_id: eventId, event_title: eventTitle, rsvp_id: vars.rsvpId },
+        });
+      }
+    },
+    onSuccess: (_d, vars) => {
+      queryClient.invalidateQueries({ queryKey: ["admin-rsvps", eventId] });
+      queryClient.invalidateQueries({ queryKey: ["host-rsvps", eventId] });
+      queryClient.invalidateQueries({ queryKey: ["event-rsvp-counts", eventId] });
+      toast.success(`Moved ${vars.name} to Attending`);
+    },
+    onError: (e: any) => toast.error(e?.message || "Failed to promote RSVP"),
+  });
+
 
   // Per-event check-in audit trail (latest entry per rsvp shown inline)
   const { data: checkinAudit } = useQuery({
@@ -469,7 +529,7 @@ export default function EventRsvpDetail({ eventId, eventTitle, eventDate, checki
             </div>
             <div className="flex flex-wrap items-center gap-1.5">
               <Button size="sm" variant="default" className="h-8 gap-1.5 text-xs" onClick={() => setShowWalkIn(true)}>
-                <UserPlus className="h-3.5 w-3.5" /> Walk-In
+                <UserPlus className="h-3.5 w-3.5" /> Add Attendee
               </Button>
               <Button size="sm" variant="outline" className="h-8 gap-1.5 text-xs" onClick={() => setShowAddGuest(true)}>
                 <UserPlus className="h-3.5 w-3.5" /> Add Guest
@@ -539,6 +599,7 @@ export default function EventRsvpDetail({ eventId, eventTitle, eventDate, checki
                               <TableHead className="text-xs">Dependents</TableHead>
                               <TableHead className="text-xs text-center">Party</TableHead>
                               <TableHead className="text-xs text-center">Check-in</TableHead>
+                              <TableHead className="text-xs text-center">Actions</TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
@@ -602,6 +663,28 @@ export default function EventRsvpDetail({ eventId, eventTitle, eventDate, checki
                                     );
                                   })()}
                                 </TableCell>
+                                <TableCell className="py-2 text-center">
+                                  <div className="flex items-center justify-center gap-1">
+                                    <Button
+                                      size="icon"
+                                      variant="ghost"
+                                      className="h-8 w-8"
+                                      onClick={() => setEditTarget(r)}
+                                      title="Edit RSVP"
+                                    >
+                                      <Pencil className="h-4 w-4" />
+                                    </Button>
+                                    <Button
+                                      size="icon"
+                                      variant="ghost"
+                                      className="h-8 w-8 text-destructive hover:text-destructive"
+                                      onClick={() => setRemoveTarget({ rsvpId: r.id, name: (r.profile as any)?.name || "guest", userId: r.user_id as string, email: (r.profile as any)?.email ?? null })}
+                                      title="Remove RSVP"
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  </div>
+                                </TableCell>
 
                               </TableRow>
                             ))}
@@ -630,16 +713,54 @@ export default function EventRsvpDetail({ eventId, eventTitle, eventDate, checki
                               <TableHead className="text-xs">Name</TableHead>
                               <TableHead className="text-xs">Dependents</TableHead>
                               <TableHead className="text-xs text-center">Party</TableHead>
+                              <TableHead className="text-xs text-center">Actions</TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
-                            {waitlisted.map((r) => (
-                              <TableRow key={r.id}>
-                                <TableCell className="py-2 text-sm font-medium">{(r.profile as any)?.name || "Unknown"}</TableCell>
-                                <TableCell className="py-2">{getDepsDisplay(r)}</TableCell>
-                                <TableCell className="py-2 text-center text-sm">{r.guests_count}</TableCell>
-                              </TableRow>
-                            ))}
+                            {waitlisted.map((r) => {
+                              const name = (r.profile as any)?.name || "Unknown";
+                              const email = (r.profile as any)?.email ?? null;
+                              const userId = r.user_id as string;
+                              return (
+                                <TableRow key={r.id}>
+                                  <TableCell className="py-2 text-sm font-medium">{name}</TableCell>
+                                  <TableCell className="py-2">{getDepsDisplay(r)}</TableCell>
+                                  <TableCell className="py-2 text-center text-sm">{r.guests_count}</TableCell>
+                                  <TableCell className="py-2 text-center">
+                                    <div className="flex items-center justify-center gap-1">
+                                      <Button
+                                        size="icon"
+                                        variant="ghost"
+                                        className="h-8 w-8 text-emerald-700 hover:text-emerald-800"
+                                        title="Move to Attending"
+                                        disabled={promoteFromWaitlist.isPending}
+                                        onClick={() => promoteFromWaitlist.mutate({ rsvpId: r.id, name, userId, email })}
+                                      >
+                                        <ArrowUp className="h-4 w-4" />
+                                      </Button>
+                                      <Button
+                                        size="icon"
+                                        variant="ghost"
+                                        className="h-8 w-8"
+                                        onClick={() => setEditTarget(r)}
+                                        title="Edit RSVP"
+                                      >
+                                        <Pencil className="h-4 w-4" />
+                                      </Button>
+                                      <Button
+                                        size="icon"
+                                        variant="ghost"
+                                        className="h-8 w-8 text-destructive hover:text-destructive"
+                                        onClick={() => setRemoveTarget({ rsvpId: r.id, name, userId, email })}
+                                        title="Remove RSVP"
+                                      >
+                                        <Trash2 className="h-4 w-4" />
+                                      </Button>
+                                    </div>
+                                  </TableCell>
+                                </TableRow>
+                              );
+                            })}
                           </TableBody>
                         </Table>
                       </div>
@@ -890,6 +1011,38 @@ export default function EventRsvpDetail({ eventId, eventTitle, eventDate, checki
               }}
             >
               Undo check-in
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <EditRsvpDialog
+        rsvp={editTarget}
+        eventTitle={eventTitle}
+        open={!!editTarget}
+        onOpenChange={(o) => !o && setEditTarget(null)}
+      />
+
+      <AlertDialog open={!!removeTarget} onOpenChange={(o) => !o && setRemoveTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove RSVP?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This permanently removes {removeTarget?.name}'s RSVP for "{eventTitle}". This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => {
+                if (removeTarget) {
+                  removeRsvp.mutate(removeTarget);
+                  setRemoveTarget(null);
+                }
+              }}
+            >
+              Remove RSVP
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -18,12 +18,15 @@ interface WalkInRsvpModalProps {
   onOpenChange: (open: boolean) => void;
 }
 
+type AddMode = "walkin" | "rsvp" | "waitlist";
+
 export default function WalkInRsvpModal({ eventId, open, onOpenChange }: WalkInRsvpModalProps) {
   const queryClient = useQueryClient();
-  
+
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [adultsCount, setAdultsCount] = useState(1);
   const [childrenCount, setChildrenCount] = useState(0);
+  const [mode, setMode] = useState<AddMode>("walkin");
 
   const { data: approvedUsers, isLoading: loadingUsers } = useQuery({
     queryKey: ["approved-users-for-walkin"],
@@ -87,18 +90,23 @@ export default function WalkInRsvpModal({ eventId, open, onOpenChange }: WalkInR
       const rsvpId = crypto.randomUUID();
       const qrHash = await generateQRHash(rsvpId);
       const totalGuests = adultsCount + childrenCount;
+      const isWaitlist = mode === "waitlist";
+      const autoCheckin = mode === "walkin";
 
       const { error } = await supabase.from("rsvps").insert({
         id: rsvpId,
         event_id: eventId,
         user_id: selectedUserId,
         guests_count: totalGuests,
-        checked_in: true,
+        checked_in: autoCheckin,
         qr_hash: qrHash,
+        status: isWaitlist ? ("waitlisted" as any) : ("attending" as any),
+        is_waitlisted: isWaitlist,
         attending_dependents: childrenCount > 0
           ? Array.from({ length: childrenCount }, (_, i) => ({
               name: `Child ${i + 1}`,
               type: "dependent",
+              age_group: "child_4_12",
               age: null,
             }))
           : null,
@@ -106,15 +114,22 @@ export default function WalkInRsvpModal({ eventId, open, onOpenChange }: WalkInR
       if (error) throw error;
     },
     onSuccess: () => {
-      toast.success(`Walk-in RSVP created for ${selectedUser?.name || "user"}`);
+      const label = mode === "walkin" ? "Walk-in" : mode === "waitlist" ? "Waitlist entry" : "RSVP";
+      toast.success(`${label} created for ${selectedUser?.name || "user"}`);
       queryClient.invalidateQueries({ queryKey: ["admin-rsvps", eventId] });
       queryClient.invalidateQueries({ queryKey: ["host-rsvps", eventId] });
       queryClient.invalidateQueries({ queryKey: ["existing-rsvp-users", eventId] });
+      queryClient.invalidateQueries({ queryKey: ["event-rsvp-counts", eventId] });
       resetForm();
       onOpenChange(false);
     },
     onError: (err) => {
-      toast.error("Failed to create walk-in RSVP: " + (err as Error).message);
+      const msg = (err as Error).message;
+      if (msg.includes("RSVP_DUPLICATE_COVERED") || msg.includes("RSVP_DUPLICATE_MEMBER")) {
+        toast.error("Family conflict", { description: msg.replace(/^.*?:\s*/, "") });
+      } else {
+        toast.error("Failed to add RSVP: " + msg);
+      }
     },
   });
 
@@ -122,6 +137,7 @@ export default function WalkInRsvpModal({ eventId, open, onOpenChange }: WalkInR
     setSelectedUserId(null);
     setAdultsCount(1);
     setChildrenCount(0);
+    setMode("walkin");
   };
 
   return (
@@ -130,9 +146,30 @@ export default function WalkInRsvpModal({ eventId, open, onOpenChange }: WalkInR
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 font-heading">
             <UserPlus className="h-5 w-5 text-primary" />
-            Add Walk-In
+            Add Attendee
           </DialogTitle>
         </DialogHeader>
+
+        <div className="flex rounded-md border border-border p-0.5 mt-2 text-xs">
+          {([
+            { v: "walkin", label: "Walk-In" },
+            { v: "rsvp", label: "RSVP" },
+            { v: "waitlist", label: "Waitlist" },
+          ] as { v: AddMode; label: string }[]).map((opt) => (
+            <button
+              key={opt.v}
+              type="button"
+              onClick={() => setMode(opt.v)}
+              className={cn(
+                "flex-1 h-8 rounded-sm font-medium transition-colors",
+                mode === opt.v ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"
+              )}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+
 
         <div className="space-y-4 pt-2">
           {/* User search — inline cmdk list (no Popover, avoids Dialog focus-trap conflicts on mobile) */}
@@ -216,14 +253,17 @@ export default function WalkInRsvpModal({ eventId, open, onOpenChange }: WalkInR
           </div>
 
           <p className="text-xs text-muted-foreground">
-            Total headcount: {adultsCount + childrenCount} · Will be auto-checked-in
+            Total headcount: {adultsCount + childrenCount}
+            {mode === "walkin" && " · Will be auto-checked-in"}
+            {mode === "waitlist" && " · Will be added to the waitlist"}
+            {mode === "rsvp" && " · Confirmed RSVP, not checked in"}
           </p>
 
-          {isAtCapacity && (
+          {isAtCapacity && mode !== "waitlist" && (
             <div className="rounded-md border border-yellow-500/40 bg-yellow-50 dark:bg-yellow-950/20 px-3 py-2 text-xs text-yellow-900 dark:text-yellow-200 flex items-start gap-2">
               <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
               <span>
-                This event is at capacity ({attendingCount}/{capacity} spots). Adding a walk-in will exceed the limit.
+                Event is at capacity ({attendingCount}/{capacity}). Adding will exceed the limit.
               </span>
             </div>
           )}
@@ -238,8 +278,9 @@ export default function WalkInRsvpModal({ eventId, open, onOpenChange }: WalkInR
             ) : (
               <UserPlus className="h-4 w-4" />
             )}
-            Confirm Walk-In
+            {mode === "walkin" ? "Confirm Walk-In" : mode === "waitlist" ? "Add to Waitlist" : "Add RSVP"}
           </Button>
+
         </div>
       </DialogContent>
     </Dialog>

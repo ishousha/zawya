@@ -1,46 +1,52 @@
 ## Goal
+Give admins full control over any event's RSVPs from the existing **Event RSVP Detail** screen: edit any member or guest's RSVP, add any approved member (or promote from the waitlist), and remove RSVPs — all without leaving the event view.
 
-Fix three RSVP issues:
+## What admins will be able to do
 
-1. A family member can be counted twice — once via their own RSVP and once as a `family_member` entry inside another family member's RSVP.
-2. When a family member already RSVP'd them, the covered user still sees a bare "RSVP" button instead of "RSVP'd" + ticket.
-3. The host's own RSVP currently consumes a seat against the event capacity.
+From the event's "Manage Event → RSVPs" panel:
 
-## Plan
+1. **Add anyone** to an event (already partially supported as "Walk-In") — expand the existing Walk-In modal into a generic **"Add RSVP"** action that does NOT force check-in, with toggles for "Mark as attending" vs. "Add to waitlist".
+2. **Edit any row** (member or external guest):
+   - Change party size (adults / children counts)
+   - Add / rename / remove dependents on that RSVP
+   - Move between **Attending ⇄ Waitlist**
+   - Toggle check-in (already exists)
+   - Cancel / restore the RSVP
+3. **Promote from waitlist** — one-tap "Move to Attending" button on each waitlisted row.
+4. **Remove an RSVP** — destructive button with confirm, writes an `admin_activity_log` entry.
+5. **Family-aware safeguards** — surface the existing `RSVP_DUPLICATE_COVERED` / `RSVP_DUPLICATE_MEMBER` trigger errors as friendly toasts so admins can't accidentally double-book a family member.
 
-### 1. Database — prevent duplicate family coverage
+## UI changes (frontend only — RLS already allows admins full access to `rsvps`)
 
-New migration (one transaction):
+### `src/components/admin/EventRsvpDetail.tsx`
+- Add a per-row **Edit** (pencil) and **Remove** (trash) button next to the existing Check-in toggle, in both the **Attending** table and the **Waitlisted** table.
+- Waitlisted rows also get a **"↑ Move to Attending"** button.
+- Both tables share a new **`EditRsvpDialog`** modal (below).
 
-- Add a Postgres trigger `prevent_duplicate_family_rsvp` on `public.rsvps` (BEFORE INSERT OR UPDATE):
-  - For the row's `event_id`, look for any other non-cancelled RSVP where `attending_dependents` contains `{"type":"family_member","id":<NEW.user_id>}`. If found, raise `RSVP_DUPLICATE_COVERED` with the covering user's name.
-  - For every `family_member` id inside `NEW.attending_dependents`, check that no other non-cancelled RSVP exists for that user on the same event. If found, raise `RSVP_DUPLICATE_MEMBER` with the member's name.
-- Add an RPC `get_my_event_coverage(_event_id uuid)` returning `{ covering_rsvp_id, covering_user_id, covering_user_name, qr_hash, status, checked_in }` — finds an active RSVP on the event that lists `auth.uid()` as a `family_member` dependent (or returns null). SECURITY DEFINER, scoped to `auth.uid()`.
-- Update RPC `get_event_rsvp_counts` so `attending_count` and `checked_in_count` subtract 1 for the host's RSVP (`events.host_id`), so the host never consumes a public seat. `attending_rsvp_count` stays as-is so totals still reconcile internally.
+### New `src/components/admin/EditRsvpDialog.tsx`
+Modal that lets an admin edit a single RSVP:
+- Read-only member name / email header
+- Adults count (number input, min 1)
+- Children/dependents list — add/edit/remove rows (name + age group), mirroring the user-facing RSVP modal
+- Status select: `Attending` / `Waitlisted` / `Cancelled`
+- Check-in toggle
+- Save → `UPDATE rsvps SET guests_count, attending_dependents, status, is_waitlisted, checked_in` + activity log entry
+- Cancel button closes without saving
 
-### 2. Frontend — model "covered by family"
+### Generalize `WalkInRsvpModal.tsx` → `AddRsvpModal.tsx`
+- Add a "Mode" toggle: **Walk-In (auto check-in)** | **Add RSVP** | **Add to Waitlist**.
+- "Add RSVP" inserts with `checked_in:false, is_waitlisted:false`, "Add to Waitlist" with `is_waitlisted:true, status:'waitlisted'`.
+- The header button on `EventRsvpDetail` becomes a small dropdown: **Add Attendee ▾** → Walk-In / Add RSVP / Add to Waitlist.
 
-- `src/hooks/useRSVP.ts`:
-  - New `useMyEventCoverage(eventId)` calling the new RPC.
-  - In `checkWaitlistStatus`, subtract the host's `guests_count` from `totalConfirmed` so the host's seat is not counted against capacity client-side either.
-- `src/components/RSVPModal.tsx`:
-  - When the user is *covered* (no own RSVP, but covered RSVP exists), render a read-only state: "You're already RSVP'd by {coveringName} for your family." with a "View Family Ticket" button (opens that RSVP's QR ticket) and a "Remove me from this RSVP" link that calls a small mutation removing the user's entry from the covering RSVP's `attending_dependents` (only allowed for self).
-  - When the user *is* RSVPing and adds family members, surface the new DB errors as toast messages: "{name} already has their own RSVP — cancel it first" / "{name} is already covered by {other}'s RSVP".
-- `src/components/EventCard.tsx`:
-  - Treat `myRSVP || coverage` as "attending" for button state.
-  - If only `coverage` exists, button label becomes "RSVP'd by {coveringName}" and primary action opens the family ticket (`QRTicketScreen` with the covering RSVP). Cancel/edit actions stay hidden for covered users (they can only "Remove me" via the modal).
-  - Host badge: if `event.host_id === user.id`, show a small "Hosting" pill and skip the seat-count messaging that suggests they take a slot.
+### Remove-RSVP confirmation
+- AlertDialog: "Remove {name}'s RSVP for {event}? This cannot be undone."
+- Mutation: `DELETE FROM rsvps WHERE id = …` + log `rsvp_admin_remove`.
 
-### 3. Cleanup of existing duplicates
+## Backend
+No schema or RLS migration required — admins already have `FOR ALL` access via the `Admins can manage all rsvps` policy, and the `prevent_duplicate_family_rsvp` trigger already protects family integrity. We will only **invalidate** the same React Query keys already in use (`admin-rsvps`, `host-rsvps`, `event-rsvp-counts`, `existing-rsvp-users`).
 
-- One-off SQL run (via insert tool, no schema change): for every event, if a user has both their own active RSVP and is listed as a `family_member` in another active RSVP on the same event, cancel the standalone solo RSVP (keep the family-coverage entry) and write an admin activity log row `rsvp_dedupe_auto` so admins can audit. We will preview affected rows first with a SELECT before running the UPDATE.
-
-### Out of scope
-
-No changes to event creation, sign-up items, potluck logic, guest requests, waitlist promotion logic, or notifications beyond the toast messages above.
-
-### Technical notes
-
-- The `attending_dependents` jsonb already uses `{type:'family_member'|'dependent', id}` shape (see `RSVPModal.tsx` lines 70–82), so trigger logic can use `jsonb_path_exists(NEW.attending_dependents, '$[*] ? (@.type=="family_member" && @.id=="<uuid>")')`.
-- `get_event_rsvp_counts` is SECURITY DEFINER — host exclusion is a single `LEFT JOIN events e ON e.id = a.id` plus `CASE WHEN r.user_id = e.host_id THEN 0 ELSE ... END`.
-- The "Remove me" mutation reads the covering RSVP, filters its `attending_dependents` array, writes it back, and decrements `guests_count` by 1. RLS already allows the covered user… actually it does not — we'll add a policy `Covered user can remove self from family RSVP` on `rsvps` for UPDATE where `attending_dependents @> jsonb_build_array(jsonb_build_object('type','family_member','id',auth.uid()))`, restricted to those two columns via a trigger guard.
+## Out of scope
+- Editing potluck sign-up items (already supported in the Potluck tab).
+- Editing external guests / `guest_requests` (already has its own approval flow).
+- Bulk edit / multi-select.
+- Capacity-override warnings beyond the existing yellow "at capacity" banner.
