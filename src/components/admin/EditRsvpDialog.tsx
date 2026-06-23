@@ -50,6 +50,9 @@ interface Props {
   eventTitle: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  capacity?: number | null;
+  attendingCount?: number; // total attending seats (excluding host)
+  hostId?: string | null;
 }
 
 const STATUS_OPTIONS: { value: "attending" | "waitlisted" | "cancelled"; label: string }[] = [
