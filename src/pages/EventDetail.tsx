@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/runtime-client";
 import { EVENT_PUBLIC_COLUMNS } from "@/lib/event-columns";
 import { useAuth } from "@/contexts/AuthContext";
-import { useMyRSVP } from "@/hooks/useRSVP";
+import { useMyRSVP, useMyEventCoverage } from "@/hooks/useRSVP";
 import EventCard from "@/components/EventCard";
 import HostDashboard from "@/components/HostDashboard";
 import QRTicketScreen from "@/components/QRTicketScreen";
@@ -51,6 +51,8 @@ export default function EventDetail() {
   });
 
   const { data: myRSVP, isLoading: rsvpLoading } = useMyRSVP(eventId ?? "");
+  const { data: coverage } = useMyEventCoverage(eventId ?? "");
+  const ticketRsvp = myRSVP ?? (coverage as any);
 
   // Auto-trigger check-in modal when arriving via QR deep link
   useEffect(() => {
@@ -86,7 +88,7 @@ export default function EventDetail() {
   }
 
   if (ticketEvent) {
-    return <QRTicketScreen event={ticketEvent} rsvp={myRSVP!} onBack={() => setTicketEvent(null)} />;
+    return <QRTicketScreen event={ticketEvent} rsvp={ticketRsvp!} profileName={coverage && !myRSVP ? `${coverage.covering_user_name} (family)` : undefined} onBack={() => setTicketEvent(null)} />;
   }
 
   return (

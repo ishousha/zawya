@@ -3,7 +3,7 @@ import { format } from "date-fns";
 import { MapPin, Video, Users, Calendar, Clock, CheckCircle2, Ticket, Edit, Building2, ExternalLink, Ban, BookOpen, Mountain, Handshake, ClockIcon, ScanLine, Lock, Play, Share2, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
-import { useMyRSVP, useEventRsvpCounts } from "@/hooks/useRSVP";
+import { useMyRSVP, useEventRsvpCounts, useMyEventCoverage } from "@/hooks/useRSVP";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/runtime-client";
 import { useEventTypes, getEventTypeIcon } from "@/hooks/useEventTypes";
@@ -35,13 +35,14 @@ function EventCardInner({ event, onShowTicket, isPast = false }: EventCardProps)
   const typeLabel = eventType?.name ?? "Event";
 
   const { data: myRSVP } = useMyRSVP(event.id);
+  const { data: coverage } = useMyEventCoverage(event.id);
   const { data: counts } = useEventRsvpCounts(event.id);
   const [rsvpOpen, setRsvpOpen] = useState(false);
   const [checkinOpen, setCheckinOpen] = useState(false);
   const [now, setNow] = useState(() => new Date());
 
-  // Fetch sensitive event credentials only when the user has an active RSVP.
-  const hasActiveRsvp = !!myRSVP && myRSVP.status !== "cancelled";
+  // Fetch sensitive event credentials only when the user has an active RSVP (own or covered).
+  const hasActiveRsvp = (!!myRSVP && myRSVP.status !== "cancelled") || !!coverage;
   const { data: eventCreds } = useQuery({
     queryKey: ["event-credentials", event.id],
     enabled: hasActiveRsvp,
@@ -68,9 +69,12 @@ function EventCardInner({ event, onShowTicket, isPast = false }: EventCardProps)
   }, [event.description, checkClamped]);
   const { profile } = useAuth();
 
-  const isAttending = !!myRSVP && myRSVP.status !== "cancelled";
+  const ownAttending = !!myRSVP && myRSVP.status !== "cancelled";
+  const isCovered = !ownAttending && !!coverage;
+  const isAttending = ownAttending || isCovered;
   const isWaitlisted = myRSVP?.status === "waitlisted";
   const isCancelled = event.status === "cancelled";
+  const isHost = !!profile && (event as any).host_id === (profile as any).id;
 
   const confirmedCount = counts?.attending_count ?? 0;
   const checkedInCount = counts?.checked_in_count ?? 0;
@@ -124,8 +128,8 @@ function EventCardInner({ event, onShowTicket, isPast = false }: EventCardProps)
   // Self check-in: active within 2 hours of event start
   const checkinActivatesAt = eventTime - 2 * 60 * 60 * 1000;
   const isCheckinActive = now.getTime() >= checkinActivatesAt;
-  const isCheckedIn = myRSVP?.checked_in ?? false;
-  const canSelfCheckin = isAttending && !isWaitlisted && !isCheckedIn && !isCancelled;
+  const isCheckedIn = (myRSVP?.checked_in ?? coverage?.checked_in) ?? false;
+  const canSelfCheckin = ownAttending && !isWaitlisted && !isCheckedIn && !isCancelled;
 
   // Countdown string
   const remainingMs = linkActivatesAt - now.getTime();
@@ -235,7 +239,12 @@ function EventCardInner({ event, onShowTicket, isPast = false }: EventCardProps)
           {!isCancelled && isAttending && !isWaitlisted && (
             <span className="inline-flex items-center gap-1 rounded-full bg-accent px-2.5 py-0.5 text-xs font-medium text-accent-foreground">
               <CheckCircle2 className="h-3 w-3" />
-              {isPhysical && isCheckedIn ? "Checked In" : "Attending"}
+              {isPhysical && isCheckedIn ? "Checked In" : isCovered ? `RSVP'd by ${coverage!.covering_user_name}` : "Attending"}
+            </span>
+          )}
+          {!isCancelled && isHost && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-gold/20 px-2.5 py-0.5 text-xs font-semibold text-gold-foreground">
+              ⭐ Hosting
             </span>
           )}
           {!isCancelled && isAttending && isWaitlisted && (
@@ -502,6 +511,27 @@ function EventCardInner({ event, onShowTicket, isPast = false }: EventCardProps)
                         Your RSVP no longer matches this event's audience.
                       </p>
                     </div>
+                  ) : isCovered ? (
+                  <>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setRsvpOpen(true)}
+                      className="flex-1"
+                      title={`Included in ${coverage!.covering_user_name}'s RSVP`}
+                    >
+                      <Users className="mr-1.5 h-3.5 w-3.5" />
+                      RSVP'd by family
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={() => onShowTicket?.(event)}
+                      className="flex-1"
+                    >
+                      <Ticket className="mr-1.5 h-3.5 w-3.5" />
+                      View Family Ticket
+                    </Button>
+                  </>
                   ) : (
                   <>
                     <Button

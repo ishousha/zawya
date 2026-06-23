@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/runtime-client";
 import { EVENT_PUBLIC_COLUMNS } from "@/lib/event-columns";
 import { useAuth } from "@/contexts/AuthContext";
-import { useMyRSVP } from "@/hooks/useRSVP";
+import { useMyRSVP, useMyEventCoverage } from "@/hooks/useRSVP";
 import EventCard from "@/components/EventCard";
 import { useBatchMyGuestRequests } from "@/hooks/useGuestRequests";
 import QRTicketScreen from "@/components/QRTicketScreen";
@@ -226,6 +226,9 @@ export default function HomeFeed() {
 function TicketView({ event, onBack }: { event: Event; onBack: () => void }) {
   const { profile } = useAuth();
   const { data: myRSVP, isLoading, isError } = useMyRSVP(event.id);
+  const { data: coverage, isLoading: covLoading } = useMyEventCoverage(event.id);
+
+  const effectiveRsvp = myRSVP ?? (coverage as any);
 
   useEffect(() => {
     if (myRSVP && profile?.name) {
@@ -234,12 +237,12 @@ function TicketView({ event, onBack }: { event: Event; onBack: () => void }) {
   }, [myRSVP, event, profile?.name]);
 
   useEffect(() => {
-    if (!isLoading && !myRSVP && !isError) {
+    if (!isLoading && !covLoading && !effectiveRsvp && !isError) {
       onBack();
     }
-  }, [isLoading, myRSVP, isError, onBack]);
+  }, [isLoading, covLoading, effectiveRsvp, isError, onBack]);
 
-  if (isLoading) {
+  if (isLoading || covLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
         <Loader2 className="h-6 w-6 animate-spin text-primary" />
@@ -247,8 +250,8 @@ function TicketView({ event, onBack }: { event: Event; onBack: () => void }) {
     );
   }
 
-  if (myRSVP) {
-    return <QRTicketScreen event={event} rsvp={myRSVP} onBack={onBack} />;
+  if (effectiveRsvp) {
+    return <QRTicketScreen event={event} rsvp={effectiveRsvp} profileName={coverage && !myRSVP ? `${coverage.covering_user_name} (family)` : undefined} onBack={onBack} />;
   }
 
   const cached = getCachedTicketByEvent(event.id);

@@ -11,11 +11,15 @@ type RSVP = Database["public"]["Tables"]["rsvps"]["Row"];
 type RSVPInsert = Database["public"]["Tables"]["rsvps"]["Insert"];
 
 function getErrorMessage(error: unknown, fallback: string) {
-  if (error instanceof Error && error.message) return error.message;
-  if (typeof error === "object" && error && "message" in error && typeof (error as { message?: unknown }).message === "string") {
-    return (error as { message: string }).message;
+  let msg: string | undefined;
+  if (error instanceof Error && error.message) msg = error.message;
+  else if (typeof error === "object" && error && "message" in error && typeof (error as { message?: unknown }).message === "string") {
+    msg = (error as { message: string }).message;
   }
-  return fallback;
+  if (!msg) return fallback;
+  // Strip trigger error codes like "RSVP_DUPLICATE_COVERED: ..." to keep the friendly tail
+  const m = msg.match(/RSVP_DUPLICATE_[A-Z_]+:\s*(.+)$/);
+  return m ? m[1] : msg;
 }
 
 export function useEventRsvpCounts(eventId: string) {
@@ -87,6 +91,57 @@ export function useMyRSVP(eventId: string) {
       return data as RSVP | null;
     },
     enabled: !!user,
+  });
+}
+
+export interface CoverageRSVP {
+  id: string;
+  event_id: string;
+  user_id: string;
+  guests_count: number;
+  attending_dependents: any;
+  potluck_category: string | null;
+  specific_food_item: string | null;
+  qr_hash: string | null;
+  checked_in: boolean;
+  status: string;
+  is_waitlisted: boolean;
+  covering_user_name: string;
+}
+
+/** Returns the family RSVP that already includes the current user as an attendee, or null. */
+export function useMyEventCoverage(eventId: string) {
+  const { user } = useAuth();
+  return useQuery<CoverageRSVP | null>({
+    queryKey: ["my-coverage", eventId, user?.id],
+    enabled: !!user && !!eventId,
+    staleTime: 2 * 60 * 1000,
+    gcTime: 5 * 60 * 1000,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any).rpc("get_my_event_coverage", { _event_id: eventId });
+      if (error) throw error;
+      const row = Array.isArray(data) ? data[0] : data;
+      return (row ?? null) as CoverageRSVP | null;
+    },
+  });
+}
+
+export function useRemoveSelfFromFamilyRsvp(eventId: string) {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+  return useMutation({
+    mutationFn: async () => {
+      const { data, error } = await (supabase as any).rpc("remove_self_from_family_rsvp", { _event_id: eventId });
+      if (error) throw error;
+      if (data && data.success === false) throw new Error(data.error || "Failed to remove");
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["my-coverage", eventId, user?.id] });
+      queryClient.invalidateQueries({ queryKey: ["my-rsvp", eventId, user?.id] });
+      queryClient.invalidateQueries({ queryKey: ["rsvps", eventId] });
+      queryClient.invalidateQueries({ queryKey: ["rsvp-counts", eventId] });
+    },
   });
 }
 
@@ -172,19 +227,19 @@ async function checkWaitlistStatus(
 ): Promise<boolean> {
   const { data: event, error: evErr } = await supabase
     .from("events")
-    .select("capacity, waitlist_capacity")
+    .select("capacity, waitlist_capacity, host_id")
     .eq("id", eventId)
     .single();
   if (evErr) throw evErr;
 
   const capacity = (event as any).capacity as number | null;
   const waitlistCapacity = ((event as any).waitlist_capacity ?? 0) as number;
+  const hostId = (event as any).host_id as string | null;
 
   if (!capacity) return false;
 
-  // Count ALL attending RSVPs (do not exclude self), then subtract only the
-  // caller's currently-attending seats. Waitlisted/cancelled rows contribute 0.
-  // This prevents a waitlisted user from self-promoting on re-submit.
+  // Count ALL attending RSVPs (excluding the host's seat, which doesn't consume capacity),
+  // then subtract only the caller's currently-attending seats.
   const { data: allAttending, error: cErr } = await supabase
     .from("rsvps")
     .select("user_id, guests_count")
@@ -192,16 +247,19 @@ async function checkWaitlistStatus(
     .eq("status", "attending");
   if (cErr) throw cErr;
 
-  const totalConfirmed = (allAttending ?? []).reduce(
-    (sum, r: any) => sum + (r.guests_count ?? 1),
-    0
-  );
+  const totalConfirmed = (allAttending ?? [])
+    .filter((r: any) => !hostId || r.user_id !== hostId)
+    .reduce((sum, r: any) => sum + (r.guests_count ?? 1), 0);
   const mySeats = (allAttending ?? [])
-    .filter((r: any) => r.user_id === currentUserId)
+    .filter((r: any) => r.user_id === currentUserId && (!hostId || r.user_id !== hostId))
     .reduce((s: number, r: any) => s + (r.guests_count ?? 1), 0);
   const othersConfirmed = totalConfirmed - mySeats;
 
+  // Host never gets waitlisted on their own event
+  if (hostId && currentUserId === hostId) return false;
+
   if (othersConfirmed + requestedGuests <= capacity) return false;
+
 
   // Count ALL waitlisted rows, subtract 1 if caller is already waitlisted.
   const { data: allWait, error: wErr } = await supabase
@@ -235,6 +293,8 @@ export function useRSVPConcurrency(eventId: string) {
     queryClient.invalidateQueries({ queryKey: ["my-selections"] });
     queryClient.invalidateQueries({ queryKey: ["potluck-menu", eventId] });
     queryClient.invalidateQueries({ queryKey: ["potluck-signup-items", eventId] });
+    queryClient.invalidateQueries({ queryKey: ["my-coverage", eventId, user?.id] });
+    queryClient.invalidateQueries({ queryKey: ["my-coverage", eventId] });
     queryClient.invalidateQueries({ queryKey: ["events"] });
   };
 
