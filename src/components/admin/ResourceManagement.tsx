@@ -630,6 +630,53 @@ export default function ResourceManagement() {
               />
             </div>
 
+            {/* Cover image */}
+            <div>
+              <label className="text-sm font-medium text-foreground flex items-center gap-1.5">
+                <ImageIcon className="h-3.5 w-3.5 text-primary" />
+                Cover image (optional)
+              </label>
+              <div className="mt-1.5 flex items-center gap-3">
+                <CoverThumb file={coverFile} path={coverRemoved ? null : coverUrl} />
+                <div className="flex-1 flex items-center gap-2">
+                  <label className="inline-flex cursor-pointer items-center gap-2 rounded-md border border-input px-3 py-2 text-xs hover:bg-muted/50 transition-colors">
+                    <Upload className="h-3.5 w-3.5" />
+                    {coverFile ? "Replace" : (coverUrl && !coverRemoved ? "Replace" : "Upload cover")}
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      className="hidden"
+                      onChange={(e) => {
+                        const picked = e.target.files?.[0] ?? null;
+                        if (picked && picked.size > 3 * 1024 * 1024) {
+                          toast.error("Cover image must be under 3MB.");
+                          e.target.value = "";
+                          return;
+                        }
+                        setCoverFile(picked);
+                        setCoverRemoved(false);
+                      }}
+                    />
+                  </label>
+                  {(coverFile || (coverUrl && !coverRemoved)) && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 text-xs text-muted-foreground"
+                      onClick={() => { setCoverFile(null); setCoverRemoved(true); }}
+                    >
+                      <X className="h-3.5 w-3.5 mr-1" /> Remove
+                    </Button>
+                  )}
+                </div>
+              </div>
+              <p className="text-[10px] text-muted-foreground mt-1">
+                Square images look best. JPG/PNG/WebP, up to 3MB.
+              </p>
+            </div>
+
+
             {/* --- Linking section (all optional) --- */}
             <div className="rounded-lg border border-border bg-muted/30 p-3 space-y-3">
               <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
