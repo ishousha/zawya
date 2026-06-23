@@ -399,6 +399,9 @@ export default function EventRsvpDetail({ eventId, eventTitle, eventDate, checki
     },
     onSuccess: ({ snap }, vars) => {
       invalidateRsvpQueries();
+      if (snap) {
+        setLastAction({ kind: "promote", rsvpId: vars.rsvpId, userId: vars.userId, name: vars.name, email: vars.email, previous: snap, at: Date.now() });
+      }
       toast.success(`Moved ${vars.name} to Attending`, {
         duration: 10000,
         action: snap
