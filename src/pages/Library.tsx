@@ -713,15 +713,11 @@ export default function Library() {
                           </div>
                         </div>
                         <div className="absolute inset-0 bg-gradient-to-t from-primary via-primary/40 to-transparent" aria-hidden />
-                        <div className="absolute top-3 left-3">
-                          <div className="bg-gold/90 backdrop-blur-sm px-2.5 py-0.5 rounded-full">
-                            <span className="text-[9px] font-bold text-gold-foreground uppercase tracking-wider">
-                              {res.category || "General"}
-                            </span>
-                          </div>
-                        </div>
-                        <div className="absolute top-3 right-3 bg-card/20 backdrop-blur-sm p-1.5 rounded-full text-card-foreground">
-                          <Icon className="h-4 w-4 text-card" />
+                        <div className="absolute top-3 left-3 flex items-center gap-1.5 bg-gold/90 backdrop-blur-sm pl-1.5 pr-2.5 py-1 rounded-full">
+                          <Icon className="h-3 w-3 text-gold-foreground" />
+                          <span className="text-[9px] font-bold text-gold-foreground uppercase tracking-wider">
+                            {label}
+                          </span>
                         </div>
                         <div className="absolute bottom-0 p-4 text-card-foreground w-full">
                           <h3 className="font-heading text-lg font-semibold text-card leading-tight mb-2 line-clamp-2">
