@@ -1130,14 +1130,59 @@ export default function EventRsvpDetail({ eventId, eventTitle, eventDate, checki
         eventTitle={eventTitle}
         open={!!editTarget}
         onOpenChange={(o) => !o && setEditTarget(null)}
+        capacity={capacity}
+        attendingCount={attendingHeadcount}
+        hostId={hostId}
       />
+
+      <AlertDialog open={!!promoteTarget} onOpenChange={(o) => !o && setPromoteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Move to Attending?</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-2 text-sm">
+                <p>
+                  Promote <strong>{promoteTarget?.name}</strong> (party of {promoteTarget?.guestsCount ?? 1}) from the waitlist to Attending.
+                </p>
+                {capacity != null && promoteTarget && (() => {
+                  const after = attendingHeadcount + promoteTarget.guestsCount;
+                  const over = after > capacity;
+                  return (
+                    <p className={over ? "text-destructive font-medium" : "text-muted-foreground"}>
+                      Capacity after promotion: {after} / {capacity}
+                      {over && ` — over by ${after - capacity}. This will be blocked.`}
+                    </p>
+                  );
+                })()}
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={
+                !!(capacity != null && promoteTarget && attendingHeadcount + promoteTarget.guestsCount > capacity)
+              }
+              onClick={() => {
+                if (promoteTarget) {
+                  const { guestsCount, ...vars } = promoteTarget;
+                  promoteFromWaitlist.mutate(vars);
+                  setPromoteTarget(null);
+                }
+              }}
+            >
+              Move to Attending
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <AlertDialog open={!!removeTarget} onOpenChange={(o) => !o && setRemoveTarget(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Remove RSVP?</AlertDialogTitle>
             <AlertDialogDescription>
-              This permanently removes {removeTarget?.name}'s RSVP for "{eventTitle}". This cannot be undone.
+              This removes {removeTarget?.name}'s RSVP for "{eventTitle}". You can undo this immediately from the toast.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
