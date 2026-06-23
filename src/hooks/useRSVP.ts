@@ -289,6 +289,8 @@ export function useRSVPConcurrency(eventId: string) {
     queryClient.invalidateQueries({ queryKey: ["my-selections"] });
     queryClient.invalidateQueries({ queryKey: ["potluck-menu", eventId] });
     queryClient.invalidateQueries({ queryKey: ["potluck-signup-items", eventId] });
+    queryClient.invalidateQueries({ queryKey: ["my-coverage", eventId, user?.id] });
+    queryClient.invalidateQueries({ queryKey: ["my-coverage", eventId] });
     queryClient.invalidateQueries({ queryKey: ["events"] });
   };
 
