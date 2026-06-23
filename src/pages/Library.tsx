@@ -164,7 +164,7 @@ export default function Library() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("resources")
-        .select("id, title, description, file_url, file_name, file_size, created_at, category, resource_type, event_id, speaker_ids, tags, resource_date, short_code")
+        .select("id, title, description, file_url, file_name, file_size, created_at, category, resource_type, event_id, speaker_ids, tags, resource_date, short_code, cover_image_url")
         .order("created_at", { ascending: false })
         .limit(500);
       if (error) throw error;
@@ -194,7 +194,7 @@ export default function Library() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("events")
-        .select("id, title, date_time")
+        .select("id, title, date_time, cover_photo_url")
         .order("date_time", { ascending: false })
         .limit(500);
       if (error) throw error;
