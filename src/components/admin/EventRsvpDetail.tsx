@@ -713,16 +713,54 @@ export default function EventRsvpDetail({ eventId, eventTitle, eventDate, checki
                               <TableHead className="text-xs">Name</TableHead>
                               <TableHead className="text-xs">Dependents</TableHead>
                               <TableHead className="text-xs text-center">Party</TableHead>
+                              <TableHead className="text-xs text-center">Actions</TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
-                            {waitlisted.map((r) => (
-                              <TableRow key={r.id}>
-                                <TableCell className="py-2 text-sm font-medium">{(r.profile as any)?.name || "Unknown"}</TableCell>
-                                <TableCell className="py-2">{getDepsDisplay(r)}</TableCell>
-                                <TableCell className="py-2 text-center text-sm">{r.guests_count}</TableCell>
-                              </TableRow>
-                            ))}
+                            {waitlisted.map((r) => {
+                              const name = (r.profile as any)?.name || "Unknown";
+                              const email = (r.profile as any)?.email ?? null;
+                              const userId = r.user_id as string;
+                              return (
+                                <TableRow key={r.id}>
+                                  <TableCell className="py-2 text-sm font-medium">{name}</TableCell>
+                                  <TableCell className="py-2">{getDepsDisplay(r)}</TableCell>
+                                  <TableCell className="py-2 text-center text-sm">{r.guests_count}</TableCell>
+                                  <TableCell className="py-2 text-center">
+                                    <div className="flex items-center justify-center gap-1">
+                                      <Button
+                                        size="icon"
+                                        variant="ghost"
+                                        className="h-8 w-8 text-emerald-700 hover:text-emerald-800"
+                                        title="Move to Attending"
+                                        disabled={promoteFromWaitlist.isPending}
+                                        onClick={() => promoteFromWaitlist.mutate({ rsvpId: r.id, name, userId, email })}
+                                      >
+                                        <ArrowUp className="h-4 w-4" />
+                                      </Button>
+                                      <Button
+                                        size="icon"
+                                        variant="ghost"
+                                        className="h-8 w-8"
+                                        onClick={() => setEditTarget(r)}
+                                        title="Edit RSVP"
+                                      >
+                                        <Pencil className="h-4 w-4" />
+                                      </Button>
+                                      <Button
+                                        size="icon"
+                                        variant="ghost"
+                                        className="h-8 w-8 text-destructive hover:text-destructive"
+                                        onClick={() => setRemoveTarget({ rsvpId: r.id, name, userId, email })}
+                                        title="Remove RSVP"
+                                      >
+                                        <Trash2 className="h-4 w-4" />
+                                      </Button>
+                                    </div>
+                                  </TableCell>
+                                </TableRow>
+                              );
+                            })}
                           </TableBody>
                         </Table>
                       </div>
