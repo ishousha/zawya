@@ -17,8 +17,8 @@ function getErrorMessage(error: unknown, fallback: string) {
     msg = (error as { message: string }).message;
   }
   if (!msg) return fallback;
-  // Strip trigger error codes like "RSVP_DUPLICATE_COVERED: ..." to keep the friendly tail
-  const m = msg.match(/RSVP_DUPLICATE_[A-Z_]+:\s*(.+)$/);
+  // Strip trigger error codes like "RSVP_DUPLICATE_COVERED: ..." / "RSVP_CAPACITY_EXCEEDED: ..."
+  const m = msg.match(/(?:RSVP_DUPLICATE_[A-Z_]+|RSVP_CAPACITY_EXCEEDED):\s*(.+)$/);
   return m ? m[1] : msg;
 }
 
