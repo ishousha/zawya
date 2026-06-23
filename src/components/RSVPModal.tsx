@@ -451,7 +451,41 @@ export default function RSVPModal({ event, open, onOpenChange }: RSVPModalProps)
           );
         })()}
 
-        {genderBlocked ? (
+        {isCovered ? (
+          <div className="space-y-4 py-4">
+            <div className="rounded-md border border-primary/30 bg-primary/5 p-4 space-y-2 text-center">
+              <p className="text-sm text-foreground">
+                You're already RSVP'd for this event as part of{" "}
+                <span className="font-semibold">{coverage!.covering_user_name}</span>'s family RSVP.
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Only one of you needs to RSVP — the ticket covers your whole party.
+              </p>
+            </div>
+            <div className="flex flex-col gap-2">
+              <Button onClick={() => onOpenChange(false)} className="w-full">
+                Got it
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                disabled={removeSelf.isPending}
+                onClick={async () => {
+                  try {
+                    await removeSelf.mutateAsync();
+                    toast.success("Removed from family RSVP. You can now RSVP separately if you want.");
+                    onOpenChange(false);
+                  } catch (err: any) {
+                    toast.error(err?.message || "Failed to remove");
+                  }
+                }}
+                className="text-xs text-muted-foreground hover:text-destructive"
+              >
+                Remove me from this RSVP
+              </Button>
+            </div>
+          </div>
+        ) : genderBlocked ? (
           <div className="space-y-4 py-4 text-center">
             <p className="text-sm text-foreground">
               {hasActiveRsvp
