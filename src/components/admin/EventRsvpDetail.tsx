@@ -232,9 +232,35 @@ export default function EventRsvpDetail({ eventId, eventTitle, eventDate, checki
   } | null>(null);
   const [editTarget, setEditTarget] = useState<any | null>(null);
   const [removeTarget, setRemoveTarget] = useState<{ rsvpId: string; name: string; userId: string; email: string | null } | null>(null);
+  const [promoteTarget, setPromoteTarget] = useState<{ rsvpId: string; name: string; userId: string; email: string | null; guestsCount: number } | null>(null);
+
+  const friendlyError = (e: any, fallback: string) => {
+    const msg = String(e?.message || fallback);
+    if (msg.includes("RSVP_CAPACITY_EXCEEDED")) {
+      toast.error("Over capacity", { description: msg.replace(/^.*?RSVP_CAPACITY_EXCEEDED:\s*/, "") });
+    } else if (msg.includes("RSVP_DUPLICATE_")) {
+      toast.error("Family conflict", { description: msg.replace(/^.*?:\s*/, "") });
+    } else {
+      toast.error(msg);
+    }
+  };
+
+  const invalidateRsvpQueries = () => {
+    queryClient.invalidateQueries({ queryKey: ["admin-rsvps", eventId] });
+    queryClient.invalidateQueries({ queryKey: ["host-rsvps", eventId] });
+    queryClient.invalidateQueries({ queryKey: ["event-rsvp-counts", eventId] });
+    queryClient.invalidateQueries({ queryKey: ["door-attendees", eventId] });
+    queryClient.invalidateQueries({ queryKey: ["existing-rsvp-users", eventId] });
+  };
 
   const removeRsvp = useMutation({
     mutationFn: async (vars: { rsvpId: string; name: string; userId: string; email: string | null }) => {
+      // Snapshot full row before delete so we can re-insert on undo
+      const { data: snap } = await supabase
+        .from("rsvps")
+        .select("*")
+        .eq("id", vars.rsvpId)
+        .maybeSingle();
       const { error } = await supabase.from("rsvps").delete().eq("id", vars.rsvpId);
       if (error) throw error;
       const { data: userData } = await supabase.auth.getUser();
@@ -246,22 +272,52 @@ export default function EventRsvpDetail({ eventId, eventTitle, eventDate, checki
           target_user_id: vars.userId,
           target_user_name: vars.name,
           target_user_email: vars.email,
-          details: { event_id: eventId, event_title: eventTitle, rsvp_id: vars.rsvpId },
+          details: { event_id: eventId, event_title: eventTitle, rsvp_id: vars.rsvpId, previous_row: snap ?? null },
         });
       }
+      return { snap };
     },
-    onSuccess: (_d, vars) => {
-      queryClient.invalidateQueries({ queryKey: ["admin-rsvps", eventId] });
-      queryClient.invalidateQueries({ queryKey: ["host-rsvps", eventId] });
-      queryClient.invalidateQueries({ queryKey: ["event-rsvp-counts", eventId] });
-      queryClient.invalidateQueries({ queryKey: ["existing-rsvp-users", eventId] });
-      toast.success(`Removed RSVP for ${vars.name}`);
+    onSuccess: ({ snap }, vars) => {
+      invalidateRsvpQueries();
+      toast.success(`Removed RSVP for ${vars.name}`, {
+        duration: 10000,
+        action: snap
+          ? {
+              label: "Undo",
+              onClick: async () => {
+                const { error } = await supabase.from("rsvps").insert(snap as any);
+                if (error) {
+                  friendlyError(error, "Failed to restore RSVP");
+                  return;
+                }
+                const { data: u } = await supabase.auth.getUser();
+                if (u.user?.id) {
+                  await supabase.from("admin_activity_log").insert({
+                    actor_id: u.user.id,
+                    action: "rsvp_admin_undo",
+                    target_user_id: vars.userId,
+                    target_user_name: vars.name,
+                    target_user_email: vars.email,
+                    details: { event_id: eventId, rsvp_id: vars.rsvpId, undone: "rsvp_admin_remove" },
+                  });
+                }
+                invalidateRsvpQueries();
+                toast.success("RSVP restored");
+              },
+            }
+          : undefined,
+      });
     },
-    onError: (e: any) => toast.error(e?.message || "Failed to remove RSVP"),
+    onError: (e) => friendlyError(e, "Failed to remove RSVP"),
   });
 
   const promoteFromWaitlist = useMutation({
     mutationFn: async (vars: { rsvpId: string; name: string; userId: string; email: string | null }) => {
+      const { data: snap } = await supabase
+        .from("rsvps")
+        .select("status, is_waitlisted")
+        .eq("id", vars.rsvpId)
+        .maybeSingle();
       const { error } = await supabase
         .from("rsvps")
         .update({ status: "attending" as any, is_waitlisted: false })
@@ -276,17 +332,49 @@ export default function EventRsvpDetail({ eventId, eventTitle, eventDate, checki
           target_user_id: vars.userId,
           target_user_name: vars.name,
           target_user_email: vars.email,
-          details: { event_id: eventId, event_title: eventTitle, rsvp_id: vars.rsvpId },
+          details: { event_id: eventId, event_title: eventTitle, rsvp_id: vars.rsvpId, previous: snap ?? null },
         });
       }
+      return { snap };
     },
-    onSuccess: (_d, vars) => {
-      queryClient.invalidateQueries({ queryKey: ["admin-rsvps", eventId] });
-      queryClient.invalidateQueries({ queryKey: ["host-rsvps", eventId] });
-      queryClient.invalidateQueries({ queryKey: ["event-rsvp-counts", eventId] });
-      toast.success(`Moved ${vars.name} to Attending`);
+    onSuccess: ({ snap }, vars) => {
+      invalidateRsvpQueries();
+      toast.success(`Moved ${vars.name} to Attending`, {
+        duration: 10000,
+        action: snap
+          ? {
+              label: "Undo",
+              onClick: async () => {
+                const { error } = await supabase
+                  .from("rsvps")
+                  .update({
+                    status: (snap.status ?? "waitlisted") as any,
+                    is_waitlisted: snap.is_waitlisted ?? true,
+                  })
+                  .eq("id", vars.rsvpId);
+                if (error) {
+                  friendlyError(error, "Failed to undo");
+                  return;
+                }
+                const { data: u } = await supabase.auth.getUser();
+                if (u.user?.id) {
+                  await supabase.from("admin_activity_log").insert({
+                    actor_id: u.user.id,
+                    action: "rsvp_admin_undo",
+                    target_user_id: vars.userId,
+                    target_user_name: vars.name,
+                    target_user_email: vars.email,
+                    details: { event_id: eventId, rsvp_id: vars.rsvpId, undone: "rsvp_admin_promote" },
+                  });
+                }
+                invalidateRsvpQueries();
+                toast.success(`${vars.name} moved back to Waitlist`);
+              },
+            }
+          : undefined,
+      });
     },
-    onError: (e: any) => toast.error(e?.message || "Failed to promote RSVP"),
+    onError: (e) => friendlyError(e, "Failed to promote RSVP"),
   });
 
 
