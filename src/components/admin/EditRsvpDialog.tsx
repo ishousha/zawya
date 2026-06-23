@@ -275,11 +275,28 @@ export default function EditRsvpDialog({ rsvp, eventTitle, open, onOpenChange, c
               Total party size: <strong>{adults + deps.length}</strong>
             </p>
           </div>
+
+          {typeof capacity === "number" && capacity > 0 && (
+            <div className={`rounded-md border px-3 py-2 text-xs ${overCapacity ? "border-destructive/40 bg-destructive/5 text-destructive" : "text-muted-foreground"}`}>
+              {isHost ? (
+                <>Host RSVPs don't consume capacity ({attendingCount ?? 0} / {capacity} used).</>
+              ) : !willCountTowardCapacity ? (
+                <>{status === "waitlisted" ? "Waitlisted" : "Cancelled"} — won't consume capacity ({attendingCount ?? 0} / {capacity} used).</>
+              ) : (
+                <>
+                  Capacity: <strong>{projectedTotal} / {capacity}</strong> after save
+                  {overCapacity && (
+                    <> · over by <strong>{projectedTotal - capacity}</strong>. Reduce party size or move to Waitlist.</>
+                  )}
+                </>
+              )}
+            </div>
+          )}
         </div>
 
         <DialogFooter className="gap-2">
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button onClick={() => save.mutate()} disabled={save.isPending}>
+          <Button onClick={() => save.mutate()} disabled={save.isPending || overCapacity}>
             {save.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Save changes
           </Button>
