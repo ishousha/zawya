@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/runtime-client";
 import { EVENT_PUBLIC_COLUMNS } from "@/lib/event-columns";
 import { useAuth } from "@/contexts/AuthContext";
-import { useMyRSVP } from "@/hooks/useRSVP";
+import { useMyRSVP, useMyEventCoverage } from "@/hooks/useRSVP";
 import EventCard from "@/components/EventCard";
 import { useBatchMyGuestRequests } from "@/hooks/useGuestRequests";
 import QRTicketScreen from "@/components/QRTicketScreen";
