@@ -769,7 +769,7 @@ export default function Library() {
                       key={res.id}
                       type="button"
                       onClick={() => handleResourceClick(res)}
-                      className="flex-none w-36 snap-start text-left group"
+                      className="flex-none w-24 sm:w-28 md:w-32 lg:w-36 snap-start text-left group"
                     >
                       <div className="relative aspect-square rounded-2xl overflow-hidden shadow-sm border border-gold/15 bg-card transition-transform group-active:scale-[0.98]">
                         <ResourceCover
