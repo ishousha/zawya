@@ -35,13 +35,14 @@ function EventCardInner({ event, onShowTicket, isPast = false }: EventCardProps)
   const typeLabel = eventType?.name ?? "Event";
 
   const { data: myRSVP } = useMyRSVP(event.id);
+  const { data: coverage } = useMyEventCoverage(event.id);
   const { data: counts } = useEventRsvpCounts(event.id);
   const [rsvpOpen, setRsvpOpen] = useState(false);
   const [checkinOpen, setCheckinOpen] = useState(false);
   const [now, setNow] = useState(() => new Date());
 
-  // Fetch sensitive event credentials only when the user has an active RSVP.
-  const hasActiveRsvp = !!myRSVP && myRSVP.status !== "cancelled";
+  // Fetch sensitive event credentials only when the user has an active RSVP (own or covered).
+  const hasActiveRsvp = (!!myRSVP && myRSVP.status !== "cancelled") || !!coverage;
   const { data: eventCreds } = useQuery({
     queryKey: ["event-credentials", event.id],
     enabled: hasActiveRsvp,
