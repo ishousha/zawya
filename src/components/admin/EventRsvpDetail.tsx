@@ -1128,7 +1128,14 @@ export default function EventRsvpDetail({ eventId, eventTitle, eventDate, checki
           )}
         </CardContent>
       </Card>
-      <WalkInRsvpModal eventId={eventId} open={showWalkIn} onOpenChange={setShowWalkIn} />
+      <WalkInRsvpModal
+        eventId={eventId}
+        open={showWalkIn}
+        onOpenChange={setShowWalkIn}
+        onProjectionChange={(extra) =>
+          setPreviewAttending(extra == null ? null : attendingHeadcount + extra)
+        }
+      />
       <WalkInGuestDialog eventId={eventId} open={showAddGuest} onOpenChange={setShowAddGuest} />
 
       <Dialog open={!!previewData} onOpenChange={(o) => !o && setPreviewData(null)}>
