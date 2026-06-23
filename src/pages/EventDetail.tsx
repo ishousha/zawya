@@ -88,7 +88,7 @@ export default function EventDetail() {
   }
 
   if (ticketEvent) {
-    return <QRTicketScreen event={ticketEvent} rsvp={myRSVP!} onBack={() => setTicketEvent(null)} />;
+    return <QRTicketScreen event={ticketEvent} rsvp={ticketRsvp!} profileName={coverage && !myRSVP ? `${coverage.covering_user_name} (family)` : undefined} onBack={() => setTicketEvent(null)} />;
   }
 
   return (
