@@ -823,9 +823,9 @@ export default function Library() {
                             {recentResources.length} new
                           </span>
                         </div>
-                        <div className="flex overflow-x-auto gap-3 pb-3 -mx-4 px-4 snap-x scrollbar-hide">
+                        <FeaturedCarousel>
                           {recentResources.map(renderFeaturedCard)}
-                        </div>
+                        </FeaturedCarousel>
                       </section>
                     )}
                     {groupedByCategory.map(([cat, items]) => (
