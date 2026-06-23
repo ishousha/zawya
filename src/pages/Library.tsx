@@ -692,7 +692,7 @@ export default function Library() {
                 };
 
                 const renderFeaturedCard = (res: Resource) => {
-                  const Icon = getResourceIcon(res);
+                  const { Icon, label } = getResourceMeta(res);
                   const color = getCategoryColor(res.category || "General");
                   const podcast = isPodcastResource(res);
                   const firstSpeaker = (res.speaker_ids ?? [])
