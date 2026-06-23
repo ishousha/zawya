@@ -437,15 +437,12 @@ export default function Library() {
 
   return (
     <div className="min-h-screen bg-background pb-24">
-      <header className="border-b border-gold/20 bg-card px-4 pb-5 pt-6 relative">
-        <div className="absolute top-4 left-4 w-10 h-px bg-gold/40" aria-hidden />
-        <div className="flex items-center gap-2 mt-2">
+      <header className="border-b border-border bg-card px-4 pb-4 pt-6">
+        <div className="flex items-center gap-2">
           <BookOpen className="h-6 w-6 text-primary" />
-          <h1 className="font-heading text-3xl font-bold text-foreground leading-tight">Library</h1>
+          <h1 className="font-heading text-2xl font-bold text-foreground">Library</h1>
         </div>
-        <p className="mt-2 text-[10px] uppercase tracking-[0.2em] font-semibold text-gold-foreground/70">
-          The Garden of Knowledge
-        </p>
+        <p className="mt-1 text-sm text-muted-foreground">Resources & past gatherings</p>
       </header>
 
       <main className="mx-auto max-w-2xl px-4 py-4">
