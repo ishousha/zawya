@@ -11,16 +11,20 @@ import { AlertTriangle, Check, Loader2, UserPlus, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useEventRsvpCounts } from "@/hooks/useRSVP";
 import { toast } from "sonner";
+import { capacityToastFromError } from "@/lib/rsvp-errors";
+import { useEffect } from "react";
 
 interface WalkInRsvpModalProps {
   eventId: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** Called with the projected extra attending seats while this modal is open. */
+  onProjectionChange?: (extraAttending: number | null) => void;
 }
 
 type AddMode = "walkin" | "rsvp" | "waitlist";
 
-export default function WalkInRsvpModal({ eventId, open, onOpenChange }: WalkInRsvpModalProps) {
+export default function WalkInRsvpModal({ eventId, open, onOpenChange, onProjectionChange }: WalkInRsvpModalProps) {
   const queryClient = useQueryClient();
 
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
