@@ -203,6 +203,9 @@ export default function ResourceManagement() {
   const [speakerIds, setSpeakerIds] = useState<string[]>([]);
   const [tags, setTags] = useState<string[]>([]);
   const [resourceDate, setResourceDate] = useState<string>("");
+  const [coverFile, setCoverFile] = useState<File | null>(null);
+  const [coverUrl, setCoverUrl] = useState<string | null>(null);
+  const [coverRemoved, setCoverRemoved] = useState(false);
 
   // ----- Admin list filter state -----
   const [search, setSearch] = useState("");
