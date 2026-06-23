@@ -90,6 +90,57 @@ export function useMyRSVP(eventId: string) {
   });
 }
 
+export interface CoverageRSVP {
+  id: string;
+  event_id: string;
+  user_id: string;
+  guests_count: number;
+  attending_dependents: any;
+  potluck_category: string | null;
+  specific_food_item: string | null;
+  qr_hash: string | null;
+  checked_in: boolean;
+  status: string;
+  is_waitlisted: boolean;
+  covering_user_name: string;
+}
+
+/** Returns the family RSVP that already includes the current user as an attendee, or null. */
+export function useMyEventCoverage(eventId: string) {
+  const { user } = useAuth();
+  return useQuery<CoverageRSVP | null>({
+    queryKey: ["my-coverage", eventId, user?.id],
+    enabled: !!user && !!eventId,
+    staleTime: 2 * 60 * 1000,
+    gcTime: 5 * 60 * 1000,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any).rpc("get_my_event_coverage", { _event_id: eventId });
+      if (error) throw error;
+      const row = Array.isArray(data) ? data[0] : data;
+      return (row ?? null) as CoverageRSVP | null;
+    },
+  });
+}
+
+export function useRemoveSelfFromFamilyRsvp(eventId: string) {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+  return useMutation({
+    mutationFn: async () => {
+      const { data, error } = await (supabase as any).rpc("remove_self_from_family_rsvp", { _event_id: eventId });
+      if (error) throw error;
+      if (data && data.success === false) throw new Error(data.error || "Failed to remove");
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["my-coverage", eventId, user?.id] });
+      queryClient.invalidateQueries({ queryKey: ["my-rsvp", eventId, user?.id] });
+      queryClient.invalidateQueries({ queryKey: ["rsvps", eventId] });
+      queryClient.invalidateQueries({ queryKey: ["rsvp-counts", eventId] });
+    },
+  });
+}
+
 export function usePotluckConfig(eventId: string) {
   return useQuery({
     queryKey: ["potluck-config", eventId],
