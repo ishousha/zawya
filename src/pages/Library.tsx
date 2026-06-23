@@ -405,6 +405,36 @@ export default function Library() {
     setSearch("");
   };
 
+  const hasActiveResourceFilters =
+    activeCategory !== "All" ||
+    filterType !== "all" ||
+    filterSpeaker !== "all" ||
+    filterDate !== "any" ||
+    debouncedSearch.trim().length > 0;
+
+  // Recently added (top 6 by date) — only when no filters
+  const recentResources = useMemo(() => {
+    if (!resources) return [] as Resource[];
+    return [...resources]
+      .sort(
+        (a, b) =>
+          new Date(b.resource_date ?? b.created_at).getTime() -
+          new Date(a.resource_date ?? a.created_at).getTime()
+      )
+      .slice(0, 6);
+  }, [resources]);
+
+  // Group filtered resources by category
+  const groupedByCategory = useMemo(() => {
+    const map = new Map<string, Resource[]>();
+    filtered.forEach((r) => {
+      const c = r.category || "General";
+      if (!map.has(c)) map.set(c, []);
+      map.get(c)!.push(r);
+    });
+    return Array.from(map.entries()).sort(([a], [b]) => a.localeCompare(b));
+  }, [filtered]);
+
   return (
     <div className="min-h-screen bg-background pb-24">
       <header className="border-b border-border bg-card px-4 pb-4 pt-6">
