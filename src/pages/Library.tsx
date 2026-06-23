@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import {
   Loader2, FileText, Download, BookOpen, Search, Video, Headphones,
   Link as LinkIcon, ExternalLink, CalendarDays, Mic, X, SlidersHorizontal, Share2,
-  PlayCircle, ListMusic,
+  PlayCircle, ListMusic, ChevronLeft, ChevronRight,
 } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { format } from "date-fns";
