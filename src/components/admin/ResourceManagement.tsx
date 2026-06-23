@@ -14,7 +14,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Loader2, Upload, Trash2, FileText, Plus, X, Tag, Video, Headphones,
-  Link as LinkIcon, Check, ChevronsUpDown, Pencil, Search, CalendarDays, Mic, Calendar as CalendarIcon, Share2
+  Link as LinkIcon, Check, ChevronsUpDown, Pencil, Search, CalendarDays, Mic, Calendar as CalendarIcon, Share2, ImageIcon
 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
