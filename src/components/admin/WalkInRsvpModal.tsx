@@ -90,18 +90,23 @@ export default function WalkInRsvpModal({ eventId, open, onOpenChange }: WalkInR
       const rsvpId = crypto.randomUUID();
       const qrHash = await generateQRHash(rsvpId);
       const totalGuests = adultsCount + childrenCount;
+      const isWaitlist = mode === "waitlist";
+      const autoCheckin = mode === "walkin";
 
       const { error } = await supabase.from("rsvps").insert({
         id: rsvpId,
         event_id: eventId,
         user_id: selectedUserId,
         guests_count: totalGuests,
-        checked_in: true,
+        checked_in: autoCheckin,
         qr_hash: qrHash,
+        status: isWaitlist ? ("waitlisted" as any) : ("attending" as any),
+        is_waitlisted: isWaitlist,
         attending_dependents: childrenCount > 0
           ? Array.from({ length: childrenCount }, (_, i) => ({
               name: `Child ${i + 1}`,
               type: "dependent",
+              age_group: "child_4_12",
               age: null,
             }))
           : null,
@@ -109,15 +114,22 @@ export default function WalkInRsvpModal({ eventId, open, onOpenChange }: WalkInR
       if (error) throw error;
     },
     onSuccess: () => {
-      toast.success(`Walk-in RSVP created for ${selectedUser?.name || "user"}`);
+      const label = mode === "walkin" ? "Walk-in" : mode === "waitlist" ? "Waitlist entry" : "RSVP";
+      toast.success(`${label} created for ${selectedUser?.name || "user"}`);
       queryClient.invalidateQueries({ queryKey: ["admin-rsvps", eventId] });
       queryClient.invalidateQueries({ queryKey: ["host-rsvps", eventId] });
       queryClient.invalidateQueries({ queryKey: ["existing-rsvp-users", eventId] });
+      queryClient.invalidateQueries({ queryKey: ["event-rsvp-counts", eventId] });
       resetForm();
       onOpenChange(false);
     },
     onError: (err) => {
-      toast.error("Failed to create walk-in RSVP: " + (err as Error).message);
+      const msg = (err as Error).message;
+      if (msg.includes("RSVP_DUPLICATE_COVERED") || msg.includes("RSVP_DUPLICATE_MEMBER")) {
+        toast.error("Family conflict", { description: msg.replace(/^.*?:\s*/, "") });
+      } else {
+        toast.error("Failed to add RSVP: " + msg);
+      }
     },
   });
 
@@ -125,6 +137,7 @@ export default function WalkInRsvpModal({ eventId, open, onOpenChange }: WalkInR
     setSelectedUserId(null);
     setAdultsCount(1);
     setChildrenCount(0);
+    setMode("walkin");
   };
 
   return (
