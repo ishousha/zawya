@@ -71,57 +71,34 @@ export default function FamilyInviteSection() {
     const familyLabel = `${lastName} Family`;
 
     try {
-      // 0. Re-check the latest profile in case the cached auth context is stale.
-      // Without this, a user who already has a family_id would hit the RLS
-      // INSERT policy on `families` and see a confusing error toast.
-      const { data: freshProfile, error: freshErr } = await supabase
-        .from("profiles")
-        .select("family_id")
-        .eq("id", user.id)
-        .single();
+      const { data, error } = await supabase.rpc("create_my_family", {
+        p_name: familyLabel,
+      });
 
-      if (freshErr) throw freshErr;
-
-      if (freshProfile?.family_id) {
-        toast.info("You're already in a family group. Refreshing…");
-        queryClient.invalidateQueries({ queryKey: ["my-family-name"] });
-        queryClient.invalidateQueries({ queryKey: ["family-members-list"] });
-        window.dispatchEvent(new Event("profile-updated"));
-        setCreating(false);
-        return;
+      if (error) {
+        // Friendly path: user already has a family group
+        if (
+          error.message?.includes("FAMILY_ALREADY_EXISTS") ||
+          (error as any).code === "23505"
+        ) {
+          toast.info("You're already in a family group. Refreshing…");
+          queryClient.invalidateQueries({ queryKey: ["my-family-name"] });
+          queryClient.invalidateQueries({ queryKey: ["family-members-list"] });
+          window.dispatchEvent(new Event("profile-updated"));
+          return;
+        }
+        throw error;
       }
 
-      // 1. Create the family row
-      const { data: newFamily, error: familyError } = await supabase
-        .from("families")
-        .insert({ name: familyLabel })
-        .select("id, name")
-        .single();
-
-      if (familyError || !newFamily) {
-        throw familyError || new Error("Failed to create family.");
-      }
-
-      // 2. Link current user to the new family
-      const { error: linkError } = await supabase
-        .from("profiles")
-        .update({ family_id: newFamily.id })
-        .eq("id", user.id);
-
-      if (linkError) {
-        // Rollback: delete the orphaned family
-        await supabase.from("families").delete().eq("id", newFamily.id);
-        throw linkError;
-      }
-
-      toast.success(`"${newFamily.name}" created!`);
+      const createdName = (data as any)?.name || familyLabel;
+      toast.success(`"${createdName}" created!`);
       queryClient.invalidateQueries({ queryKey: ["my-family-name"] });
       queryClient.invalidateQueries({ queryKey: ["family-members-list"] });
-      // Refresh profile in auth context
       window.dispatchEvent(new Event("profile-updated"));
     } catch (err: any) {
       console.error("Create family failed:", err);
-      toast.error(err?.message || "Failed to create family group.");
+      const msg = (err?.message || "").replace(/^FAMILY_ALREADY_EXISTS:\s*/i, "");
+      toast.error(msg || "Failed to create family group.");
     } finally {
       setCreating(false);
     }
