@@ -253,14 +253,17 @@ export default function WalkInRsvpModal({ eventId, open, onOpenChange }: WalkInR
           </div>
 
           <p className="text-xs text-muted-foreground">
-            Total headcount: {adultsCount + childrenCount} · Will be auto-checked-in
+            Total headcount: {adultsCount + childrenCount}
+            {mode === "walkin" && " · Will be auto-checked-in"}
+            {mode === "waitlist" && " · Will be added to the waitlist"}
+            {mode === "rsvp" && " · Confirmed RSVP, not checked in"}
           </p>
 
-          {isAtCapacity && (
+          {isAtCapacity && mode !== "waitlist" && (
             <div className="rounded-md border border-yellow-500/40 bg-yellow-50 dark:bg-yellow-950/20 px-3 py-2 text-xs text-yellow-900 dark:text-yellow-200 flex items-start gap-2">
               <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
               <span>
-                This event is at capacity ({attendingCount}/{capacity} spots). Adding a walk-in will exceed the limit.
+                Event is at capacity ({attendingCount}/{capacity}). Adding will exceed the limit.
               </span>
             </div>
           )}
@@ -275,8 +278,9 @@ export default function WalkInRsvpModal({ eventId, open, onOpenChange }: WalkInR
             ) : (
               <UserPlus className="h-4 w-4" />
             )}
-            Confirm Walk-In
+            {mode === "walkin" ? "Confirm Walk-In" : mode === "waitlist" ? "Add to Waitlist" : "Add RSVP"}
           </Button>
+
         </div>
       </DialogContent>
     </Dialog>
