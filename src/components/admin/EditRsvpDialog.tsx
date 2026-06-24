@@ -244,8 +244,12 @@ export default function EditRsvpDialog({ rsvp, eventTitle, open, onOpenChange, c
                     status: previous.status as any,
                     is_waitlisted: previous.is_waitlisted,
                     checked_in: previous.checked_in,
-                  })
+                    removed_by_admin: !!(previous as any).removed_by_admin,
+                    removed_by_admin_at: (previous as any).removed_by_admin ? new Date().toISOString() : null,
+                    removed_by_admin_actor: null,
+                  } as any)
                   .eq("id", rsvpId);
+
                 if (error) {
                   const cap = capacityToastFromError(error);
                   if (cap) {
