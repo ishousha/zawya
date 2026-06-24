@@ -1,36 +1,56 @@
-## Fix: "Create Family Group" RLS error
+# Fix Edit RSVP bugs (self double-counted, broken Status dropdown, unclear remove)
 
-### Root cause
-The current flow makes two separate client-side calls under user RLS:
-1. `INSERT INTO families` — gated by a policy that runs a subquery against `profiles` (`NOT EXISTS … profiles where id = auth.uid() AND family_id IS NOT NULL`).
-2. `UPDATE profiles SET family_id = …`.
+## Bug 1 — Member shown as their own "Family" dependent (party of 2 instead of 1)
 
-The INSERT policy's subquery is brittle: it depends on `profiles` SELECT RLS, on `auth.uid()` being readable, and on there being exactly one matching profile row. For this user the `families` row never gets created and the family link never lands, producing the visible "new row violates row-level security policy for table families" toast. The two-step approach is also non-atomic — if step 2 fails, an orphan family is left behind and the user is "stuck in a family group" they can't see.
+**Root cause:** When a member RSVPs for just themselves, `RSVPModal` writes an `attending_dependents` entry of `{ type: "family_member", id: <self.id>, name: <self.name> }`. The RSVP also has `guests_count = 1`. The list view shows `1` (correct, from `guests_count`), but `EditRsvpDialog` derives:
 
-### Fix — atomic SECURITY DEFINER RPC
+```
+adults = max(1, guests_count − attending_dependents.length) = max(1, 1 − 1) = 1
+deps   = attending_dependents                              = [self]
+total  = adults + deps.length = 2
+```
 
-Replace both client steps with one server-side function that runs as the table owner (bypasses RLS) but enforces the rules itself.
+So Mai appears once as the "adult" member and again as a Family dependent.
 
-**Migration:**
-- Create `public.create_my_family(p_name text) RETURNS families` — `SECURITY DEFINER`, `SET search_path = public`.
-  - Raises if `auth.uid() IS NULL`.
-  - Raises a friendly `EXCEPTION` if caller's profile already has `family_id` set.
-  - Inserts a row into `families` and updates `profiles.family_id` for `auth.uid()` in the same transaction.
-  - Returns the new family row.
-- `GRANT EXECUTE ON FUNCTION public.create_my_family(text) TO authenticated;`
-- Tighten the families INSERT policy so direct client inserts are no longer needed (drop "Authenticated users can create families"; admins keep their `FOR ALL` policy).
+**Fix (presentation-only, in `src/components/admin/EditRsvpDialog.tsx`):**
+- When seeding `deps` from `rsvp.attending_dependents`, filter out any `family_member` entry whose `id === rsvp.user_id` (the member themselves). Keep all other family members, dependents, and guests as-is.
+- Recompute `adults` against the filtered list so the math stays consistent (`adults = max(1, guests_count − filteredDeps.length)`).
+- The save path already rebuilds `cleanedDeps` from local state, so saving will also drop the spurious self entry and bring stored data back in line.
 
-**Client change — `src/components/profile/FamilyInviteSection.tsx`:**
-- Replace the body of `handleCreateFamily` with a single `supabase.rpc("create_my_family", { p_name: familyLabel })` call.
-- Keep the existing "already in a family" friendly toast by mapping the function's known error code/message.
-- Remove the manual rollback block (no longer needed — atomic).
+No DB migration, no change to `RSVPModal` (separate cleanup if you want to stop writing the self entry going forward — out of scope for this fix).
 
-### Out of scope
-- No changes to UPDATE/DELETE/SELECT policies on `families`.
-- No change to invite, leave, or rename flows.
-- No schema changes to `families` or `profiles`.
+## Bug 2 — Status dropdown doesn't open on mobile
 
-### Verification
-- As an authenticated user with `family_id = NULL`, clicking "Create Family Group" succeeds and the user is linked.
-- A second click shows the friendly "already in a family group" message instead of an RLS error.
-- Direct client `INSERT INTO families` from a non-admin is rejected (defense in depth).
+**Likely cause:** Radix `Select` inside the Radix `Dialog` on iOS can lose pointer events when the dialog content is the touch target ancestor; the trigger gets focus (green ring in screenshot) but the content portal never opens. This is a known interaction issue and the standard remedy is to render the Select content with explicit `position="popper"`, `sideOffset`, and a high `z-index`, and to avoid the dialog's pointer-events lock by passing `onOpenAutoFocus`/`modal` tweaks.
+
+**Fix (in `EditRsvpDialog.tsx` only):**
+- Add `position="popper"`, `sideOffset={4}`, and `className="z-[60]"` to the Status `<SelectContent>` (and to the dependent age-group `SelectContent` for consistency).
+- If the trigger still won't open after the popper change, fall back to `<Dialog modal={false}>` for this dialog — the dialog already has its own overlay/close affordances, so non-modal is acceptable here.
+
+I'll verify with Playwright at mobile viewport (420×749) after the change: open Edit RSVP, tap Status, confirm the options panel renders and selection updates state.
+
+## Bug 3 — How does an admin "kick out" an attendee?
+
+Two existing affordances already cover this — they just aren't obvious:
+1. The red **trash icon** in the RSVP row deletes the RSVP entirely (with an undo toast). That is the "remove from event" action.
+2. Inside Edit RSVP, the Status dropdown has **Cancelled** (becomes selectable once Bug 2 is fixed), which keeps the row for audit but frees the seat.
+
+**Fix (small UX clarification, no logic change):**
+- Tooltip/`title` on the trash icon: "Remove RSVP" (currently has no label).
+- In Edit RSVP, add a one-line helper under Status: "Set to *Cancelled* to free the seat without deleting the record, or use the trash icon in the list to remove it entirely."
+
+## Files touched
+
+- `src/components/admin/EditRsvpDialog.tsx` — filter self from incoming deps, popper props on `SelectContent`, helper text under Status.
+- `src/components/admin/EventRsvpDetail.tsx` — `title="Remove RSVP"` on the trash button.
+
+## Verification
+
+- Open Mai's Edit RSVP → Adults `1`, Dependents `0`, Total party size `1`, Capacity unchanged.
+- Tap Status on mobile (420×749) → dropdown opens, "Cancelled" selectable, Save applies.
+- Trash icon tooltip reads "Remove RSVP".
+
+## Out of scope
+
+- Backfilling existing RSVP rows that contain a self `family_member` entry (the edit-and-save flow self-heals when an admin or the member next saves).
+- Changing `RSVPModal` to stop writing the self entry on new RSVPs (separate cleanup — say the word and I'll add it).

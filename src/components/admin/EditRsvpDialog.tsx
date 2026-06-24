@@ -90,9 +90,14 @@ export default function EditRsvpDialog({ rsvp, eventTitle, open, onOpenChange, c
   useEffect(() => {
     if (!rsvp) return;
     const incoming = (rsvp.attending_dependents as EditDep[] | null) ?? [];
+    // Filter out the member themselves if they were stored as a "family_member" entry
+    // (RSVPModal writes a self-entry on solo RSVPs; we don't want them listed as a dependent).
+    const filtered = incoming.filter(
+      (d) => !(d.type === "family_member" && d.id === rsvp.user_id)
+    );
     const total = rsvp.guests_count ?? 1;
-    setDeps(incoming.map((d) => ({ ...d })));
-    setAdults(Math.max(1, total - incoming.length));
+    setDeps(filtered.map((d) => ({ ...d })));
+    setAdults(Math.max(1, total - filtered.length));
     const s = (rsvp.is_waitlisted ? "waitlisted" : (rsvp.status as any)) || "attending";
     setStatus(s === "waitlisted" || s === "cancelled" ? s : "attending");
     setCheckedIn(!!rsvp.checked_in);
