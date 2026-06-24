@@ -63,10 +63,28 @@ export default function HomeFeed() {
   const isAdminOrMod = profile?.role === "admin" || profile?.role === "moderator";
   const isMureed = (profile as any)?.is_mureed ?? false;
 
+  // Hide events the current user was removed from by an organizer
+  const { data: removedEventIds } = useQuery({
+    queryKey: ["my-removed-events", user?.id],
+    enabled: !!user?.id && !isAdminOrMod,
+    staleTime: 60_000,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("rsvps")
+        .select("event_id")
+        .eq("user_id", user!.id)
+        .eq("removed_by_admin", true);
+      if (error) throw error;
+      return new Set((data ?? []).map((r: any) => r.event_id as string));
+    },
+  });
+
   const visibleEvents = useMemo(() => events?.filter((e) => {
     if ((e as any).mureeds_only === true && !isMureed && !isAdminOrMod) return false;
+    if (removedEventIds && removedEventIds.has(e.id)) return false;
     return true;
-  }), [events, isMureed, isAdminOrMod]);
+  }), [events, isMureed, isAdminOrMod, removedEventIds]);
+
 
   const eventIds = useMemo(() => visibleEvents?.map((e) => e.id) ?? [], [visibleEvents]);
 
