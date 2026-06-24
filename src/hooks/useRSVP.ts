@@ -336,10 +336,15 @@ export function useRSVPConcurrency(eventId: string) {
       // Check for existing RSVP (including cancelled) — unique constraint is on (event_id, user_id)
       const { data: existing } = await supabase
         .from("rsvps")
-        .select("id")
+        .select("id, removed_by_admin")
         .eq("event_id", eventId)
         .eq("user_id", user.id)
         .maybeSingle();
+
+      if (existing && (existing as any).removed_by_admin) {
+        throw new Error("RSVP_ADMIN_REMOVED: An organizer has removed you from this event. Please contact them if this was a mistake.");
+      }
+
 
       let data: RSVP;
       if (existing) {
@@ -448,7 +453,11 @@ export function useRSVPConcurrency(eventId: string) {
         qr_hash: null,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
-      };
+        removed_by_admin: false,
+        removed_by_admin_at: null,
+        removed_by_admin_actor: null,
+      } as RSVP;
+
 
       queryClient.setQueryData<RSVP[]>(["rsvps", eventId], (old) => [...(old || []), optimisticRSVP]);
       queryClient.setQueryData<RSVP | null>(["my-rsvp", eventId, user?.id], optimisticRSVP);

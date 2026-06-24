@@ -451,7 +451,20 @@ export default function RSVPModal({ event, open, onOpenChange }: RSVPModalProps)
           );
         })()}
 
-        {isCovered ? (
+        {!isAdminOrMod && myRSVP && (myRSVP as any).removed_by_admin ? (
+          <div className="space-y-4 py-4">
+            <div className="rounded-md border border-destructive/40 bg-destructive/5 p-4 space-y-2 text-center">
+              <p className="text-sm font-medium text-destructive">
+                You've been removed from this event by an organizer.
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Please contact the organizer if you believe this was a mistake. You cannot RSVP again until they reinstate you.
+              </p>
+            </div>
+            <Button onClick={() => onOpenChange(false)} className="w-full">Close</Button>
+          </div>
+        ) : isCovered ? (
+
           <div className="space-y-4 py-4">
             <div className="rounded-md border border-primary/30 bg-primary/5 p-4 space-y-2 text-center">
               <p className="text-sm text-foreground">

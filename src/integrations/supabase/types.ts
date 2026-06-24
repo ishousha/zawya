@@ -1047,6 +1047,9 @@ export type Database = {
             | Database["public"]["Enums"]["potluck_category"]
             | null
           qr_hash: string | null
+          removed_by_admin: boolean
+          removed_by_admin_actor: string | null
+          removed_by_admin_at: string | null
           specific_food_item: string | null
           status: Database["public"]["Enums"]["rsvp_status"]
           updated_at: string
@@ -1064,6 +1067,9 @@ export type Database = {
             | Database["public"]["Enums"]["potluck_category"]
             | null
           qr_hash?: string | null
+          removed_by_admin?: boolean
+          removed_by_admin_actor?: string | null
+          removed_by_admin_at?: string | null
           specific_food_item?: string | null
           status?: Database["public"]["Enums"]["rsvp_status"]
           updated_at?: string
@@ -1081,6 +1087,9 @@ export type Database = {
             | Database["public"]["Enums"]["potluck_category"]
             | null
           qr_hash?: string | null
+          removed_by_admin?: boolean
+          removed_by_admin_actor?: string | null
+          removed_by_admin_at?: string | null
           specific_food_item?: string | null
           status?: Database["public"]["Enums"]["rsvp_status"]
           updated_at?: string
