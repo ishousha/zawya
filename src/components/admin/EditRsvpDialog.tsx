@@ -305,12 +305,15 @@ export default function EditRsvpDialog({ rsvp, eventTitle, open, onOpenChange, c
               <Label>Status</Label>
               <Select value={status} onValueChange={(v) => setStatus(v as any)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
+                <SelectContent position="popper" sideOffset={4} className="z-[60]">
                   {STATUS_OPTIONS.map((s) => (
                     <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
+              <p className="text-[11px] text-muted-foreground">
+                Set to <strong>Cancelled</strong> to free the seat without deleting the record, or use the trash icon in the list to remove it entirely.
+              </p>
             </div>
           </div>
 
