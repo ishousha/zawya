@@ -106,8 +106,9 @@ export default function EditRsvpDialog({ rsvp, eventTitle, open, onOpenChange, c
   }, [rsvp?.id, open]);
 
   const save = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (opts?: { remove?: boolean }) => {
       if (!rsvp) throw new Error("No RSVP");
+      const removeMode = !!opts?.remove;
       const cleanedDeps = deps.map((d) => ({
         name: d.name?.trim() || "Guest",
         type: d.type || "dependent",
@@ -116,8 +117,15 @@ export default function EditRsvpDialog({ rsvp, eventTitle, open, onOpenChange, c
         ...(d.id ? { id: d.id } : {}),
       }));
       const total = Math.max(1, adults + cleanedDeps.length);
-      const isWaitlist = status === "waitlisted";
-      const dbStatus = status === "cancelled" ? "cancelled" : isWaitlist ? "waitlisted" : "attending";
+      const effectiveStatus: "attending" | "waitlisted" | "cancelled" = removeMode ? "cancelled" : status;
+      const isWaitlist = effectiveStatus === "waitlisted";
+      const dbStatus = effectiveStatus === "cancelled" ? "cancelled" : isWaitlist ? "waitlisted" : "attending";
+
+      // Reinstating clears the removal flag; suspending sets it.
+      const wasRemoved = !!rsvp.removed_by_admin;
+      const reinstating = wasRemoved && effectiveStatus !== "cancelled";
+      const { data: userData } = await supabase.auth.getUser();
+      const actorId = userData.user?.id ?? null;
 
       // Snapshot previous state for undo
       const previous = {
@@ -126,26 +134,55 @@ export default function EditRsvpDialog({ rsvp, eventTitle, open, onOpenChange, c
         status: rsvp.status,
         is_waitlisted: !!rsvp.is_waitlisted,
         checked_in: !!rsvp.checked_in,
+        removed_by_admin: wasRemoved,
       };
+
+      const updatePayload: any = {
+        guests_count: total,
+        attending_dependents: cleanedDeps.length > 0 ? cleanedDeps : null,
+        status: dbStatus as any,
+        is_waitlisted: isWaitlist,
+        checked_in: effectiveStatus === "cancelled" ? false : checkedIn,
+      };
+      if (removeMode) {
+        updatePayload.removed_by_admin = true;
+        updatePayload.removed_by_admin_at = new Date().toISOString();
+        updatePayload.removed_by_admin_actor = actorId;
+      } else if (reinstating) {
+        updatePayload.removed_by_admin = false;
+        updatePayload.removed_by_admin_at = null;
+        updatePayload.removed_by_admin_actor = null;
+      }
 
       const { error } = await supabase
         .from("rsvps")
-        .update({
-          guests_count: total,
-          attending_dependents: cleanedDeps.length > 0 ? cleanedDeps : null,
-          status: dbStatus as any,
-          is_waitlisted: isWaitlist,
-          checked_in: status === "cancelled" ? false : checkedIn,
-        })
+        .update(updatePayload)
         .eq("id", rsvp.id);
       if (error) throw error;
 
-      const { data: userData } = await supabase.auth.getUser();
-      const actorId = userData.user?.id;
+      // Notify the member when removed or reinstated
+      if (removeMode) {
+        await supabase.from("notifications").insert({
+          user_id: rsvp.user_id,
+          title: "RSVP removed",
+          message: `An organizer removed your RSVP for "${eventTitle}". Please contact them if this was a mistake.`,
+          type: "rsvp",
+          metadata: { event_id: rsvp.event_id, rsvp_id: rsvp.id, action: "removed_by_admin" } as any,
+        });
+      } else if (reinstating) {
+        await supabase.from("notifications").insert({
+          user_id: rsvp.user_id,
+          title: "RSVP reinstated",
+          message: `An organizer reinstated your RSVP for "${eventTitle}".`,
+          type: "rsvp",
+          metadata: { event_id: rsvp.event_id, rsvp_id: rsvp.id, action: "reinstated_by_admin" } as any,
+        });
+      }
+
       if (actorId) {
         await supabase.from("admin_activity_log").insert({
           actor_id: actorId,
-          action: "rsvp_admin_edit",
+          action: removeMode ? "rsvp_admin_remove" : (reinstating ? "rsvp_admin_reinstate" : "rsvp_admin_edit"),
           target_user_id: rsvp.user_id,
           target_user_name: rsvp.profile?.name ?? null,
           target_user_email: rsvp.profile?.email ?? null,
@@ -156,13 +193,15 @@ export default function EditRsvpDialog({ rsvp, eventTitle, open, onOpenChange, c
             guests_count: total,
             status: dbStatus,
             is_waitlisted: isWaitlist,
-            checked_in: status === "cancelled" ? false : checkedIn,
+            checked_in: effectiveStatus === "cancelled" ? false : checkedIn,
+            removed_by_admin: removeMode ? true : (reinstating ? false : wasRemoved),
             previous,
           },
         });
       }
       return { previous };
     },
+
     onSuccess: (result) => {
       const evId = rsvp?.event_id;
       const rsvpId = rsvp?.id;
