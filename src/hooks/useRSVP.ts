@@ -448,7 +448,11 @@ export function useRSVPConcurrency(eventId: string) {
         qr_hash: null,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
-      };
+        removed_by_admin: false,
+        removed_by_admin_at: null,
+        removed_by_admin_actor: null,
+      } as RSVP;
+
 
       queryClient.setQueryData<RSVP[]>(["rsvps", eventId], (old) => [...(old || []), optimisticRSVP]);
       queryClient.setQueryData<RSVP | null>(["my-rsvp", eventId, user?.id], optimisticRSVP);
