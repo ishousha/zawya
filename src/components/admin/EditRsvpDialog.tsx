@@ -90,9 +90,14 @@ export default function EditRsvpDialog({ rsvp, eventTitle, open, onOpenChange, c
   useEffect(() => {
     if (!rsvp) return;
     const incoming = (rsvp.attending_dependents as EditDep[] | null) ?? [];
+    // Filter out the member themselves if they were stored as a "family_member" entry
+    // (RSVPModal writes a self-entry on solo RSVPs; we don't want them listed as a dependent).
+    const filtered = incoming.filter(
+      (d) => !(d.type === "family_member" && d.id === rsvp.user_id)
+    );
     const total = rsvp.guests_count ?? 1;
-    setDeps(incoming.map((d) => ({ ...d })));
-    setAdults(Math.max(1, total - incoming.length));
+    setDeps(filtered.map((d) => ({ ...d })));
+    setAdults(Math.max(1, total - filtered.length));
     const s = (rsvp.is_waitlisted ? "waitlisted" : (rsvp.status as any)) || "attending";
     setStatus(s === "waitlisted" || s === "cancelled" ? s : "attending");
     setCheckedIn(!!rsvp.checked_in);
@@ -300,12 +305,15 @@ export default function EditRsvpDialog({ rsvp, eventTitle, open, onOpenChange, c
               <Label>Status</Label>
               <Select value={status} onValueChange={(v) => setStatus(v as any)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
+                <SelectContent position="popper" sideOffset={4} className="z-[60]">
                   {STATUS_OPTIONS.map((s) => (
                     <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
+              <p className="text-[11px] text-muted-foreground">
+                Set to <strong>Cancelled</strong> to free the seat without deleting the record, or use the trash icon in the list to remove it entirely.
+              </p>
             </div>
           </div>
 
@@ -353,7 +361,7 @@ export default function EditRsvpDialog({ rsvp, eventTitle, open, onOpenChange, c
                         onValueChange={(v) => updateDep(i, { age_group: v as AgeGroupKey })}
                       >
                         <SelectTrigger className="h-8 w-[130px] text-xs"><SelectValue /></SelectTrigger>
-                        <SelectContent>
+                        <SelectContent position="popper" sideOffset={4} className="z-[60]">
                           {(Object.keys(AGE_GROUP_LABELS) as AgeGroupKey[]).map((k) => (
                             <SelectItem key={k} value={k} className="text-xs">
                               {AGE_GROUP_LABELS[k]}
