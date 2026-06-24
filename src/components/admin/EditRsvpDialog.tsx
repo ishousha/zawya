@@ -361,7 +361,7 @@ export default function EditRsvpDialog({ rsvp, eventTitle, open, onOpenChange, c
                         onValueChange={(v) => updateDep(i, { age_group: v as AgeGroupKey })}
                       >
                         <SelectTrigger className="h-8 w-[130px] text-xs"><SelectValue /></SelectTrigger>
-                        <SelectContent>
+                        <SelectContent position="popper" sideOffset={4} className="z-[60]">
                           {(Object.keys(AGE_GROUP_LABELS) as AgeGroupKey[]).map((k) => (
                             <SelectItem key={k} value={k} className="text-xs">
                               {AGE_GROUP_LABELS[k]}
