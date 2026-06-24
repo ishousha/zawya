@@ -465,34 +465,58 @@ export default function EditRsvpDialog({ rsvp, eventTitle, open, onOpenChange, c
         <div className="mt-2 rounded-md border border-destructive/30 bg-destructive/5 p-3">
           <div className="flex items-start justify-between gap-3">
             <div className="text-xs">
-              <p className="font-medium text-destructive">Remove from event</p>
+              <p className="font-medium text-destructive flex items-center gap-2">
+                Remove from event
+                {rsvp.removed_by_admin && (
+                  <Badge variant="destructive" className="text-[10px]">Already removed</Badge>
+                )}
+              </p>
               <p className="text-muted-foreground mt-0.5">
-                Cancels this RSVP, frees the seat, and removes the attendee from the event feed and door list. The record is kept for history; use the trash icon in the list to delete entirely.
+                They will see a removal notice, the ticket will disappear from their app, the event will be hidden from their home feed, and they cannot RSVP again until an organizer reinstates them. A 10-second Undo will appear after you confirm.
               </p>
             </div>
-            <Button
-              size="sm"
-              variant="destructive"
-              disabled={save.isPending || status === "cancelled"}
-              onClick={() => {
-                setStatus("cancelled");
-                setCheckedIn(false);
-                setTimeout(() => save.mutate(), 0);
-              }}
-              className="shrink-0"
-            >
-              {status === "cancelled" ? "Cancelled" : "Suspend / Kick out"}
-            </Button>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  disabled={save.isPending || !!rsvp.removed_by_admin}
+                  className="shrink-0"
+                >
+                  {rsvp.removed_by_admin ? "Removed" : "Suspend / Kick out"}
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Remove this person from the event?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    <strong>{rsvp.profile?.name || rsvp.profile?.email || "This member"}</strong> will be removed from <strong>{eventTitle}</strong>.
+                    Their seat is freed, their ticket disappears, and the event is hidden from their home feed.
+                    They cannot RSVP again unless an organizer reinstates them. You will have 10 seconds to Undo.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Keep RSVP</AlertDialogCancel>
+                  <AlertDialogAction
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    onClick={() => save.mutate({ remove: true })}
+                  >
+                    Yes, remove
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </div>
         </div>
 
         <DialogFooter className="gap-2">
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button onClick={() => save.mutate()} disabled={save.isPending || overCapacity}>
+          <Button onClick={() => save.mutate({})} disabled={save.isPending || overCapacity}>
             {save.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Save changes
+            {rsvp.removed_by_admin && status !== "cancelled" ? "Reinstate & save" : "Save changes"}
           </Button>
         </DialogFooter>
+
       </DialogContent>
     </Dialog>
   );
