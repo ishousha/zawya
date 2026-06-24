@@ -35,8 +35,10 @@ interface RsvpRow {
   status: string;
   is_waitlisted: boolean | null;
   checked_in: boolean | null;
+  removed_by_admin?: boolean | null;
   profile?: { name?: string | null; email?: string | null } | null;
 }
+
 
 interface EditDep {
   name: string;
