@@ -358,15 +358,17 @@ export default function EditRsvpDialog({ rsvp, eventTitle, open, onOpenChange, c
               <p className="text-[11px] text-muted-foreground">Includes the member.</p>
             </div>
             <div className="space-y-1.5">
-              <Label>Status</Label>
-              <Select value={status} onValueChange={(v) => setStatus(v as any)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent position="popper" sideOffset={4} className="z-[60]">
-                  {STATUS_OPTIONS.map((s) => (
-                    <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Label htmlFor="rsvp-status">Status</Label>
+              <select
+                id="rsvp-status"
+                value={status}
+                onChange={(e) => setStatus(e.target.value as any)}
+                className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {STATUS_OPTIONS.map((s) => (
+                  <option key={s.value} value={s.value}>{s.label}</option>
+                ))}
+              </select>
               <p className="text-[11px] text-muted-foreground">
                 Set to <strong>Cancelled</strong> to free the seat without deleting the record, or use the trash icon in the list to remove it entirely.
               </p>
