@@ -406,6 +406,30 @@ export default function EditRsvpDialog({ rsvp, eventTitle, open, onOpenChange, c
           )}
         </div>
 
+        <div className="mt-2 rounded-md border border-destructive/30 bg-destructive/5 p-3">
+          <div className="flex items-start justify-between gap-3">
+            <div className="text-xs">
+              <p className="font-medium text-destructive">Remove from event</p>
+              <p className="text-muted-foreground mt-0.5">
+                Cancels this RSVP, frees the seat, and removes the attendee from the event feed and door list. The record is kept for history; use the trash icon in the list to delete entirely.
+              </p>
+            </div>
+            <Button
+              size="sm"
+              variant="destructive"
+              disabled={save.isPending || status === "cancelled"}
+              onClick={() => {
+                setStatus("cancelled");
+                setCheckedIn(false);
+                setTimeout(() => save.mutate(), 0);
+              }}
+              className="shrink-0"
+            >
+              {status === "cancelled" ? "Cancelled" : "Suspend / Kick out"}
+            </Button>
+          </div>
+        </div>
+
         <DialogFooter className="gap-2">
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
           <Button onClick={() => save.mutate()} disabled={save.isPending || overCapacity}>
