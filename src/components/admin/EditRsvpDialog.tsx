@@ -480,10 +480,11 @@ export default function EditRsvpDialog({ rsvp, eventTitle, open, onOpenChange, c
                 <>
                   Capacity: <strong>{projectedTotal} / {capacity}</strong> after save
                   {overCapacity && (
-                    <> · over by <strong>{projectedTotal - capacity}</strong>. Reduce party size or move to Waitlist.</>
+                    <> · over by <strong>{projectedTotal - capacity}</strong>. Saving will expand capacity to <strong>{projectedTotal}</strong>.</>
                   )}
                 </>
               )}
+
             </div>
           )}
         </div>
