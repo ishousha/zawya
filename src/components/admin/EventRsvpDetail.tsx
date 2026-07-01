@@ -381,7 +381,15 @@ export default function EventRsvpDetail({ eventId, eventTitle, eventDate, checki
   });
 
   const promoteFromWaitlist = useMutation({
-    mutationFn: async (vars: { rsvpId: string; name: string; userId: string; email: string | null }) => {
+    mutationFn: async (vars: { rsvpId: string; name: string; userId: string; email: string | null; expand?: number }) => {
+      if (vars.expand && vars.expand > 0) {
+        const { error: expErr } = await supabase.rpc("admin_expand_event_capacity" as any, {
+          _event_id: eventId,
+          _extra_seats: vars.expand,
+          _kind: "attending",
+        });
+        if (expErr) throw expErr;
+      }
       const { data: snap } = await supabase
         .from("rsvps")
         .select("status, is_waitlisted")
@@ -401,11 +409,12 @@ export default function EventRsvpDetail({ eventId, eventTitle, eventDate, checki
           target_user_id: vars.userId,
           target_user_name: vars.name,
           target_user_email: vars.email,
-          details: { event_id: eventId, event_title: eventTitle, rsvp_id: vars.rsvpId, previous: snap ?? null },
+          details: { event_id: eventId, event_title: eventTitle, rsvp_id: vars.rsvpId, previous: snap ?? null, expanded_by: vars.expand ?? 0 },
         });
       }
       return { snap };
     },
+
     onSuccess: ({ snap }, vars) => {
       invalidateRsvpQueries();
       if (snap) {
