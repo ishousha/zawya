@@ -11,7 +11,7 @@ import { AlertTriangle, Check, Loader2, UserPlus, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useEventRsvpCounts } from "@/hooks/useRSVP";
 import { toast } from "sonner";
-import { capacityToastFromError } from "@/lib/rsvp-errors";
+import { capacityToastFromError, parseCapacityError } from "@/lib/rsvp-errors";
 import { useEffect } from "react";
 
 type AddMode = "walkin" | "rsvp" | "waitlist";
