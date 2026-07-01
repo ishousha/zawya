@@ -1141,6 +1141,7 @@ export default function EventRsvpDetail({ eventId, eventTitle, eventDate, checki
         eventId={eventId}
         open={showWalkIn}
         onOpenChange={setShowWalkIn}
+        initialMode={walkInMode}
         onProjectionChange={(extra) =>
           setPreviewAttending(extra == null ? null : attendingHeadcount + extra)
         }
