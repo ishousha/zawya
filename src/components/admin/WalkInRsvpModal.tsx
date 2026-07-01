@@ -94,9 +94,25 @@ export default function WalkInRsvpModal({ eventId, open, onOpenChange, onProject
 
   const selectedUser = approvedUsers?.find((u) => u.id === selectedUserId);
 
+  // Compute prospective overflow so we can expand capacity in one shot.
+  const prospectiveTotal = adultsCount + childrenCount;
+  const overflow = mode !== "waitlist" && capacity != null
+    ? Math.max(0, (attendingCount + prospectiveTotal) - capacity)
+    : 0;
+
   const walkInMutation = useMutation({
     mutationFn: async () => {
       if (!selectedUserId) throw new Error("No user selected");
+
+      // If admin is force-adding beyond capacity, expand the event first.
+      if (overflow > 0) {
+        const { error: expErr } = await supabase.rpc("admin_expand_event_capacity" as any, {
+          _event_id: eventId,
+          _extra_seats: overflow,
+          _kind: "attending",
+        });
+        if (expErr) throw expErr;
+      }
 
       const rsvpId = crypto.randomUUID();
       const qrHash = await generateQRHash(rsvpId);
@@ -123,7 +139,9 @@ export default function WalkInRsvpModal({ eventId, open, onOpenChange, onProject
           : null,
       });
       if (error) throw error;
+      return { expandedBy: overflow };
     },
+
     onSuccess: () => {
       const label = mode === "walkin" ? "Walk-in" : mode === "waitlist" ? "Waitlist entry" : "RSVP";
       toast.success(`${label} created for ${selectedUser?.name || "user"}`);
