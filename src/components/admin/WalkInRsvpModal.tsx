@@ -142,16 +142,21 @@ export default function WalkInRsvpModal({ eventId, open, onOpenChange, onProject
       return { expandedBy: overflow };
     },
 
-    onSuccess: () => {
+    onSuccess: (result) => {
       const label = mode === "walkin" ? "Walk-in" : mode === "waitlist" ? "Waitlist entry" : "RSVP";
-      toast.success(`${label} created for ${selectedUser?.name || "user"}`);
+      const suffix = result?.expandedBy && result.expandedBy > 0
+        ? ` · Capacity expanded by ${result.expandedBy}`
+        : "";
+      toast.success(`${label} created for ${selectedUser?.name || "user"}${suffix}`);
       queryClient.invalidateQueries({ queryKey: ["admin-rsvps", eventId] });
       queryClient.invalidateQueries({ queryKey: ["host-rsvps", eventId] });
       queryClient.invalidateQueries({ queryKey: ["existing-rsvp-users", eventId] });
       queryClient.invalidateQueries({ queryKey: ["event-rsvp-counts", eventId] });
+      queryClient.invalidateQueries({ queryKey: ["event-capacity", eventId] });
       resetForm();
       onOpenChange(false);
     },
+
     onError: (err) => {
       const cap = capacityToastFromError(err);
       if (cap) {
