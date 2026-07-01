@@ -14,23 +14,30 @@ import { toast } from "sonner";
 import { capacityToastFromError } from "@/lib/rsvp-errors";
 import { useEffect } from "react";
 
+type AddMode = "walkin" | "rsvp" | "waitlist";
+
 interface WalkInRsvpModalProps {
   eventId: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   /** Called with the projected extra attending seats while this modal is open. */
   onProjectionChange?: (extraAttending: number | null) => void;
+  /** Which sub-mode to preselect when the dialog opens. */
+  initialMode?: AddMode;
 }
 
-type AddMode = "walkin" | "rsvp" | "waitlist";
-
-export default function WalkInRsvpModal({ eventId, open, onOpenChange, onProjectionChange }: WalkInRsvpModalProps) {
+export default function WalkInRsvpModal({ eventId, open, onOpenChange, onProjectionChange, initialMode = "walkin" }: WalkInRsvpModalProps) {
   const queryClient = useQueryClient();
 
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [adultsCount, setAdultsCount] = useState(1);
   const [childrenCount, setChildrenCount] = useState(0);
-  const [mode, setMode] = useState<AddMode>("walkin");
+  const [mode, setMode] = useState<AddMode>(initialMode);
+
+  // Preselect mode when dialog opens
+  useEffect(() => {
+    if (open) setMode(initialMode);
+  }, [open, initialMode]);
 
   const { data: approvedUsers, isLoading: loadingUsers } = useQuery({
     queryKey: ["approved-users-for-walkin"],
