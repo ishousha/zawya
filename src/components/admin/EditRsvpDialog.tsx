@@ -117,9 +117,20 @@ export default function EditRsvpDialog({ rsvp, eventTitle, open, onOpenChange, c
   }, [rsvp?.id, open]);
 
   const save = useMutation({
-    mutationFn: async (opts?: { remove?: boolean }) => {
+    mutationFn: async (opts?: { remove?: boolean; expand?: number }) => {
       if (!rsvp) throw new Error("No RSVP");
       const removeMode = !!opts?.remove;
+      const expandBy = opts?.expand ?? 0;
+
+      if (expandBy > 0) {
+        const { error: expErr } = await supabase.rpc("admin_expand_event_capacity" as any, {
+          _event_id: rsvp.event_id,
+          _extra_seats: expandBy,
+          _kind: "attending",
+        });
+        if (expErr) throw expErr;
+      }
+
       const cleanedDeps = deps.map((d) => ({
         name: d.name?.trim() || "Guest",
         type: d.type || "dependent",
