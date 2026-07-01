@@ -163,7 +163,7 @@ export default function WalkInRsvpModal({ eventId, open, onOpenChange, onProject
     setSelectedUserId(null);
     setAdultsCount(1);
     setChildrenCount(0);
-    setMode("walkin");
+    setMode(initialMode);
   };
 
   return (
