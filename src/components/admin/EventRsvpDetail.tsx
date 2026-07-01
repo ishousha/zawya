@@ -260,6 +260,9 @@ export default function EventRsvpDetail({ eventId, eventTitle, eventDate, checki
     queryClient.invalidateQueries({ queryKey: ["event-rsvp-counts", eventId] });
     queryClient.invalidateQueries({ queryKey: ["door-attendees", eventId] });
     queryClient.invalidateQueries({ queryKey: ["existing-rsvp-users", eventId] });
+    queryClient.invalidateQueries({ queryKey: ["event-capacity", eventId] });
+    queryClient.invalidateQueries({ queryKey: ["event-meta", eventId] });
+
   };
 
   const runUndoLastAction = async () => {
