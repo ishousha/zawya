@@ -1,26 +1,32 @@
-## Plan
+## Goal
+Right now the Waitlist is essentially invisible: the admin RSVP detail hides the section when it's empty, and the Host Dashboard Guest List doesn't separate or label waitlisted people. Fix both.
 
-1. **Fix the onboarding family creation path**
-   - Update `Onboarding.tsx` so “Create a Family Group”, “Continue as Individual”, and “Skip for now” use the existing secure backend function `create_my_family` instead of directly inserting into `families`.
-   - This matches the profile page’s working `FamilyInviteSection` behavior and avoids the row-level security error users are seeing.
+## Changes
 
-2. **Keep profile linking safe**
-   - Let the backend function create the family and link the current user’s profile in one trusted operation.
-   - Keep the existing behavior for users who already have a `family_id`: they can still update their family name.
+### 1. Admin: `src/components/admin/EventRsvpDetail.tsx`
+- Always render the **Waitlisted** section on the Guests tab, even when empty.
+  - Header shows `Waitlisted (N)`.
+  - Empty state: small muted line "No one on the waitlist."
+  - Add a shortcut button in the section header: **"Add to Waitlist"** that opens the existing `WalkInRsvpModal` pre-set to waitlist mode (the modal already supports Walk-In / RSVP / Waitlist).
+- Also surface the waitlist count in the header capacity chip so admins see `Remaining X / Y · Waitlist N` even when the collapsible list is empty.
 
-3. **Make errors user-friendly**
-   - Replace raw database-policy messages like `new row violates row-level security policy` with a simple message such as “We couldn’t create your family group. Please try again.”
-   - Preserve the existing “already in a family group” handling.
+### 2. Host Dashboard: `src/components/HostDashboard.tsx`
+- Confirm the `get_event_host_rsvps` RPC returns waitlisted rows (it currently does — waitlisted rows have `status='waitlisted'` or `is_waitlisted=true`). If any are filtered out, patch the RPC to include them (status ≠ 'cancelled').
+- Split the Guest List into two grouped subsections:
+  - **Attending (N)** — current list, unchanged visuals.
+  - **Waitlist (N)** — same row layout, tinted amber with a small "Waitlist" chip on each row, no check‑in circle.
+- Headcount tiles (Total / Adults / Elders / Kids / Arrived) continue to count **attending only**; waitlisted parties are excluded from those totals so hosts don't over-plan.
 
-4. **Verify the fix**
-   - Confirm the family RLS policy no longer blocks onboarding because direct client inserts are removed.
-   - Check the relevant onboarding flow logic for both “family group” and “individual” paths.
+### 3. Empty-state polish
+- If both attending and waitlist are empty, show the existing "No RSVPs yet." message once, not twice.
 
-## Technical details
+## Out of scope
+- No schema/RPC changes unless step 2 reveals waitlisted rows are being filtered by `get_event_host_rsvps` (in which case a small SECURITY DEFINER function update is needed to include `status='waitlisted'`).
+- No changes to member-facing views.
 
-- The current bug is caused by `Onboarding.tsx` doing:
-  - direct `families.insert(...)`
-  - then `profiles.update(...)`
-- The `families` table currently allows viewing/updating/deleting a user’s own family, but does **not** allow normal users to directly create a `families` row.
-- A secure `create_my_family(p_name)` backend function already exists and is executable; it inserts the family and links `profiles.family_id` server-side.
-- No database schema change should be needed unless verification finds the function itself misconfigured.
+## Technical notes
+- Filters already in place:
+  - `attending = rsvps.filter(r => r.status === 'attending' && !r.is_waitlisted)`
+  - `waitlisted = rsvps.filter(r => r.status === 'waitlisted' || r.is_waitlisted)`
+- `WalkInRsvpModal` accepts an initial mode prop — reuse it for the "Add to Waitlist" shortcut.
+- Keep all admin actions (promote, edit, remove) on waitlisted rows as they are today.
