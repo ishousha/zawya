@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/runtime-client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, Baby, UserRound, CheckCircle2 } from "lucide-react";
+import { Users, Baby, UserRound, CheckCircle2, Clock } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 
 interface HostDashboardProps {
@@ -33,12 +33,17 @@ export default function HostDashboard({ eventId, hideGuestList = false }: HostDa
 
   if (!rsvps) return null;
 
-  const totalElders = rsvps.reduce((sum, r) => {
+  // Split attending vs waitlisted so hosts see both, and counts stay accurate.
+  const isWaitlisted = (r: any) => r.status === "waitlisted" || r.is_waitlisted === true;
+  const attendingRsvps = rsvps.filter((r: any) => !isWaitlisted(r) && r.status !== "cancelled");
+  const waitlistedRsvps = rsvps.filter((r: any) => isWaitlisted(r));
+
+  const totalElders = attendingRsvps.reduce((sum, r) => {
     const deps = (r.attending_dependents as any[]) || [];
     return sum + deps.filter((d) => d.type === "dependent" && d.dependent_type === "elder").length;
   }, 0);
 
-  const totalRegularAdults = rsvps.reduce((sum, r) => {
+  const totalRegularAdults = attendingRsvps.reduce((sum, r) => {
     const deps = (r.attending_dependents as any[]) || [];
     const childDeps = deps.filter((d) => d.type === "dependent" && d.dependent_type !== "elder").length;
     const elderDeps = deps.filter((d) => d.type === "dependent" && d.dependent_type === "elder").length;
@@ -47,16 +52,16 @@ export default function HostDashboard({ eventId, hideGuestList = false }: HostDa
 
   const totalAdults = totalRegularAdults + totalElders;
 
-  const totalChildren = rsvps.reduce((sum, r) => {
+  const totalChildren = attendingRsvps.reduce((sum, r) => {
     const deps = (r.attending_dependents as any[]) || [];
     return sum + deps.filter((d) => d.type === "dependent" && d.dependent_type !== "elder").length;
   }, 0);
 
   const totalHeadcount = totalAdults + totalChildren;
 
-  const checkedInCount = rsvps.filter((r) => r.checked_in).length;
+  const checkedInCount = attendingRsvps.filter((r) => r.checked_in).length;
 
-  const guestList = rsvps.map((r) => {
+  const buildRow = (r: any) => {
     const profile = r.profiles as any;
     const deps = (r.attending_dependents as any[]) || [];
     const childDeps = deps.filter((d) => d.type === "dependent" && d.dependent_type !== "elder");
@@ -69,7 +74,10 @@ export default function HostDashboard({ eventId, hideGuestList = false }: HostDa
       elders: elderDeps.map((d: any) => d.name),
       checkedIn: r.checked_in,
     };
-  });
+  };
+
+  const attendingList = attendingRsvps.map(buildRow);
+  const waitlistedList = waitlistedRsvps.map(buildRow);
 
   return (
     <Card className="border-primary/30 bg-primary/5">
@@ -80,7 +88,7 @@ export default function HostDashboard({ eventId, hideGuestList = false }: HostDa
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Headcount summary */}
+        {/* Headcount summary (attending only) */}
         <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
           <div className="rounded-lg border border-border bg-card p-3 text-center">
             <p className="text-2xl font-bold text-foreground">{totalHeadcount}</p>
@@ -114,14 +122,18 @@ export default function HostDashboard({ eventId, hideGuestList = false }: HostDa
           <>
             <Separator />
 
-            {/* Guest list */}
+            {/* Attending */}
             <div>
-              <h4 className="text-sm font-semibold text-foreground mb-2">Guest List</h4>
-              {guestList.length === 0 ? (
+              <h4 className="text-sm font-semibold text-foreground mb-2">
+                Attending ({attendingList.length})
+              </h4>
+              {attendingList.length === 0 && waitlistedList.length === 0 ? (
                 <p className="text-sm text-muted-foreground italic">No RSVPs yet.</p>
+              ) : attendingList.length === 0 ? (
+                <p className="text-sm text-muted-foreground italic">No confirmed attendees yet.</p>
               ) : (
                 <ul className="space-y-1.5">
-                  {guestList.map((g, i) => (
+                  {attendingList.map((g, i) => (
                     <li key={i} className="text-sm text-foreground flex items-start gap-2">
                       {g.checkedIn ? (
                         <CheckCircle2 className="h-4 w-4 text-emerald-600 mt-0.5 shrink-0" />
@@ -143,6 +155,35 @@ export default function HostDashboard({ eventId, hideGuestList = false }: HostDa
                 </ul>
               )}
             </div>
+
+            {/* Waitlist */}
+            {waitlistedList.length > 0 && (
+              <div className="rounded-md border border-amber-200 bg-amber-50/60 p-3">
+                <h4 className="text-sm font-semibold text-amber-800 mb-2 flex items-center gap-1.5">
+                  <Clock className="h-4 w-4" />
+                  Waitlist ({waitlistedList.length})
+                </h4>
+                <ul className="space-y-1.5">
+                  {waitlistedList.map((g, i) => (
+                    <li key={i} className="text-sm text-foreground flex items-start gap-2">
+                      <span className="text-amber-500 mt-0.5 shrink-0">•</span>
+                      <div>
+                        <span className="font-medium">{g.name}</span>
+                        <span className="ml-1.5 inline-flex items-center rounded-full border border-amber-300 bg-amber-100 px-1.5 py-0 text-[10px] font-medium text-amber-800">
+                          Waitlist
+                        </span>
+                        {g.family && <span className="text-muted-foreground"> — {g.family}</span>}
+                        <span className="text-muted-foreground text-xs ml-1">
+                          ({g.adultsCount} adult{g.adultsCount !== 1 ? "s" : ""}
+                          {g.children.length > 0 && `, ${g.children.length} kid${g.children.length !== 1 ? "s" : ""}`}
+                          {g.elders.length > 0 && `, ${g.elders.length} elder${g.elders.length !== 1 ? "s" : ""}`})
+                        </span>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </>
         )}
       </CardContent>
