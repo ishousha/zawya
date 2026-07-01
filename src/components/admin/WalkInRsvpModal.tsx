@@ -104,42 +104,64 @@ export default function WalkInRsvpModal({ eventId, open, onOpenChange, onProject
     mutationFn: async () => {
       if (!selectedUserId) throw new Error("No user selected");
 
-      // If admin is force-adding beyond capacity, expand the event first.
-      if (overflow > 0) {
-        const { error: expErr } = await supabase.rpc("admin_expand_event_capacity" as any, {
-          _event_id: eventId,
-          _extra_seats: overflow,
-          _kind: "attending",
-        });
-        if (expErr) throw expErr;
-      }
-
-      const rsvpId = crypto.randomUUID();
-      const qrHash = await generateQRHash(rsvpId);
-      const totalGuests = adultsCount + childrenCount;
       const isWaitlist = mode === "waitlist";
       const autoCheckin = mode === "walkin";
+      const totalGuests = adultsCount + childrenCount;
 
-      const { error } = await supabase.from("rsvps").insert({
-        id: rsvpId,
-        event_id: eventId,
-        user_id: selectedUserId,
-        guests_count: totalGuests,
-        checked_in: autoCheckin,
-        qr_hash: qrHash,
-        status: isWaitlist ? ("waitlisted" as any) : ("attending" as any),
-        is_waitlisted: isWaitlist,
-        attending_dependents: childrenCount > 0
-          ? Array.from({ length: childrenCount }, (_, i) => ({
-              name: `Child ${i + 1}`,
-              type: "dependent",
-              age_group: "child_4_12",
-              age: null,
-            }))
-          : null,
-      });
-      if (error) throw error;
-      return { expandedBy: overflow };
+      const doExpand = async (extra: number) => {
+        if (extra <= 0) return;
+        const { error: expErr } = await supabase.rpc("admin_expand_event_capacity" as any, {
+          _event_id: eventId,
+          _extra_seats: extra,
+          _kind: isWaitlist ? "waitlist" : "attending",
+        });
+        if (expErr) throw expErr;
+      };
+
+      const doInsert = async () => {
+        const rsvpId = crypto.randomUUID();
+        const qrHash = await generateQRHash(rsvpId);
+        const { error } = await supabase.from("rsvps").insert({
+          id: rsvpId,
+          event_id: eventId,
+          user_id: selectedUserId,
+          guests_count: totalGuests,
+          checked_in: autoCheckin,
+          qr_hash: qrHash,
+          status: isWaitlist ? ("waitlisted" as any) : ("attending" as any),
+          is_waitlisted: isWaitlist,
+          attending_dependents: childrenCount > 0
+            ? Array.from({ length: childrenCount }, (_, i) => ({
+                name: `Child ${i + 1}`,
+                type: "dependent",
+                age_group: "child_4_12",
+                age: null,
+              }))
+            : null,
+        });
+        if (error) throw error;
+      };
+
+      // Pre-flight expansion if we can already detect overflow client-side.
+      let expandedBy = 0;
+      if (!isWaitlist && overflow > 0) {
+        await doExpand(overflow);
+        expandedBy += overflow;
+      }
+
+      try {
+        await doInsert();
+      } catch (err) {
+        // Self-heal on capacity errors: expand by the exact shortfall and retry once.
+        const info = parseCapacityError((err as Error)?.message);
+        if (!info || Number.isNaN(info.attempted)) throw err;
+        const shortfall = Math.max(1, info.attempted - info.remaining);
+        await doExpand(shortfall);
+        expandedBy += shortfall;
+        await doInsert();
+      }
+
+      return { expandedBy };
     },
 
     onSuccess: (result) => {
@@ -151,6 +173,7 @@ export default function WalkInRsvpModal({ eventId, open, onOpenChange, onProject
       queryClient.invalidateQueries({ queryKey: ["admin-rsvps", eventId] });
       queryClient.invalidateQueries({ queryKey: ["host-rsvps", eventId] });
       queryClient.invalidateQueries({ queryKey: ["existing-rsvp-users", eventId] });
+      queryClient.invalidateQueries({ queryKey: ["rsvp-counts", eventId] });
       queryClient.invalidateQueries({ queryKey: ["event-rsvp-counts", eventId] });
       queryClient.invalidateQueries({ queryKey: ["event-capacity", eventId] });
       resetForm();
@@ -171,6 +194,7 @@ export default function WalkInRsvpModal({ eventId, open, onOpenChange, onProject
       }
     },
   });
+
 
   // Live projection: while the modal is open and the chosen mode would
   // consume capacity, report the prospective added headcount.
