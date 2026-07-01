@@ -244,7 +244,7 @@ export default function EditRsvpDialog({ rsvp, eventTitle, open, onOpenChange, c
       const previous = result?.previous;
       queryClient.invalidateQueries({ queryKey: ["admin-rsvps", evId] });
       queryClient.invalidateQueries({ queryKey: ["host-rsvps", evId] });
-      queryClient.invalidateQueries({ queryKey: ["event-rsvp-counts", evId] });
+      queryClient.invalidateQueries({ queryKey: ["rsvp-counts", evId] });
       queryClient.invalidateQueries({ queryKey: ["door-attendees", evId] });
       queryClient.invalidateQueries({ queryKey: ["existing-rsvp-users", evId] });
       queryClient.invalidateQueries({ queryKey: ["event-capacity", evId] });
@@ -252,7 +252,7 @@ export default function EditRsvpDialog({ rsvp, eventTitle, open, onOpenChange, c
       const invalidate = () => {
         queryClient.invalidateQueries({ queryKey: ["admin-rsvps", evId] });
         queryClient.invalidateQueries({ queryKey: ["host-rsvps", evId] });
-        queryClient.invalidateQueries({ queryKey: ["event-rsvp-counts", evId] });
+        queryClient.invalidateQueries({ queryKey: ["rsvp-counts", evId] });
         queryClient.invalidateQueries({ queryKey: ["door-attendees", evId] });
         queryClient.invalidateQueries({ queryKey: ["existing-rsvp-users", evId] });
       };

@@ -174,7 +174,7 @@ export default function WalkInRsvpModal({ eventId, open, onOpenChange, onProject
       queryClient.invalidateQueries({ queryKey: ["host-rsvps", eventId] });
       queryClient.invalidateQueries({ queryKey: ["existing-rsvp-users", eventId] });
       queryClient.invalidateQueries({ queryKey: ["rsvp-counts", eventId] });
-      queryClient.invalidateQueries({ queryKey: ["event-rsvp-counts", eventId] });
+      queryClient.invalidateQueries({ queryKey: ["rsvp-counts", eventId] });
       queryClient.invalidateQueries({ queryKey: ["event-capacity", eventId] });
       resetForm();
       onOpenChange(false);
