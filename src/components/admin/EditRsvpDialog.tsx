@@ -303,9 +303,19 @@ export default function EditRsvpDialog({ rsvp, eventTitle, open, onOpenChange, c
       onOpenChange(false);
     },
     onError: (err: any) => {
-      const cap = capacityToastFromError(err);
-      if (cap) {
-        toast.error(cap.title, { description: cap.description });
+      const info = parseCapacityError(err?.message);
+      if (info) {
+        const need = Number.isFinite(info.attempted) && Number.isFinite(info.remaining)
+          ? Math.max(1, info.attempted - info.remaining)
+          : 1;
+        toast.error("Over capacity", {
+          description: `Tried to add ${info.attempted} seat(s). Only ${info.remaining} left.`,
+          duration: 12000,
+          action: {
+            label: `Expand +${need} & retry`,
+            onClick: () => save.mutate({ expand: need }),
+          },
+        });
         return;
       }
       const msg = String(err?.message || "Failed to update RSVP");
@@ -315,6 +325,7 @@ export default function EditRsvpDialog({ rsvp, eventTitle, open, onOpenChange, c
         toast.error(msg);
       }
     },
+
   });
 
   // Capacity projection
