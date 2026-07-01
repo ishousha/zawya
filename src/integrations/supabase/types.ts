@@ -1218,6 +1218,13 @@ export type Database = {
     }
     Functions: {
       accept_family_invite: { Args: { _token: string }; Returns: Json }
+      admin_expand_event_capacity: {
+        Args: { _event_id: string; _extra_seats: number; _kind?: string }
+        Returns: {
+          new_capacity: number
+          new_waitlist_capacity: number
+        }[]
+      }
       create_my_family: {
         Args: { p_name: string }
         Returns: {

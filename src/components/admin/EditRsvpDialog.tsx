@@ -35,7 +35,7 @@ import {
 import { Loader2, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { AGE_GROUP_LABELS, type AgeGroupKey } from "@/lib/age-group-labels";
-import { capacityToastFromError } from "@/lib/rsvp-errors";
+import { capacityToastFromError, parseCapacityError } from "@/lib/rsvp-errors";
 
 interface RsvpRow {
   id: string;
@@ -117,9 +117,20 @@ export default function EditRsvpDialog({ rsvp, eventTitle, open, onOpenChange, c
   }, [rsvp?.id, open]);
 
   const save = useMutation({
-    mutationFn: async (opts?: { remove?: boolean }) => {
+    mutationFn: async (opts?: { remove?: boolean; expand?: number }) => {
       if (!rsvp) throw new Error("No RSVP");
       const removeMode = !!opts?.remove;
+      const expandBy = opts?.expand ?? 0;
+
+      if (expandBy > 0) {
+        const { error: expErr } = await supabase.rpc("admin_expand_event_capacity" as any, {
+          _event_id: rsvp.event_id,
+          _extra_seats: expandBy,
+          _kind: "attending",
+        });
+        if (expErr) throw expErr;
+      }
+
       const cleanedDeps = deps.map((d) => ({
         name: d.name?.trim() || "Guest",
         type: d.type || "dependent",
@@ -222,6 +233,8 @@ export default function EditRsvpDialog({ rsvp, eventTitle, open, onOpenChange, c
       queryClient.invalidateQueries({ queryKey: ["event-rsvp-counts", evId] });
       queryClient.invalidateQueries({ queryKey: ["door-attendees", evId] });
       queryClient.invalidateQueries({ queryKey: ["existing-rsvp-users", evId] });
+      queryClient.invalidateQueries({ queryKey: ["event-capacity", evId] });
+
       const invalidate = () => {
         queryClient.invalidateQueries({ queryKey: ["admin-rsvps", evId] });
         queryClient.invalidateQueries({ queryKey: ["host-rsvps", evId] });
@@ -290,9 +303,19 @@ export default function EditRsvpDialog({ rsvp, eventTitle, open, onOpenChange, c
       onOpenChange(false);
     },
     onError: (err: any) => {
-      const cap = capacityToastFromError(err);
-      if (cap) {
-        toast.error(cap.title, { description: cap.description });
+      const info = parseCapacityError(err?.message);
+      if (info) {
+        const need = Number.isFinite(info.attempted) && Number.isFinite(info.remaining)
+          ? Math.max(1, info.attempted - info.remaining)
+          : 1;
+        toast.error("Over capacity", {
+          description: `Tried to add ${info.attempted} seat(s). Only ${info.remaining} left.`,
+          duration: 12000,
+          action: {
+            label: `Expand +${need} & retry`,
+            onClick: () => save.mutate({ expand: need }),
+          },
+        });
         return;
       }
       const msg = String(err?.message || "Failed to update RSVP");
@@ -302,6 +325,7 @@ export default function EditRsvpDialog({ rsvp, eventTitle, open, onOpenChange, c
         toast.error(msg);
       }
     },
+
   });
 
   // Capacity projection
@@ -456,10 +480,11 @@ export default function EditRsvpDialog({ rsvp, eventTitle, open, onOpenChange, c
                 <>
                   Capacity: <strong>{projectedTotal} / {capacity}</strong> after save
                   {overCapacity && (
-                    <> · over by <strong>{projectedTotal - capacity}</strong>. Reduce party size or move to Waitlist.</>
+                    <> · over by <strong>{projectedTotal - capacity}</strong>. Saving will expand capacity to <strong>{projectedTotal}</strong>.</>
                   )}
                 </>
               )}
+
             </div>
           )}
         </div>
@@ -513,10 +538,18 @@ export default function EditRsvpDialog({ rsvp, eventTitle, open, onOpenChange, c
 
         <DialogFooter className="gap-2">
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button onClick={() => save.mutate({})} disabled={save.isPending || overCapacity}>
+          <Button
+            onClick={() => save.mutate(overCapacity ? { expand: projectedTotal - (capacity ?? 0) } : {})}
+            disabled={save.isPending}
+          >
             {save.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {rsvp.removed_by_admin && status !== "cancelled" ? "Reinstate & save" : "Save changes"}
+            {overCapacity
+              ? `Save & expand +${projectedTotal - (capacity ?? 0)}`
+              : rsvp.removed_by_admin && status !== "cancelled"
+              ? "Reinstate & save"
+              : "Save changes"}
           </Button>
+
         </DialogFooter>
 
       </DialogContent>
