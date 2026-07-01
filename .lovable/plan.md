@@ -1,32 +1,34 @@
 ## Goal
-Right now the Waitlist is essentially invisible: the admin RSVP detail hides the section when it's empty, and the Host Dashboard Guest List doesn't separate or label waitlisted people. Fix both.
+Let admins force-add RSVPs/walk-ins/waitlist entries even when the event is full, and auto-expand event capacity (or waitlist capacity) to absorb the overflow so the counts stay consistent.
 
-## Changes
+## Behavior
+- When an admin uses **Add Attendee** (Walk-In, RSVP) or **Add to Waitlist** and the requested party would exceed capacity:
+  - Show a warning with an **"Add anyway (expand capacity)"** confirm button instead of blocking.
+  - On confirm, the server bumps `events.capacity` (or `waitlist_capacity` for the waitlist mode) by exactly the overflow amount, then inserts the RSVP.
+- Same override path is offered in **Edit RSVP** when increasing party size or promoting from waitlist would exceed capacity.
+- Non-admin RSVP flows are unchanged — capacity is still enforced for members.
+- Every override writes an `admin_activity_log` entry (`action: 'capacity_override'`, includes event_id, delta, new capacity, target user).
 
-### 1. Admin: `src/components/admin/EventRsvpDetail.tsx`
-- Always render the **Waitlisted** section on the Guests tab, even when empty.
-  - Header shows `Waitlisted (N)`.
-  - Empty state: small muted line "No one on the waitlist."
-  - Add a shortcut button in the section header: **"Add to Waitlist"** that opens the existing `WalkInRsvpModal` pre-set to waitlist mode (the modal already supports Walk-In / RSVP / Waitlist).
-- Also surface the waitlist count in the header capacity chip so admins see `Remaining X / Y · Waitlist N` even when the collapsible list is empty.
+## Technical Changes
 
-### 2. Host Dashboard: `src/components/HostDashboard.tsx`
-- Confirm the `get_event_host_rsvps` RPC returns waitlisted rows (it currently does — waitlisted rows have `status='waitlisted'` or `is_waitlisted=true`). If any are filtered out, patch the RPC to include them (status ≠ 'cancelled').
-- Split the Guest List into two grouped subsections:
-  - **Attending (N)** — current list, unchanged visuals.
-  - **Waitlist (N)** — same row layout, tinted amber with a small "Waitlist" chip on each row, no check‑in circle.
-- Headcount tiles (Total / Adults / Elders / Kids / Arrived) continue to count **attending only**; waitlisted parties are excluded from those totals so hosts don't over-plan.
+### Backend
+- New RPC `admin_force_rsvp(event_id, user_id, guests_count, mode, dependents)` — `SECURITY DEFINER`, admin-only via `has_role`. It:
+  1. Computes overflow vs. `capacity` (or `waitlist_capacity` when `mode='waitlist'`).
+  2. `UPDATE events SET capacity = capacity + overflow` (or waitlist_capacity) when overflow > 0.
+  3. Inserts the RSVP with correct `status` / `is_waitlisted` / `checked_in` (walkin auto check-in).
+  4. Inserts `admin_activity_log` row.
+- New RPC `admin_force_update_rsvp(rsvp_id, new_guests_count, new_status)` — same override + logging for edits/promotions.
+- Update `enforce_event_capacity_on_rsvp` trigger to skip enforcement when the current session is inside these RPCs (use a `pg_temp` flag set by the RPC), so the trigger still protects normal member paths.
 
-### 3. Empty-state polish
-- If both attending and waitlist are empty, show the existing "No RSVPs yet." message once, not twice.
+### Frontend
+- `WalkInRsvpModal`: when `isAtCapacity` (or waitlist full), replace the blocking warning with an explicit **"Add anyway — this will expand capacity by N"** confirm step, then call the new RPC instead of a direct insert.
+- `EditRsvpDialog`: on `RSVP_CAPACITY_EXCEEDED` error, surface an **"Override & expand capacity"** button that retries via the force-update RPC.
+- Toasts confirm the new capacity ("Capacity expanded to X").
 
-## Out of scope
-- No schema/RPC changes unless step 2 reveals waitlisted rows are being filtered by `get_event_host_rsvps` (in which case a small SECURITY DEFINER function update is needed to include `status='waitlisted'`).
-- No changes to member-facing views.
-
-## Technical notes
-- Filters already in place:
-  - `attending = rsvps.filter(r => r.status === 'attending' && !r.is_waitlisted)`
-  - `waitlisted = rsvps.filter(r => r.status === 'waitlisted' || r.is_waitlisted)`
-- `WalkInRsvpModal` accepts an initial mode prop — reuse it for the "Add to Waitlist" shortcut.
-- Keep all admin actions (promote, edit, remove) on waitlisted rows as they are today.
+### Files touched
+- `supabase/migrations/<new>_admin_force_rsvp.sql`
+- `src/components/admin/WalkInRsvpModal.tsx`
+- `src/components/admin/EditRsvpDialog.tsx`
+- `src/components/admin/EventRsvpDetail.tsx` (promote-from-waitlist path already surfaced here)
+- `src/lib/rsvp-errors.ts` (helper to detect capacity errors is already there — reused)
+- `public/version.json`
