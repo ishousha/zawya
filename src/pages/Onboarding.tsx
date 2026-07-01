@@ -179,24 +179,26 @@ export default function Onboarding() {
       return existingFamilyId;
     }
 
-    // Case 2: No family yet — create one and link
-    const familyId = crypto.randomUUID();
-    const { error: createError } = await supabase
-      .from("families")
-      .insert({ id: familyId, name });
+    // Case 2: No family yet — create and link atomically server-side.
+    // Direct client inserts into families are blocked by RLS.
+    const { data, error } = await supabase.rpc("create_my_family", {
+      p_name: name,
+    });
 
-    if (createError) {
-      toast.error(`Failed to create family: ${createError.message}`);
+    if (error) {
+      console.error("Family creation failed:", error);
+      toast.error(
+        error.message?.includes("FAMILY_ALREADY_EXISTS")
+          ? "You're already in a family group. Refreshing your profile..."
+          : "We couldn't create your family group. Please try again."
+      );
+      window.dispatchEvent(new Event("profile-updated"));
       return null;
     }
 
-    const { error: linkError } = await supabase
-      .from("profiles")
-      .update({ family_id: familyId })
-      .eq("id", user.id);
-
-    if (linkError) {
-      toast.error(`Failed to link profile to family: ${linkError.message}`);
+    const familyId = (data as any)?.id as string | undefined;
+    if (!familyId) {
+      toast.error("We couldn't create your family group. Please try again.");
       return null;
     }
 
