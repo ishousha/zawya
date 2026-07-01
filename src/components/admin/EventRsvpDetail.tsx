@@ -903,12 +903,24 @@ export default function EventRsvpDetail({ eventId, eventTitle, eventDate, checki
                   <ExternalGuestsSection eventId={eventId} />
 
 
-                  {/* Waitlisted */}
-                  {waitlisted.length > 0 && (
-                    <div>
-                      <p className="text-xs font-semibold text-amber-600 uppercase tracking-wider mb-2">
+                  {/* Waitlisted — always visible so admins can see the section and add to it */}
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-xs font-semibold text-amber-600 uppercase tracking-wider">
                         Waitlisted ({waitlisted.length})
                       </p>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 gap-1 text-xs border-amber-300 text-amber-700 hover:bg-amber-50"
+                        onClick={() => { setWalkInMode("waitlist"); setShowWalkIn(true); }}
+                      >
+                        <Plus className="h-3.5 w-3.5" /> Add to Waitlist
+                      </Button>
+                    </div>
+                    {waitlisted.length === 0 ? (
+                      <p className="text-xs text-muted-foreground italic">No one on the waitlist.</p>
+                    ) : (
                       <div className="overflow-x-auto -mx-4 px-4">
                         <Table>
                           <TableHeader>
@@ -967,8 +979,9 @@ export default function EventRsvpDetail({ eventId, eventTitle, eventDate, checki
                           </TableBody>
                         </Table>
                       </div>
-                    </div>
-                  )}
+                    )}
+                  </div>
+
 
                   {/* Guest Requests (collapsible, scoped to this event) */}
                   <GuestRequestsSection eventId={eventId} />
