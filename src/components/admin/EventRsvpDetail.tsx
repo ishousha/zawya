@@ -1282,9 +1282,9 @@ export default function EventRsvpDetail({ eventId, eventTitle, eventDate, checki
                   const after = attendingHeadcount + promoteTarget.guestsCount;
                   const over = after > capacity;
                   return (
-                    <p className={over ? "text-destructive font-medium" : "text-muted-foreground"}>
+                    <p className={over ? "text-amber-700 font-medium" : "text-muted-foreground"}>
                       Capacity after promotion: {after} / {capacity}
-                      {over && ` — over by ${after - capacity}. This will be blocked.`}
+                      {over && ` — over by ${after - capacity}. Capacity will be expanded to ${after}.`}
                     </p>
                   );
                 })()}
@@ -1294,19 +1294,22 @@ export default function EventRsvpDetail({ eventId, eventTitle, eventDate, checki
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              disabled={
-                !!(capacity != null && promoteTarget && attendingHeadcount + promoteTarget.guestsCount > capacity)
-              }
               onClick={() => {
                 if (promoteTarget) {
                   const { guestsCount, ...vars } = promoteTarget;
-                  promoteFromWaitlist.mutate(vars);
+                  const overflow = capacity != null
+                    ? Math.max(0, attendingHeadcount + guestsCount - capacity)
+                    : 0;
+                  promoteFromWaitlist.mutate({ ...vars, expand: overflow });
                   setPromoteTarget(null);
                 }
               }}
             >
-              Move to Attending
+              {capacity != null && promoteTarget && attendingHeadcount + promoteTarget.guestsCount > capacity
+                ? `Move & expand +${attendingHeadcount + promoteTarget.guestsCount - capacity}`
+                : "Move to Attending"}
             </AlertDialogAction>
+
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
