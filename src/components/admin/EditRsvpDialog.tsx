@@ -35,7 +35,7 @@ import {
 import { Loader2, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { AGE_GROUP_LABELS, type AgeGroupKey } from "@/lib/age-group-labels";
-import { capacityToastFromError } from "@/lib/rsvp-errors";
+import { capacityToastFromError, parseCapacityError } from "@/lib/rsvp-errors";
 
 interface RsvpRow {
   id: string;
