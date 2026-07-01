@@ -127,7 +127,7 @@ export default function EventControlRoom() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("events")
-        .select(`${EVENT_PUBLIC_COLUMNS}, rsvps(id, status), host:host_id(name)` as "*, rsvps(id, status), host:host_id(name)")
+        .select(`${EVENT_PUBLIC_COLUMNS}, rsvps(id, status, guests_count, user_id), host:host_id(name)` as "*, rsvps(id, status, guests_count, user_id), host:host_id(name)")
         .order("date_time", { ascending: true })
         .limit(500);
       if (error) throw error;
@@ -136,7 +136,9 @@ export default function EventControlRoom() {
   });
 
   const getRsvpCount = (event: any) => {
-    return event.rsvps?.filter((r: any) => r.status === "attending").length ?? 0;
+    return (event.rsvps ?? [])
+      .filter((r: any) => r.status === "attending" && r.user_id !== event.host_id)
+      .reduce((sum: number, r: any) => sum + (r.guests_count ?? 1), 0);
   };
 
   const { data: allGuestRequests } = useQuery({
