@@ -731,7 +731,7 @@ export default function EventRsvpDetail({ eventId, eventTitle, eventDate, checki
               </Button>
             </div>
             <div className="flex flex-wrap items-center gap-1.5">
-              <Button size="sm" variant="default" className="h-8 gap-1.5 text-xs" onClick={() => setShowWalkIn(true)}>
+              <Button size="sm" variant="default" className="h-8 gap-1.5 text-xs" onClick={() => { setWalkInMode("walkin"); setShowWalkIn(true); }}>
                 <UserPlus className="h-3.5 w-3.5" /> Add Attendee
               </Button>
               <Button size="sm" variant="outline" className="h-8 gap-1.5 text-xs" onClick={() => setShowAddGuest(true)}>
