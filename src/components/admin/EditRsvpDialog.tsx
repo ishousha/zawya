@@ -538,10 +538,18 @@ export default function EditRsvpDialog({ rsvp, eventTitle, open, onOpenChange, c
 
         <DialogFooter className="gap-2">
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button onClick={() => save.mutate({})} disabled={save.isPending || overCapacity}>
+          <Button
+            onClick={() => save.mutate(overCapacity ? { expand: projectedTotal - (capacity ?? 0) } : {})}
+            disabled={save.isPending}
+          >
             {save.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {rsvp.removed_by_admin && status !== "cancelled" ? "Reinstate & save" : "Save changes"}
+            {overCapacity
+              ? `Save & expand +${projectedTotal - (capacity ?? 0)}`
+              : rsvp.removed_by_admin && status !== "cancelled"
+              ? "Reinstate & save"
+              : "Save changes"}
           </Button>
+
         </DialogFooter>
 
       </DialogContent>
