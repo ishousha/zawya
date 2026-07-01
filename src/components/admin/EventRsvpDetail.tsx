@@ -257,7 +257,7 @@ export default function EventRsvpDetail({ eventId, eventTitle, eventDate, checki
   const invalidateRsvpQueries = () => {
     queryClient.invalidateQueries({ queryKey: ["admin-rsvps", eventId] });
     queryClient.invalidateQueries({ queryKey: ["host-rsvps", eventId] });
-    queryClient.invalidateQueries({ queryKey: ["event-rsvp-counts", eventId] });
+    queryClient.invalidateQueries({ queryKey: ["rsvp-counts", eventId] });
     queryClient.invalidateQueries({ queryKey: ["door-attendees", eventId] });
     queryClient.invalidateQueries({ queryKey: ["existing-rsvp-users", eventId] });
     queryClient.invalidateQueries({ queryKey: ["event-capacity", eventId] });

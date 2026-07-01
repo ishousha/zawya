@@ -176,10 +176,24 @@ export default function EditRsvpDialog({ rsvp, eventTitle, open, onOpenChange, c
         updatePayload.removed_by_admin_actor = null;
       }
 
-      const { error } = await supabase
-        .from("rsvps")
-        .update(updatePayload)
-        .eq("id", rsvp.id);
+      const runUpdate = async () =>
+        supabase.from("rsvps").update(updatePayload).eq("id", rsvp.id);
+
+      let { error } = await runUpdate();
+      if (error) {
+        // Self-heal on capacity errors: expand by shortfall and retry once.
+        const info = parseCapacityError(error.message);
+        if (info && !Number.isNaN(info.attempted)) {
+          const shortfall = Math.max(1, info.attempted - info.remaining);
+          const { error: expErr } = await supabase.rpc("admin_expand_event_capacity" as any, {
+            _event_id: rsvp.event_id,
+            _extra_seats: shortfall,
+            _kind: isWaitlist ? "waitlist" : "attending",
+          });
+          if (expErr) throw expErr;
+          ({ error } = await runUpdate());
+        }
+      }
       if (error) throw error;
 
       // Notify the member when removed or reinstated
@@ -230,7 +244,7 @@ export default function EditRsvpDialog({ rsvp, eventTitle, open, onOpenChange, c
       const previous = result?.previous;
       queryClient.invalidateQueries({ queryKey: ["admin-rsvps", evId] });
       queryClient.invalidateQueries({ queryKey: ["host-rsvps", evId] });
-      queryClient.invalidateQueries({ queryKey: ["event-rsvp-counts", evId] });
+      queryClient.invalidateQueries({ queryKey: ["rsvp-counts", evId] });
       queryClient.invalidateQueries({ queryKey: ["door-attendees", evId] });
       queryClient.invalidateQueries({ queryKey: ["existing-rsvp-users", evId] });
       queryClient.invalidateQueries({ queryKey: ["event-capacity", evId] });
@@ -238,7 +252,7 @@ export default function EditRsvpDialog({ rsvp, eventTitle, open, onOpenChange, c
       const invalidate = () => {
         queryClient.invalidateQueries({ queryKey: ["admin-rsvps", evId] });
         queryClient.invalidateQueries({ queryKey: ["host-rsvps", evId] });
-        queryClient.invalidateQueries({ queryKey: ["event-rsvp-counts", evId] });
+        queryClient.invalidateQueries({ queryKey: ["rsvp-counts", evId] });
         queryClient.invalidateQueries({ queryKey: ["door-attendees", evId] });
         queryClient.invalidateQueries({ queryKey: ["existing-rsvp-users", evId] });
       };
