@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader2, UserPlus } from "lucide-react";
 import { toast } from "sonner";
+import { capacityToastFromError, parseCapacityError } from "@/lib/rsvp-errors";
 
 interface Props {
   eventId: string;
@@ -18,6 +19,7 @@ interface Props {
 /**
  * Quick walk-in guest entry for the door / event admin screens.
  * Creates an auto-approved guest_request on the spot — no sponsoring member required.
+ * If the event is at capacity, auto-expands capacity by 1 and retries.
  */
 export default function WalkInGuestDialog({ eventId, open, onOpenChange }: Props) {
   const { user } = useAuth();
@@ -31,24 +33,54 @@ export default function WalkInGuestDialog({ eventId, open, onOpenChange }: Props
     mutationFn: async () => {
       if (!user?.id) throw new Error("Not authenticated");
       if (!name.trim()) throw new Error("Guest name is required");
-      const { error } = await supabase.from("guest_requests").insert({
-        event_id: eventId,
-        requesting_user_id: user.id,
-        guest_name: name.trim(),
-        guest_phone: phone.trim() || null,
-        guest_email: "",
-        status: "approved",
-      });
-      if (error) throw error;
+
+      const doInsert = async () => {
+        const { error } = await supabase.from("guest_requests").insert({
+          event_id: eventId,
+          requesting_user_id: user.id,
+          guest_name: name.trim(),
+          guest_phone: phone.trim() || null,
+          guest_email: "",
+          status: "approved",
+        });
+        if (error) throw error;
+      };
+
+      let expandedBy = 0;
+      try {
+        await doInsert();
+      } catch (err) {
+        const info = parseCapacityError((err as Error)?.message);
+        if (!info || Number.isNaN(info.attempted)) throw err;
+        const shortfall = Math.max(1, info.attempted - info.remaining);
+        const { error: expErr } = await supabase.rpc("admin_expand_event_capacity" as any, {
+          _event_id: eventId,
+          _extra_seats: shortfall,
+          _kind: "attending",
+        });
+        if (expErr) throw expErr;
+        expandedBy = shortfall;
+        await doInsert();
+      }
+      return { expandedBy };
     },
-    onSuccess: () => {
-      toast.success(`${name.trim()} added as walk-in guest`);
+    onSuccess: (result) => {
+      const suffix = result?.expandedBy && result.expandedBy > 0
+        ? ` · Capacity expanded by ${result.expandedBy}`
+        : "";
+      toast.success(`${name.trim()} added as walk-in guest${suffix}`);
       queryClient.invalidateQueries({ queryKey: ["event-guest-requests", eventId] });
       queryClient.invalidateQueries({ queryKey: ["all-guest-requests"] });
+      queryClient.invalidateQueries({ queryKey: ["rsvp-counts", eventId] });
+      queryClient.invalidateQueries({ queryKey: ["event-capacity", eventId] });
       reset();
       onOpenChange(false);
     },
-    onError: (err) => toast.error((err as Error).message || "Failed to add guest"),
+    onError: (err) => {
+      const cap = capacityToastFromError(err);
+      if (cap) toast.error(cap.title, { description: cap.description });
+      else toast.error((err as Error).message || "Failed to add guest");
+    },
   });
 
   return (
@@ -81,7 +113,7 @@ export default function WalkInGuestDialog({ eventId, open, onOpenChange }: Props
             />
           </div>
           <p className="text-xs text-muted-foreground">
-            Guest will be auto-approved for this event.
+            Guest will be auto-approved. If the event is full, capacity will expand by 1.
           </p>
           <Button
             onClick={() => addGuest.mutate()}

@@ -11,7 +11,9 @@ export interface CapacityErrorInfo {
 
 export function parseCapacityError(rawMessage: string | undefined | null): CapacityErrorInfo | null {
   if (!rawMessage) return null;
-  if (!rawMessage.includes("RSVP_CAPACITY_EXCEEDED")) return null;
+  const isRsvp = rawMessage.includes("RSVP_CAPACITY_EXCEEDED");
+  const isGuest = rawMessage.includes("GUEST_CAPACITY_EXCEEDED");
+  if (!isRsvp && !isGuest) return null;
 
   const num = (key: string) => {
     const m = rawMessage.match(new RegExp(`${key}=(-?\\d+)`));
@@ -23,8 +25,9 @@ export function parseCapacityError(rawMessage: string | undefined | null): Capac
   const remaining = num("remaining");
 
   // Extract a friendly sentence (after the prefix, before the machine tail)
-  const after = rawMessage.replace(/^.*?RSVP_CAPACITY_EXCEEDED:\s*/, "");
+  const after = rawMessage.replace(/^.*?(?:RSVP|GUEST)_CAPACITY_EXCEEDED:\s*/, "");
   const human = after.split(" attempted=")[0].trim();
+
 
   if ([attempted, current, capacity, remaining].some((n) => Number.isNaN(n))) {
     return { attempted: NaN, current: NaN, capacity: NaN, remaining: NaN, human };

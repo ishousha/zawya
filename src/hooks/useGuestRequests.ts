@@ -1,6 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/runtime-client";
 import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
+
 
 export function useMyGuestRequests(eventId: string) {
   const { user } = useAuth();
@@ -150,11 +152,39 @@ export function useUpdateGuestRequestStatus() {
       requestedByName?: string;
       requestedByEmail?: string;
     }) => {
-      const { error } = await supabase
-        .from("guest_requests")
-        .update({ status })
-        .eq("id", id);
-      if (error) throw error;
+      const doUpdate = async () => {
+        const { error } = await supabase
+          .from("guest_requests")
+          .update({ status })
+          .eq("id", id);
+        if (error) throw error;
+      };
+
+      let expandedBy = 0;
+      try {
+        await doUpdate();
+      } catch (err) {
+        const { parseCapacityError } = await import("@/lib/rsvp-errors");
+        const info = parseCapacityError((err as Error)?.message);
+        if (!info || Number.isNaN(info.attempted) || status !== "approved") throw err;
+        // Look up event_id for this guest request to expand its capacity
+        const { data: gr } = await supabase
+          .from("guest_requests")
+          .select("event_id")
+          .eq("id", id)
+          .maybeSingle();
+        if (!gr?.event_id) throw err;
+        const shortfall = Math.max(1, info.attempted - info.remaining);
+        const { error: expErr } = await supabase.rpc("admin_expand_event_capacity" as any, {
+          _event_id: gr.event_id,
+          _extra_seats: shortfall,
+          _kind: "attending",
+        });
+        if (expErr) throw expErr;
+        expandedBy = shortfall;
+        await doUpdate();
+      }
+
 
       // Send email to guest when approved
       if (status === "approved" && guestEmail) {
@@ -196,13 +226,20 @@ export function useUpdateGuestRequestStatus() {
           console.error("Failed to trigger rejection webhook:", webhookErr);
         }
       }
+      return { expandedBy };
     },
-    onSuccess: () => {
+    onSuccess: (result: any) => {
+      if (result?.expandedBy > 0) {
+        toast.success(`Capacity expanded by ${result.expandedBy} to fit guest.`);
+      }
       queryClient.invalidateQueries({ queryKey: ["admin-guest-requests"] });
       queryClient.invalidateQueries({ queryKey: ["all-guest-requests"] });
+      queryClient.invalidateQueries({ queryKey: ["rsvp-counts"] });
+      queryClient.invalidateQueries({ queryKey: ["event-capacity"] });
     },
   });
 }
+
 
 /** Admin: delete any guest request */
 export function useAdminDeleteGuestRequest() {
