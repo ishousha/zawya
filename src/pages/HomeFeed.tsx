@@ -82,6 +82,11 @@ export default function HomeFeed() {
   const visibleEvents = useMemo(() => events?.filter((e) => {
     if ((e as any).mureeds_only === true && !isMureed && !isAdminOrMod) return false;
     if (removedEventIds && removedEventIds.has(e.id)) return false;
+    // Hide cancelled events from members 24h after cancellation (admins see them in admin panel).
+    if (e.status === "cancelled" && !isAdminOrMod) {
+      const cancelledAt = (e as any).cancelled_at ? new Date((e as any).cancelled_at).getTime() : 0;
+      if (!cancelledAt || Date.now() - cancelledAt > 24 * 60 * 60 * 1000) return false;
+    }
     return true;
   }), [events, isMureed, isAdminOrMod, removedEventIds]);
 

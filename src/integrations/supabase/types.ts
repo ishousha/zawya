@@ -443,6 +443,7 @@ export type Database = {
           announcement_send_at: string | null
           announcement_sent_at: string | null
           audience_gender: string
+          cancelled_at: string | null
           capacity: number | null
           checkin_pin: string | null
           checkin_radius_meters: number
@@ -489,6 +490,7 @@ export type Database = {
           announcement_send_at?: string | null
           announcement_sent_at?: string | null
           audience_gender?: string
+          cancelled_at?: string | null
           capacity?: number | null
           checkin_pin?: string | null
           checkin_radius_meters?: number
@@ -535,6 +537,7 @@ export type Database = {
           announcement_send_at?: string | null
           announcement_sent_at?: string | null
           audience_gender?: string
+          cancelled_at?: string | null
           capacity?: number | null
           checkin_pin?: string | null
           checkin_radius_meters?: number
