@@ -224,13 +224,20 @@ export function useUpdateGuestRequestStatus() {
           console.error("Failed to trigger rejection webhook:", webhookErr);
         }
       }
+      return { expandedBy };
     },
-    onSuccess: () => {
+    onSuccess: (result: any) => {
+      if (result?.expandedBy > 0) {
+        toast.success(`Capacity expanded by ${result.expandedBy} to fit guest.`);
+      }
       queryClient.invalidateQueries({ queryKey: ["admin-guest-requests"] });
       queryClient.invalidateQueries({ queryKey: ["all-guest-requests"] });
+      queryClient.invalidateQueries({ queryKey: ["rsvp-counts"] });
+      queryClient.invalidateQueries({ queryKey: ["event-capacity"] });
     },
   });
 }
+
 
 /** Admin: delete any guest request */
 export function useAdminDeleteGuestRequest() {
