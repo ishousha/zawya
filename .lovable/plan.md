@@ -1,37 +1,54 @@
-## Bug
-Admin sees "Over capacity — Tried to add 1 seat. Only 0 seats left (21/21 used)" and the RSVP is blocked, even though the flow is supposed to auto-expand capacity for admins.
+## Problem
 
-## Root cause
-In `WalkInRsvpModal.tsx` the pre-flight overflow is computed from `useEventRsvpCounts(eventId)`, but:
-1. That hook's real query key is `["rsvp-counts", eventId]` while the modal invalidates `["event-rsvp-counts", eventId]` — so counts are stale/zero on first open.
-2. When counts read as 0, `overflow = max(0, 0 + 1 - 21) = 0`, so the button renders as "Confirm Walk-In" and the `admin_expand_event_capacity` RPC is never called.
-3. The insert then hits the `enforce_event_capacity_on_rsvp` trigger with real DB state (21/21) and fails with `RSVP_CAPACITY_EXCEEDED`.
+Guests are stored in `guest_requests` and are entirely invisible to capacity logic:
 
-The same stale-counts pattern exists in `EditRsvpDialog` (pre-flight expand only fires when the modal already knows the true attending total).
+- `enforce_event_capacity_on_rsvp` only reads `rsvps`.
+- `get_event_rsvp_counts` only sums `rsvps.guests_count`.
+- Approving a guest request or adding a walk-in guest never consumes a seat.
+- Admins can’t "force" a guest either — because nothing currently blocks them, but nothing expands capacity either, so the number displayed elsewhere is wrong.
 
-## Fix
+Each approved guest should count as **1 seat** against `events.capacity` (the same way an RSVP `guests_count` does). If an admin forces a guest over capacity, `events.capacity` auto-expands by the exact overflow, mirroring the existing `admin_expand_event_capacity` flow used by walk-in RSVPs.
 
-### 1. Make the admin add/edit paths self-healing on capacity errors
-In the `onError` handlers for `WalkInRsvpModal` and `EditRsvpDialog`, when the error parses as `RSVP_CAPACITY_EXCEEDED`:
-- Read `attempted` and `remaining` from `parseCapacityError`.
-- Compute `expandBy = attempted - remaining` (min 1).
-- Call `supabase.rpc("admin_expand_event_capacity", { _event_id, _extra_seats: expandBy, _kind: "attending" })` and re-run the same mutation once.
-- On the retried success, toast `"Added — capacity expanded by N"`. Only surface the current error toast if the retry itself fails.
+## Plan
 
-This guarantees admins can always force-add, regardless of whether the client-side count was fresh.
+### 1. Database — count approved guests toward capacity
 
-### 2. Fix the stale-count query key so the pre-flight branch also works
-- Update the invalidations in `WalkInRsvpModal`, `EditRsvpDialog`, and `EventRsvpDetail` from `["event-rsvp-counts", eventId]` to `["rsvp-counts", eventId]` to match `useEventRsvpCounts`.
-- Keep the existing `["event-capacity", eventId]` invalidations for the header chip.
+New migration:
 
-### 3. UI polish
-- While the auto-expand retry is in flight, keep the button in its `isPending` state so it doesn't look like nothing happened.
-- The retried success toast wins; do not also show the capacity error toast.
+- **Extend `get_event_rsvp_counts`** to add approved (non-cancelled/non-rejected) `guest_requests` into `attending_count` and, when the guest is marked checked-in via existing columns, into `checked_in_count`. Non-breaking: same return shape.
+- **New trigger `enforce_event_capacity_on_guest_approval`** on `guest_requests` (BEFORE INSERT OR UPDATE):
+  - Fires when the resulting row is `status = 'approved'`.
+  - Computes `current = SUM(rsvps.guests_count attending, excluding host) + COUNT(approved guest_requests excluding this row)`.
+  - Raises `GUEST_CAPACITY_EXCEEDED: … attempted=1 current=X capacity=Y remaining=Z` (same shape as the RSVP error, parseable by `parseCapacityError`).
+- **Update `admin_expand_event_capacity`** — already exists and is admin-gated; no change needed. Guests always consume the `attending` bucket (not waitlist).
+
+### 2. Frontend — surface guests in capacity + self-heal on force-add
+
+- **`src/hooks/useRSVP.ts`** — no logic change; `useEventRsvpCounts` will now include guests automatically via the updated RPC.
+- **`src/components/admin/WalkInGuestDialog.tsx`**:
+  - Wrap the insert in the same self-heal pattern used in `WalkInRsvpModal.tsx`: on `GUEST_CAPACITY_EXCEEDED`, parse the shortfall, call `admin_expand_event_capacity({ _kind: 'attending', _extra_seats: shortfall })`, retry once, then toast `"Walk-in added · Capacity expanded by N"`.
+  - Invalidate `["rsvp-counts", eventId]` and `["event-capacity", eventId]` so the header chip refreshes.
+- **`src/components/admin/AdminGuestApprovals.tsx`** and **`src/components/admin/AllGuestApprovals.tsx`**:
+  - In `handleAction(r, "approved")`, on `GUEST_CAPACITY_EXCEEDED` from the mutation, run the same expand-then-retry once, and show a toast noting the expansion.
+  - Invalidate `rsvp-counts` / `event-capacity` after success so the "Remaining X / Y" chip in `EventRsvpDetail` stays accurate.
+- **`src/lib/rsvp-errors.ts`** — extend `parseCapacityError` to also recognize the `GUEST_CAPACITY_EXCEEDED:` prefix (same regex format).
+- **`src/components/admin/EventRsvpDetail.tsx`** — no code change needed; the "Remaining" chip already reads from `useEventRsvpCounts`, which will now include guests.
+
+### 3. Non-admin member guest requests
+
+A member requesting a guest for a full event will now fail with the new capacity error (correct behavior — members shouldn't be able to bypass capacity). The existing `capacityToastFromError` helper will render a clear message. No UI change beyond the error surfacing.
+
+### 4. Out of scope
+
+- Not merging `guest_requests` into `rsvps`.
+- Not touching the waitlist for guests (guests never enter waitlist today; leaving as-is).
+- No change to `EventControlRoom` counts — they read from the same RPC and will update automatically.
 
 ## Files touched
-- `src/components/admin/WalkInRsvpModal.tsx` — auto-retry-with-expand in `onError`; fix invalidation key.
-- `src/components/admin/EditRsvpDialog.tsx` — same auto-retry-with-expand; fix invalidation key.
-- `src/components/admin/EventRsvpDetail.tsx` — fix invalidation key so the header remaining-seats chip updates immediately after admin actions.
-- `public/version.json` — bump.
 
-No database, RLS, or non-admin RSVP behavior changes.
+- New: `supabase/migrations/<ts>_guests_count_toward_capacity.sql`
+- Edit: `src/lib/rsvp-errors.ts`
+- Edit: `src/components/admin/WalkInGuestDialog.tsx`
+- Edit: `src/components/admin/AdminGuestApprovals.tsx`
+- Edit: `src/components/admin/AllGuestApprovals.tsx`
+- Bump: `public/version.json`
