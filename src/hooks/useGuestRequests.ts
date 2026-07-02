@@ -150,11 +150,39 @@ export function useUpdateGuestRequestStatus() {
       requestedByName?: string;
       requestedByEmail?: string;
     }) => {
-      const { error } = await supabase
-        .from("guest_requests")
-        .update({ status })
-        .eq("id", id);
-      if (error) throw error;
+      const doUpdate = async () => {
+        const { error } = await supabase
+          .from("guest_requests")
+          .update({ status })
+          .eq("id", id);
+        if (error) throw error;
+      };
+
+      let expandedBy = 0;
+      try {
+        await doUpdate();
+      } catch (err) {
+        const { parseCapacityError } = await import("@/lib/rsvp-errors");
+        const info = parseCapacityError((err as Error)?.message);
+        if (!info || Number.isNaN(info.attempted) || status !== "approved") throw err;
+        // Look up event_id for this guest request to expand its capacity
+        const { data: gr } = await supabase
+          .from("guest_requests")
+          .select("event_id")
+          .eq("id", id)
+          .maybeSingle();
+        if (!gr?.event_id) throw err;
+        const shortfall = Math.max(1, info.attempted - info.remaining);
+        const { error: expErr } = await supabase.rpc("admin_expand_event_capacity" as any, {
+          _event_id: gr.event_id,
+          _extra_seats: shortfall,
+          _kind: "attending",
+        });
+        if (expErr) throw expErr;
+        expandedBy = shortfall;
+        await doUpdate();
+      }
+
 
       // Send email to guest when approved
       if (status === "approved" && guestEmail) {
